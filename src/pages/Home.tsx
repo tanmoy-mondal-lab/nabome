@@ -1,62 +1,234 @@
-import Navbar from "../components/Navbar";
-import { Box, Button, Container, Typography } from "@mui/material";
+import { Link } from "react-router-dom";
 
 export default function Home() {
   return (
     <>
-      <Navbar />
-
-      <Box
-        sx={{
-          backgroundColor: "#F5F0E8",
-          minHeight: "80vh",
+      {/* HERO */}
+      <section
+        style={{
+          minHeight: "100vh",
+          background: "#0f0f0f",
+          color: "white",
           display: "flex",
           alignItems: "center",
+          justifyContent: "space-between",
+          padding: "60px",
+          gap: "50px",
+          flexWrap: "wrap",
         }}
       >
-        <Container>
-          <Typography
-            variant="h2"
-            sx={{
-              fontWeight: "bold",
-              mb: 2,
+        <div style={{ maxWidth: "550px" }}>
+          <img
+            src="/images/logo/logo.png"
+            alt="Nabome"
+            style={{
+              width: "220px",
+              marginBottom: "20px",
             }}
-          >
-            নবME
-          </Typography>
+          />
 
-          <Typography
-            variant="h5"
-            sx={{
-              mb: 4,
+          <h1
+            style={{
+              fontSize: "4rem",
+              marginBottom: "20px",
+              color: "#D4AF37",
             }}
           >
-            Build Your Story.
-          </Typography>
+            Build Your Story
+          </h1>
 
-          <Typography
-            variant="body1"
-            sx={{
-              maxWidth: 600,
-              mb: 4,
+          <h2
+            style={{
+              fontSize: "2rem",
+              marginBottom: "20px",
             }}
           >
-            Bengali inspired premium fashion for Men,
-            Women, Unisex and Accessories.
-          </Typography>
+            Style That Speaks.
+            <br />
+            Confidence That Stays.
+          </h2>
 
-          <Button
-            variant="contained"
-            size="large"
-            href="/category"
-            sx={{
-              backgroundColor: "#111",
+          <p
+            style={{
+              color: "#cccccc",
+              marginBottom: "30px",
             }}
           >
-            Shop Now
-          </Button>
-        </Container>
-      </Box>
+            Premium streetwear crafted for the bold.
+            Minimal in design. Maximum in impact.
+          </p>
+
+          <Link to="/category">
+            <button
+              style={{
+                padding: "14px 30px",
+                border: "none",
+                background: "#D4AF37",
+                color: "black",
+                fontWeight: "bold",
+                cursor: "pointer",
+                borderRadius: "8px",
+              }}
+            >
+              Shop Collection
+            </button>
+          </Link>
+        </div>
+
+        <img
+          src="/images/hero/hero-banner.png"
+          alt="Hero"
+          style={{
+            width: "600px",
+            maxWidth: "100%",
+            borderRadius: "20px",
+          }}
+        />
+      </section>
+
+      {/* CATEGORIES */}
+      <section
+        style={{
+          padding: "80px 40px",
+          background: "#111",
+          color: "white",
+        }}
+      >
+        <h2
+          style={{
+            textAlign: "center",
+            fontSize: "3rem",
+            marginBottom: "40px",
+            color: "#D4AF37",
+          }}
+        >
+          Collections
+        </h2>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit,minmax(220px,1fr))",
+            gap: "25px",
+          }}
+        >
+          {[
+            "Men",
+            "Women",
+            "Unisex",
+            "Accessories",
+          ].map((item) => (
+            <div
+              key={item}
+              style={{
+                background: "#1a1a1a",
+                padding: "40px",
+                borderRadius: "15px",
+                textAlign: "center",
+                border: "1px solid #D4AF37",
+              }}
+            >
+              <h3>{item}</h3>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* WHY NABOME */}
+      <section
+        style={{
+          padding: "80px 40px",
+          background: "#0f0f0f",
+          color: "white",
+        }}
+      >
+        <h2
+          style={{
+            textAlign: "center",
+            marginBottom: "50px",
+            color: "#D4AF37",
+          }}
+        >
+          Why Nabome?
+        </h2>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit,minmax(250px,1fr))",
+            gap: "25px",
+          }}
+        >
+          {[
+            "Premium Quality",
+            "Bengali Identity",
+            "Print On Demand",
+            "Built For Expression",
+          ].map((item) => (
+            <div
+              key={item}
+              style={{
+                background: "#1a1a1a",
+                padding: "30px",
+                borderRadius: "15px",
+              }}
+            >
+              <h3>{item}</h3>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* COMMUNITY */}
+      <section
+        style={{
+          padding: "80px 40px",
+          background: "#111",
+          color: "white",
+          textAlign: "center",
+        }}
+      >
+        <h2
+          style={{
+            color: "#D4AF37",
+            marginBottom: "20px",
+          }}
+        >
+          Built By Us. Worn By You.
+        </h2>
+
+        <img
+          src="/images/community/community.jpeg"
+          alt="Community"
+          style={{
+            width: "700px",
+            maxWidth: "100%",
+            borderRadius: "20px",
+          }}
+        />
+      </section>
+
+      {/* FOOTER */}
+      <footer
+        style={{
+          background: "#000",
+          color: "#fff",
+          textAlign: "center",
+          padding: "40px",
+        }}
+      >
+        <h2 style={{ color: "#D4AF37" }}>
+          নবME
+        </h2>
+
+        <p>Build Your Story</p>
+
+        <p>WhatsApp: +91 9163854706</p>
+
+        <p>© 2026 Nabome. All Rights Reserved.</p>
+      </footer>
     </>
   );
 }
