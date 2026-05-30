@@ -3,6 +3,7 @@ import { products } from "../data/products";
 import Navbar from "../components/Navbar";
 import { useCart } from "../context/CartContext";
 import { useState } from "react";
+import "../styles/productDetail.css";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -13,8 +14,11 @@ export default function ProductDetail() {
 
   const { addToCart } = useCart();
 
-  const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedSize, setSelectedSize] =
+    useState("");
+
+  const [selectedColor, setSelectedColor] =
+    useState("");
 
   if (!product) {
     return <h1>Product Not Found</h1>;
@@ -24,28 +28,77 @@ export default function ProductDetail() {
     <>
       <Navbar />
 
-      <div
-        style={{
-          padding: "50px",
-          display: "flex",
-          gap: "40px",
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="product-page">
         <img
           src={product.image}
           alt={product.name}
-          style={{
-            width: "400px",
-            maxWidth: "100%",
-            borderRadius: "15px",
-          }}
+          className="product-image-large"
         />
 
         <div>
           <h1>{product.name}</h1>
 
-          <h2>₹{product.price}</h2>
+          <p
+            style={{
+              color: "#D4AF37",
+              fontSize: "20px",
+            }}
+          >
+            ★★★★★
+          </p>
+
+          <div>
+            <span
+              style={{
+                fontSize: "34px",
+                fontWeight: "bold",
+                color: "#D4AF37",
+              }}
+            >
+              ₹{product.price}
+            </span>
+
+            <span
+              style={{
+                marginLeft: "15px",
+                textDecoration: "line-through",
+                color: "#999",
+                fontSize: "22px",
+              }}
+            >
+              ₹{(product as any).originalPrice}
+            </span>
+          </div>
+
+          <p
+            style={{
+              color: "#28a745",
+              fontWeight: "bold",
+            }}
+          >
+            Save ₹
+            {(product as any).originalPrice -
+              product.price}
+          </p>
+
+          {(product as any).originalPrice &&
+            (product as any).originalPrice >
+              product.price && (
+              <p
+                style={{
+                  color: "#28a745",
+                  fontWeight: "bold",
+                }}
+              >
+                {Math.round(
+                  (((product as any).originalPrice -
+                    product.price) /
+                    (product as any).originalPrice) *
+                    100
+                )}
+                % OFF
+              </p>
+            )}
 
           <p>{product.description}</p>
 
@@ -55,12 +108,15 @@ export default function ProductDetail() {
             {product.sizes.map((size) => (
               <button
                 key={size}
-                onClick={() => setSelectedSize(size)}
+                onClick={() =>
+                  setSelectedSize(size)
+                }
+                className="size-btn"
                 style={{
-                  marginRight: "10px",
-                  padding: "10px 15px",
-                  background: selectedSize === size ? "#D4AF37" : "white",
-                  border: selectedSize === size ? "2px solid #D4AF37" : "2px solid #ccc",
+                  background:
+                    selectedSize === size
+                      ? "#D4AF37"
+                      : "white",
                 }}
               >
                 {size}
@@ -68,7 +124,11 @@ export default function ProductDetail() {
             ))}
           </div>
 
-          <h3 style={{ marginTop: "20px" }}>
+          <h3
+            style={{
+              marginTop: "20px",
+            }}
+          >
             Available Colors
           </h3>
 
@@ -76,51 +136,52 @@ export default function ProductDetail() {
             {product.colors.map((color) => (
               <button
                 key={color}
-                onClick={() => setSelectedColor(color)}
+                onClick={() =>
+                  setSelectedColor(color)
+                }
+                className="color-btn"
                 style={{
-                  marginRight: "10px",
-                  padding: "10px 15px",
-                  background: selectedColor === color ? "#D4AF37" : "white",
-                  border: selectedColor === color ? "2px solid #D4AF37" : "2px solid #ccc",
+                  background:
+                    selectedColor === color
+                      ? "#D4AF37"
+                      : "white",
                 }}
               >
                 {color}
               </button>
             ))}
           </div>
+
           <button
+            className="add-cart-btn"
             onClick={() => {
               if (!selectedSize) {
-                alert("Please select a size");
+                alert(
+                  "Please select a size"
+                );
                 return;
               }
 
               if (!selectedColor) {
-                alert("Please select a color");
+                alert(
+                  "Please select a color"
+                );
                 return;
-            }
+              }
 
-            addToCart({
-              ...product,
-              selectedSize,
-              selectedColor,
-            });
+              addToCart({
+                ...product,
+                selectedSize,
+                selectedColor,
+              });
 
-            alert("Added To Cart Successfully!");
-        }}
-        style={{
-          marginTop: "30px",
-          padding: "15px 30px",
-          background: "#111",
-          color: "white",
-          border: "none",
-          borderRadius: "10px",
-          cursor: "pointer",
-          fontSize: "16px",
-        }}
-      >
-        Add To Cart
-    </button>
+              alert(
+                "Added To Cart Successfully!"
+              );
+            }}
+          >
+            Add To Cart
+          </button>
         </div>
       </div>
     </>

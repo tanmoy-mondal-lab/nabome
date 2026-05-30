@@ -29,9 +29,27 @@ export default function Category() {
               <div className="product-info">
                 <h3>{product.name}</h3>
                 <p>{product.category}</p>
-                <p className="product-price">
-                  ₹{product.price}
-                </p>
+                <div>
+                  <span
+                    style={{
+                      color: "#D4AF37",
+                      fontWeight: "bold",
+                      fontSize: "22px",
+                    }}
+                  >
+                    ₹{product.price}
+                  </span>
+
+                  <span
+                    style={{
+                      marginLeft: "10px",
+                      textDecoration: "line-through",
+                      color: "#999",
+                    }}
+                  >
+                    ₹{(product as any).originalPrice}
+                  </span>
+                </div>
               </div>
             </Link>
             <button
