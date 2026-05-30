@@ -1,6 +1,5 @@
 import Navbar from "../components/Navbar";
-import { useWishlist }
-from "../context/WishlistContext";
+import { useWishlist } from "../context/WishlistContext";
 
 export default function Wishlist() {
   const {

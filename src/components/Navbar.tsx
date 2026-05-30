@@ -1,5 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
 import "./../styles/navbar.css";
 
 export default function Navbar() {
@@ -7,24 +9,41 @@ export default function Navbar() {
 
   const navigate = useNavigate();
 
+  const { cart } = useCart();
+
+  const { wishlist } = useWishlist();
+
+  const cartCount = cart.reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
+
   return (
     <nav className="navbar">
       <div className="logo">
-        <img
-          src="/images/logo/logo.png"
-          alt="Nabome"
-        />
+        <Link to="/">
+          <img
+            src="/images/logo/logo.png"
+            alt="Nabome"
+          />
+        </Link>
       </div>
 
       <div className="nav-links">
         <Link to="/">Home</Link>
-        <Link to="/men">Men</Link>
-        <Link to="/women">Women</Link>
-        <Link to="/unisex">Unisex</Link>
-        <Link to="/accessories">Accessories</Link>
+        <Link to="/category">Shop</Link>
+        <Link to="/about">About</Link>
+        <Link to="/contact">Contact</Link>
       </div>
 
-      <div className="nav-right">
+      <div
+        className="nav-right"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+        }}
+      >
         <input
           type="text"
           placeholder="Search products..."
@@ -46,15 +65,26 @@ export default function Navbar() {
             padding: "10px",
             borderRadius: "8px",
             border: "1px solid #ccc",
-            marginRight: "15px",
+            minWidth: "220px",
           }}
         />
+
+        <Link
+          to="/wishlist"
+          style={{
+            textDecoration: "none",
+            color: "inherit",
+            fontWeight: "bold",
+          }}
+        >
+          ❤️ {wishlist.length}
+        </Link>
 
         <Link
           to="/cart"
           className="cart-btn"
         >
-          Cart
+          🛒 {cartCount}
         </Link>
       </div>
     </nav>

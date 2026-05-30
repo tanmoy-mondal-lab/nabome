@@ -1,11 +1,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { WishlistProvider }
-from "./context/WishlistContext";
 
 import App from "./App";
 
 import { CartProvider } from "./context/CartContext";
+import { WishlistProvider } from "./context/WishlistContext";
 
 ReactDOM.createRoot(
   document.getElementById("root")!
