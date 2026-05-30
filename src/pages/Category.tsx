@@ -1,6 +1,7 @@
 import Navbar from "../components/Navbar";
 import { products } from "../data/products";
 import { useCart } from "../context/CartContext";
+import "../styles/product.css";
 
 export default function Category() {
   const { addToCart } = useCart();
@@ -9,25 +10,34 @@ export default function Category() {
     <>
       <Navbar />
 
-      <div style={{ padding: "30px" }}>
-        <h1>Shop Collection</h1>
-
+      <div className="products-grid">
         {products.map((product) => (
           <div
             key={product.id}
-            style={{
-              border: "1px solid #ddd",
-              padding: "20px",
-              marginBottom: "20px",
-            }}
+            className="product-card"
           >
-            <h2>{product.name}</h2>
+            <img
+              src={product.image}
+              alt={product.name}
+              className="product-image"
+            />
 
-            <p>₹{product.price}</p>
+            <div className="product-info">
+              <h3>{product.name}</h3>
 
-            <button onClick={() => addToCart(product)}>
-  Add To Cart
-</button>
+              <p>{product.category}</p>
+
+              <p className="product-price">
+                ₹{product.price}
+              </p>
+
+              <button
+                className="add-btn"
+                onClick={() => addToCart(product)}
+              >
+                Add To Cart
+              </button>
+            </div>
           </div>
         ))}
       </div>
