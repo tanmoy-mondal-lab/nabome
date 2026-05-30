@@ -1,7 +1,12 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import "./../styles/navbar.css";
 
 export default function Navbar() {
+  const [search, setSearch] = useState("");
+
+  const navigate = useNavigate();
+
   return (
     <nav className="navbar">
       <div className="logo">
@@ -20,6 +25,31 @@ export default function Navbar() {
       </div>
 
       <div className="nav-right">
+        <input
+          type="text"
+          placeholder="Search products..."
+          value={search}
+          onChange={(e) =>
+            setSearch(e.target.value)
+          }
+          onKeyDown={(e) => {
+            if (
+              e.key === "Enter" &&
+              search.trim()
+            ) {
+              navigate(
+                `/category?search=${search}`
+              );
+            }
+          }}
+          style={{
+            padding: "10px",
+            borderRadius: "8px",
+            border: "1px solid #ccc",
+            marginRight: "15px",
+          }}
+        />
+
         <Link
           to="/cart"
           className="cart-btn"

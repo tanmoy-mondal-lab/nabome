@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { products } from "../data/products";
 import Navbar from "../components/Navbar";
 import { useCart } from "../context/CartContext";
@@ -20,20 +20,59 @@ export default function ProductDetail() {
   const [selectedColor, setSelectedColor] =
     useState("");
 
+  const [selectedImage, setSelectedImage] =
+    useState(product?.image || "");
+
   if (!product) {
     return <h1>Product Not Found</h1>;
   }
+
+  const relatedProducts = products.filter(
+    (p) => p.id !== product.id
+  );
 
   return (
     <>
       <Navbar />
 
       <div className="product-page">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="product-image-large"
-        />
+        <div>
+          <img
+            src={selectedImage}
+            alt={product.name}
+            className="product-image-large"
+          />
+
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              marginTop: "15px",
+            }}
+          >
+            {product.images?.map((img) => (
+              <img
+                key={img}
+                src={img}
+                alt="thumbnail"
+                onClick={() =>
+                  setSelectedImage(img)
+                }
+                style={{
+                  width: "80px",
+                  height: "80px",
+                  objectFit: "cover",
+                  border:
+                    selectedImage === img
+                      ? "3px solid #D4AF37"
+                      : "1px solid #ddd",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                }}
+              />
+            ))}
+          </div>
+        </div>
 
         <div>
           <h1>{product.name}</h1>
@@ -91,9 +130,11 @@ export default function ProductDetail() {
                 }}
               >
                 {Math.round(
-                  (((product as any).originalPrice -
+                  (((product as any)
+                    .originalPrice -
                     product.price) /
-                    (product as any).originalPrice) *
+                    (product as any)
+                      .originalPrice) *
                     100
                 )}
                 % OFF
@@ -184,6 +225,79 @@ export default function ProductDetail() {
           </button>
         </div>
       </div>
+
+      <section
+        style={{
+          padding: "60px 30px",
+          maxWidth: "1200px",
+          margin: "auto",
+        }}
+      >
+        <h2
+          style={{
+            marginBottom: "30px",
+            color: "#D4AF37",
+          }}
+        >
+          You May Also Like
+        </h2>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit,minmax(250px,1fr))",
+            gap: "20px",
+          }}
+        >
+          {relatedProducts.map((item) => (
+            <Link
+              key={item.id}
+              to={`/product/${item.id}`}
+              style={{
+                textDecoration: "none",
+                color: "inherit",
+              }}
+            >
+              <div
+                style={{
+                  border: "1px solid #ddd",
+                  borderRadius: "15px",
+                  overflow: "hidden",
+                  background: "#fff",
+                }}
+              >
+                <img
+                  src={item.image}
+                  alt={item.name}
+                  style={{
+                    width: "100%",
+                    height: "300px",
+                    objectFit: "cover",
+                  }}
+                />
+
+                <div
+                  style={{
+                    padding: "15px",
+                  }}
+                >
+                  <h3>{item.name}</h3>
+
+                  <p
+                    style={{
+                      color: "#D4AF37",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    ₹{item.price}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
     </>
   );
 }
