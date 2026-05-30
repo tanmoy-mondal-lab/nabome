@@ -5,6 +5,9 @@ export const products = [
     price: 799,
     category: "Men",
     image: "/images/products/product1.jpeg",
+    description:"Premium 240 GSM cotton oversized t-shirtwith modern fit.",
+    sizes:["S","M","L","XL"],
+    colors:["Black","White","Grey"]
   },
 
   {
@@ -13,6 +16,9 @@ export const products = [
     price: 699,
     category: "Women",
     image: "/images/products/product2.jpeg",
+    description:"Soft 220 GSM cotton t-shirt with Bengali typography.",
+    sizes:["S","M","L"],
+    colors:["Black","White"]
   },
 
   {
@@ -21,5 +27,8 @@ export const products = [
     price: 1499,
     category: "Unisex",
     image: "/images/products/product3.jpeg",
+    description:"Cozy 300 GSM fleece hoodie with minimalist design.",
+    sizes:["S","M","L","XL"],
+    colors:["Black","Grey"]
   },
 ];
