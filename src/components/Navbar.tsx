@@ -1,48 +1,32 @@
-import { AppBar, Toolbar, Typography, Button, Box } from "@mui/material";
 import { Link } from "react-router-dom";
+import "./../styles/navbar.css";
 
 export default function Navbar() {
   return (
-    <AppBar
-      position="static"
-      sx={{
-        backgroundColor: "#111",
-        boxShadow: "none",
-      }}
-    >
-      <Toolbar>
-        <Typography
-          variant="h5"
-          sx={{
-            flexGrow: 1,
-            fontWeight: "bold",
-          }}
+    <nav className="navbar">
+      <div className="logo">
+        <img
+          src="/images/logo/logo.png"
+          alt="Nabome"
+        />
+      </div>
+
+      <div className="nav-links">
+        <Link to="/">Home</Link>
+        <Link to="/men">Men</Link>
+        <Link to="/women">Women</Link>
+        <Link to="/unisex">Unisex</Link>
+        <Link to="/accessories">Accessories</Link>
+      </div>
+
+      <div className="nav-right">
+        <Link
+          to="/cart"
+          className="cart-btn"
         >
-          নবME
-        </Typography>
-
-        <Box>
-          <Button color="inherit" component={Link} to="/">
-            Home
-          </Button>
-
-          <Button color="inherit" component={Link} to="/category">
-            Shop
-          </Button>
-
-          <Button color="inherit" component={Link} to="/about">
-            About
-          </Button>
-
-          <Button color="inherit" component={Link} to="/contact">
-            Contact
-          </Button>
-
-          <Button color="inherit" component={Link} to="/cart">
-            Cart
-          </Button>
-        </Box>
-      </Toolbar>
-    </AppBar>
+          Cart
+        </Link>
+      </div>
+    </nav>
   );
 }
