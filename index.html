@@ -21,16 +21,13 @@
     <meta name="twitter:image" content="https://www.nabome.online/images/products/product1.jpeg" />
     <title>নবME | Premium Bengali Streetwear</title>
 
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-T0HLCQE1B9"></script>
+    <!-- Google Analytics (id via VITE_GA_ID env) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=%VITE_GA_ID%"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
+      function gtag() { dataLayer.push(arguments); }
       gtag("js", new Date());
-
-      gtag("config", "G-T0HLCQE1B9");
+      gtag("config", "%VITE_GA_ID%");
     </script>
   </head>
 

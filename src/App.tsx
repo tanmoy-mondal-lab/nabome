@@ -22,6 +22,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const PolicyPage = lazy(() => import("./pages/PolicyPage"));
 const OrderTracking = lazy(() => import("./pages/OrderTracking"));
 const Admin = lazy(() => import("./pages/Admin"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 
 function Loader() {
   return (
@@ -69,6 +70,7 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>

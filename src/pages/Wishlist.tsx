@@ -1,3 +1,4 @@
+import SEO from "../components/SEO";
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
 import { useWishlist } from "../context/WishlistContext";
@@ -14,6 +15,7 @@ export default function Wishlist() {
 
   return (
     <>
+      <SEO title="Wishlist | নবME" description="Your saved নবME items." path="/wishlist" />
       <Navbar />
 
       <div

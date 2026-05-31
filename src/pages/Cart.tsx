@@ -1,3 +1,4 @@
+import SEO from "../components/SEO";
 import Navbar from "../components/Navbar";
 import { useCart } from "../context/CartContext";
 import { Link } from "react-router-dom";
@@ -23,6 +24,7 @@ export default function Cart() {
 
   return (
     <>
+      <SEO title="Shopping Cart | নবME" description="View your নবME shopping bag and checkout." path="/cart" />
       <Navbar />
 
       <div
@@ -132,15 +134,7 @@ export default function Cart() {
               padding: "60px 6%",
             }}
           >
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "2fr 1fr",
-                gap: "50px",
-                alignItems: "start",
-              }}
-            >
+            <div className="cart-grid">
               {/* ITEMS */}
 
               <div>

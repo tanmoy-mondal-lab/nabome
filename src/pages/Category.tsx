@@ -28,7 +28,7 @@ export default function Category() {
   const filteredProducts = useMemo(() => {
     return products
       .filter((product) => {
-        const searchText = `${product.name} ${product.category} ${product.tags.join(" ")}`.toLowerCase();
+        const searchText = `${product.name} ${product.category} ${product.tags.join(" ")} ${product.description} ${product.material} ${product.fit}`.toLowerCase();
         const matchesSearch = searchText.includes(search.toLowerCase());
         const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
         const matchesBadge = badge === "new" ? product.isNew : true;

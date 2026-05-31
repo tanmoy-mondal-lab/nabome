@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import SEO from "../components/SEO";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import {
@@ -92,6 +93,7 @@ export default function Profile() {
   if (loading) {
     return (
       <>
+        <SEO title="My Profile | নবME" description="Manage your নবME account profile." path="/profile" />
         <Navbar />
         <div style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", display: "grid", placeItems: "center" }}>
           <p>Loading...</p>
@@ -120,6 +122,7 @@ export default function Profile() {
 
   return (
     <>
+      <SEO title="My Profile | নবME" description="Manage your নবME account profile." path="/profile" />
       <Navbar />
 
       <div style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>

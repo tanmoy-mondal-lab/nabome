@@ -187,7 +187,7 @@ export default function OrderSuccess() {
             marginRight: "auto",
           }}
         >
-          Your order has been confirmed. The bill is being sent to your WhatsApp and email.
+          Your order has been confirmed. You can send the bill to yourself via WhatsApp or Email below.
         </p>
 
         {/* SEND STATUS */}

@@ -34,6 +34,7 @@ export type OrderData = {
   paymentStatus: string;
   orderStatus: string;
   userEmail?: string;
+  utr?: string;
 };
 
 // ─── PRODUCTS ──────────────────────────────────────────
@@ -148,6 +149,24 @@ export async function deleteProduct(id: string) {
   return id;
 }
 
+export async function updateProductStock(id: string, delta: number) {
+  if (!supabase) return;
+
+  const { data: prod } = await supabase
+    .from("products")
+    .select("stock")
+    .eq("id", id)
+    .single();
+
+  if (!prod) return;
+
+  const newStock = Math.max(0, (prod.stock as number) - delta);
+  await supabase
+    .from("products")
+    .update({ stock: newStock, in_stock: newStock > 0 })
+    .eq("id", id);
+}
+
 // ─── CUSTOMERS ─────────────────────────────────────────
 
 export async function createCustomer(data: CustomerData) {
@@ -195,11 +214,17 @@ export async function createOrder(data: OrderData) {
     payment_status: data.paymentStatus,
     order_status: data.orderStatus,
     user_email: data.userEmail || null,
+    utr: data.utr || null,
   });
 
   if (error) {
     console.error("Failed to create order:", error);
     return null;
+  }
+
+  // Decrement stock for each item
+  for (const item of data.items) {
+    await updateProductStock(String(item.id), item.quantity);
   }
 
   return data.billNo;
@@ -220,6 +245,38 @@ export async function getOrdersByEmail(email: string) {
   }
 
   return data;
+}
+
+export async function getAllOrders() {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Failed to fetch orders:", error);
+    return [];
+  }
+
+  return data;
+}
+
+export async function updateOrderStatus(billNo: string, status: string) {
+  if (!supabase) return null;
+
+  const { error } = await supabase
+    .from("orders")
+    .update({ order_status: status })
+    .eq("bill_no", billNo);
+
+  if (error) {
+    console.error("Failed to update order:", error);
+    return null;
+  }
+
+  return billNo;
 }
 
 // ─── PROFILES ──────────────────────────────────────────
@@ -322,4 +379,20 @@ export async function subscribeNewsletter(email: string) {
   }
 
   return "ok";
+}
+
+// ─── SEARCH HELPERS ────────────────────────────────────
+
+export function matchesSearch(product: Product, query: string): boolean {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  const fields = [
+    product.name,
+    product.category,
+    ...product.tags,
+    product.description,
+    product.material,
+    product.fit,
+  ];
+  return fields.some((f) => f?.toLowerCase().includes(q));
 }

@@ -138,8 +138,8 @@ export default function ProductDetail() {
             </div>
 
             <div className="sticky-actions">
-              <button className="premium-button" onClick={addProduct}>
-                Add To Bag
+              <button className="premium-button" onClick={addProduct} disabled={product.stock === 0} style={product.stock === 0 ? { opacity: 0.5, cursor: "not-allowed" } : {}}>
+                {product.stock === 0 ? "Out of Stock" : "Add To Bag"}
               </button>
               <button
                 className="ghost-button"

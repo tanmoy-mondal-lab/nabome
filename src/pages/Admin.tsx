@@ -1,16 +1,20 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import SEO from "../components/SEO";
 import { supabase } from "../lib/supabase";
 import {
   getProducts,
   createProduct,
   updateProduct,
   deleteProduct,
+  getAllOrders,
+  updateOrderStatus,
 } from "../lib/db";
 import type { Product } from "../data/products";
 
 type FormMode = "add" | "edit";
+type Tab = "products" | "orders";
 
 const emptyForm = {
   name: "",
@@ -37,8 +41,9 @@ const emptyForm = {
 const categories = ["Men", "Women", "Unisex", "Accessories"];
 
 function formToDb(f: typeof emptyForm) {
+  const id = `prod-${Date.now()}`;
   return {
-    id: f.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+    id,
     name: f.name,
     bengali_name: f.bengaliName || null,
     price: parseInt(f.price) || 0,
@@ -87,10 +92,16 @@ function productToForm(p: Product): typeof emptyForm {
   };
 }
 
+type OrderRow = Record<string, unknown>;
+
+const statusOptions = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"];
+
 export default function Admin() {
   const [user, setUser] = useState<{ email?: string } | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<Tab>("products");
   const [mode, setMode] = useState<FormMode | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -120,8 +131,12 @@ export default function Admin() {
         return;
       }
 
-      const prods = await getProducts();
+      const [prods, ords] = await Promise.all([
+        getProducts(),
+        getAllOrders(),
+      ]);
       setProducts(prods);
+      setOrders(ords as OrderRow[]);
       setLoading(false);
     }
 
@@ -205,12 +220,27 @@ export default function Admin() {
     setProducts(prods);
   }
 
+  async function handleStatusChange(billNo: string, status: string) {
+    await updateOrderStatus(billNo, status);
+    const ords = await getAllOrders();
+    setOrders(ords as OrderRow[]);
+  }
+
+  const statusColor: Record<string, string> = {
+    pending: "#f39c12",
+    confirmed: "#3498db",
+    processing: "#9b59b6",
+    shipped: "#2ecc71",
+    delivered: "#27ae60",
+    cancelled: "#e74c3c",
+  };
+
   if (loading) {
     return (
       <>
         <Navbar />
         <div style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", display: "grid", placeItems: "center" }}>
-          <p>Loading...</p>
+          <div className="skeleton" style={{ width: 48, height: 48, borderRadius: "50%" }} />
         </div>
       </>
     );
@@ -272,220 +302,167 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
   return (
     <>
       <Navbar />
+      <SEO title="Admin | নবME" description="Store admin panel." path="/admin" />
 
       <div style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
         <section style={{ padding: "100px 6% 50px", borderBottom: "1px solid var(--line)" }}>
           <p style={{ textTransform: "uppercase", letterSpacing: 3, color: "var(--muted)", fontSize: ".85rem" }}>
-            Admin — Logged in as {user.email}
+            Admin — {user.email}
           </p>
-          <h1 style={{ fontSize: "clamp(3rem,6vw,5rem)", fontWeight: 300, marginTop: 15 }}>Manage Products</h1>
+          <h1 style={{ fontSize: "clamp(3rem,6vw,5rem)", fontWeight: 300, marginTop: 15 }}>Dashboard</h1>
+
+          {/* TABS */}
+          <div style={{ display: "flex", gap: 4, marginTop: 30 }}>
+            {(["products", "orders"] as Tab[]).map((t) => (
+              <button key={t} onClick={() => { setTab(t); setMode(null); }} style={{
+                padding: "12px 28px",
+                border: "none",
+                background: tab === t ? "var(--gold)" : "var(--surface)",
+                color: tab === t ? "#050505" : "var(--muted)",
+                cursor: "pointer",
+                fontWeight: 600,
+                textTransform: "capitalize",
+              }}>
+                {t} {t === "products" ? `(${products.length})` : `(${orders.length})`}
+              </button>
+            ))}
+          </div>
         </section>
 
         <section style={{ padding: "60px 6%" }}>
-          {!mode && (
-            <button
-              onClick={startAdd}
-              style={{
-                padding: "16px 32px",
-                border: "none",
-                background: "var(--gold)",
-                color: "#050505",
-                cursor: "pointer",
-                fontWeight: 700,
-                fontSize: "1rem",
-                marginBottom: 40,
-              }}
-            >
-              + Add New Product
-            </button>
+          {/* ─── PRODUCTS TAB ─── */}
+          {tab === "products" && (
+            <>
+              {!mode && (
+                <button onClick={startAdd} style={{ padding: "16px 32px", border: "none", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 700, fontSize: "1rem", marginBottom: 40 }}>
+                  + Add New Product
+                </button>
+              )}
+
+              {mode && (
+                <div style={{ border: "1px solid var(--gold)", padding: 40, background: "var(--surface)", marginBottom: 40 }}>
+                  <h2 style={{ marginBottom: 30, color: "var(--gold)" }}>{mode === "add" ? "Add Product" : "Edit Product"}</h2>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 20 }}>
+                    {[
+                      ["name", "Name *"], ["bengaliName", "Bengali Name"], ["price", "Price (₹) *"],
+                      ["originalPrice", "Original Price (₹)"], ["image", "Image URL"], ["stock", "Stock"],
+                      ["sizes", "Sizes (comma separated)"], ["colors", "Colors (comma separated)"],
+                      ["material", "Material"], ["fit", "Fit"],
+                      ["tags", "Tags (comma separated)"], ["rating", "Rating (0-5)"], ["reviews", "Review Count"],
+                    ].map(([key, label]) => (
+                      <div key={key}>
+                        <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>{label}</label>
+                        <input value={form[key as keyof typeof form] as string} onChange={(e) => update(key as keyof typeof form, e.target.value)} style={inputS} />
+                      </div>
+                    ))}
+                    <div>
+                      <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Category</label>
+                      <select value={form.category} onChange={(e) => update("category", e.target.value)} style={inputS}>
+                        {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Description</label>
+                      <textarea rows={4} value={form.description} onChange={(e) => update("description", e.target.value)} style={{ ...inputS, resize: "none" }} />
+                    </div>
+                    <div style={{ gridColumn: "1 / -1" }}>
+                      <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Bengali Description</label>
+                      <textarea rows={3} value={form.bengaliDescription} onChange={(e) => update("bengaliDescription", e.target.value)} style={{ ...inputS, resize: "none" }} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 24, marginTop: 24 }}>
+                    {(["isNew", "isBestSeller", "isLimited"] as const).map((key) => (
+                      <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                        <input type="checkbox" checked={form[key]} onChange={(e) => update(key, e.target.checked)} />
+                        {key === "isNew" ? "New" : key === "isBestSeller" ? "Best Seller" : "Limited"}
+                      </label>
+                    ))}
+                  </div>
+
+                  {error && <p style={{ color: "#e74c3c", marginTop: 16 }}>{error}</p>}
+
+                  <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
+                    <button onClick={handleSave} disabled={saving} style={{ padding: "14px 28px", border: "none", background: saving ? "var(--surface-strong)" : "var(--gold)", color: saving ? "var(--muted)" : "#050505", cursor: saving ? "not-allowed" : "pointer", fontWeight: 600 }}>
+                      {saving ? "Saving..." : "Save Product"}
+                    </button>
+                    <button onClick={cancelForm} style={{ padding: "14px 28px", border: "1px solid var(--line)", background: "transparent", color: "var(--text)", cursor: "pointer", fontWeight: 600 }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: "grid", gap: 16 }}>
+                <h2 style={{ fontWeight: 400, marginBottom: 10 }}>{products.length} Product{products.length !== 1 ? "s" : ""}</h2>
+                {products.map((p) => (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 20, border: "1px solid var(--line)", padding: "16px 24px", background: "var(--surface)" }}>
+                    {p.image && <img src={p.image} alt="" style={{ width: 60, height: 60, objectFit: "cover", background: "#111" }} />}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <h4 style={{ fontWeight: 600, marginBottom: 4 }}>{p.name}</h4>
+                      <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>
+                        ₹{p.price}{p.originalPrice ? ` (was ₹${p.originalPrice})` : ""} · {p.category} · Stock: {p.stock}
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                      <button onClick={() => startEdit(p)} style={{ padding: "8px 18px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontWeight: 600, fontSize: ".85rem" }}>Edit</button>
+                      <button onClick={() => handleDelete(String(p.id))} style={{ padding: "8px 18px", border: "1px solid #e74c3c", background: "transparent", color: "#e74c3c", cursor: "pointer", fontWeight: 600, fontSize: ".85rem" }}>Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
 
-          {/* FORM */}
-          {mode && (
-            <div style={{ border: "1px solid var(--gold)", padding: 40, background: "var(--surface)", marginBottom: 40 }}>
-              <h2 style={{ marginBottom: 30, color: "var(--gold)" }}>
-                {mode === "add" ? "Add Product" : "Edit Product"}
-              </h2>
+          {/* ─── ORDERS TAB ─── */}
+          {tab === "orders" && (
+            <div>
+              <h2 style={{ fontWeight: 400, marginBottom: 20 }}>{orders.length} Order{orders.length !== 1 ? "s" : ""}</h2>
+              {orders.length === 0 && <p style={{ color: "var(--muted)" }}>No orders yet.</p>}
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 20 }}>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Name *</label>
-                  <input value={form.name} onChange={(e) => update("name", e.target.value)} style={inputS} />
+              {orders.map((o) => (
+                <div key={o.id as string} style={{ border: "1px solid var(--line)", padding: 20, background: "var(--surface)", marginBottom: 16 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+                    <div>
+                      <strong style={{ color: "var(--gold)" }}>#{o.bill_no as string}</strong>
+                      <p style={{ color: "var(--muted)", fontSize: ".85rem", marginTop: 4 }}>
+                        {(o.customer_snapshot as Record<string, string>)?.name || "N/A"} · ₹{(o.total as number) || 0} · {o.payment_method as string}
+                      </p>
+                      <p style={{ color: "var(--muted)", fontSize: ".8rem" }}>
+                        {new Date(o.created_at as string).toLocaleDateString("en-IN")} · {o.user_email as string || "guest"}
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <select
+                        value={o.order_status as string}
+                        onChange={(e) => handleStatusChange(o.bill_no as string, e.target.value)}
+                        style={{
+                          padding: "6px 10px",
+                          border: `1px solid ${statusColor[o.order_status as string] || "#666"}`,
+                          background: "var(--surface)",
+                          color: "var(--text)",
+                          fontSize: ".85rem",
+                        }}
+                      >
+                        {statusOptions.map((s) => (
+                          <option key={s} value={s} style={{ color: statusColor[s] }}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+                    {(o.items as Array<Record<string, unknown>>)?.map((item, i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: ".85rem", color: "var(--muted)", padding: "4px 0" }}>
+                        <span>{item.name as string} x{item.quantity as number}</span>
+                        <span>₹{(item.price as number) * (item.quantity as number)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {(o.utr as string) && <p style={{ marginTop: 8, fontSize: ".8rem", color: "var(--muted)" }}>UTR: {o.utr as string}</p>}
                 </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Bengali Name</label>
-                  <input value={form.bengaliName} onChange={(e) => update("bengaliName", e.target.value)} style={inputS} />
-                </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Price (₹) *</label>
-                  <input value={form.price} onChange={(e) => update("price", e.target.value)} style={inputS} />
-                </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Original Price (₹)</label>
-                  <input value={form.originalPrice} onChange={(e) => update("originalPrice", e.target.value)} style={inputS} />
-                </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Category</label>
-                  <select value={form.category} onChange={(e) => update("category", e.target.value)} style={inputS}>
-                    {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Stock</label>
-                  <input value={form.stock} onChange={(e) => update("stock", e.target.value)} style={inputS} />
-                </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Image URL</label>
-                  <input value={form.image} onChange={(e) => update("image", e.target.value)} style={inputS} />
-                </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Sizes (comma separated)</label>
-                  <input value={form.sizes} onChange={(e) => update("sizes", e.target.value)} style={inputS} placeholder="S, M, L, XL" />
-                </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Colors (comma separated)</label>
-                  <input value={form.colors} onChange={(e) => update("colors", e.target.value)} style={inputS} placeholder="Black, White, Red" />
-                </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Material</label>
-                  <input value={form.material} onChange={(e) => update("material", e.target.value)} style={inputS} />
-                </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Fit</label>
-                  <input value={form.fit} onChange={(e) => update("fit", e.target.value)} style={inputS} />
-                </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Tags (comma separated)</label>
-                  <input value={form.tags} onChange={(e) => update("tags", e.target.value)} style={inputS} placeholder="cotton, oversized, premium" />
-                </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Rating (0-5)</label>
-                  <input value={form.rating} onChange={(e) => update("rating", e.target.value)} style={inputS} />
-                </div>
-                <div>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Review Count</label>
-                  <input value={form.reviews} onChange={(e) => update("reviews", e.target.value)} style={inputS} />
-                </div>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Description</label>
-                  <textarea rows={4} value={form.description} onChange={(e) => update("description", e.target.value)} style={{ ...inputS, resize: "none" }} />
-                </div>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Bengali Description</label>
-                  <textarea rows={3} value={form.bengaliDescription} onChange={(e) => update("bengaliDescription", e.target.value)} style={{ ...inputS, resize: "none" }} />
-                </div>
-              </div>
-
-              {/* CHECKBOXES */}
-              <div style={{ display: "flex", gap: 24, marginTop: 24 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                  <input type="checkbox" checked={form.isNew} onChange={(e) => update("isNew", e.target.checked)} />
-                  New Arrival
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                  <input type="checkbox" checked={form.isBestSeller} onChange={(e) => update("isBestSeller", e.target.checked)} />
-                  Best Seller
-                </label>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                  <input type="checkbox" checked={form.isLimited} onChange={(e) => update("isLimited", e.target.checked)} />
-                  Limited Edition
-                </label>
-              </div>
-
-              {error && <p style={{ color: "#e74c3c", marginTop: 16 }}>{error}</p>}
-
-              <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  style={{
-                    padding: "14px 28px",
-                    border: "none",
-                    background: saving ? "var(--surface-strong)" : "var(--gold)",
-                    color: saving ? "var(--muted)" : "#050505",
-                    cursor: saving ? "not-allowed" : "pointer",
-                    fontWeight: 600,
-                  }}
-                >
-                  {saving ? "Saving..." : "Save Product"}
-                </button>
-                <button
-                  onClick={cancelForm}
-                  style={{
-                    padding: "14px 28px",
-                    border: "1px solid var(--line)",
-                    background: "transparent",
-                    color: "var(--text)",
-                    cursor: "pointer",
-                    fontWeight: 600,
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
+              ))}
             </div>
           )}
-
-          {/* PRODUCT LIST */}
-          <div style={{ display: "grid", gap: 16 }}>
-            <h2 style={{ fontWeight: 400, marginBottom: 10 }}>
-              {products.length} Product{products.length !== 1 ? "s" : ""}
-            </h2>
-
-            {products.map((p) => (
-              <div
-                key={p.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 20,
-                  border: "1px solid var(--line)",
-                  padding: "16px 24px",
-                  background: "var(--surface)",
-                }}
-              >
-                {p.image && (
-                  <img src={p.image} alt="" style={{ width: 60, height: 60, objectFit: "cover", background: "#111" }} />
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <h4 style={{ fontWeight: 600, marginBottom: 4 }}>{p.name}</h4>
-                  <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>
-                    ₹{p.price}{p.originalPrice ? ` (was ₹${p.originalPrice})` : ""} · {p.category} · Stock: {p.stock}
-                  </p>
-                </div>
-                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                  <button
-                    onClick={() => startEdit(p)}
-                    style={{
-                      padding: "8px 18px",
-                      border: "1px solid var(--gold)",
-                      background: "transparent",
-                      color: "var(--gold)",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      fontSize: ".85rem",
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(String(p.id))}
-                    style={{
-                      padding: "8px 18px",
-                      border: "1px solid #e74c3c",
-                      background: "transparent",
-                      color: "#e74c3c",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      fontSize: ".85rem",
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
         </section>
       </div>
     </>

@@ -19,4 +19,10 @@
   <url><loc>https://www.nabome.online/product/6</loc><priority>0.7</priority></url>
   <url><loc>https://www.nabome.online/product/7</loc><priority>0.7</priority></url>
   <url><loc>https://www.nabome.online/product/8</loc><priority>0.7</priority></url>
+  <url><loc>https://www.nabome.online/checkout</loc><priority>0.6</priority></url>
+  <url><loc>https://www.nabome.online/order-success</loc><priority>0.5</priority></url>
+  <url><loc>https://www.nabome.online/login</loc><priority>0.5</priority></url>
+  <url><loc>https://www.nabome.online/register</loc><priority>0.5</priority></url>
+  <url><loc>https://www.nabome.online/admin</loc><priority>0.5</priority></url>
+  <url><loc>https://www.nabome.online/profile</loc><priority>0.5</priority></url>
 </urlset>

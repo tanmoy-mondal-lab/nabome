@@ -59,6 +59,7 @@ create table if not exists orders (
   payment_status text default 'pending',
   order_status text default 'confirmed',
   user_email text,
+  utr text,
   created_at timestamptz default now()
 );
 

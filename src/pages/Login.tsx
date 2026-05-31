@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import SEO from "../components/SEO";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 
@@ -55,6 +56,7 @@ export default function Login() {
 
   return (
     <>
+      <SEO title="Login | নবME" description="Log in to your নবME account." path="/login" />
       <Navbar />
 
       <div
@@ -139,6 +141,19 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 style={inputStyle}
               />
+
+              <p style={{ textAlign: "right", marginTop: "-10px" }}>
+                <Link
+                  to="/forgot-password"
+                  style={{
+                    color: "var(--muted)",
+                    fontSize: "0.85rem",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Forgot password?
+                </Link>
+              </p>
 
               <button
                 onClick={handleLogin}
