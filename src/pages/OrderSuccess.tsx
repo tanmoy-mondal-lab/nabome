@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CartItem } from "../context/CartContext";
 
 interface Bill {
@@ -18,17 +18,59 @@ interface Bill {
   shipping: number;
   taxLabel: string;
   total: number;
+  paymentMethod: string;
+}
+
+function formatBillMessage(bill: Bill): string {
+  const items = bill.items
+    .map(
+      (item) => `
+• ${item.name}
+  Qty: ${item.quantity} | Size: ${item.selectedSize || "N/A"} | Colour: ${item.selectedColor || "N/A"}
+  ₹${item.price} x ${item.quantity} = ₹${item.price * item.quantity}
+`
+    )
+    .join("");
+
+  return `
+🛍️ *নবME - Order Confirmed*
+
+━━━━━━━━━━━━━━━━━━
+
+*Bill No:* ${bill.billNo}
+*Date:* ${bill.date}
+*Payment:* UPI
+
+━━━━━━━━━━━━━━━━━━
+
+*ITEMS*
+${items}
+
+━━━━━━━━━━━━━━━━━━
+
+*Shipping:* Free
+*Total:* ₹${bill.total}
+
+━━━━━━━━━━━━━━━━━━
+
+*Shipping To:*
+${bill.customer.name}
+${bill.customer.address}
+${bill.customer.city}, ${bill.customer.state}
+PIN: ${bill.customer.pincode}
+
+━━━━━━━━━━━━━━━━━━
+
+Thank you for shopping with নবME 💛
+`;
 }
 
 export default function OrderSuccess() {
+  const [sentStatus, setSentStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
   const bill = useMemo<Bill | null>(() => {
-    const saved =
-      localStorage.getItem("nabome-last-bill");
-
-    if (!saved) {
-      return null;
-    }
-
+    const saved = localStorage.getItem("nabome-last-bill");
+    if (!saved) return null;
     try {
       return JSON.parse(saved) as Bill;
     } catch {
@@ -37,17 +79,48 @@ export default function OrderSuccess() {
   }, []);
 
   useEffect(() => {
-    localStorage.removeItem(
-      "nabome-cart"
-    );
+    localStorage.removeItem("nabome-cart");
   }, []);
+
+  const sendWhatsApp = () => {
+    if (!bill) return;
+    const message = formatBillMessage(bill);
+    const encoded = encodeURIComponent(message);
+    window.open(
+      `https://wa.me/${bill.customer.phone.replace(/[^0-9]/g, "")}?text=${encoded}`,
+      "_blank"
+    );
+    setSentStatus("sent");
+  };
+
+  const sendEmail = () => {
+    if (!bill) return;
+    const subject = encodeURIComponent(`নবME Order Confirmed - ${bill.billNo}`);
+    const body = encodeURIComponent(formatBillMessage(bill).replace(/\*/g, ""));
+    window.open(`mailto:${bill.customer.email}?subject=${subject}&body=${body}`, "_blank");
+    setSentStatus("sent");
+  };
+
+  useEffect(() => {
+    if (!bill) return;
+    const timer = setTimeout(() => {
+      const message = formatBillMessage(bill);
+      const encoded = encodeURIComponent(message);
+      window.open(
+        `https://wa.me/${bill.customer.phone.replace(/[^0-9]/g, "")}?text=${encoded}`,
+        "_blank"
+      );
+      setSentStatus("sent");
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [bill]);
 
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "#fff",
-        color: "#111",
+        background: "var(--bg)",
+        color: "var(--text)",
         padding: "56px 6%",
       }}
     >
@@ -64,7 +137,8 @@ export default function OrderSuccess() {
             width: "80px",
             height: "80px",
             margin: "0 auto 28px",
-            border: "2px solid #111",
+            border: "2px solid var(--gold)",
+            color: "var(--gold)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
@@ -79,7 +153,7 @@ export default function OrderSuccess() {
           style={{
             textTransform: "uppercase",
             letterSpacing: "4px",
-            color: "#888",
+            color: "var(--muted)",
             fontSize: ".85rem",
           }}
         >
@@ -88,8 +162,7 @@ export default function OrderSuccess() {
 
         <h1
           style={{
-            fontSize:
-              "clamp(2.8rem,7vw,5rem)",
+            fontSize: "clamp(2.8rem,7vw,5rem)",
             fontWeight: 300,
             marginTop: "20px",
             lineHeight: 1,
@@ -102,7 +175,7 @@ export default function OrderSuccess() {
 
         <p
           style={{
-            color: "#666",
+            color: "var(--muted)",
             lineHeight: 1.9,
             marginTop: "26px",
             maxWidth: "560px",
@@ -110,15 +183,73 @@ export default function OrderSuccess() {
             marginRight: "auto",
           }}
         >
-          Your order request has been
-          submitted successfully. You
-          can print the bill or save it
-          as a PDF for your records.
+          Your order has been confirmed. The bill is being sent to your WhatsApp and email.
         </p>
+
+        {/* SEND STATUS */}
+        {bill && (
+          <div
+            style={{
+              marginTop: "24px",
+              display: "flex",
+              justifyContent: "center",
+              gap: "12px",
+              flexWrap: "wrap",
+            }}
+          >
+            <button
+              onClick={() => sendWhatsApp()}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "14px 24px",
+                border: "1px solid var(--gold)",
+                background: "var(--gold-soft)",
+                color: "var(--gold)",
+                cursor: "pointer",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+                fontSize: ".9rem",
+              }}
+            >
+              Send via WhatsApp
+            </button>
+            <button
+              onClick={sendEmail}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "14px 24px",
+                border: "1px solid var(--line)",
+                background: "transparent",
+                color: "var(--text)",
+                cursor: "pointer",
+                fontWeight: 700,
+                letterSpacing: "0.05em",
+                fontSize: ".9rem",
+              }}
+            >
+              Send via Email
+            </button>
+          </div>
+        )}
+
+        {sentStatus === "sending" && (
+          <p style={{ color: "var(--gold)", marginTop: 16, fontSize: ".9rem" }}>
+            Sending bill to your WhatsApp...
+          </p>
+        )}
+        {sentStatus === "sent" && (
+          <p style={{ color: "var(--gold)", marginTop: 16, fontSize: ".9rem" }}>
+            ✓ Bill sent successfully
+          </p>
+        )}
 
         <div
           style={{
-            marginTop: "36px",
+            marginTop: "28px",
             display: "flex",
             justifyContent: "center",
             gap: "14px",
@@ -133,13 +264,11 @@ export default function OrderSuccess() {
               Print / Save PDF
             </button>
           )}
-
           <Link to="/">
             <button style={secondaryButtonStyle}>
               Continue Shopping
             </button>
           </Link>
-
           <Link to="/category">
             <button style={secondaryButtonStyle}>
               Browse Collection
@@ -156,35 +285,29 @@ export default function OrderSuccess() {
           style={{
             maxWidth: "720px",
             margin: "0 auto",
-            border: "1px solid #e5e5e5",
+            border: "1px solid var(--line)",
             padding: "32px",
             textAlign: "center",
-            color: "#666",
+            color: "var(--muted)",
             lineHeight: 1.7,
           }}
         >
-          Bill details are not available
-          for this session. Please place
-          a new order to generate a bill.
+          Bill details are not available for this session. Please place a new order to generate a bill.
         </div>
       )}
     </div>
   );
 }
 
-function BillPreview({
-  bill,
-}: {
-  bill: Bill;
-}) {
+function BillPreview({ bill }: { bill: Bill }) {
   return (
     <section
       className="nabome-bill"
       style={{
         maxWidth: "980px",
         margin: "0 auto",
-        border: "1px solid #d8d8d8",
-        background: "#fff",
+        border: "1px solid var(--line)",
+        background: "var(--bg-elevated)",
         textAlign: "left",
       }}
     >
@@ -194,7 +317,7 @@ function BillPreview({
           justifyContent: "space-between",
           gap: "24px",
           padding: "36px",
-          borderBottom: "1px solid #e5e5e5",
+          borderBottom: "1px solid var(--line)",
           flexWrap: "wrap",
         }}
       >
@@ -203,203 +326,85 @@ function BillPreview({
             style={{
               textTransform: "uppercase",
               letterSpacing: "3px",
-              color: "#777",
+              color: "var(--muted)",
               fontSize: ".78rem",
               marginBottom: "10px",
             }}
           >
             Tax Invoice
           </p>
-
-          <h2
-            style={{
-              margin: 0,
-              fontSize: "2rem",
-              fontWeight: 500,
-            }}
-          >
+          <h2 style={{ margin: 0, fontSize: "2rem", fontWeight: 500, color: "var(--gold)" }}>
             নবME
           </h2>
-
-          <p
-            style={{
-              color: "#666",
-              marginTop: "8px",
-            }}
-          >
+          <p style={{ color: "var(--muted)", marginTop: "8px" }}>
             Fashion and lifestyle order
           </p>
         </div>
-
-        <div
-          style={{
-            minWidth: "220px",
-            lineHeight: 1.8,
-          }}
-        >
-          <p>
-            <strong>Bill No:</strong>{" "}
-            {bill.billNo}
-          </p>
-          <p>
-            <strong>Date:</strong>{" "}
-            {bill.date}
-          </p>
-          <p>
-            <strong>Payment:</strong>{" "}
-            WhatsApp Order
-          </p>
+        <div style={{ minWidth: "220px", lineHeight: 1.8 }}>
+          <p><strong>Bill No:</strong> {bill.billNo}</p>
+          <p><strong>Date:</strong> {bill.date}</p>
+          <p><strong>Payment:</strong> {"paymentMethod" in bill ? (bill.paymentMethod === "upi" ? "UPI / QR" : "WhatsApp Order") : "WhatsApp Order"}</p>
         </div>
       </div>
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit,minmax(240px,1fr))",
+          gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))",
           gap: "28px",
           padding: "32px 36px",
-          borderBottom: "1px solid #e5e5e5",
+          borderBottom: "1px solid var(--line)",
         }}
       >
         <div>
-          <h3 style={sectionTitleStyle}>
-            Bill To
-          </h3>
-          <p style={detailLineStyle}>
-            {bill.customer.name}
-          </p>
-          <p style={detailLineStyle}>
-            {bill.customer.phone}
-          </p>
-          <p style={detailLineStyle}>
-            {bill.customer.email}
-          </p>
+          <h3 style={sectionTitleStyle}>Bill To</h3>
+          <p style={detailLineStyle}>{bill.customer.name}</p>
+          <p style={detailLineStyle}>{bill.customer.phone}</p>
+          <p style={detailLineStyle}>{bill.customer.email}</p>
         </div>
-
         <div>
-          <h3 style={sectionTitleStyle}>
-            Shipping Address
-          </h3>
-          <p style={detailLineStyle}>
-            {bill.customer.address}
-          </p>
-          <p style={detailLineStyle}>
-            {bill.customer.city},{" "}
-            {bill.customer.state}
-          </p>
-          <p style={detailLineStyle}>
-            PIN: {bill.customer.pincode}
-          </p>
+          <h3 style={sectionTitleStyle}>Shipping Address</h3>
+          <p style={detailLineStyle}>{bill.customer.address}</p>
+          <p style={detailLineStyle}>{bill.customer.city}, {bill.customer.state}</p>
+          <p style={detailLineStyle}>PIN: {bill.customer.pincode}</p>
         </div>
       </div>
 
-      <div
-        style={{
-          padding: "32px 36px",
-          overflowX: "auto",
-        }}
-      >
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            minWidth: "680px",
-          }}
-        >
+      <div style={{ padding: "32px 36px", overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "680px" }}>
           <thead>
             <tr>
-              {[
-                "Item",
-                "Size",
-                "Colour",
-                "Qty",
-                "Price",
-                "Subtotal",
-              ].map((heading) => (
-                <th
-                  key={heading}
-                  style={tableHeadStyle}
-                >
-                  {heading}
-                </th>
+              {["Item", "Size", "Colour", "Qty", "Price", "Subtotal"].map((heading) => (
+                <th key={heading} style={tableHeadStyle}>{heading}</th>
               ))}
             </tr>
           </thead>
-
           <tbody>
             {bill.items.map((item, index) => (
-              <tr
-                key={`${item.id}-${index}`}
-                style={{
-                  borderBottom:
-                    "1px solid #ececec",
-                }}
-              >
-                <td style={tableCellStyle}>
-                  {item.name}
-                </td>
-                <td style={tableCellStyle}>
-                  {item.selectedSize || "N/A"}
-                </td>
-                <td style={tableCellStyle}>
-                  {item.selectedColor || "N/A"}
-                </td>
-                <td style={tableCellStyle}>
-                  {item.quantity}
-                </td>
-                <td style={tableCellStyle}>
-                  ₹{item.price}
-                </td>
-                <td style={tableCellStyle}>
-                  ₹{item.price * item.quantity}
-                </td>
+              <tr key={`${item.id}-${index}`} style={{ borderBottom: "1px solid var(--line)" }}>
+                <td style={tableCellStyle}>{item.name}</td>
+                <td style={tableCellStyle}>{item.selectedSize || "N/A"}</td>
+                <td style={tableCellStyle}>{item.selectedColor || "N/A"}</td>
+                <td style={tableCellStyle}>{item.quantity}</td>
+                <td style={tableCellStyle}>₹{item.price}</td>
+                <td style={tableCellStyle}>₹{item.price * item.quantity}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          padding: "0 36px 36px",
-        }}
-      >
-        <div
-          style={{
-            width: "min(100%, 360px)",
-            borderTop: "1px solid #ddd",
-            paddingTop: "18px",
-            lineHeight: 2,
-          }}
-        >
+      <div style={{ display: "flex", justifyContent: "flex-end", padding: "0 36px 36px" }}>
+        <div style={{ width: "min(100%, 360px)", borderTop: "1px solid var(--line)", paddingTop: "18px", lineHeight: 2 }}>
           <div style={totalRowStyle}>
             <span>Shipping</span>
-            <span>
-              {bill.shipping === 0
-                ? "Free"
-                : `₹${bill.shipping}`}
-            </span>
+            <span>{bill.shipping === 0 ? "Free" : `₹${bill.shipping}`}</span>
           </div>
-
           <div style={totalRowStyle}>
             <span>Taxes</span>
             <span>{bill.taxLabel}</span>
           </div>
-
-          <div
-            style={{
-              ...totalRowStyle,
-              borderTop: "1px solid #ddd",
-              marginTop: "10px",
-              paddingTop: "14px",
-              fontSize: "1.25rem",
-              fontWeight: 700,
-              color: "#111",
-            }}
-          >
+          <div style={{ ...totalRowStyle, borderTop: "1px solid var(--line)", marginTop: "10px", paddingTop: "14px", fontSize: "1.25rem", fontWeight: 700 }}>
             <span>Total</span>
             <span>₹{bill.total}</span>
           </div>
@@ -412,17 +417,17 @@ function BillPreview({
 const primaryButtonStyle = {
   padding: "16px 30px",
   border: "none",
-  background: "#111",
-  color: "#fff",
+  background: "var(--gold)",
+  color: "#050505",
   cursor: "pointer",
   fontWeight: 600,
 } as const;
 
 const secondaryButtonStyle = {
   padding: "16px 30px",
-  border: "1px solid #111",
-  background: "#fff",
-  color: "#111",
+  border: "1px solid var(--gold)",
+  background: "transparent",
+  color: "var(--gold)",
   cursor: "pointer",
   fontWeight: 600,
 } as const;
@@ -432,18 +437,18 @@ const sectionTitleStyle = {
   fontSize: ".85rem",
   textTransform: "uppercase",
   letterSpacing: "2px",
-  color: "#777",
+  color: "var(--muted)",
 } as const;
 
 const detailLineStyle = {
-  color: "#333",
+  color: "var(--text)",
   lineHeight: 1.8,
 } as const;
 
 const tableHeadStyle = {
   padding: "12px",
-  borderBottom: "1px solid #111",
-  color: "#555",
+  borderBottom: "1px solid var(--gold)",
+  color: "var(--muted)",
   fontSize: ".82rem",
   textAlign: "left",
   textTransform: "uppercase",
@@ -452,7 +457,7 @@ const tableHeadStyle = {
 
 const tableCellStyle = {
   padding: "14px 12px",
-  color: "#222",
+  color: "var(--text)",
   verticalAlign: "top",
 } as const;
 
@@ -460,5 +465,5 @@ const totalRowStyle = {
   display: "flex",
   justifyContent: "space-between",
   gap: "20px",
-  color: "#555",
+  color: "var(--muted)",
 } as const;

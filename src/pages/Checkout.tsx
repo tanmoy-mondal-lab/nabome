@@ -8,7 +8,7 @@ const UPI_ID = "nabome@upi";
 const UPI_NAME = "নবME";
 const PHONE = 919163854706;
 
-function buildBill(customer: Record<string, string>, items: unknown[], total: number) {
+function buildBill(customer: Record<string, string>, items: unknown[], total: number, paymentMethod: string) {
   return {
     billNo: `NAB-${Date.now()}`,
     date: new Date().toLocaleString("en-IN", {
@@ -20,6 +20,7 @@ function buildBill(customer: Record<string, string>, items: unknown[], total: nu
     shipping: 0,
     taxLabel: "Included",
     total,
+    paymentMethod,
   };
 }
 
@@ -58,7 +59,7 @@ export default function Checkout() {
       alert("Please complete all checkout details.");
       return;
     }
-    const bill = buildBill(customer, cart, total);
+    const bill = buildBill(customer, cart, total, "upi");
     localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
     localStorage.removeItem("nabome-cart");
     clearCart();
@@ -71,7 +72,7 @@ export default function Checkout() {
       return;
     }
 
-    const bill = buildBill(customer, cart, total);
+    const bill = buildBill(customer, cart, total, "whatsapp");
     localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
 
     const productList = cart
