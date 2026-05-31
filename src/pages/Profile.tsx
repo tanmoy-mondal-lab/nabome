@@ -21,8 +21,8 @@ export default function Profile() {
 
       <div
         style={{
-          background: "#fff",
-          color: "#111",
+          background: "var(--bg)",
+          color: "var(--text)",
           minHeight: "100vh",
         }}
       >
@@ -32,7 +32,7 @@ export default function Profile() {
           style={{
             padding: "100px 6% 60px",
             borderBottom:
-              "1px solid #e5e5e5",
+              "1px solid var(--line)",
           }}
         >
           <p
@@ -40,7 +40,7 @@ export default function Profile() {
               textTransform:
                 "uppercase",
               letterSpacing: "4px",
-              color: "#888",
+              color: "var(--muted)",
               fontSize: ".85rem",
             }}
           >
@@ -75,9 +75,9 @@ export default function Profile() {
             <div
               style={{
                 border:
-                  "1px solid #e5e5e5",
+                  "1px solid var(--line)",
                 padding: "50px",
-                background: "#fafafa",
+                background: "var(--surface)",
               }}
             >
               <div
@@ -124,7 +124,8 @@ export default function Profile() {
 
                   <p
                     style={{
-                      color: "#666",
+                      marginTop: "8px",
+                      color: "var(--muted)",
                     }}
                   >
                     {user.email ||
@@ -180,7 +181,7 @@ export default function Profile() {
                     to="/wishlist"
                     style={{
                       color:
-                        "#111",
+                        "var(--gold)",
                     }}
                   >
                     View Saved
@@ -199,7 +200,7 @@ export default function Profile() {
                     to="/cart"
                     style={{
                       color:
-                        "#111",
+                        "var(--gold)",
                     }}
                   >
                     View Cart
@@ -227,9 +228,9 @@ export default function Profile() {
                       border:
                         "none",
                       background:
-                        "#111",
+                        "var(--gold)",
                       color:
-                        "#fff",
+                        "#050505",
                       cursor:
                         "pointer",
                       fontWeight:
@@ -240,19 +241,13 @@ export default function Profile() {
                   </button>
                 </Link>
 
-                <button
-                  onClick={
-                    logout
-                  }
-                  style={{
-                    padding:
-                      "16px 30px",
-                    border:
-                      "1px solid #ddd",
-                    background:
-                      "#fff",
-                    color:
-                      "#111",
+                  <button
+                    onClick={logout}
+                    style={{
+                      padding: "16px 30px",
+                      border: "1px solid var(--line)",
+                      background: "transparent",
+                      color: "var(--text)",
                     cursor:
                       "pointer",
                       fontWeight:
@@ -270,7 +265,7 @@ export default function Profile() {
 
         <section
           style={{
-            background: "#f8f6f2",
+            background: "var(--surface)",
             padding: "100px 6%",
           }}
         >
@@ -329,9 +324,9 @@ export default function Profile() {
                 key={item.title}
                 style={{
                   background:
-                    "#fff",
+                    "var(--surface)",
                   border:
-                    "1px solid #e5e5e5",
+                    "1px solid var(--line)",
                   padding:
                     "35px",
                 }}
@@ -348,7 +343,7 @@ export default function Profile() {
                 <p
                   style={{
                     color:
-                      "#666",
+                      "var(--muted)",
                     lineHeight:
                       1.8,
                   }}
@@ -365,8 +360,8 @@ export default function Profile() {
 }
 
 const cardStyle = {
-  background: "#fff",
-  border: "1px solid #e5e5e5",
+  background: "var(--surface)",
+  border: "1px solid var(--line)",
   padding: "25px",
   display: "flex",
   flexDirection: "column",

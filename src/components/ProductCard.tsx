@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Link } from "react-router-dom";
 import { getBadges, type Product } from "../data/products";
 
@@ -7,7 +8,7 @@ type ProductCardProps = {
   onQuickAdd?: (product: Product) => void;
 };
 
-export default function ProductCard({ product, onQuickView, onQuickAdd }: ProductCardProps) {
+function ProductCard({ product, onQuickView, onQuickAdd }: ProductCardProps) {
   return (
     <article className="product-card">
       <Link to={`/product/${product.id}`} aria-label={`View ${product.name}`}>
@@ -48,3 +49,5 @@ export default function ProductCard({ product, onQuickView, onQuickAdd }: Produc
     </article>
   );
 }
+
+export default memo(ProductCard);

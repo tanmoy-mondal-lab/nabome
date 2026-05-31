@@ -1,23 +1,33 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Home from "./pages/Home";
-import Category from "./pages/Category";
-import ProductDetail from "./pages/ProductDetail";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Wishlist from "./pages/Wishlist";
 import Footer from "./components/Footer";
-import OrderSuccess from "./pages/OrderSuccess";
-import NotFound from "./pages/NotFound";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Profile from "./pages/Profile";
-import PolicyPage from "./pages/PolicyPage";
-import OrderTracking from "./pages/OrderTracking";
 import PageTransition from "./components/PageTransition";
 import ScrollManager from "./components/ScrollManager";
+
+const Home = lazy(() => import("./pages/Home"));
+const Category = lazy(() => import("./pages/Category"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
+const OrderSuccess = lazy(() => import("./pages/OrderSuccess"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Profile = lazy(() => import("./pages/Profile"));
+const PolicyPage = lazy(() => import("./pages/PolicyPage"));
+const OrderTracking = lazy(() => import("./pages/OrderTracking"));
+
+function Loader() {
+  return (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)" }}>
+      <div className="skeleton" style={{ width: 48, height: 48, borderRadius: "50%" }} />
+    </div>
+  );
+}
 
 
 function App() {
@@ -33,7 +43,8 @@ function App() {
       >
         <div style={{ flex: 1 }}>
           <PageTransition>
-            <Routes>
+            <Suspense fallback={<Loader />}>
+              <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/category" element={<Category />} />
               <Route path="/product/:id" element={<ProductDetail />} />
@@ -53,6 +64,7 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </Suspense>
           </PageTransition>
         </div>
 

@@ -14,6 +14,10 @@
   --black: #050505;
   --radius: 8px;
   --shadow: 0 26px 90px rgba(0, 0, 0, 0.38);
+  --terracotta: #c76b4a;
+  --terracotta-soft: rgba(199, 107, 74, 0.15);
+  --sindoor: #d43f3f;
+  --bengali-green: #1a6b3c;
   font-family: "Manrope", system-ui, sans-serif;
   color: var(--text);
   background: var(--bg);
@@ -1161,6 +1165,180 @@ main {
   .product-grid {
     grid-template-columns: 1fr;
   }
+}
+
+@keyframes alpona-draw {
+  from { stroke-dashoffset: 400; opacity: 0; }
+  to { stroke-dashoffset: 0; opacity: 0.5; }
+}
+
+@keyframes gold-pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+
+@keyframes quote-fade {
+  0%, 25% { opacity: 1; transform: translateY(0); }
+  33%, 92% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bengali-glow {
+  0%, 100% { text-shadow: 0 0 20px rgba(212, 175, 55, 0.2); }
+  50% { text-shadow: 0 0 40px rgba(212, 175, 55, 0.5); }
+}
+
+.bengali-quote-rotator {
+  position: relative;
+  min-height: 120px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.bengali-quote {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+  pointer-events: none;
+}
+
+.bengali-quote.active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.bengali-quote-text {
+  font-family: "Noto Serif Bengali", "Manrope", serif;
+  font-size: clamp(1.6rem, 4vw, 2.8rem);
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--text);
+  animation: bengali-glow 4s ease-in-out infinite;
+}
+
+.bengali-quote-attribution {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: var(--gold);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-top: 12px;
+}
+
+.alpona-border {
+  position: relative;
+}
+
+.alpona-border::before {
+  position: absolute;
+  inset: -1px;
+  z-index: 0;
+  content: "";
+  opacity: 0.12;
+  background:
+    repeating-conic-gradient(from 0deg at 50% 50%, transparent 0deg 89deg, var(--gold) 90deg 91deg, transparent 92deg 179deg, var(--terracotta) 180deg 181deg, transparent 182deg 359deg);
+  mask-image: radial-gradient(ellipse at 50% 50%, black 40%, transparent 60%);
+  pointer-events: none;
+}
+
+.cultural-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin: 0 6px;
+  background: var(--gold);
+  vertical-align: middle;
+}
+
+.cultural-dot.terracotta { background: var(--terracotta); }
+.cultural-dot.sindoor { background: var(--sindoor); }
+.cultural-dot.green { background: var(--bengali-green); }
+
+.bengali-season-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border: 1px solid var(--terracotta);
+  background: var(--terracotta-soft);
+  color: var(--terracotta);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.bengali-motif {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--gold);
+  font-size: 2rem;
+  line-height: 1;
+  opacity: 0.2;
+  letter-spacing: 1.2em;
+  padding: 0 1.2em;
+  pointer-events: none;
+  user-select: none;
+}
+
+.bengali-footer-date {
+  font-family: "Noto Serif Bengali", serif;
+  font-size: 0.9rem;
+  color: var(--gold);
+  letter-spacing: 0.05em;
+}
+
+.cultural-grid-pattern {
+  position: relative;
+  overflow: hidden;
+}
+
+.cultural-grid-pattern::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 200px;
+  content: "";
+  opacity: 0.06;
+  background:
+    radial-gradient(circle at 20% 20%, var(--gold) 1px, transparent 1px),
+    radial-gradient(circle at 80% 80%, var(--terracotta) 1px, transparent 1px);
+  background-size: 30px 30px;
+  pointer-events: none;
+}
+
+.bengali-script-accent {
+  font-family: "Noto Serif Bengali", serif;
+  color: var(--gold);
+  letter-spacing: 0.04em;
+}
+
+.cultural-ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--gold);
+  font-size: 1.4rem;
+  opacity: 0.3;
+  user-select: none;
+}
+
+.cultural-ornament::before,
+.cultural-ornament::after {
+  content: "";
+  width: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

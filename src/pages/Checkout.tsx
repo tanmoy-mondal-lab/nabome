@@ -160,9 +160,9 @@ TOTAL: ₹${total}
       <div
         style={{
           background:
-            "#fff",
+            "var(--bg)",
           color:
-            "#111",
+            "var(--text)",
           minHeight:
             "100vh",
         }}
@@ -174,7 +174,7 @@ TOTAL: ₹${total}
             padding:
               "80px 6% 50px",
             borderBottom:
-              "1px solid #e5e5e5",
+              "1px solid var(--line)",
           }}
         >
           <p
@@ -184,7 +184,7 @@ TOTAL: ₹${total}
               letterSpacing:
                 "3px",
               color:
-                "#888",
+                "var(--muted)",
               fontSize:
                 ".85rem",
             }}
@@ -377,11 +377,11 @@ TOTAL: ₹${total}
 
             <div
               style={{
-                position: "sticky",
-                top: "120px",
-                border: "1px solid #e5e5e5",
-                padding: "35px",
-                background: "#fafafa",
+                  position: "sticky",
+                  top: "120px",
+                  border: "1px solid var(--line)",
+                  padding: "35px",
+                  background: "var(--surface)",
               }}
             >
               <h2
@@ -393,14 +393,14 @@ TOTAL: ₹${total}
                 Order Summary
               </h2>
 
-              {cart.map((item, index) => (
+              {cart.map((item) => (
                 <div
-                  key={`${item.id}-${index}`}
+                  key={`${item.id}-${item.selectedSize || ""}-${item.selectedColor || ""}`}
                   style={{
                     paddingBottom: "20px",
                     marginBottom: "20px",
                     borderBottom:
-                      "1px solid #e5e5e5",
+                      "1px solid var(--line)",
                   }}
                 >
                   <h4
@@ -414,7 +414,7 @@ TOTAL: ₹${total}
 
                   <div
                     style={{
-                      color: "#666",
+                      color: "var(--muted)",
                       fontSize: ".95rem",
                       lineHeight: 1.8,
                     }}
@@ -461,15 +461,11 @@ TOTAL: ₹${total}
                   justifyContent:
                     "space-between",
                   marginBottom: "12px",
-                  color: "#666",
+                  color: "var(--muted)",
                 }}
               >
                 <span>
                   Shipping
-                </span>
-
-                <span>
-                  Free
                 </span>
               </div>
 
@@ -479,7 +475,7 @@ TOTAL: ₹${total}
                   justifyContent:
                     "space-between",
                   marginBottom: "25px",
-                  color: "#666",
+                  color: "var(--muted)",
                 }}
               >
                 <span>
@@ -493,9 +489,9 @@ TOTAL: ₹${total}
 
               <div
                 style={{
-                  borderTop:
-                    "1px solid #ddd",
-                  paddingTop: "20px",
+                    borderTop:
+                      "1px solid var(--line)",
+                    paddingTop: "20px",
                   display: "flex",
                   justifyContent:
                     "space-between",
@@ -519,7 +515,7 @@ TOTAL: ₹${total}
                   marginTop: "40px",
                   paddingTop: "30px",
                   borderTop:
-                    "1px solid #ddd",
+                    "1px solid var(--line)",
                 }}
               >
                 <h3
@@ -538,11 +534,11 @@ TOTAL: ₹${total}
                 >
                   <div
                     style={{
-                      border:
-                        "1px solid #111",
-                      padding: "14px",
-                      background:
-                        "#fff",
+                    border:
+                      "1px solid var(--gold)",
+                    padding: "14px",
+                    background:
+                      "var(--gold-soft)",
                     }}
                   >
                     ● WhatsApp Order
@@ -552,9 +548,9 @@ TOTAL: ₹${total}
                   <div
                     style={{
                       border:
-                        "1px solid #ddd",
+                        "1px solid var(--line)",
                       padding: "14px",
-                      color: "#999",
+                      color: "var(--muted)",
                     }}
                   >
                     ○ Razorpay
@@ -564,9 +560,9 @@ TOTAL: ₹${total}
                   <div
                     style={{
                       border:
-                        "1px solid #ddd",
+                        "1px solid var(--line)",
                       padding: "14px",
-                      color: "#999",
+                      color: "var(--muted)",
                     }}
                   >
                     ○ Cash On
@@ -582,9 +578,9 @@ TOTAL: ₹${total}
                 style={{
                   marginTop: "40px",
                   paddingTop: "30px",
-                  borderTop:
-                    "1px solid #ddd",
-                  color: "#666",
+                    borderTop:
+                      "1px solid var(--line)",
+                    color: "var(--muted)",
                   lineHeight: 2,
                 }}
               >
@@ -619,8 +615,8 @@ TOTAL: ₹${total}
                   marginTop: "35px",
                   padding: "18px",
                   border: "none",
-                  background: "#111",
-                  color: "#fff",
+                  background: "var(--gold)",
+                  color: "#050505",
                   cursor: "pointer",
                   fontWeight: 600,
                   fontSize: "1rem",
@@ -633,7 +629,7 @@ TOTAL: ₹${total}
               <p
                 style={{
                   marginTop: "15px",
-                  color: "#888",
+                  color: "var(--muted)",
                   textAlign:
                     "center",
                   fontSize: ".85rem",
@@ -656,9 +652,9 @@ TOTAL: ₹${total}
 const inputStyle = {
   width: "100%",
   padding: "16px",
-  border: "1px solid #ddd",
-  background: "#fff",
+  border: "1px solid var(--line)",
+  background: "rgba(255,255,255,0.06)",
   outline: "none",
   fontSize: "1rem",
-  color: "#111",
+  color: "var(--text)",
 } as const;

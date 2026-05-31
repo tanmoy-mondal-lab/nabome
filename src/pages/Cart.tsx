@@ -27,8 +27,8 @@ export default function Cart() {
 
       <div
         style={{
-          background: "#fff",
-          color: "#111",
+          background: "var(--bg)",
+          color: "var(--text)",
           minHeight: "100vh",
         }}
       >
@@ -38,7 +38,7 @@ export default function Cart() {
           style={{
             padding: "80px 6% 50px",
             borderBottom:
-              "1px solid #e5e5e5",
+              "1px solid var(--line)",
           }}
         >
           <p
@@ -46,7 +46,7 @@ export default function Cart() {
               textTransform:
                 "uppercase",
               letterSpacing: "3px",
-              color: "#888",
+              color: "var(--muted)",
               fontSize: ".85rem",
             }}
           >
@@ -67,7 +67,7 @@ export default function Cart() {
           <p
             style={{
               marginTop: "20px",
-              color: "#666",
+              color: "var(--muted)",
             }}
           >
             {cart.length} item(s) in your
@@ -89,6 +89,7 @@ export default function Cart() {
               style={{
                 marginBottom: "20px",
                 fontWeight: 400,
+                color: "var(--text)",
               }}
             >
               Your cart is empty
@@ -100,8 +101,7 @@ export default function Cart() {
                 marginBottom: "40px",
               }}
             >
-              Explore our latest collection.
-            </p>
+              Explore our latest collection.</p>
 
             <Link to="/category">
               <button
@@ -110,8 +110,9 @@ export default function Cart() {
                     "18px 40px",
                   border: "none",
                   background:
-                    "#111",
-                  color: "#fff",
+                    "var(--gold)",
+                  color:
+                    "#050505",
                   cursor:
                     "pointer",
                   fontWeight: 600,
@@ -147,7 +148,7 @@ export default function Cart() {
                   <div
                     style={{
                       background:
-                        "#f8f6f2",
+                        "var(--surface)",
                       padding:
                         "20px",
                       marginBottom:
@@ -162,7 +163,7 @@ export default function Cart() {
                   <div
                     style={{
                       background:
-                        "#f8f6f2",
+                        "var(--surface)",
                       padding:
                         "20px",
                       marginBottom:
@@ -176,11 +177,10 @@ export default function Cart() {
 
                 {cart.map(
                   (
-                    item,
-                    index
+                    item
                   ) => (
                     <div
-                      key={`${item.id}-${item.selectedSize}-${item.selectedColor}-${index}`}
+                      key={`${item.id}-${item.selectedSize || ""}-${item.selectedColor || ""}`}
                       style={{
                         display:
                           "grid",
@@ -190,7 +190,7 @@ export default function Cart() {
                         padding:
                           "30px 0",
                         borderBottom:
-                          "1px solid #e5e5e5",
+                          "1px solid var(--line)",
                       }}
                     >
                       <img
@@ -214,7 +214,7 @@ export default function Cart() {
                         <p
                           style={{
                             color:
-                              "#888",
+                              "var(--muted)",
                             textTransform:
                               "uppercase",
                             letterSpacing:
@@ -242,7 +242,7 @@ export default function Cart() {
                         <p
                           style={{
                             color:
-                              "#666",
+                              "var(--muted)",
                             marginBottom:
                               "8px",
                           }}
@@ -256,7 +256,7 @@ export default function Cart() {
                         <p
                           style={{
                             color:
-                              "#666",
+                              "var(--muted)",
                             marginBottom:
                               "20px",
                           }}
@@ -288,9 +288,10 @@ export default function Cart() {
                               width: "42px",
                               height: "42px",
                               border:
-                                "1px solid #ddd",
+                                "1px solid var(--line)",
                               background:
-                                "#fff",
+                                "transparent",
+                              color: "var(--text)",
                               cursor:
                                 "pointer",
                               fontSize:
@@ -325,9 +326,10 @@ export default function Cart() {
                               width: "42px",
                               height: "42px",
                               border:
-                                "1px solid #ddd",
+                                "1px solid var(--line)",
                               background:
-                                "#fff",
+                                "transparent",
+                              color: "var(--text)",
                               cursor:
                                 "pointer",
                               fontSize:
@@ -365,7 +367,7 @@ export default function Cart() {
                             <p
                               style={{
                                 color:
-                                  "#888",
+                                  "var(--muted)",
                                 fontSize:
                                   ".9rem",
                               }}
@@ -388,15 +390,15 @@ export default function Cart() {
                             }
                             style={{
                               border:
-                                "1px solid #ddd",
+                                "1px solid var(--line)",
                               background:
-                                "#fff",
+                                "transparent",
                               padding:
                                 "12px 18px",
                               cursor:
                                 "pointer",
                               color:
-                                "#666",
+                                "var(--muted)",
                             }}
                           >
                             Remove
@@ -415,10 +417,10 @@ export default function Cart() {
                   position: "sticky",
                   top: "120px",
                   border:
-                    "1px solid #e5e5e5",
+                    "1px solid var(--line)",
                   padding: "35px",
                   background:
-                    "#fafafa",
+                    "var(--surface)",
                 }}
               >
                 <h2
@@ -440,7 +442,7 @@ export default function Cart() {
                     marginBottom:
                       "15px",
                     color:
-                      "#666",
+                      "var(--muted)",
                   }}
                 >
                   <span>
@@ -462,7 +464,7 @@ export default function Cart() {
                     marginBottom:
                       "15px",
                     color:
-                      "#666",
+                      "var(--muted)",
                   }}
                 >
                   <span>
@@ -482,7 +484,7 @@ export default function Cart() {
                     marginBottom:
                       "25px",
                     color:
-                      "#666",
+                      "var(--muted)",
                   }}
                 >
                   <span>
@@ -497,7 +499,7 @@ export default function Cart() {
                 <div
                   style={{
                     borderTop:
-                      "1px solid #ddd",
+                      "1px solid var(--line)",
                     paddingTop:
                       "20px",
                     display:
@@ -535,9 +537,9 @@ export default function Cart() {
                       border:
                         "none",
                       background:
-                        "#111",
+                        "var(--gold)",
                       color:
-                        "#fff",
+                        "#050505",
                       cursor:
                         "pointer",
                       fontWeight:
@@ -566,11 +568,11 @@ export default function Cart() {
                       padding:
                         "18px",
                       border:
-                        "1px solid #111",
+                        "1px solid var(--gold)",
                       background:
-                        "#fff",
+                        "transparent",
                       color:
-                        "#111",
+                        "var(--gold)",
                       cursor:
                         "pointer",
                       fontWeight:
@@ -588,9 +590,9 @@ export default function Cart() {
                     paddingTop:
                       "25px",
                     borderTop:
-                      "1px solid #ddd",
+                      "1px solid var(--line)",
                     color:
-                      "#666",
+                      "var(--muted)",
                     lineHeight:
                       2,
                   }}

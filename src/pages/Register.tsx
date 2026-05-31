@@ -36,9 +36,9 @@ export default function Register() {
 
       <div
         style={{
-          background: "#fff",
+          background: "var(--bg)",
           minHeight: "100vh",
-          color: "#111",
+          color: "var(--text)",
         }}
       >
         {/* HERO */}
@@ -48,7 +48,7 @@ export default function Register() {
             padding: "100px 6% 60px",
             textAlign: "center",
             borderBottom:
-              "1px solid #e5e5e5",
+              "1px solid var(--line)",
           }}
         >
           <p
@@ -56,7 +56,7 @@ export default function Register() {
               textTransform:
                 "uppercase",
               letterSpacing: "4px",
-              color: "#888",
+              color: "var(--muted)",
               fontSize: ".85rem",
             }}
           >
@@ -89,9 +89,9 @@ export default function Register() {
               width: "100%",
               maxWidth: "520px",
               border:
-                "1px solid #e5e5e5",
+                "1px solid var(--line)",
               padding: "40px",
-              background: "#fafafa",
+              background: "var(--surface)",
             }}
           >
             <h2
@@ -133,14 +133,12 @@ export default function Register() {
               />
 
               <button
-                onClick={
-                  register
-                }
+                onClick={register}
                 style={{
                   padding: "18px",
                   border: "none",
-                  background: "#111",
-                  color: "#fff",
+                  background: "var(--gold)",
+                  color: "#050505",
                   cursor: "pointer",
                   fontWeight: 600,
                   fontSize: "1rem",
@@ -152,18 +150,18 @@ export default function Register() {
             </div>
 
             <p
-              style={{
-                marginTop: "25px",
-                textAlign: "center",
-                color: "#666",
+                style={{
+                  marginTop: "25px",
+                  textAlign: "center",
+                  color: "var(--muted)",
               }}
             >
               Already have an account?{" "}
               <Link
                 to="/login"
-                style={{
-                  color: "#111",
-                  fontWeight: 600,
+                  style={{
+                    color: "var(--gold)",
+                    fontWeight: 600,
                 }}
               >
                 Login
@@ -176,7 +174,7 @@ export default function Register() {
 
         <section
           style={{
-            background: "#f8f6f2",
+            background: "var(--surface)",
             padding: "100px 6%",
           }}
         >
@@ -235,9 +233,9 @@ export default function Register() {
                 key={item.title}
                 style={{
                   background:
-                    "#fff",
+                    "var(--surface)",
                   border:
-                    "1px solid #e5e5e5",
+                    "1px solid var(--line)",
                   padding:
                     "35px",
                 }}
@@ -253,9 +251,9 @@ export default function Register() {
 
                 <p
                   style={{
-                    color:
-                      "#666",
-                    lineHeight:
+                  color:
+                    "var(--muted)",
+                  lineHeight:
                       1.8,
                   }}
                 >
@@ -273,9 +271,9 @@ export default function Register() {
 const inputStyle = {
   width: "100%",
   padding: "16px",
-  border: "1px solid #ddd",
-  background: "#fff",
-  color: "#111",
+  border: "1px solid var(--line)",
+  background: "rgba(255,255,255,0.06)",
+  color: "var(--text)",
   outline: "none",
   fontSize: "1rem",
 } as const;

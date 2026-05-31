@@ -18,8 +18,8 @@ export default function Wishlist() {
 
       <div
         style={{
-          background: "#fff",
-          color: "#111",
+          background: "var(--bg)",
+          color: "var(--text)",
           minHeight: "100vh",
         }}
       >
@@ -28,8 +28,8 @@ export default function Wishlist() {
         <section
           style={{
             padding: "80px 6% 50px",
-            borderBottom:
-              "1px solid #e5e5e5",
+              borderBottom:
+                "1px solid var(--line)",
           }}
         >
           <p
@@ -37,7 +37,7 @@ export default function Wishlist() {
               textTransform:
                 "uppercase",
               letterSpacing: "3px",
-              color: "#888",
+              color: "var(--muted)",
               fontSize: ".85rem",
             }}
           >
@@ -87,7 +87,7 @@ export default function Wishlist() {
 
             <p
               style={{
-                color: "#666",
+                color: "var(--muted)",
                 marginBottom: "40px",
               }}
             >
@@ -140,7 +140,7 @@ export default function Wishlist() {
                       to={`/product/${product.id}`}
                       style={{
                         color:
-                          "#111",
+                          "var(--text)",
                         textDecoration:
                           "none",
                       }}
@@ -183,10 +183,8 @@ export default function Wishlist() {
                       >
                         <p
                           style={{
-                            color:
-                              "#888",
-                            fontSize:
-                              ".85rem",
+                    color:
+                      "var(--muted)",
                             textTransform:
                               "uppercase",
                             letterSpacing:
@@ -269,22 +267,14 @@ export default function Wishlist() {
                           "18px",
                       }}
                     >
-                      <button
-                        onClick={() =>
-                          addToCart(
-                            product
-                          )
-                        }
-                        style={{
-                          flex: 1,
-                          padding:
-                            "15px",
-                          border:
-                            "none",
-                          background:
-                            "#111",
-                          color:
-                            "#fff",
+              <button
+                onClick={() => addToCart(product)}
+                style={{
+                  flex: 1,
+                  padding: "15px",
+                  border: "1px solid var(--gold)",
+                  background: "var(--gold)",
+                  color: "#050505",
                           cursor:
                             "pointer",
                           fontWeight:
@@ -303,12 +293,12 @@ export default function Wishlist() {
                         style={{
                           padding:
                             "15px 18px",
-                          border:
-                            "1px solid #ddd",
-                          background:
-                            "#fff",
-                          color:
-                            "#666",
+                    border:
+                      "1px solid var(--line)",
+                    background:
+                      "transparent",
+                    color:
+                      "var(--muted)",
                           cursor:
                             "pointer",
                           fontWeight:
@@ -328,7 +318,7 @@ export default function Wishlist() {
             <section
               style={{
                 background:
-                  "#f8f6f2",
+                  "var(--surface)",
                 padding:
                   "100px 6%",
                 textAlign:
@@ -343,10 +333,8 @@ export default function Wishlist() {
                     "uppercase",
                   letterSpacing:
                     "4px",
-                  color:
-                    "#888",
-                  fontSize:
-                    ".85rem",
+                color:
+                  "var(--muted)",
                 }}
               >
                 Discover More
@@ -373,11 +361,11 @@ export default function Wishlist() {
                 style={{
                   maxWidth:
                     "650px",
-                  margin:
-                    "30px auto",
-                  color:
-                    "#666",
-                  lineHeight:
+                    margin:
+                      "30px auto",
+                    color:
+                      "var(--muted)",
+                    lineHeight:
                     1.9,
                 }}
               >
@@ -394,12 +382,11 @@ export default function Wishlist() {
                   style={{
                     padding:
                       "18px 40px",
-                    border:
-                      "none",
+                    border: "none",
                     background:
-                      "#111",
+                      "var(--gold)",
                     color:
-                      "#fff",
+                      "#050505",
                     cursor:
                       "pointer",
                     fontWeight:

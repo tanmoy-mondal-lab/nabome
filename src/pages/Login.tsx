@@ -35,9 +35,9 @@ export default function Login() {
 
       <div
         style={{
-          background: "#fff",
+          background: "var(--bg)",
           minHeight: "100vh",
-          color: "#111",
+          color: "var(--text)",
         }}
       >
         {/* HERO */}
@@ -47,7 +47,7 @@ export default function Login() {
             padding: "100px 6% 60px",
             textAlign: "center",
             borderBottom:
-              "1px solid #e5e5e5",
+              "1px solid var(--line)",
           }}
         >
           <p
@@ -55,7 +55,7 @@ export default function Login() {
               textTransform:
                 "uppercase",
               letterSpacing: "4px",
-              color: "#888",
+              color: "var(--muted)",
               fontSize: ".85rem",
             }}
           >
@@ -88,9 +88,9 @@ export default function Login() {
               width: "100%",
               maxWidth: "500px",
               border:
-                "1px solid #e5e5e5",
+                "1px solid var(--line)",
               padding: "40px",
-              background: "#fafafa",
+              background: "var(--surface)",
             }}
           >
             <h2
@@ -133,14 +133,12 @@ export default function Login() {
               />
 
               <button
-                onClick={
-                  handleLogin
-                }
+                onClick={handleLogin}
                 style={{
                   padding: "18px",
                   border: "none",
-                  background: "#111",
-                  color: "#fff",
+                  background: "var(--gold)",
+                  color: "#050505",
                   cursor: "pointer",
                   fontWeight: 600,
                   fontSize: "1rem",
@@ -152,18 +150,18 @@ export default function Login() {
             </div>
 
             <p
-              style={{
-                marginTop: "25px",
-                color: "#666",
+                style={{
+                  marginTop: "25px",
+                  color: "var(--muted)",
                 textAlign: "center",
               }}
             >
               New to নবME?{" "}
               <Link
                 to="/register"
-                style={{
-                  color: "#111",
-                  fontWeight: 600,
+                  style={{
+                    color: "var(--gold)",
+                    fontWeight: 600,
                 }}
               >
                 Create Account
@@ -179,9 +177,9 @@ export default function Login() {
 const inputStyle = {
   width: "100%",
   padding: "16px",
-  border: "1px solid #ddd",
-  background: "#fff",
-  color: "#111",
+  border: "1px solid var(--line)",
+  background: "rgba(255,255,255,0.06)",
+  color: "var(--text)",
   outline: "none",
   fontSize: "1rem",
 } as const;

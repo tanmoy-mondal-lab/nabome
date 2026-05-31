@@ -1,8 +1,13 @@
 import { Link } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import SEO from "../components/SEO";
 
 export default function NotFound() {
   return (
-    <div
+    <>
+      <SEO title="404 | নবME" description="Page not found on নবME" />
+      <Navbar />
+      <div
       style={{
         minHeight: "100vh",
         background: "#050505",
@@ -58,5 +63,6 @@ export default function NotFound() {
         </button>
       </Link>
     </div>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
 import QuickViewModal from "../components/QuickViewModal";
 import SEO from "../components/SEO";
+import BengaliQuoteRotator from "../components/BengaliQuoteRotator";
 import { useToast } from "../components/Toast";
 import { useCart } from "../context/CartContext";
 import { products, type Product } from "../data/products";
@@ -84,6 +85,14 @@ export default function Home() {
               </p>
             </div>
             <img src="/images/community/community.jpeg" alt="নবME community showcase" loading="lazy" />
+          </div>
+        </section>
+
+        <section className="section" style={{ padding: "60px 0" }}>
+          <div className="container" style={{ textAlign: "center", maxWidth: 900 }}>
+            <p className="eyebrow">বাংলা সংস্কৃতি</p>
+            <div className="cultural-ornament">◈</div>
+            <BengaliQuoteRotator />
           </div>
         </section>
 

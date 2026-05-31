@@ -1,11 +1,25 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import BrandWordmark from "./BrandWordmark";
 import { useToast } from "./Toast";
 
+function getBengaliDate(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const bengaliYear = year - 593;
+  const months = [
+    "বৈশাখ", "জ্যৈষ্ঠ", "আষাঢ়", "শ্রাবণ",
+    "ভাদ্র", "আশ্বিন", "কার্তিক", "অগ্রহায়ণ",
+    "পৌষ", "মাঘ", "ফাল্গুন", "চৈত্র",
+  ];
+  const bengaliMonth = months[now.getMonth()];
+  return `${bengaliMonth} ${bengaliYear}`;
+}
+
 export default function Footer() {
   const [email, setEmail] = useState("");
   const { showToast } = useToast();
+  const bengaliDate = useMemo(() => getBengaliDate(), []);
 
   const subscribe = () => {
     if (!email.includes("@")) {
@@ -49,6 +63,7 @@ export default function Footer() {
 
       <div className="container footer-bottom">
         <span>© 2026 নবME. All rights reserved.</span>
+        <span className="bengali-footer-date">{bengaliDate}</span>
         <span>Deployment ready for www.nabome.online</span>
       </div>
     </footer>

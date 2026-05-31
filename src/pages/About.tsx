@@ -3,9 +3,9 @@ import SEO from "../components/SEO";
 
 export default function About() {
   const timeline = [
-    ["2024", "The idea begins with Bengali identity, everyday utility and a desire for cleaner streetwear."],
-    ["2025", "First silhouettes are refined around oversized cotton, restrained branding and accessible premium pricing."],
-    ["2026", "নবME becomes a production-ready digital storefront for community-led drops."],
+    ["২০২৪", "The idea begins with Bengali identity, everyday utility and a desire for cleaner streetwear."],
+    ["২০২৫", "First silhouettes are refined around oversized cotton, restrained branding and accessible premium pricing."],
+    ["২০২৬", "নবME becomes a production-ready digital storefront for community-led drops."],
   ];
 
   return (
@@ -34,6 +34,10 @@ export default function About() {
               <p className="lede">
                 The design language is intentional: black, texture, proportion and a gold accent that feels ceremonial without becoming loud.
               </p>
+              <div className="cultural-ornament" style={{ marginTop: 24 }}>◈</div>
+              <p className="lede" style={{ marginTop: 18 }}>
+                Every stitch carries the quiet confidence of a Bengali creative — rooted in tradition, looking forward.
+              </p>
             </div>
           </div>
         </section>
@@ -49,6 +53,22 @@ export default function About() {
                   <p>{text}</p>
                 </article>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="section editorial-band">
+          <div className="container" style={{ textAlign: "center", maxWidth: 800 }}>
+            <p className="eyebrow">বাংলা হেরিটেজ</p>
+            <h2 className="heading">Rooted in Bengal's creative soul.</h2>
+            <p className="lede" style={{ margin: "24px auto 0" }}>
+              From the addas of North Kolkata to the streets of Salt Lake — নবME is a love letter to Bengal's enduring aesthetic sensibility.
+            </p>
+            <div className="cultural-ornament" style={{ marginTop: 32 }}>◈</div>
+            <div style={{ marginTop: 28, display: "flex", justifyContent: "center", gap: 24, flexWrap: "wrap" }}>
+              <span className="bengali-season-badge">শিল্প</span>
+              <span className="bengali-season-badge">সাহিত্য</span>
+              <span className="bengali-season-badge">ফ্যাশন</span>
             </div>
           </div>
         </section>
