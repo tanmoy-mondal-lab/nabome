@@ -19,33 +19,42 @@ export default function Register() {
 
     setLoading(true);
 
-    if (supabase) {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { name } },
-      });
+    try {
+      if (supabase) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { name } },
+        });
 
-      if (error) {
-        alert(error.message);
-        setLoading(false);
-        return;
+        if (error) {
+          alert(error.message);
+          setLoading(false);
+          return;
+        }
+
+        localStorage.setItem(
+          "nabome-user",
+          JSON.stringify({ name, email })
+        );
+
+        alert(
+          supabase
+            ? "Account created! Check your email to confirm, then login."
+            : "Account created!"
+        );
+        navigate(supabase ? "/login" : "/profile");
+      } else {
+        localStorage.setItem(
+          "nabome-user",
+          JSON.stringify({ name, email })
+        );
+
+        navigate("/profile");
       }
-
-      localStorage.setItem(
-        "nabome-user",
-        JSON.stringify({ name, email })
-      );
-
-      alert("Account created! Check your email to confirm.");
-      navigate("/profile");
-    } else {
-      localStorage.setItem(
-        "nabome-user",
-        JSON.stringify({ name, email })
-      );
-
-      navigate("/profile");
+    } catch (err) {
+      alert("Something went wrong. Check your Supabase configuration in .env");
+      console.error(err);
     }
 
     setLoading(false);

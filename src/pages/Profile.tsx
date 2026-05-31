@@ -9,22 +9,26 @@ export default function Profile() {
 
   useEffect(() => {
     async function loadUser() {
-      if (supabase) {
-        const { data } = await supabase.auth.getSession();
-        const session = data.session;
-        if (session?.user) {
-          const meta = session.user.user_metadata;
-          setUser({
-            name: (meta?.name as string) || session.user.email?.split("@")[0] || "Customer",
-            email: session.user.email || "Not Provided",
-          });
-          localStorage.setItem("nabome-user", JSON.stringify({
-            name: (meta?.name as string) || session.user.email?.split("@")[0] || "Customer",
-            email: session.user.email || "",
-          }));
-          setLoading(false);
-          return;
+      try {
+        if (supabase) {
+          const { data } = await supabase.auth.getSession();
+          const session = data.session;
+          if (session?.user) {
+            const meta = session.user.user_metadata;
+            setUser({
+              name: (meta?.name as string) || session.user.email?.split("@")[0] || "Customer",
+              email: session.user.email || "Not Provided",
+            });
+            localStorage.setItem("nabome-user", JSON.stringify({
+              name: (meta?.name as string) || session.user.email?.split("@")[0] || "Customer",
+              email: session.user.email || "",
+            }));
+            setLoading(false);
+            return;
+          }
         }
+      } catch (err) {
+        console.error("Failed to get Supabase session, falling back to localStorage:", err);
       }
 
       const local = JSON.parse(localStorage.getItem("nabome-user") || "{}");

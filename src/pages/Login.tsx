@@ -18,31 +18,36 @@ export default function Login() {
 
     setLoading(true);
 
-    if (supabase) {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    try {
+      if (supabase) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      if (error) {
-        alert(error.message);
-        setLoading(false);
-        return;
+        if (error) {
+          alert(error.message);
+          setLoading(false);
+          return;
+        }
+
+        localStorage.setItem(
+          "nabome-user",
+          JSON.stringify({ email })
+        );
+
+        navigate("/profile");
+      } else {
+        localStorage.setItem(
+          "nabome-user",
+          JSON.stringify({ email })
+        );
+
+        navigate("/profile");
       }
-
-      localStorage.setItem(
-        "nabome-user",
-        JSON.stringify({ email })
-      );
-
-      navigate("/profile");
-    } else {
-      localStorage.setItem(
-        "nabome-user",
-        JSON.stringify({ email })
-      );
-
-      navigate("/profile");
+    } catch (err) {
+      alert("Connection error. Check your Supabase config in .env");
+      console.error(err);
     }
 
     setLoading(false);
