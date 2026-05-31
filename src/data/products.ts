@@ -1,343 +1,203 @@
-export const products = [
+export type Product = {
+  id: number;
+  name: string;
+  price: number;
+  originalPrice: number;
+  category: "Men" | "Women" | "Unisex" | "Accessories";
+  image: string;
+  images: string[];
+  description: string;
+  sizes: string[];
+  colors: string[];
+  stock: number;
+  isNew?: boolean;
+  isBestSeller?: boolean;
+  isLimited?: boolean;
+  tags: string[];
+  material: string;
+  fit: string;
+  rating: number;
+  reviews: number;
+};
+
+const gallery = {
+  black: "/images/products/product1.jpeg",
+  white: "/images/products/product2.jpeg",
+  hoodie: "/images/products/product3.jpeg",
+  community: "/images/community/community.jpeg",
+};
+
+export const products: Product[] = [
   {
     id: 1,
     name: "NABOME Signature Oversized Tee",
     price: 1199,
     originalPrice: 1499,
     category: "Men",
-
-    image: "/images/products/product1.jpeg",
-
-    images: [
-      "/images/products/product1.jpeg",
-      "/images/products/product1.jpeg",
-      "/images/products/product1.jpeg",
-    ],
-
+    image: gallery.black,
+    images: [gallery.black, gallery.white, gallery.hoodie],
     description:
-      "Crafted from premium 240 GSM heavyweight cotton, the Signature Oversized Tee delivers exceptional comfort, structure, and durability. Designed with a relaxed silhouette for effortless everyday styling.",
-
+      "Heavyweight 240 GSM cotton with a structured oversized drape, made for Kolkata evenings, college streets and quiet luxury styling.",
     sizes: ["S", "M", "L", "XL", "XXL"],
-
-    colors: [
-      "Jet Black",
-      "Off White",
-      "Steel Grey",
-    ],
-
+    colors: ["Jet Black", "Off White", "Steel Grey"],
     stock: 50,
-
     isNew: true,
-
     isBestSeller: true,
-
-    tags: [
-      "oversized",
-      "premium",
-      "streetwear",
-      "heavyweight",
-    ],
+    tags: ["oversized", "premium", "streetwear", "heavyweight"],
+    material: "240 GSM combed cotton",
+    fit: "Oversized",
+    rating: 4.9,
+    reviews: 128,
   },
-
   {
     id: 2,
-
     name: "Bengal Heritage Typography Tee",
-
     price: 999,
-
     originalPrice: 1299,
-
     category: "Women",
-
-    image: "/images/products/product2.jpeg",
-
-    images: [
-      "/images/products/product2.jpeg",
-      "/images/products/product2.jpeg",
-      "/images/products/product2.jpeg",
-    ],
-
+    image: gallery.white,
+    images: [gallery.white, gallery.black, gallery.community],
     description:
-      "A modern expression of Bengali culture through minimal typography and premium cotton construction. Soft, breathable and designed for everyday wear.",
-
+      "Minimal Bengali typography on breathable cotton, balancing cultural memory with a clean contemporary streetwear silhouette.",
     sizes: ["S", "M", "L", "XL"],
-
-    colors: [
-      "Black",
-      "Cream",
-      "White",
-    ],
-
+    colors: ["Black", "Cream", "White"],
     stock: 40,
-
     isNew: true,
-
-    isBestSeller: false,
-
-    tags: [
-      "bengali",
-      "culture",
-      "minimal",
-      "casual",
-    ],
+    tags: ["bengali", "culture", "minimal", "casual"],
+    material: "Bio-washed cotton jersey",
+    fit: "Relaxed",
+    rating: 4.8,
+    reviews: 86,
   },
-
   {
     id: 3,
-
     name: "Urban Essentials Hoodie",
-
     price: 1999,
-
     originalPrice: 2499,
-
     category: "Unisex",
-
-    image: "/images/products/product3.jpeg",
-
-    images: [
-      "/images/products/product3.jpeg",
-      "/images/products/product3.jpeg",
-      "/images/products/product3.jpeg",
-    ],
-
+    image: gallery.hoodie,
+    images: [gallery.hoodie, gallery.black, gallery.white],
     description:
-      "Constructed from premium 320 GSM brushed fleece, this hoodie provides warmth, comfort, and a refined oversized fit suitable for every season.",
-
+      "Premium 320 GSM brushed fleece with a warm handfeel, clean branding and an easy oversized shape for all-season layering.",
     sizes: ["S", "M", "L", "XL", "XXL"],
-
-    colors: [
-      "Black",
-      "Charcoal",
-      "Grey",
-    ],
-
+    colors: ["Black", "Charcoal", "Grey"],
     stock: 25,
-
-    isNew: false,
-
     isBestSeller: true,
-
-    tags: [
-      "hoodie",
-      "winter",
-      "premium",
-      "oversized",
-    ],
+    isLimited: true,
+    tags: ["hoodie", "winter", "premium", "oversized"],
+    material: "320 GSM brushed fleece",
+    fit: "Oversized",
+    rating: 4.9,
+    reviews: 94,
   },
-
   {
     id: 4,
-
     name: "Creator Club Oversized Tee",
-
     price: 1299,
-
     originalPrice: 1599,
-
     category: "Men",
-
-    image: "/images/products/product4.jpeg",
-
-    images: [
-      "/images/products/product4.jpeg",
-      "/images/products/product4.jpeg",
-      "/images/products/product4.jpeg",
-    ],
-
+    image: gallery.black,
+    images: [gallery.black, gallery.community, gallery.white],
     description:
-      "Designed for creators and entrepreneurs. Premium heavyweight cotton with a clean luxury streetwear aesthetic.",
-
+      "A refined daily uniform for creators and founders, cut from premium cotton with a clean luxury streetwear attitude.",
     sizes: ["S", "M", "L", "XL"],
-
-    colors: [
-      "Black",
-      "White",
-      "Sand",
-    ],
-
+    colors: ["Black", "White", "Sand"],
     stock: 35,
-
     isNew: true,
-
     isBestSeller: true,
-
-    tags: [
-      "creator",
-      "streetwear",
-      "premium",
-    ],
+    tags: ["creator", "streetwear", "premium"],
+    material: "Heavy cotton jersey",
+    fit: "Boxy oversized",
+    rating: 4.7,
+    reviews: 77,
   },
-
   {
     id: 5,
-
     name: "Minimal Logo Sweatshirt",
-
     price: 1799,
-
     originalPrice: 2199,
-
     category: "Unisex",
-
-    image: "/images/products/product5.jpeg",
-
-    images: [
-      "/images/products/product5.jpeg",
-      "/images/products/product5.jpeg",
-      "/images/products/product5.jpeg",
-    ],
-
+    image: gallery.hoodie,
+    images: [gallery.hoodie, gallery.white, gallery.black],
     description:
-      "Luxury everyday sweatshirt with premium brushed cotton construction and subtle branding.",
-
+      "A soft, structured sweatshirt with subtle branding, designed for travel days, adda sessions and elevated everyday wear.",
     sizes: ["S", "M", "L", "XL"],
-
-    colors: [
-      "Black",
-      "Grey",
-      "Cream",
-    ],
-
+    colors: ["Black", "Grey", "Cream"],
     stock: 30,
-
     isNew: true,
-
-    isBestSeller: false,
-
-    tags: [
-      "sweatshirt",
-      "minimal",
-      "premium",
-    ],
+    tags: ["sweatshirt", "minimal", "premium"],
+    material: "Brushed cotton blend",
+    fit: "Relaxed",
+    rating: 4.8,
+    reviews: 65,
   },
-
   {
     id: 6,
-
     name: "Statement Tote Bag",
-
     price: 799,
-
     originalPrice: 999,
-
     category: "Accessories",
-
-    image: "/images/products/product6.jpeg",
-
-    images: [
-      "/images/products/product6.jpeg",
-      "/images/products/product6.jpeg",
-      "/images/products/product6.jpeg",
-    ],
-
+    image: gallery.community,
+    images: [gallery.community, gallery.black, gallery.white],
     description:
-      "Heavy-duty canvas tote bag designed for daily carry with a clean premium aesthetic.",
-
+      "A heavy-duty canvas carryall for books, markets and studio days, finished with a restrained NABOME graphic.",
     sizes: ["One Size"],
-
-    colors: [
-      "Natural",
-      "Black",
-    ],
-
+    colors: ["Natural", "Black"],
     stock: 60,
-
     isNew: true,
-
     isBestSeller: true,
-
-    tags: [
-      "bag",
-      "accessories",
-      "canvas",
-    ],
+    tags: ["bag", "accessories", "canvas"],
+    material: "Heavy canvas",
+    fit: "Daily carry",
+    rating: 4.6,
+    reviews: 42,
   },
-
   {
     id: 7,
-
     name: "Premium Dad Cap",
-
     price: 699,
-
     originalPrice: 899,
-
     category: "Accessories",
-
-    image: "/images/products/product7.jpeg",
-
-    images: [
-      "/images/products/product7.jpeg",
-      "/images/products/product7.jpeg",
-      "/images/products/product7.jpeg",
-    ],
-
+    image: gallery.black,
+    images: [gallery.black, gallery.white, gallery.community],
     description:
-      "Classic adjustable dad cap with embroidered branding and structured comfort fit.",
-
+      "A structured adjustable cap with tonal embroidery and a comfortable all-day fit.",
     sizes: ["One Size"],
-
-    colors: [
-      "Black",
-      "Stone",
-      "Navy",
-    ],
-
+    colors: ["Black", "Stone", "Navy"],
     stock: 80,
-
-    isNew: false,
-
     isBestSeller: true,
-
-    tags: [
-      "cap",
-      "accessories",
-      "premium",
-    ],
+    tags: ["cap", "accessories", "premium"],
+    material: "Cotton twill",
+    fit: "Adjustable",
+    rating: 4.7,
+    reviews: 51,
   },
-
   {
     id: 8,
-
     name: "NABOME Essential Joggers",
-
     price: 1599,
-
     originalPrice: 1999,
-
     category: "Men",
-
-    image: "/images/products/product8.jpeg",
-
-    images: [
-      "/images/products/product8.jpeg",
-      "/images/products/product8.jpeg",
-      "/images/products/product8.jpeg",
-    ],
-
+    image: gallery.hoodie,
+    images: [gallery.hoodie, gallery.black, gallery.white],
     description:
-      "Premium cotton joggers engineered for comfort, movement, and elevated everyday styling.",
-
+      "Premium cotton joggers with a tapered streetwear shape, engineered for movement and elevated daily comfort.",
     sizes: ["S", "M", "L", "XL"],
-
-    colors: [
-      "Black",
-      "Charcoal",
-      "Grey",
-    ],
-
+    colors: ["Black", "Charcoal", "Grey"],
     stock: 45,
-
     isNew: true,
-
-    isBestSeller: false,
-
-    tags: [
-      "joggers",
-      "lifestyle",
-      "premium",
-    ],
+    isLimited: true,
+    tags: ["joggers", "lifestyle", "premium"],
+    material: "Loopback cotton fleece",
+    fit: "Tapered relaxed",
+    rating: 4.8,
+    reviews: 58,
   },
 ];
+
+export const getBadges = (product: Product) =>
+  [
+    product.isNew ? "New" : "",
+    product.isBestSeller ? "Best Seller" : "",
+    product.isLimited ? "Limited Edition" : "",
+  ].filter(Boolean);

@@ -1,313 +1,66 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useToast } from "./Toast";
 
 export default function Footer() {
+  const [email, setEmail] = useState("");
+  const { showToast } = useToast();
+
+  const subscribe = () => {
+    if (!email.includes("@")) {
+      showToast("Enter a valid email for the NABOME list");
+      return;
+    }
+    const subscribers = JSON.parse(localStorage.getItem("nabome-newsletter") || "[]") as string[];
+    localStorage.setItem("nabome-newsletter", JSON.stringify([...new Set([...subscribers, email])]));
+    setEmail("");
+    showToast("You are on the NABOME list");
+  };
+
   return (
-    <footer
-      style={{
-        background: "#fff",
-        color: "#111",
-        borderTop: "1px solid #e5e5e5",
-        marginTop: "120px",
-      }}
-    >
-      {/* NEWSLETTER */}
-
-      <section
-        style={{
-          padding: "100px 6%",
-          textAlign: "center",
-          borderBottom: "1px solid #e5e5e5",
-        }}
-      >
-        <p
-          style={{
-            textTransform: "uppercase",
-            letterSpacing: "4px",
-            color: "#888",
-            fontSize: ".85rem",
-          }}
-        >
-          Newsletter
-        </p>
-
-        <h2
-          style={{
-            fontSize:
-              "clamp(3rem,5vw,4.5rem)",
-            fontWeight: 300,
-            marginTop: "20px",
-          }}
-        >
-          Stay Updated
-        </h2>
-
-        <p
-          style={{
-            color: "#666",
-            marginTop: "20px",
-            maxWidth: "600px",
-            marginLeft: "auto",
-            marginRight: "auto",
-            lineHeight: 1.8,
-          }}
-        >
-          Receive updates on new
-          collections, exclusive releases,
-          and special offers.
-        </p>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            gap: "10px",
-            flexWrap: "wrap",
-            marginTop: "35px",
-          }}
-        >
-          <input
-            type="email"
-            placeholder="Your email address"
-            style={{
-              minWidth: "320px",
-              padding: "16px",
-              border: "1px solid #ddd",
-              outline: "none",
-              background: "#fff",
-            }}
-          />
-
-          <button
-            style={{
-              padding: "16px 30px",
-              border: "none",
-              background: "#111",
-              color: "#fff",
-              cursor: "pointer",
-              fontWeight: 600,
-            }}
-          >
+    <footer className="footer">
+      <section className="container footer-newsletter">
+        <p className="eyebrow">Newsletter</p>
+        <h2 className="heading">First access to drops.</h2>
+        <div className="newsletter-form">
+          <input className="field" type="email" placeholder="Email address" value={email} onChange={(event) => setEmail(event.target.value)} />
+          <button className="premium-button" onClick={subscribe}>
             Subscribe
           </button>
         </div>
       </section>
 
-      {/* MAIN FOOTER */}
-
-      <div
-        style={{
-          maxWidth: "1600px",
-          margin: "0 auto",
-          padding: "80px 6%",
-        }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit,minmax(220px,1fr))",
-            gap: "50px",
-          }}
-        >
-          {/* BRAND */}
-
-          <div>
-            <h2
-              style={{
-                fontWeight: 700,
-                letterSpacing: "4px",
-                marginBottom: "20px",
-              }}
-            >
-              NABOME
-            </h2>
-
-            <p
-              style={{
-                color: "#666",
-                lineHeight: 1.9,
-              }}
-            >
-              Contemporary fashion inspired
-              by Bengal. Premium essentials,
-              timeless silhouettes and modern
-              everyday wear.
-            </p>
-          </div>
-
-          {/* SHOP */}
-
-          <div>
-            <h4
-              style={{
-                marginBottom: "20px",
-                fontWeight: 600,
-              }}
-            >
-              Shop
-            </h4>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              <Link to="/category">
-                All Products
-              </Link>
-
-              <Link to="/category">
-                Men
-              </Link>
-
-              <Link to="/category">
-                Women
-              </Link>
-
-              <Link to="/category">
-                Accessories
-              </Link>
-            </div>
-          </div>
-
-          {/* COMPANY */}
-
-          <div>
-            <h4
-              style={{
-                marginBottom: "20px",
-                fontWeight: 600,
-              }}
-            >
-              Company
-            </h4>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              <Link to="/about">
-                About
-              </Link>
-
-              <Link to="/contact">
-                Contact
-              </Link>
-
-              <Link to="/wishlist">
-                Wishlist
-              </Link>
-
-              <Link to="/cart">
-                Cart
-              </Link>
-            </div>
-          </div>
-
-          {/* HELP */}
-
-          <div>
-            <h4
-              style={{
-                marginBottom: "20px",
-                fontWeight: 600,
-              }}
-            >
-              Help
-            </h4>
-
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              <Link to="#">
-                Shipping Policy
-              </Link>
-
-              <Link to="#">
-                Return Policy
-              </Link>
-
-              <Link to="#">
-                Privacy Policy
-              </Link>
-
-              <Link to="#">
-                Terms & Conditions
-              </Link>
-            </div>
-          </div>
-
-          {/* CONTACT */}
-
-          <div>
-            <h4
-              style={{
-                marginBottom: "20px",
-                fontWeight: 600,
-              }}
-            >
-              Contact
-            </h4>
-
-            <div
-              style={{
-                color: "#666",
-                lineHeight: 2,
-              }}
-            >
-              <p>+91 9163854706</p>
-
-              <p>support@nabome.in</p>
-
-              <p>
-                Kolkata, West Bengal,
-                India
-              </p>
-            </div>
+      <div className="container footer-grid">
+        <div>
+          <h2>NABOME</h2>
+          <p className="lede">Premium Bengali streetwear crafted for modern everyday expression.</p>
+          <div className="social-row">
+            <a href="https://instagram.com/nabome.online" target="_blank" rel="noreferrer">Instagram</a>
+            <a href="https://wa.me/919163854706" target="_blank" rel="noreferrer">WhatsApp</a>
           </div>
         </div>
+        <FooterColumn title="Shop" links={[["All Products", "/category"], ["New Arrivals", "/category?badge=new"], ["Wishlist", "/wishlist"], ["Cart", "/cart"]]} />
+        <FooterColumn title="Company" links={[["About", "/about"], ["Contact", "/contact"], ["Track Order", "/order-tracking"], ["Profile", "/profile"]]} />
+        <FooterColumn title="Policies" links={[["Shipping Policy", "/shipping-policy"], ["Return Policy", "/return-policy"], ["Privacy Policy", "/privacy-policy"], ["Terms", "/terms"]]} />
+      </div>
 
-        {/* BOTTOM */}
-
-        <div
-          style={{
-            borderTop: "1px solid #e5e5e5",
-            marginTop: "60px",
-            paddingTop: "30px",
-            display: "flex",
-            justifyContent:
-              "space-between",
-            flexWrap: "wrap",
-            gap: "20px",
-          }}
-        >
-          <p
-            style={{
-              color: "#888",
-            }}
-          >
-            © 2026 NABOME.
-            All Rights Reserved.
-          </p>
-
-          <p
-            style={{
-              color: "#888",
-            }}
-          >
-            Build Your Story.
-          </p>
-        </div>
+      <div className="container footer-bottom">
+        <span>© 2026 NABOME. All rights reserved.</span>
+        <span>Deployment ready for www.nabome.online</span>
       </div>
     </footer>
+  );
+}
+
+function FooterColumn({ title, links }: { title: string; links: [string, string][] }) {
+  return (
+    <div className="footer-column">
+      <h3>{title}</h3>
+      {links.map(([label, to]) => (
+        <Link key={label} to={to}>
+          {label}
+        </Link>
+      ))}
+    </div>
   );
 }

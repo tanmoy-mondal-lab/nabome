@@ -5,8 +5,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { Product } from "../data/products";
 
-interface CartItem {
+export interface CartItem {
   id: number;
   name: string;
   price: number;
@@ -16,9 +17,19 @@ interface CartItem {
   selectedColor?: string;
 }
 
+type CartInput = {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+  quantity?: number;
+  selectedSize?: string;
+  selectedColor?: string;
+};
+
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: any) => void;
+  addToCart: (product: Product | CartInput) => void;
   removeItem: (
   id: number,
   selectedSize?: string,
@@ -67,14 +78,21 @@ export function CartProvider({
     );
   }, [cart]);
 
-  const addToCart = (product: any) => {
+  const addToCart = (product: Product | CartInput) => {
+    const selectedSize =
+      "selectedSize" in product
+        ? product.selectedSize
+        : undefined;
+    const selectedColor =
+      "selectedColor" in product
+        ? product.selectedColor
+        : undefined;
+
     const existing = cart.find(
       (item) =>
         item.id === product.id &&
-        item.selectedSize ===
-          product.selectedSize &&
-        item.selectedColor ===
-          product.selectedColor
+        item.selectedSize === selectedSize &&
+        item.selectedColor === selectedColor
     );
 
     if (existing) {
@@ -94,6 +112,8 @@ export function CartProvider({
         ...cart,
         {
           ...product,
+          selectedSize,
+          selectedColor,
           quantity: 1,
         },
       ]);

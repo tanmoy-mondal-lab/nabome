@@ -60,21 +60,9 @@ ${item.name}
 
 Qty: ${item.quantity}
 
-Size: ${
-              (
-                item as any
-              )
-                .selectedSize ||
-              "N/A"
-            }
+Size: ${item.selectedSize || "N/A"}
 
-Color: ${
-              (
-                item as any
-              )
-                .selectedColor ||
-              "N/A"
-            }
+Color: ${item.selectedColor || "N/A"}
 
 Subtotal: ₹${
               item.price *
@@ -414,16 +402,14 @@ TOTAL: ₹${total}
                     <p>
                       Size:
                       {" "}
-                      {(item as any)
-                        .selectedSize ||
+                      {item.selectedSize ||
                         "N/A"}
                     </p>
 
                     <p>
                       Colour:
                       {" "}
-                      {(item as any)
-                        .selectedColor ||
+                      {item.selectedColor ||
                         "N/A"}
                     </p>
                   </div>

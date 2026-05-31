@@ -132,7 +132,7 @@ export default function Wishlist() {
               }}
             >
                             {wishlist.map(
-                (product: any) => (
+                (product) => (
                   <div
                     key={product.id}
                   >
@@ -237,8 +237,7 @@ export default function Wishlist() {
                             }
                           </span>
 
-                          {(product as any)
-                            .originalPrice && (
+                          {product.originalPrice && (
                             <span
                               style={{
                                 color:
@@ -251,10 +250,7 @@ export default function Wishlist() {
                             >
                               ₹
                               {
-                                (
-                                  product as any
-                                )
-                                  .originalPrice
+                                product.originalPrice
                               }
                             </span>
                           )}

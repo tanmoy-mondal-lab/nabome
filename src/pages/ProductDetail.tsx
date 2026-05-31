@@ -1,851 +1,222 @@
-import { useParams, Link } from "react-router-dom";
-import { products } from "../data/products";
+import { Link, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
+import ProductCard from "../components/ProductCard";
+import ProductReviews from "../components/ProductReviews";
+import SEO from "../components/SEO";
+import SizeGuideModal from "../components/SizeGuideModal";
+import TrustBadges from "../components/TrustBadges";
+import { useToast } from "../components/Toast";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
-import { useState } from "react";
-import ProductReviews from "../components/ProductReviews";
-import TrustBadges from "../components/TrustBadges";
+import { getBadges, products, type Product } from "../data/products";
 
 export default function ProductDetail() {
   const { id } = useParams();
-
-  const product = products.find(
-    (p) => p.id === Number(id)
-  );
-
+  const product = products.find((p) => p.id === Number(id));
   const { addToCart } = useCart();
+  const { showToast } = useToast();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const [selectedSize, setSelectedSize] = useState(product?.sizes[0] || "");
+  const [selectedColor, setSelectedColor] = useState(product?.colors[0] || "");
+  const [selectedImage, setSelectedImage] = useState(product?.image || "");
+  const [pincode, setPincode] = useState("");
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
 
-  const {
-    addToWishlist,
-    removeFromWishlist,
-    isInWishlist,
-  } = useWishlist();
+  useEffect(() => {
+    if (!product) return;
+    const viewed = JSON.parse(localStorage.getItem("nabome-recently-viewed") || "[]") as number[];
+    localStorage.setItem("nabome-recently-viewed", JSON.stringify([product.id, ...viewed.filter((item) => item !== product.id)].slice(0, 6)));
+  }, [product]);
 
-  const [selectedSize, setSelectedSize] =
-    useState("");
-
-  const [selectedColor, setSelectedColor] =
-    useState("");
-
-  const [selectedImage, setSelectedImage] =
-    useState(product?.image || "");
-
-  const [pincode, setPincode] =
-    useState("");
+  const recentlyViewed = useMemo(() => {
+    const viewed = JSON.parse(localStorage.getItem("nabome-recently-viewed") || "[]") as number[];
+    return viewed.map((viewedId) => products.find((item) => item.id === viewedId)).filter((item): item is Product => Boolean(item)).filter((item) => item.id !== product?.id);
+  }, [product?.id]);
 
   if (!product) {
     return (
       <>
         <Navbar />
-
-        <div
-          style={{
-            minHeight: "100vh",
-            background: "#fff",
-            color: "#111",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <h1>Product Not Found</h1>
-        </div>
+        <main className="page" style={{ display: "grid", minHeight: "70vh", placeItems: "center" }}>
+          <div className="glass" style={{ padding: 38, textAlign: "center" }}>
+            <h1>Product not found</h1>
+            <Link className="premium-button" to="/category" style={{ display: "inline-flex", marginTop: 24, padding: "0 24px", alignItems: "center" }}>
+              Shop Collection
+            </Link>
+          </div>
+        </main>
       </>
     );
   }
 
-  const relatedProducts = products.filter(
-    (p) => p.id !== product.id
-  );
+  const relatedProducts = products.filter((p) => p.id !== product.id && (p.category === product.category || p.tags.some((tag) => product.tags.includes(tag)))).slice(0, 4);
+  const discount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
 
-  const discount =
-    (product as any).originalPrice
-      ? Math.round(
-          (((product as any).originalPrice -
-            product.price) /
-            (product as any).originalPrice) *
-            100
-        )
-      : 0;
+  const addProduct = () => {
+    addToCart({ ...product, selectedSize, selectedColor });
+    showToast(`${product.name} added to bag`);
+  };
 
   return (
     <>
-      <Navbar />
-
-      <div
-        style={{
-          background: "#fff",
-          color: "#111",
-          minHeight: "100vh",
+      <SEO
+        title={`${product.name} | NABOME`}
+        description={product.description}
+        path={`/product/${product.id}`}
+        image={product.image}
+        type="product"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: product.name,
+          image: product.images.map((image) => `https://www.nabome.online${image}`),
+          description: product.description,
+          brand: { "@type": "Brand", name: "NABOME" },
+          offers: { "@type": "Offer", priceCurrency: "INR", price: product.price, availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" },
+          aggregateRating: { "@type": "AggregateRating", ratingValue: product.rating, reviewCount: product.reviews },
         }}
-      >
-        {/* BREADCRUMB */}
+      />
+      <Navbar />
+      <main className="page">
+        <section className="container product-detail">
+          <div className="gallery">
+            <div className="gallery-main skeleton">
+              <img src={selectedImage || product.image} alt={product.name} />
+            </div>
+            <div className="gallery-thumbs">
+              {product.images.map((image) => (
+                <button key={image} onClick={() => setSelectedImage(image)} aria-label="Change product image" className={(selectedImage || product.image) === image ? "active" : ""}>
+                  <img src={image} alt="" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          </div>
 
-        <section
-          style={{
-            padding: "30px 6%",
-            borderBottom: "1px solid #e5e5e5",
-          }}
-        >
-          <p
-            style={{
-              color: "#777",
-              fontSize: ".9rem",
-            }}
-          >
-            Home / Shop / {product.category}
-          </p>
-        </section>
+          <aside className="product-buy glass">
+            <p className="eyebrow">{product.category}</p>
+            <h1 className="heading">{product.name}</h1>
+            <div className="detail-badges">
+              {getBadges(product).map((badge) => (
+                <span className="badge" key={badge}>
+                  {badge}
+                </span>
+              ))}
+              <span className="badge">{discount}% Off</span>
+            </div>
+            <div className="product-price detail-price">
+              <strong>₹{product.price}</strong>
+              <span>₹{product.originalPrice}</span>
+            </div>
+            <p className="lede">{product.description}</p>
 
-        {/* PRODUCT SECTION */}
-
-        <section
-          style={{
-            padding: "60px 6%",
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit,minmax(500px,1fr))",
-              gap: "70px",
-              alignItems: "start",
-            }}
-          >
-            {/* LEFT SIDE */}
-
-            <div>
-              <div
-                style={{
-                  border: "1px solid #e5e5e5",
-                  background: "#fafafa",
-                }}
-              >
-                <img
-                  src={selectedImage}
-                  alt={product.name}
-                  style={{
-                    width: "100%",
-                    height: "700px",
-                    objectFit: "cover",
-                  }}
-                />
+            <div className="selector-block">
+              <div className="selector-head">
+                <h3>Size</h3>
+                <button className="text-button" onClick={() => setSizeGuideOpen(true)}>
+                  Size Guide
+                </button>
               </div>
-
-              {/* THUMBNAILS */}
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: "15px",
-                  marginTop: "20px",
-                  flexWrap: "wrap",
-                }}
-              >
-                {product.images.map((img) => (
-                  <img
-                    key={img}
-                    src={img}
-                    alt=""
-                    onClick={() =>
-                      setSelectedImage(img)
-                    }
-                    style={{
-                      width: "100px",
-                      height: "120px",
-                      objectFit: "cover",
-                      cursor: "pointer",
-                      border:
-                        selectedImage === img
-                          ? "2px solid #111"
-                          : "1px solid #ddd",
-                    }}
-                  />
+              <div className="option-grid">
+                {product.sizes.map((size) => (
+                  <button className={selectedSize === size ? "selected" : ""} key={size} onClick={() => setSelectedSize(size)}>
+                    {size}
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* RIGHT SIDE */}
-
-            <div
-              style={{
-                position: "sticky",
-                top: "120px",
-              }}
-            >
-              <p
-                style={{
-                  color: "#888",
-                  textTransform: "uppercase",
-                  letterSpacing: "3px",
-                  fontSize: ".8rem",
-                }}
-              >
-                {product.category}
-              </p>
-
-              <h1
-                style={{
-                  fontSize:
-                    "clamp(2.5rem,5vw,4.5rem)",
-                  fontWeight: 300,
-                  lineHeight: 1,
-                  marginTop: "15px",
-                }}
-              >
-                {product.name}
-              </h1>
-
-              {/* PRICE */}
-
-              <div
-                style={{
-                  marginTop: "30px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "15px",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "2rem",
-                    fontWeight: 600,
-                  }}
-                >
-                  ₹{product.price}
-                </span>
-
-                {(product as any)
-                  .originalPrice && (
-                  <span
-                    style={{
-                      color: "#999",
-                      textDecoration:
-                        "line-through",
-                    }}
-                  >
-                    ₹
-                    {
-                      (product as any)
-                        .originalPrice
-                    }
-                  </span>
-                )}
-
-                {discount > 0 && (
-                  <span
-                    style={{
-                      color: "#111",
-                      border:
-                        "1px solid #111",
-                      padding: "6px 10px",
-                      fontSize: ".8rem",
-                    }}
-                  >
-                    {discount}% OFF
-                  </span>
-                )}
-              </div>
-
-              {/* DESCRIPTION */}
-
-              <p
-                style={{
-                  marginTop: "30px",
-                  color: "#666",
-                  lineHeight: 1.9,
-                  fontSize: "1rem",
-                }}
-              >
-                {product.description}
-              </p>
-
-              {/* SIZE */}
-
-              <div
-                style={{
-                  marginTop: "40px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent:
-                      "space-between",
-                    marginBottom: "15px",
-                  }}
-                >
-                  <h3>Size</h3>
-
-                  <button
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: "#666",
-                    }}
-                  >
-                    Size Guide
+            <div className="selector-block">
+              <h3>Colour</h3>
+              <div className="option-grid">
+                {product.colors.map((color) => (
+                  <button className={selectedColor === color ? "selected" : ""} key={color} onClick={() => setSelectedColor(color)}>
+                    {color}
                   </button>
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "12px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {product.sizes.map(
-                    (size) => (
-                      <button
-                        key={size}
-                        onClick={() =>
-                          setSelectedSize(
-                            size
-                          )
-                        }
-                        style={{
-                          minWidth: "60px",
-                          padding:
-                            "14px 18px",
-                          border:
-                            selectedSize ===
-                            size
-                              ? "2px solid #111"
-                              : "1px solid #ddd",
-                          background:
-                            "#fff",
-                          cursor:
-                            "pointer",
-                          fontWeight:
-                            600,
-                        }}
-                      >
-                        {size}
-                      </button>
-                    )
-                  )}
-                </div>
+                ))}
               </div>
-
-              {/* COLOR */}
-
-              <div
-                style={{
-                  marginTop: "35px",
-                }}
-              >
-                <h3
-                  style={{
-                    marginBottom: "15px",
-                  }}
-                >
-                  Colour
-                </h3>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "12px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {product.colors.map(
-                    (color) => (
-                      <button
-                        key={color}
-                        onClick={() =>
-                          setSelectedColor(
-                            color
-                          )
-                        }
-                        style={{
-                          padding:
-                            "14px 18px",
-                          border:
-                            selectedColor ===
-                            color
-                              ? "2px solid #111"
-                              : "1px solid #ddd",
-                          background:
-                            "#fff",
-                          cursor:
-                            "pointer",
-                          fontWeight:
-                            500,
-                        }}
-                      >
-                        {color}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
-                            {/* ACTION BUTTONS */}
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: "15px",
-                  marginTop: "45px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <button
-                  onClick={() => {
-                    if (!selectedSize) {
-                      alert(
-                        "Please select a size"
-                      );
-                      return;
-                    }
-
-                    if (!selectedColor) {
-                      alert(
-                        "Please select a colour"
-                      );
-                      return;
-                    }
-
-                    addToCart({
-                      ...product,
-                      selectedSize,
-                      selectedColor,
-                    });
-
-                    alert(
-                      "Added To Bag"
-                    );
-                  }}
-                  style={{
-                    flex: 1,
-                    minWidth: "220px",
-                    padding: "18px",
-                    border: "none",
-                    background: "#111",
-                    color: "#fff",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    fontSize: "1rem",
-                  }}
-                >
-                  Add To Bag
-                </button>
-
-                <button
-                  onClick={() => {
-                    if (
-                      isInWishlist(
-                        product.id
-                      )
-                    ) {
-                      removeFromWishlist(
-                        product.id
-                      );
-                    } else {
-                      addToWishlist(
-                        product
-                      );
-                    }
-                  }}
-                  style={{
-                    minWidth: "180px",
-                    padding: "18px",
-                    border:
-                      "1px solid #111",
-                    background: "#fff",
-                    color: "#111",
-                    cursor: "pointer",
-                    fontWeight: 600,
-                  }}
-                >
-                  {isInWishlist(
-                    product.id
-                  )
-                    ? "Saved"
-                    : "Wishlist"}
-                </button>
-              </div>
-
-              {/* DELIVERY */}
-
-              <div
-                style={{
-                  marginTop: "60px",
-                  paddingTop: "35px",
-                  borderTop:
-                    "1px solid #e5e5e5",
-                }}
-              >
-                <h3
-                  style={{
-                    marginBottom: "20px",
-                  }}
-                >
-                  Delivery & Returns
-                </h3>
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "12px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <input
-                    type="text"
-                    placeholder="Enter Pincode"
-                    value={pincode}
-                    onChange={(e) =>
-                      setPincode(
-                        e.target.value
-                      )
-                    }
-                    style={{
-                      flex: 1,
-                      minWidth: "200px",
-                      padding: "15px",
-                      border:
-                        "1px solid #ddd",
-                      outline: "none",
-                    }}
-                  />
-
-                  <button
-                    style={{
-                      padding:
-                        "15px 30px",
-                      border:
-                        "1px solid #111",
-                      background:
-                        "#fff",
-                      cursor:
-                        "pointer",
-                    }}
-                  >
-                    Check
-                  </button>
-                </div>
-
-                <div
-                  style={{
-                    marginTop: "20px",
-                    color: "#666",
-                    lineHeight: 2,
-                  }}
-                >
-                  <p>
-                    ✓ Free Shipping on
-                    orders above ₹999
-                  </p>
-
-                  <p>
-                    ✓ Easy Returns &
-                    Exchanges
-                  </p>
-
-                  <p>
-                    ✓ Estimated Delivery
-                    3-5 Business Days
-                  </p>
-                </div>
-              </div>
-
-              {/* PRODUCT DETAILS */}
-
-              <div
-                style={{
-                  marginTop: "60px",
-                  paddingTop: "35px",
-                  borderTop:
-                    "1px solid #e5e5e5",
-                }}
-              >
-                <h3
-                  style={{
-                    marginBottom: "25px",
-                  }}
-                >
-                  Product Details
-                </h3>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gap: "18px",
-                  }}
-                >
-                  <div
-                    style={detailRow}
-                  >
-                    <span>
-                      Material
-                    </span>
-                    <span>
-                      Premium Cotton
-                    </span>
-                  </div>
-
-                  <div
-                    style={detailRow}
-                  >
-                    <span>Fit</span>
-                    <span>
-                      Oversized
-                    </span>
-                  </div>
-
-                  <div
-                    style={detailRow}
-                  >
-                    <span>
-                      Category
-                    </span>
-                    <span>
-                      {
-                        product.category
-                      }
-                    </span>
-                  </div>
-
-                  <div
-                    style={detailRow}
-                  >
-                    <span>
-                      Wash Care
-                    </span>
-                    <span>
-                      Machine Wash
-                    </span>
-                  </div>
-
-                  <div
-                    style={detailRow}
-                  >
-                    <span>
-                      Country
-                    </span>
-                    <span>
-                      India
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <TrustBadges />
             </div>
-          </div>
+
+            <div className="sticky-actions">
+              <button className="premium-button" onClick={addProduct}>
+                Add To Bag
+              </button>
+              <button
+                className="ghost-button"
+                onClick={() => {
+                  if (isInWishlist(product.id)) {
+                    removeFromWishlist(product.id);
+                    showToast("Removed from wishlist");
+                  } else {
+                    addToWishlist(product);
+                    showToast("Saved to wishlist");
+                  }
+                }}
+              >
+                {isInWishlist(product.id) ? "Saved" : "Wishlist"}
+              </button>
+            </div>
+
+            <div className="delivery-check">
+              <input className="field" placeholder="Enter pincode" value={pincode} onChange={(event) => setPincode(event.target.value)} />
+              <button className="ghost-button" onClick={() => showToast(pincode ? "Delivery estimate: 3-5 business days" : "Enter a pincode first")}>
+                Check
+              </button>
+            </div>
+
+            <div className="detail-table">
+              {[
+                ["Material", product.material],
+                ["Fit", product.fit],
+                ["Inventory", product.stock > 10 ? "In stock" : "Limited stock"],
+                ["Wash Care", "Cold wash, dry inside out"],
+                ["Origin", "Designed in Bengal"],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                </div>
+              ))}
+            </div>
+          </aside>
         </section>
 
-        {/* BRAND MESSAGE */}
-
-        <section
-          style={{
-            padding:
-              "120px 6%",
-            background:
-              "#f8f6f2",
-            textAlign:
-              "center",
-          }}
-        >
-          <span
-            style={{
-              textTransform:
-                "uppercase",
-              letterSpacing:
-                "4px",
-              color: "#888",
-            }}
-          >
-            NABOME
-          </span>
-
-          <h2
-            style={{
-              fontSize:
-                "clamp(3rem,6vw,5rem)",
-              fontWeight: 300,
-              marginTop:
-                "20px",
-            }}
-          >
-            Designed In
-            <br />
-            Bengal
-          </h2>
-
-          <p
-            style={{
-              maxWidth:
-                "700px",
-              margin:
-                "30px auto 0",
-              color: "#666",
-              lineHeight: 1.9,
-            }}
-          >
-            Modern
-            silhouettes,
-            premium
-            materials and
-            timeless
-            design inspired
-            by culture,
-            identity and
-            everyday
-            expression.
-          </p>
-        </section>
-
-        {/* RELATED PRODUCTS */}
-
-        <section
-          style={{
-            padding:
-              "120px 6%",
-            background:
-              "#fff",
-          }}
-        >
-          <div
-            style={{
-              marginBottom:
-                "60px",
-            }}
-          >
-            <span
-              style={{
-                textTransform:
-                  "uppercase",
-                letterSpacing:
-                  "3px",
-                color:
-                  "#888",
-              }}
-            >
-              More To
-              Explore
-            </span>
-
-            <h2
-              style={{
-                fontSize:
-                  "3rem",
-                fontWeight:
-                  300,
-                marginTop:
-                  "15px",
-              }}
-            >
-              You May
-              Also Like
-            </h2>
-          </div>
-
-          <div
-            style={{
-              display:
-                "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit,minmax(280px,1fr))",
-              gap: "30px",
-            }}
-          >
-            {relatedProducts
-              .slice(0, 4)
-              .map(
-                (
-                  item
-                ) => (
-                  <Link
-                    key={
-                      item.id
-                    }
-                    to={`/product/${item.id}`}
-                    style={{
-                      color:
-                        "#111",
-                    }}
-                  >
-                    <img
-                      src={
-                        item.image
-                      }
-                      alt={
-                        item.name
-                      }
-                      style={{
-                        width:
-                          "100%",
-                        height:
-                          "420px",
-                        objectFit:
-                          "cover",
-                      }}
-                    />
-
-                    <div
-                      style={{
-                        marginTop:
-                          "18px",
-                      }}
-                    >
-                      <p
-                        style={{
-                          color:
-                            "#888",
-                          marginBottom:
-                            "8px",
-                        }}
-                      >
-                        {
-                          item.category
-                        }
-                      </p>
-
-                      <h3
-                        style={{
-                          fontWeight:
-                            500,
-                          marginBottom:
-                            "10px",
-                        }}
-                      >
-                        {
-                          item.name
-                        }
-                      </h3>
-
-                      <p>
-                        ₹
-                        {
-                          item.price
-                        }
-                      </p>
-                    </div>
-                  </Link>
-                )
-              )}
-          </div>
-
+        <section className="container">
+          <TrustBadges />
           <ProductReviews />
         </section>
-      </div>
+
+        <section className="section">
+          <div className="container split-intro">
+            <div>
+              <p className="eyebrow">Recommended</p>
+              <h2 className="heading">Complete the look</h2>
+            </div>
+          </div>
+          <div className="container product-grid">
+            {relatedProducts.map((item) => (
+              <ProductCard key={item.id} product={item} onQuickAdd={(nextProduct) => addToCart({ ...nextProduct, selectedSize: nextProduct.sizes[0], selectedColor: nextProduct.colors[0] })} />
+            ))}
+          </div>
+        </section>
+
+        {recentlyViewed.length > 0 && (
+          <section className="section">
+            <div className="container split-intro">
+              <div>
+                <p className="eyebrow">Recently Viewed</p>
+                <h2 className="heading">Your last looks</h2>
+              </div>
+            </div>
+            <div className="container product-grid">
+              {recentlyViewed.slice(0, 4).map((item) => (
+                <ProductCard key={item.id} product={item} />
+              ))}
+            </div>
+          </section>
+        )}
+      </main>
+      <SizeGuideModal open={sizeGuideOpen} onClose={() => setSizeGuideOpen(false)} />
     </>
   );
 }
-
-const detailRow = {
-  display: "flex",
-  justifyContent:
-    "space-between",
-  paddingBottom:
-    "12px",
-  borderBottom:
-    "1px solid #eee",
-  color: "#666",
-} as const;

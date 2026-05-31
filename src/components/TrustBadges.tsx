@@ -1,68 +1,21 @@
 export default function TrustBadges() {
   const badges = [
-    {
-      title: "Premium Materials",
-      text: "Selected fabrics with exceptional comfort and durability.",
-    },
-    {
-      title: "Secure Checkout",
-      text: "Safe ordering experience with trusted payment methods.",
-    },
-    {
-      title: "Easy Returns",
-      text: "Simple return and replacement assistance.",
-    },
-    {
-      title: "Fast Delivery",
-      text: "Quick shipping across India.",
-    },
+    ["Premium Materials", "Selected fabrics with strong handfeel, comfort and long-term durability."],
+    ["Secure Ordering", "WhatsApp checkout keeps every size, color and address detail reviewable."],
+    ["Easy Returns", "Exchange and return support is ready through customer care."],
+    ["India Shipping", "Fast dispatch preparation for major Indian cities and towns."],
   ];
 
   return (
-    <section
-      style={{
-        marginTop: "60px",
-        paddingTop: "50px",
-        borderTop: "1px solid #e5e5e5",
-      }}
-    >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit,minmax(220px,1fr))",
-          gap: "20px",
-        }}
-      >
-        {badges.map((badge) => (
-          <div
-            key={badge.title}
-            style={{
-              padding: "25px",
-              border: "1px solid #e5e5e5",
-              background: "#fff",
-            }}
-          >
-            <h4
-              style={{
-                color: "#111",
-                marginBottom: "12px",
-                fontWeight: 600,
-              }}
-            >
-              {badge.title}
-            </h4>
-
-            <p
-              style={{
-                color: "#666",
-                lineHeight: 1.8,
-                fontSize: ".95rem",
-              }}
-            >
-              {badge.text}
+    <section className="section" style={{ paddingBottom: 0 }}>
+      <div className="card-grid">
+        {badges.map(([title, text]) => (
+          <article className="glass" key={title} style={{ padding: 24 }}>
+            <h3>{title}</h3>
+            <p className="lede" style={{ marginTop: 10, fontSize: ".95rem" }}>
+              {text}
             </p>
-          </div>
+          </article>
         ))}
       </div>
     </section>
