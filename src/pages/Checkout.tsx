@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import Navbar from "../components/Navbar";
 import { useCart } from "../context/CartContext";
 
-const UPI_ID = "nabome@upi";
-const UPI_NAME = "নবME";
+const MERCHANT_UPI = "mondaltanmoy230@oksbi";
+const MERCHANT_NAME = "নবME";
 const PHONE = 919163854706;
 
 function buildBill(customer: Record<string, string>, items: unknown[], total: number, paymentMethod: string) {
@@ -27,13 +27,16 @@ function buildBill(customer: Record<string, string>, items: unknown[], total: nu
 export default function Checkout() {
   const navigate = useNavigate();
   const { cart, clearCart } = useCart();
+  const paidRef = useRef(false);
 
   const [form, setForm] = useState({
     name: "", phone: "", email: "",
     address: "", city: "", state: "", pincode: "",
+    customerUpi: "",
   });
   const [paymentMethod, setPaymentMethod] = useState<"whatsapp" | "upi">("whatsapp");
-  const [paid, setPaid] = useState(false);
+  const [upiStep, setUpiStep] = useState<"idle" | "paying" | "confirming" | "done">("idle");
+  const [qrView, setQrView] = useState(false);
 
   const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 
@@ -50,21 +53,41 @@ export default function Checkout() {
     city: form.city,
     state: form.state,
     pincode: form.pincode,
+    customerUpi: form.customerUpi || "Not Provided",
   };
 
-  const upiLink = `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(UPI_NAME)}&am=${total}&cu=INR&tn=${encodeURIComponent(`নবME Order ${customer.name}`)}`;
+  const upiLink = `upi://pay?pa=${MERCHANT_UPI}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${total}&cu=INR&tn=${encodeURIComponent(`নবME Order ${form.name}`)}`;
 
-  const confirmUpiPayment = () => {
+  const handlePayNow = () => {
     if (!isFormValid) {
       alert("Please complete all checkout details.");
       return;
     }
-    const bill = buildBill(customer, cart, total, "upi");
-    localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
-    localStorage.removeItem("nabome-cart");
-    clearCart();
-    navigate("/order-success");
+    setUpiStep("paying");
+    setQrView(false);
+    window.open(upiLink, "_blank");
   };
+
+  useEffect(() => {
+    if (upiStep !== "paying") return;
+    const onFocus = () => {
+      if (!paidRef.current) {
+        paidRef.current = true;
+        setUpiStep("confirming");
+        const bill = buildBill(customer, cart, total, "upi");
+        localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
+        localStorage.removeItem("nabome-cart");
+        clearCart();
+        setTimeout(() => {
+          setUpiStep("done");
+          navigate("/order-success");
+        }, 1000);
+      }
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upiStep]);
 
   const sendToWhatsapp = () => {
     if (!isFormValid) {
@@ -104,6 +127,9 @@ ${form.phone}
 
 Email:
 ${form.email || "Not Provided"}
+
+UPI:
+${form.customerUpi || "Not Provided"}
 
 Address:
 ${form.address}
@@ -241,6 +267,40 @@ TOTAL: ₹${total}
                   style={inputStyle}
                 />
               </div>
+
+              {/* UPI FIELD */}
+              {paymentMethod === "upi" && (
+                <>
+                  <h2 style={{ marginTop: "60px", marginBottom: "30px", fontWeight: 500 }}>
+                    UPI Payment Details
+                  </h2>
+                  <div style={{ display: "grid", gap: "18px" }}>
+                    <input
+                      placeholder="Your UPI ID (e.g. name@upi) or phone number"
+                      value={form.customerUpi}
+                      onChange={(e) => update("customerUpi", e.target.value)}
+                      style={inputStyle}
+                    />
+                    <div
+                      style={{
+                        padding: "16px",
+                        border: "1px solid var(--gold)",
+                        background: "var(--gold-soft)",
+                        fontSize: ".9rem",
+                        lineHeight: 1.7,
+                      }}
+                    >
+                      <strong style={{ color: "var(--gold)" }}>Payment Request</strong>
+                      <p style={{ color: "var(--muted)", marginTop: 8 }}>
+                        Pay to: <strong style={{ color: "var(--text)" }}>{MERCHANT_UPI}</strong>
+                      </p>
+                      <p style={{ color: "var(--muted)" }}>
+                        Amount: <strong style={{ color: "var(--text)" }}>₹{total}</strong>
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* ORDER SUMMARY */}
@@ -298,7 +358,7 @@ TOTAL: ₹${total}
                 <h3 style={{ marginBottom: "20px" }}>Payment Method</h3>
                 <div style={{ display: "grid", gap: "12px" }}>
                   <button
-                    onClick={() => { setPaymentMethod("whatsapp"); setPaid(false); }}
+                    onClick={() => { setPaymentMethod("whatsapp"); setUpiStep("idle"); }}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -316,13 +376,13 @@ TOTAL: ₹${total}
                     <div>
                       <strong>WhatsApp Order</strong>
                       <p style={{ color: "var(--muted)", fontSize: ".85rem", marginTop: 2 }}>
-                        Review & confirm via WhatsApp
+                        Manual order via WhatsApp
                       </p>
                     </div>
                   </button>
 
                   <button
-                    onClick={() => { setPaymentMethod("upi"); setPaid(false); }}
+                    onClick={() => { setPaymentMethod("upi"); setUpiStep("idle"); setQrView(false); }}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -338,85 +398,152 @@ TOTAL: ₹${total}
                   >
                     <span style={{ fontSize: "1.2rem" }}>{paymentMethod === "upi" ? "●" : "○"}</span>
                     <div>
-                      <strong>UPI / QR</strong>
+                      <strong>UPI AutoPay → mondaltanmoy230@oksbi</strong>
                       <p style={{ color: "var(--muted)", fontSize: ".85rem", marginTop: 2 }}>
-                        Pay via GPay, PhonePe, Paytm
+                        Pay via GPay, PhonePe, Paytm — auto billing
                       </p>
                     </div>
                   </button>
                 </div>
               </div>
 
-              {/* UPI SECTION */}
+              {/* UPI AUTO PAY SECTION */}
               {paymentMethod === "upi" && total > 0 && (
-                <div style={{ marginTop: "30px", padding: "24px", border: "1px solid var(--line)", textAlign: "center" }}>
-                  <p className="eyebrow" style={{ marginBottom: 16 }}>Scan & Pay</p>
-                  <div style={{ display: "grid", placeItems: "center", gap: 16 }}>
-                    <a href={upiLink} target="_blank" rel="noreferrer">
-                      <QRCodeSVG
-                        value={upiLink}
-                        size={180}
-                        bgColor="#ffffff"
-                        fgColor="#050505"
-                        level="M"
-                      />
-                    </a>
-                    <p style={{ fontSize: ".85rem", color: "var(--muted)" }}>
-                      Scan with any UPI app
-                    </p>
-                    <div style={{ borderTop: "1px solid var(--line)", paddingTop: 16, width: "100%" }}>
-                      <p style={{ fontSize: ".85rem", color: "var(--muted)", marginBottom: 6 }}>Or pay to UPI ID</p>
-                      <strong style={{ fontSize: "1.1rem", color: "var(--gold)", letterSpacing: "0.05em" }}>{UPI_ID}</strong>
+                <div style={{ marginTop: "30px" }}>
+                  {upiStep === "idle" && !qrView && (
+                    <div style={{ display: "grid", gap: 12 }}>
+                      <div
+                        style={{
+                          padding: "16px",
+                          border: "1px solid var(--line)",
+                          textAlign: "center",
+                          fontSize: ".9rem",
+                          lineHeight: 1.7,
+                        }}
+                      >
+                        <p style={{ color: "var(--muted)" }}>
+                          Payment request will be sent to
+                        </p>
+                        <strong style={{ fontSize: "1.2rem", color: "var(--gold)", letterSpacing: "0.03em" }}>
+                          {form.customerUpi || "your UPI app"}
+                        </strong>
+                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+                          <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>Paying to</p>
+                          <strong style={{ fontSize: "1rem" }}>{MERCHANT_UPI}</strong>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handlePayNow}
+                        disabled={!isFormValid}
+                        style={{
+                          width: "100%",
+                          padding: "20px",
+                          border: "none",
+                          background: isFormValid ? "var(--gold)" : "var(--surface-strong)",
+                          color: isFormValid ? "#050505" : "var(--muted)",
+                          cursor: isFormValid ? "pointer" : "not-allowed",
+                          fontWeight: 800,
+                          fontSize: "1.1rem",
+                          letterSpacing: "0.05em",
+                          transition: "background 0.2s",
+                        }}
+                      >
+                        Pay ₹{total} via UPI
+                      </button>
+                      <button
+                        onClick={() => setQrView(true)}
+                        style={{
+                          width: "100%",
+                          padding: "14px",
+                          border: "1px solid var(--line)",
+                          background: "transparent",
+                          color: "var(--muted)",
+                          cursor: "pointer",
+                          fontWeight: 600,
+                          fontSize: ".9rem",
+                        }}
+                      >
+                        Show QR Code to scan
+                      </button>
+                      <p style={{ fontSize: ".8rem", color: "var(--muted)", textAlign: "center", lineHeight: 1.6 }}>
+                        Opens your UPI app. Complete the payment, then return here — bill auto-generates.
+                      </p>
                     </div>
-                    <div style={{ borderTop: "1px solid var(--line)", paddingTop: 16, width: "100%" }}>
-                      <p style={{ fontSize: ".85rem", color: "var(--muted)", marginBottom: 6 }}>Amount to pay</p>
-                      <strong style={{ fontSize: "1.5rem" }}>₹{total}</strong>
+                  )}
+
+                  {upiStep === "idle" && qrView && (
+                    <div style={{ padding: "24px", border: "1px solid var(--line)", textAlign: "center" }}>
+                      <p className="eyebrow" style={{ marginBottom: 16 }}>Scan to Pay</p>
+                      <div style={{ display: "grid", placeItems: "center", gap: 16 }}>
+                        <a href={upiLink} target="_blank" rel="noreferrer">
+                          <QRCodeSVG value={upiLink} size={180} bgColor="#ffffff" fgColor="#050505" level="M" />
+                        </a>
+                        <p style={{ fontSize: ".85rem", color: "var(--muted)" }}>
+                          Scan with any UPI app to pay <strong style={{ color: "var(--text)" }}>{MERCHANT_UPI}</strong>
+                        </p>
+                        <div style={{ borderTop: "1px solid var(--line)", paddingTop: 16, width: "100%" }}>
+                          <p style={{ fontSize: ".85rem", color: "var(--muted)", marginBottom: 6 }}>Amount</p>
+                          <strong style={{ fontSize: "1.5rem" }}>₹{total}</strong>
+                        </div>
+                        <button
+                          onClick={handlePayNow}
+                          style={{
+                            width: "100%",
+                            padding: "16px",
+                            border: "1px solid var(--gold)",
+                            background: "transparent",
+                            color: "var(--gold)",
+                            cursor: "pointer",
+                            fontWeight: 700,
+                            fontSize: ".95rem",
+                          }}
+                        >
+                          Open UPI App Instead
+                        </button>
+                        <button
+                          onClick={() => setQrView(false)}
+                          style={{ fontSize: ".85rem", color: "var(--muted)", cursor: "pointer", background: "none", border: "none", textDecoration: "underline" }}
+                        >
+                          Back to auto-pay
+                        </button>
+                      </div>
                     </div>
+                  )}
 
-                    <label
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        marginTop: 8,
-                        cursor: "pointer",
-                        fontSize: ".9rem",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={paid}
-                        onChange={(e) => setPaid(e.target.checked)}
-                        style={{ accentColor: "var(--gold)", width: 18, height: 18 }}
-                      />
-                      <span>I have completed the payment</span>
-                    </label>
+                  {upiStep === "paying" && (
+                    <div style={{ padding: "32px", border: "1px solid var(--gold)", textAlign: "center", background: "var(--gold-soft)" }}>
+                      <div style={{ fontSize: "2.5rem", marginBottom: 16 }}>⏳</div>
+                      <h3 style={{ marginBottom: 12 }}>Payment request sent</h3>
+                      <p className="lede" style={{ fontSize: ".95rem" }}>
+                        Complete the payment in your UPI app to <strong>{MERCHANT_UPI}</strong>
+                      </p>
+                      <p className="lede" style={{ fontSize: ".85rem", marginTop: 12 }}>
+                        Bill will auto-generate when you return to this page.
+                      </p>
+                    </div>
+                  )}
 
-                    <button
-                      onClick={confirmUpiPayment}
-                      disabled={!paid}
-                      style={{
-                        width: "100%",
-                        marginTop: 12,
-                        padding: "18px",
-                        border: "none",
-                        background: paid ? "var(--gold)" : "var(--surface-strong)",
-                        color: paid ? "#050505" : "var(--muted)",
-                        cursor: paid ? "pointer" : "not-allowed",
-                        fontWeight: 600,
-                        fontSize: "1rem",
-                        transition: "background 0.2s",
-                      }}
-                    >
-                      {paid ? "Confirm & Generate Bill" : "Check the box after payment"}
-                    </button>
-                  </div>
+                  {upiStep === "confirming" && (
+                    <div style={{ padding: "32px", border: "1px solid var(--gold)", textAlign: "center" }}>
+                      <div style={{ fontSize: "2.5rem", marginBottom: 16 }}>✓</div>
+                      <h3 style={{ marginBottom: 12, color: "var(--gold)" }}>Payment successful!</h3>
+                      <p className="lede">Generating your bill...</p>
+                    </div>
+                  )}
+
+                  {upiStep === "done" && (
+                    <div style={{ padding: "32px", border: "1px solid var(--gold)", textAlign: "center", background: "var(--gold-soft)" }}>
+                      <div style={{ fontSize: "2.5rem", marginBottom: 16 }}>🎉</div>
+                      <h3 style={{ marginBottom: 12, color: "var(--gold)" }}>Order placed!</h3>
+                      <p className="lede">Redirecting to your bill...</p>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* TRUST */}
               <div style={{ marginTop: "40px", paddingTop: "30px", borderTop: "1px solid var(--line)", color: "var(--muted)", lineHeight: 2 }}>
-                <p>✓ Secure Checkout</p>
+                <p>✓ Automated Billing</p>
                 <p>✓ Easy Returns</p>
                 <p>✓ Free Shipping Above ₹999</p>
                 <p>✓ Customer Support</p>

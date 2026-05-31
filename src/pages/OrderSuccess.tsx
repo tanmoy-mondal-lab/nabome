@@ -13,6 +13,7 @@ interface Bill {
     city: string;
     state: string;
     pincode: string;
+    customerUpi?: string;
   };
   items: CartItem[];
   shipping: number;
@@ -31,6 +32,9 @@ function formatBillMessage(bill: Bill): string {
 `
     )
     .join("");
+
+  const upiLine = bill.customer.customerUpi && bill.customer.customerUpi !== "Not Provided"
+    ? `\nUPI: ${bill.customer.customerUpi}` : "";
 
   return `
 🛍️ *নবME - Order Confirmed*
@@ -57,7 +61,7 @@ ${items}
 ${bill.customer.name}
 ${bill.customer.address}
 ${bill.customer.city}, ${bill.customer.state}
-PIN: ${bill.customer.pincode}
+PIN: ${bill.customer.pincode}${upiLine}
 
 ━━━━━━━━━━━━━━━━━━
 
@@ -361,6 +365,9 @@ function BillPreview({ bill }: { bill: Bill }) {
           <p style={detailLineStyle}>{bill.customer.name}</p>
           <p style={detailLineStyle}>{bill.customer.phone}</p>
           <p style={detailLineStyle}>{bill.customer.email}</p>
+          {bill.customer.customerUpi && bill.customer.customerUpi !== "Not Provided" && (
+            <p style={detailLineStyle}>UPI: {bill.customer.customerUpi}</p>
+          )}
         </div>
         <div>
           <h3 style={sectionTitleStyle}>Shipping Address</h3>
