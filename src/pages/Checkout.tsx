@@ -50,6 +50,32 @@ export default function Checkout() {
       return;
     }
 
+    const bill = {
+      billNo: `NAB-${Date.now()}`,
+      date: new Date().toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      customer: {
+        name,
+        phone,
+        email: email || "Not Provided",
+        address,
+        city,
+        state,
+        pincode,
+      },
+      items: cart,
+      shipping: 0,
+      taxLabel: "Included",
+      total,
+    };
+
+    localStorage.setItem(
+      "nabome-last-bill",
+      JSON.stringify(bill)
+    );
+
     const productList =
       cart
         .map(

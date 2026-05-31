@@ -66,6 +66,36 @@ body {
   margin: 0;
 }
 
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  :root,
+  body,
+  #root {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  #root {
+    width: 100% !important;
+    border: 0 !important;
+  }
+
+  .order-success-actions,
+  .footer {
+    display: none !important;
+  }
+
+  .nabome-bill {
+    max-width: none !important;
+    margin: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+}
+
 h1,
 h2 {
   font-family: var(--heading);
