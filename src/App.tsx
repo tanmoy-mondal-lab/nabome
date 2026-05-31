@@ -1,9 +1,10 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Footer from "./components/Footer";
 import PageTransition from "./components/PageTransition";
 import ScrollManager from "./components/ScrollManager";
+import { seedProductsIfEmpty } from "./lib/db";
 
 const Home = lazy(() => import("./pages/Home"));
 const Category = lazy(() => import("./pages/Category"));
@@ -31,6 +32,10 @@ function Loader() {
 
 
 function App() {
+  useEffect(() => {
+    seedProductsIfEmpty();
+  }, []);
+
   return (
     <BrowserRouter>
       <ScrollManager />

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import BrandWordmark from "./BrandWordmark";
 import { useToast } from "./Toast";
+import { subscribeNewsletter } from "../lib/db";
 
 function getBengaliDate(): string {
   const now = new Date();
@@ -21,15 +22,25 @@ export default function Footer() {
   const { showToast } = useToast();
   const bengaliDate = useMemo(() => getBengaliDate(), []);
 
-  const subscribe = () => {
+  const subscribe = async () => {
     if (!email.includes("@")) {
       showToast("Enter a valid email for the নবME list");
       return;
     }
-    const subscribers = JSON.parse(localStorage.getItem("nabome-newsletter") || "[]") as string[];
-    localStorage.setItem("nabome-newsletter", JSON.stringify([...new Set([...subscribers, email])]));
-    setEmail("");
-    showToast("You are on the নবME list");
+
+    const result = await subscribeNewsletter(email);
+
+    if (result === "ok" || result === "duplicate") {
+      setEmail("");
+      showToast("You are on the নবME list");
+    } else if (result === "local") {
+      const subscribers = JSON.parse(localStorage.getItem("nabome-newsletter") || "[]") as string[];
+      localStorage.setItem("nabome-newsletter", JSON.stringify([...new Set([...subscribers, email])]));
+      setEmail("");
+      showToast("You are on the নবME list");
+    } else {
+      showToast("Could not subscribe. Try later.");
+    }
   };
 
   return (

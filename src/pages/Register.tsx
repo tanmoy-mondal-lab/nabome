@@ -1,33 +1,54 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { supabase } from "../lib/supabase";
 
 export default function Register() {
   const navigate = useNavigate();
 
-  const [name, setName] =
-    useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [email, setEmail] =
-    useState("");
-
-  const register = () => {
-    if (!name || !email) {
-      alert(
-        "Please complete all fields."
-      );
+  const register = async () => {
+    if (!name || !email || !password) {
+      alert("Please complete all fields.");
       return;
     }
 
-    localStorage.setItem(
-      "nabome-user",
-      JSON.stringify({
-        name,
-        email,
-      })
-    );
+    setLoading(true);
 
-    navigate("/profile");
+    if (supabase) {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { name } },
+      });
+
+      if (error) {
+        alert(error.message);
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem(
+        "nabome-user",
+        JSON.stringify({ name, email })
+      );
+
+      alert("Account created! Check your email to confirm.");
+      navigate("/profile");
+    } else {
+      localStorage.setItem(
+        "nabome-user",
+        JSON.stringify({ name, email })
+      );
+
+      navigate("/profile");
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -41,20 +62,16 @@ export default function Register() {
           color: "var(--text)",
         }}
       >
-        {/* HERO */}
-
         <section
           style={{
             padding: "100px 6% 60px",
             textAlign: "center",
-            borderBottom:
-              "1px solid var(--line)",
+            borderBottom: "1px solid var(--line)",
           }}
         >
           <p
             style={{
-              textTransform:
-                "uppercase",
+              textTransform: "uppercase",
               letterSpacing: "4px",
               color: "var(--muted)",
               fontSize: ".85rem",
@@ -65,8 +82,7 @@ export default function Register() {
 
           <h1
             style={{
-              fontSize:
-                "clamp(3rem,6vw,5rem)",
+              fontSize: "clamp(3rem,6vw,5rem)",
               fontWeight: 300,
               marginTop: "15px",
             }}
@@ -74,8 +90,6 @@ export default function Register() {
             Create Account
           </h1>
         </section>
-
-        {/* FORM */}
 
         <section
           style={{
@@ -88,8 +102,7 @@ export default function Register() {
             style={{
               width: "100%",
               maxWidth: "520px",
-              border:
-                "1px solid var(--line)",
+              border: "1px solid var(--line)",
               padding: "40px",
               background: "var(--surface)",
             }}
@@ -112,11 +125,7 @@ export default function Register() {
               <input
                 placeholder="Full Name"
                 value={name}
-                onChange={(e) =>
-                  setName(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setName(e.target.value)}
                 style={inputStyle}
               />
 
@@ -124,44 +133,49 @@ export default function Register() {
                 type="email"
                 placeholder="Email Address"
                 value={email}
-                onChange={(e) =>
-                  setEmail(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setEmail(e.target.value)}
+                style={inputStyle}
+              />
+
+              <input
+                type="password"
+                placeholder="Password (min 6 characters)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 style={inputStyle}
               />
 
               <button
                 onClick={register}
+                disabled={loading}
                 style={{
                   padding: "18px",
                   border: "none",
-                  background: "var(--gold)",
-                  color: "#050505",
-                  cursor: "pointer",
+                  background: loading ? "var(--surface-strong)" : "var(--gold)",
+                  color: loading ? "var(--muted)" : "#050505",
+                  cursor: loading ? "not-allowed" : "pointer",
                   fontWeight: 600,
                   fontSize: "1rem",
                   marginTop: "10px",
                 }}
               >
-                Create Account
+                {loading ? "Creating Account..." : "Create Account"}
               </button>
             </div>
 
             <p
-                style={{
-                  marginTop: "25px",
-                  textAlign: "center",
-                  color: "var(--muted)",
+              style={{
+                marginTop: "25px",
+                textAlign: "center",
+                color: "var(--muted)",
               }}
             >
               Already have an account?{" "}
               <Link
                 to="/login"
-                  style={{
-                    color: "var(--gold)",
-                    fontWeight: 600,
+                style={{
+                  color: "var(--gold)",
+                  fontWeight: 600,
                 }}
               >
                 Login
@@ -169,8 +183,6 @@ export default function Register() {
             </p>
           </div>
         </section>
-
-        {/* BENEFITS */}
 
         <section
           style={{
@@ -186,8 +198,7 @@ export default function Register() {
           >
             <h2
               style={{
-                fontSize:
-                  "clamp(2.5rem,5vw,4rem)",
+                fontSize: "clamp(2.5rem,5vw,4rem)",
                 fontWeight: 300,
               }}
             >
@@ -198,52 +209,39 @@ export default function Register() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit,minmax(250px,1fr))",
+              gridTemplateColumns: "repeat(auto-fit,minmax(250px,1fr))",
               gap: "25px",
             }}
           >
             {[
               {
-                title:
-                  "Faster Checkout",
-                text:
-                  "Save time during future purchases.",
+                title: "Faster Checkout",
+                text: "Save time during future purchases.",
               },
               {
-                title:
-                  "Wishlist Access",
-                text:
-                  "Save your favorite products.",
+                title: "Wishlist Access",
+                text: "Save your favorite products.",
               },
               {
-                title:
-                  "Order Tracking",
-                text:
-                  "Future-ready account management.",
+                title: "Order Tracking",
+                text: "Future-ready account management.",
               },
               {
-                title:
-                  "Exclusive Updates",
-                text:
-                  "Receive collection announcements and offers.",
+                title: "Exclusive Updates",
+                text: "Receive collection announcements and offers.",
               },
             ].map((item) => (
               <div
                 key={item.title}
                 style={{
-                  background:
-                    "var(--surface)",
-                  border:
-                    "1px solid var(--line)",
-                  padding:
-                    "35px",
+                  background: "var(--surface)",
+                  border: "1px solid var(--line)",
+                  padding: "35px",
                 }}
               >
                 <h3
                   style={{
-                    marginBottom:
-                      "15px",
+                    marginBottom: "15px",
                   }}
                 >
                   {item.title}
@@ -251,10 +249,8 @@ export default function Register() {
 
                 <p
                   style={{
-                  color:
-                    "var(--muted)",
-                  lineHeight:
-                      1.8,
+                    color: "var(--muted)",
+                    lineHeight: 1.8,
                   }}
                 >
                   {item.text}

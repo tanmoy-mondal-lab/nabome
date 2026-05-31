@@ -3,12 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import Navbar from "../components/Navbar";
 import { useCart } from "../context/CartContext";
+import { createOrder } from "../lib/db";
+import type { CustomerData } from "../lib/db";
+import { supabase } from "../lib/supabase";
 
 const MERCHANT_UPI = "mondaltanmoy230@oksbi";
 const MERCHANT_NAME = "নবME";
 const PHONE = 919163854706;
 
-function buildBill(customer: Record<string, string>, items: unknown[], total: number, paymentMethod: string) {
+function buildBill(customer: CustomerData, items: import("../lib/db").CartItem[], total: number, paymentMethod: string) {
   return {
     billNo: `NAB-${Date.now()}`,
     date: new Date().toLocaleString("en-IN", {
@@ -45,7 +48,7 @@ export default function Checkout() {
 
   const isFormValid = form.name && form.phone && form.address && form.city && form.state && form.pincode;
 
-  const customer = {
+  const customer: CustomerData = {
     name: form.name,
     phone: form.phone,
     email: form.email || "Not Provided",
@@ -53,7 +56,7 @@ export default function Checkout() {
     city: form.city,
     state: form.state,
     pincode: form.pincode,
-    customerUpi: form.customerUpi || "Not Provided",
+    customerUpi: form.customerUpi || undefined,
   };
 
   const upiLink = `upi://pay?pa=${MERCHANT_UPI}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${total}&cu=INR&tn=${encodeURIComponent(`নবME Order ${form.name}`)}`;
@@ -68,16 +71,33 @@ export default function Checkout() {
     window.open(upiLink, "_blank");
   };
 
+  async function saveOrder(paymentMethod: string) {
+    const session = supabase ? await supabase.auth.getSession() : null;
+    const userEmail = session?.data?.session?.user?.email;
+
+    const bill = buildBill(customer, cart, total, paymentMethod === "upi" ? "UPI / QR" : "WhatsApp");
+
+    const billWithMeta = {
+      ...bill,
+      paymentStatus: "paid" as const,
+      orderStatus: "confirmed" as const,
+      userEmail,
+    };
+
+    createOrder(billWithMeta);
+
+    localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
+    localStorage.removeItem("nabome-cart");
+    clearCart();
+  }
+
   useEffect(() => {
     if (upiStep !== "paying") return;
     const onFocus = () => {
       if (!paidRef.current) {
         paidRef.current = true;
         setUpiStep("confirming");
-        const bill = buildBill(customer, cart, total, "upi");
-        localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
-        localStorage.removeItem("nabome-cart");
-        clearCart();
+        saveOrder("upi");
         setTimeout(() => {
           setUpiStep("done");
           navigate("/order-success");
@@ -97,6 +117,7 @@ export default function Checkout() {
 
     const bill = buildBill(customer, cart, total, "whatsapp");
     localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
+    saveOrder("whatsapp");
 
     const productList = cart
       .map((item) => `

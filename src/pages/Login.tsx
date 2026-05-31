@@ -1,32 +1,51 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { supabase } from "../lib/supabase";
 
 export default function Login() {
   const navigate = useNavigate();
 
-  const [email, setEmail] =
-    useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [password, setPassword] =
-    useState("");
-
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
-      alert(
-        "Please enter email and password."
-      );
+      alert("Please enter email and password.");
       return;
     }
 
-    localStorage.setItem(
-      "nabome-user",
-      JSON.stringify({
-        email,
-      })
-    );
+    setLoading(true);
 
-    navigate("/profile");
+    if (supabase) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        alert(error.message);
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem(
+        "nabome-user",
+        JSON.stringify({ email })
+      );
+
+      navigate("/profile");
+    } else {
+      localStorage.setItem(
+        "nabome-user",
+        JSON.stringify({ email })
+      );
+
+      navigate("/profile");
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -40,20 +59,16 @@ export default function Login() {
           color: "var(--text)",
         }}
       >
-        {/* HERO */}
-
         <section
           style={{
             padding: "100px 6% 60px",
             textAlign: "center",
-            borderBottom:
-              "1px solid var(--line)",
+            borderBottom: "1px solid var(--line)",
           }}
         >
           <p
             style={{
-              textTransform:
-                "uppercase",
+              textTransform: "uppercase",
               letterSpacing: "4px",
               color: "var(--muted)",
               fontSize: ".85rem",
@@ -64,8 +79,7 @@ export default function Login() {
 
           <h1
             style={{
-              fontSize:
-                "clamp(3rem,6vw,5rem)",
+              fontSize: "clamp(3rem,6vw,5rem)",
               fontWeight: 300,
               marginTop: "15px",
             }}
@@ -73,8 +87,6 @@ export default function Login() {
             Welcome Back
           </h1>
         </section>
-
-        {/* FORM */}
 
         <section
           style={{
@@ -87,8 +99,7 @@ export default function Login() {
             style={{
               width: "100%",
               maxWidth: "500px",
-              border:
-                "1px solid var(--line)",
+              border: "1px solid var(--line)",
               padding: "40px",
               background: "var(--surface)",
             }}
@@ -112,11 +123,7 @@ export default function Login() {
                 type="email"
                 placeholder="Email Address"
                 value={email}
-                onChange={(e) =>
-                  setEmail(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setEmail(e.target.value)}
                 style={inputStyle}
               />
 
@@ -124,44 +131,41 @@ export default function Login() {
                 type="password"
                 placeholder="Password"
                 value={password}
-                onChange={(e) =>
-                  setPassword(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setPassword(e.target.value)}
                 style={inputStyle}
               />
 
               <button
                 onClick={handleLogin}
+                disabled={loading}
                 style={{
                   padding: "18px",
                   border: "none",
-                  background: "var(--gold)",
-                  color: "#050505",
-                  cursor: "pointer",
+                  background: loading ? "var(--surface-strong)" : "var(--gold)",
+                  color: loading ? "var(--muted)" : "#050505",
+                  cursor: loading ? "not-allowed" : "pointer",
                   fontWeight: 600,
                   fontSize: "1rem",
                   marginTop: "10px",
                 }}
               >
-                Login
+                {loading ? "Logging in..." : "Login"}
               </button>
             </div>
 
             <p
-                style={{
-                  marginTop: "25px",
-                  color: "var(--muted)",
+              style={{
+                marginTop: "25px",
+                color: "var(--muted)",
                 textAlign: "center",
               }}
             >
               New to নবME?{" "}
               <Link
                 to="/register"
-                  style={{
-                    color: "var(--gold)",
-                    fontWeight: 600,
+                style={{
+                  color: "var(--gold)",
+                  fontWeight: 600,
                 }}
               >
                 Create Account
