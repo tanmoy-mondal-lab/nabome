@@ -17,11 +17,13 @@ import Profile from "./pages/Profile";
 import PolicyPage from "./pages/PolicyPage";
 import OrderTracking from "./pages/OrderTracking";
 import PageTransition from "./components/PageTransition";
+import ScrollManager from "./components/ScrollManager";
 
 
 function App() {
   return (
     <BrowserRouter>
+      <ScrollManager />
       <div
         style={{
           minHeight: "100vh",
