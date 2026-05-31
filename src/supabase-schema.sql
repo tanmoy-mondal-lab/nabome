@@ -13,13 +13,21 @@ create table if not exists products (
   description text,
   bengali_description text,
   image text,
+  images text[] default '{}',
   category text,
   subcategory text,
   sizes text[],
   colors text[],
+  stock integer default 10,
   in_stock boolean default true,
   is_new boolean default false,
   is_bestseller boolean default false,
+  is_limited boolean default false,
+  tags text[] default '{}',
+  material text,
+  fit text,
+  rating numeric(2,1) default 0,
+  reviews integer default 0,
   created_at timestamptz default now()
 );
 

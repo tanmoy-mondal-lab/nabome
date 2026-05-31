@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { products as localProducts } from "../data/products";
+import type { Product } from "../data/products";
 
 export type CartItem = {
   id: string | number;
@@ -37,7 +38,33 @@ export type OrderData = {
 
 // ─── PRODUCTS ──────────────────────────────────────────
 
-export async function getProducts() {
+type ProductRow = Record<string, unknown>;
+
+function mapProduct(row: ProductRow): Product {
+  return {
+    id: typeof row.id === "number" ? row.id : parseInt(row.id as string) || 0,
+    name: (row.name as string) || "",
+    price: (row.price as number) || 0,
+    originalPrice: (row.original_price as number) || (row.price as number) || 0,
+    category: (row.category as Product["category"]) || "Unisex",
+    image: (row.image as string) || "",
+    images: (row.images as string[]) || [(row.image as string) || ""],
+    description: (row.description as string) || "",
+    sizes: (row.sizes as string[]) || [],
+    colors: (row.colors as string[]) || [],
+    stock: (row.stock as number) ?? 10,
+    isNew: (row.is_new as boolean) || false,
+    isBestSeller: (row.is_bestseller as boolean) || false,
+    isLimited: (row.is_limited as boolean) || false,
+    tags: (row.tags as string[]) || [],
+    material: (row.material as string) || "",
+    fit: (row.fit as string) || "",
+    rating: (row.rating as number) || 0,
+    reviews: (row.reviews as number) || 0,
+  };
+}
+
+export async function getProducts(): Promise<Product[]> {
   if (!supabase) return localProducts;
 
   const { data, error } = await supabase
@@ -49,7 +76,7 @@ export async function getProducts() {
     return localProducts;
   }
 
-  return data;
+  return (data as ProductRow[]).map(mapProduct);
 }
 
 export async function seedProductsIfEmpty() {
@@ -68,16 +95,57 @@ export async function seedProductsIfEmpty() {
     original_price: p.originalPrice || null,
     description: p.description || null,
     image: p.image || null,
+    images: p.images || [p.image || ""],
     category: p.category || null,
     sizes: p.sizes || [],
     colors: p.colors || [],
+    stock: p.stock,
     in_stock: p.stock > 0,
     is_new: p.isNew ?? false,
     is_bestseller: p.isBestSeller ?? false,
+    is_limited: p.isLimited ?? false,
+    tags: p.tags || [],
+    material: p.material || "",
+    fit: p.fit || "",
+    rating: p.rating || 0,
+    reviews: p.reviews || 0,
   }));
 
   const { error } = await supabase.from("products").insert(rows);
   if (error) console.error("Failed to seed products:", error);
+}
+
+export async function createProduct(data: Record<string, unknown>) {
+  if (!supabase) return null;
+
+  const { error } = await supabase.from("products").insert(data);
+  if (error) {
+    console.error("Failed to create product:", error);
+    return null;
+  }
+  return data.id as string;
+}
+
+export async function updateProduct(id: string, data: Record<string, unknown>) {
+  if (!supabase) return null;
+
+  const { error } = await supabase.from("products").update(data).eq("id", id);
+  if (error) {
+    console.error("Failed to update product:", error);
+    return null;
+  }
+  return id;
+}
+
+export async function deleteProduct(id: string) {
+  if (!supabase) return null;
+
+  const { error } = await supabase.from("products").delete().eq("id", id);
+  if (error) {
+    console.error("Failed to delete product:", error);
+    return null;
+  }
+  return id;
 }
 
 // ─── CUSTOMERS ─────────────────────────────────────────

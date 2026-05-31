@@ -19,6 +19,16 @@ export default function Navbar() {
   const { wishlist } = useWishlist();
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const [isAdmin] = useState(() => {
+    const raw = localStorage.getItem("nabome-user");
+    if (!raw) return false;
+    try {
+      const user = JSON.parse(raw);
+      return user.email === import.meta.env.VITE_ADMIN_EMAIL;
+    } catch {
+      return false;
+    }
+  });
 
   const submitSearch = () => {
     if (search.trim()) {
@@ -58,6 +68,11 @@ export default function Navbar() {
                 }
               }}
             />
+            {isAdmin && (
+              <Link className="nav-link" to="/admin" style={{ color: "var(--gold)" }}>
+                Admin
+              </Link>
+            )}
             <Link className="nav-link" to="/profile">
               Account
             </Link>
@@ -83,6 +98,11 @@ export default function Navbar() {
               <Link className="nav-link" to="/profile" onClick={() => setMenuOpen(false)}>
                 Account
               </Link>
+              {isAdmin && (
+                <Link className="nav-link" to="/admin" onClick={() => setMenuOpen(false)} style={{ color: "var(--gold)" }}>
+                  Admin
+                </Link>
+              )}
               <Link className="nav-link" to="/wishlist" onClick={() => setMenuOpen(false)}>
                 Wishlist ({wishlist.length})
               </Link>

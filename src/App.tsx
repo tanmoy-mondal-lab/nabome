@@ -21,6 +21,7 @@ const Register = lazy(() => import("./pages/Register"));
 const Profile = lazy(() => import("./pages/Profile"));
 const PolicyPage = lazy(() => import("./pages/PolicyPage"));
 const OrderTracking = lazy(() => import("./pages/OrderTracking"));
+const Admin = lazy(() => import("./pages/Admin"));
 
 function Loader() {
   return (
@@ -67,6 +68,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             </Suspense>
