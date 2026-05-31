@@ -1,7 +1,6 @@
 import Navbar from "../components/Navbar";
 import { products } from "../data/products";
 import { useCart } from "../context/CartContext";
-import "../styles/product.css";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 
@@ -48,24 +47,59 @@ export default function Category() {
 
       <div
         style={{
-          padding: "20px",
+          minHeight: "100vh",
+          background: "#050505",
+          color: "#fff",
+          padding: "40px 6%",
         }}
       >
-        {search && (
-          <h2>
-            Search Results for:
-            "{search}"
-          </h2>
-        )}
+        {/* HEADER */}
+        <div
+          style={{
+            marginBottom: "50px",
+          }}
+        >
+          <span
+            style={{
+              color: "#D4AF37",
+              letterSpacing: "3px",
+              textTransform: "uppercase",
+              fontSize: "0.9rem",
+            }}
+          >
+            Premium Collection
+          </span>
 
-        {/* FILTER BAR */}
+          <h1
+            style={{
+              fontSize: "clamp(3rem,6vw,5rem)",
+              marginTop: "10px",
+              fontWeight: 900,
+              letterSpacing: "-2px",
+            }}
+          >
+            Shop All Products
+          </h1>
 
+          {search && (
+            <p
+              style={{
+                color: "#999",
+                marginTop: "15px",
+              }}
+            >
+              Search results for: "{search}"
+            </p>
+          )}
+        </div>
+
+        {/* FILTERS */}
         <div
           style={{
             display: "flex",
-            gap: "10px",
-            marginBottom: "30px",
+            gap: "12px",
             flexWrap: "wrap",
+            marginBottom: "50px",
           }}
         >
           {[
@@ -83,23 +117,27 @@ export default function Category() {
                 )
               }
               style={{
-                padding:
-                  "10px 18px",
-                border: "none",
-                borderRadius:
-                  "25px",
+                padding: "12px 24px",
+                outline: "none",
                 cursor: "pointer",
+                borderRadius: "999px",
+                fontWeight: 700,
+                transition: "0.3s",
                 background:
                   selectedCategory ===
                   category
-                    ? "#D4AF37"
-                    : "#eee",
+                    ? "linear-gradient(135deg,#FFD700,#D4AF37)"
+                    : "#111",
                 color:
                   selectedCategory ===
                   category
-                    ? "white"
-                    : "black",
-                fontWeight: "bold",
+                    ? "#000"
+                    : "#fff",
+                border:
+                  selectedCategory ===
+                  category
+                    ? "none"
+                    : "1px solid rgba(255,255,255,.08)",
               }}
             >
               {category}
@@ -107,87 +145,156 @@ export default function Category() {
           ))}
         </div>
 
+        {/* EMPTY */}
         {filteredProducts.length === 0 && (
-          <h2>
-            No products found.
-          </h2>
+          <div
+            style={{
+              textAlign: "center",
+              padding: "80px 0",
+            }}
+          >
+            <h2>No products found.</h2>
+          </div>
         )}
 
-        <div className="products-grid">
+        {/* PRODUCTS */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fill,minmax(320px,1fr))",
+            gap: "30px",
+          }}
+        >
           {filteredProducts.map(
             (product) => (
               <div
                 key={product.id}
-                className="product-card"
+                style={{
+                  background:
+                    "linear-gradient(180deg,#111,#0b0b0b)",
+                  borderRadius: "24px",
+                  overflow: "hidden",
+                  border:
+                    "1px solid rgba(212,175,55,.08)",
+                  boxShadow:
+                    "0 20px 50px rgba(0,0,0,.35)",
+                }}
               >
                 <Link
                   to={`/product/${product.id}`}
                   style={{
-                    textDecoration:
-                      "none",
+                    textDecoration: "none",
                     color: "inherit",
                   }}
                 >
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="product-image"
-                  />
+                  <div
+                    style={{
+                      overflow: "hidden",
+                    }}
+                  >
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      style={{
+                        width: "100%",
+                        height: "420px",
+                        objectFit: "cover",
+                        display: "block",
+                      }}
+                    />
+                  </div>
 
-                  <div className="product-info">
-                    <h3>
-                      {product.name}
-                    </h3>
-
-                    <p>
+                  <div
+                    style={{
+                      padding: "24px",
+                    }}
+                  >
+                    <p
+                      style={{
+                        color: "#D4AF37",
+                        fontSize: "0.85rem",
+                        textTransform:
+                          "uppercase",
+                        letterSpacing: "2px",
+                        marginBottom: "10px",
+                      }}
+                    >
                       {product.category}
                     </p>
 
-                    <div>
+                    <h3
+                      style={{
+                        fontSize: "1.3rem",
+                        marginBottom: "18px",
+                        color: "#fff",
+                      }}
+                    >
+                      {product.name}
+                    </h3>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                      }}
+                    >
                       <span
                         style={{
-                          color:
-                            "#D4AF37",
-                          fontWeight:
-                            "bold",
-                          fontSize:
-                            "22px",
+                          color: "#D4AF37",
+                          fontSize: "1.5rem",
+                          fontWeight: 800,
                         }}
                       >
-                        ₹
-                        {
-                          product.price
-                        }
+                        ₹{product.price}
                       </span>
 
-                      <span
-                        style={{
-                          marginLeft:
-                            "10px",
-                          textDecoration:
-                            "line-through",
-                          color:
-                            "#999",
-                        }}
-                      >
-                        ₹
-                        {(product as any)
-                          .originalPrice}
-                      </span>
+                      {(product as any)
+                        .originalPrice && (
+                        <span
+                          style={{
+                            textDecoration:
+                              "line-through",
+                            color: "#777",
+                          }}
+                        >
+                          ₹
+                          {
+                            (product as any)
+                              .originalPrice
+                          }
+                        </span>
+                      )}
                     </div>
                   </div>
                 </Link>
 
-                <button
-                  className="add-btn"
-                  onClick={() =>
-                    addToCart(
-                      product
-                    )
-                  }
+                <div
+                  style={{
+                    padding: "0 24px 24px",
+                  }}
                 >
-                  Add To Cart
-                </button>
+                  <button
+                    onClick={() =>
+                      addToCart(product)
+                    }
+                    style={{
+                      width: "100%",
+                      padding: "15px",
+                      border: "none",
+                      borderRadius: "14px",
+                      cursor: "pointer",
+                      fontWeight: 700,
+                      fontSize: "1rem",
+                      background:
+                        "linear-gradient(135deg,#FFD700,#D4AF37)",
+                      color: "#000",
+                    }}
+                  >
+                    Add To Cart
+                  </button>
+                </div>
               </div>
             )
           )}
