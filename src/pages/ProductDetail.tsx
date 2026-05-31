@@ -61,7 +61,7 @@ export default function ProductDetail() {
   return (
     <>
       <SEO
-        title={`${product.name} | NABOME`}
+        title={`${product.name} | নবME`}
         description={product.description}
         path={`/product/${product.id}`}
         image={product.image}
@@ -72,7 +72,7 @@ export default function ProductDetail() {
           name: product.name,
           image: product.images.map((image) => `https://www.nabome.online${image}`),
           description: product.description,
-          brand: { "@type": "Brand", name: "NABOME" },
+          brand: { "@type": "Brand", name: "নবME" },
           offers: { "@type": "Offer", priceCurrency: "INR", price: product.price, availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" },
           aggregateRating: { "@type": "AggregateRating", ratingValue: product.rating, reviewCount: product.reviews },
         }}

@@ -14,13 +14,13 @@ export default function Contact() {
       showToast("Add your name and message first");
       return;
     }
-    const text = `NABOME CONTACT REQUEST\n\nName: ${form.name}\nEmail: ${form.email}\nSubject: ${form.subject}\nMessage: ${form.message}`;
+    const text = `নবME CONTACT REQUEST\n\nName: ${form.name}\nEmail: ${form.email}\nSubject: ${form.subject}\nMessage: ${form.message}`;
     window.open(`https://wa.me/919163854706?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   return (
     <>
-      <SEO title="Contact NABOME | WhatsApp Support" description="Contact NABOME for support, collaborations, orders and Bengali streetwear customer care." path="/contact" />
+      <SEO title="Contact নবME | WhatsApp Support" description="Contact নবME for support, collaborations, orders and Bengali streetwear customer care." path="/contact" />
       <Navbar />
       <main className="page">
         <section className="section">
@@ -29,7 +29,7 @@ export default function Contact() {
               <p className="eyebrow">Contact</p>
               <h1 className="display">Let’s talk.</h1>
             </div>
-            <p className="lede">Support, collaborations, sizing help or order questions: NABOME is built around direct customer care.</p>
+            <p className="lede">Support, collaborations, sizing help or order questions: নবME is built around direct customer care.</p>
           </div>
 
           <div className="container contact-grid">

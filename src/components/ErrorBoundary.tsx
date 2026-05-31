@@ -12,7 +12,7 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("NABOME render failure", error, info);
+    console.error("নবME render failure", error, info);
   }
 
   render() {
@@ -20,7 +20,7 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
       return (
         <main className="page" style={{ display: "grid", minHeight: "100vh", placeItems: "center", padding: 24 }}>
           <div className="glass" style={{ maxWidth: 560, padding: 36, textAlign: "center" }}>
-            <p className="eyebrow">NABOME</p>
+            <p className="eyebrow">নবME</p>
             <h1 className="heading">Something needs a refresh</h1>
             <p className="lede" style={{ margin: "18px auto 0" }}>
               The storefront hit an unexpected state. Refresh the page or return to the collection.

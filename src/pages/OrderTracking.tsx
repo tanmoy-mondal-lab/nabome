@@ -9,7 +9,7 @@ export default function OrderTracking() {
 
   return (
     <>
-      <SEO title="Track Order | NABOME" description="Track NABOME WhatsApp orders and get customer care support for Bengali streetwear purchases." path="/order-tracking" />
+      <SEO title="Track Order | নবME" description="Track নবME WhatsApp orders and get customer care support for Bengali streetwear purchases." path="/order-tracking" />
       <Navbar />
       <main className="page">
         <section className="section">
@@ -21,7 +21,7 @@ export default function OrderTracking() {
             <p className="lede">Enter your WhatsApp order reference. Full courier automation is admin-ready for a future backend integration.</p>
           </div>
           <div className="container glass" style={{ display: "grid", gap: 16, maxWidth: 760, padding: 28 }}>
-            <input className="field" placeholder="Example: NABOME-2026-001" value={orderId} onChange={(event) => setOrderId(event.target.value)} />
+            <input className="field" placeholder="Example: নবME-2026-001" value={orderId} onChange={(event) => setOrderId(event.target.value)} />
             <button className="premium-button" onClick={() => showToast(orderId ? "Your order is being prepared. WhatsApp support will confirm tracking." : "Enter an order reference")}>
               Check Status
             </button>

@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import BrandWordmark from "../components/BrandWordmark";
 import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
 import QuickViewModal from "../components/QuickViewModal";
@@ -22,12 +23,12 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="NABOME | Premium Bengali Streetwear"
-        description="Shop NABOME premium Bengali streetwear: oversized tees, hoodies, accessories and everyday luxury pieces crafted for modern India."
+        title="নবME | Premium Bengali Streetwear"
+        description="Shop নবME premium Bengali streetwear: oversized tees, hoodies, accessories and everyday luxury pieces crafted for modern India."
         structuredData={{
           "@context": "https://schema.org",
           "@type": "Organization",
-          name: "NABOME",
+          name: "নবME",
           url: "https://www.nabome.online",
           sameAs: ["https://instagram.com/nabome.online"],
         }}
@@ -35,11 +36,13 @@ export default function Home() {
       <Navbar />
       <main className="page">
         <section className="hero-premium">
-          <img src="/images/products/product1.jpeg" alt="NABOME Bengali streetwear editorial" />
+          <img src="/images/products/product1.jpeg" alt="নবME Bengali streetwear editorial" />
           <div className="hero-overlay" />
           <div className="container hero-content">
             <p className="eyebrow">Spring Summer 2026</p>
-            <h1 className="display">NABOME</h1>
+            <h1 className="display brand-hero-heading">
+              <BrandWordmark size="hero" />
+            </h1>
             <p className="lede">
               Bengali streetwear shaped by culture, quiet confidence and premium everyday craft.
             </p>
@@ -61,7 +64,7 @@ export default function Home() {
               <h2 className="heading">Latest drops for the city, the adda, the after-hours.</h2>
             </div>
             <p className="lede">
-              Premium cotton, controlled silhouettes and gold-on-black restraint give NABOME the feel of a luxury label without losing its Bengali pulse.
+              Premium cotton, controlled silhouettes and gold-on-black restraint give নবME the feel of a luxury label without losing its Bengali pulse.
             </p>
           </div>
           <div className="container product-grid">
@@ -77,10 +80,10 @@ export default function Home() {
               <p className="eyebrow">Bengali Culture</p>
               <h2 className="heading">A wardrobe built from memory and movement.</h2>
               <p className="lede">
-                From hand-pulled typography to relaxed silhouettes, NABOME translates Bengal's creative energy into refined streetwear that travels everywhere.
+                From hand-pulled typography to relaxed silhouettes, নবME translates Bengal's creative energy into refined streetwear that travels everywhere.
               </p>
             </div>
-            <img src="/images/community/community.jpeg" alt="NABOME community showcase" loading="lazy" />
+            <img src="/images/community/community.jpeg" alt="নবME community showcase" loading="lazy" />
           </div>
         </section>
 
@@ -106,7 +109,7 @@ export default function Home() {
           <div className="container split-intro">
             <div>
               <p className="eyebrow">Community</p>
-              <h2 className="heading">Styled by the NABOME circle.</h2>
+              <h2 className="heading">Styled by the নবME circle.</h2>
             </div>
             <a className="ghost-button" href="https://instagram.com/nabome.online" target="_blank" rel="noreferrer">
               Instagram

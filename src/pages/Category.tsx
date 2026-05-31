@@ -50,7 +50,7 @@ export default function Category() {
 
   return (
     <>
-      <SEO title="Shop NABOME | Premium Bengali Streetwear" description="Browse NABOME oversized tees, hoodies, accessories and limited Bengali streetwear drops." path="/category" />
+      <SEO title="Shop নবME | Premium Bengali Streetwear" description="Browse নবME oversized tees, hoodies, accessories and limited Bengali streetwear drops." path="/category" />
       <Navbar />
       <main className="page">
         <section className="section">
@@ -60,7 +60,7 @@ export default function Category() {
               <h1 className="display">Shop all</h1>
             </div>
             <p className="lede">
-              Search, filter and sort premium NABOME pieces by category, price, newness and rating.
+              Search, filter and sort premium নবME pieces by category, price, newness and rating.
             </p>
           </div>
 

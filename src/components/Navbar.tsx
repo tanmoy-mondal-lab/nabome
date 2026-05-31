@@ -1,5 +1,6 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import BrandWordmark from "./BrandWordmark";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 
@@ -39,9 +40,9 @@ export default function Navbar() {
             ))}
           </div>
 
-          <Link className="brand-lockup" to="/" aria-label="NABOME home">
-            <img src="/images/logo/logo.png" alt="" />
-            <span>NABOME</span>
+          <Link className="brand-lockup" to="/" aria-label="নবME home">
+            <span className="brand-emblem" aria-hidden="true">ন</span>
+            <BrandWordmark size="nav" />
           </Link>
 
           <div className="desktop-nav nav-actions">
@@ -91,7 +92,7 @@ export default function Navbar() {
               <input
                 className="field"
                 type="search"
-                placeholder="Search NABOME"
+                placeholder="Search নবME"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 onKeyDown={(event) => {

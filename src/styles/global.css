@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Noto+Serif+Bengali:wght@500;600;700;800&display=swap");
 
 :root {
   --bg: #050505;
@@ -116,6 +116,66 @@ main {
   font-size: clamp(3rem, 8vw, 8.6rem);
   font-weight: 600;
   line-height: 0.88;
+}
+
+.brand-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  color: var(--text);
+  line-height: 0.86;
+  white-space: nowrap;
+  text-rendering: geometricPrecision;
+}
+
+.brand-wordmark-bengali {
+  font-family: "Noto Serif Bengali", "Manrope", serif;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+.brand-wordmark-latin {
+  position: relative;
+  margin-left: 0.045em;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.brand-wordmark-latin::after {
+  position: absolute;
+  right: 0.02em;
+  bottom: -0.09em;
+  left: 0.02em;
+  height: 0.08em;
+  content: "";
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.9;
+}
+
+.brand-wordmark-nav {
+  font-size: clamp(1.35rem, 2.1vw, 1.85rem);
+  filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.18));
+}
+
+.brand-wordmark-hero {
+  font-size: clamp(4.2rem, 15vw, 12.5rem);
+  filter: drop-shadow(0 18px 42px rgba(0, 0, 0, 0.55));
+}
+
+.brand-wordmark-footer {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.brand-wordmark-inline {
+  font-size: 1.15em;
+}
+
+.brand-hero-heading {
+  max-width: min-content;
+  margin-top: 16px;
 }
 
 .heading {
@@ -305,14 +365,24 @@ main {
   align-items: center;
   gap: 12px;
   color: var(--text);
-  letter-spacing: 0.28em;
   font-weight: 800;
 }
 
-.brand-lockup img {
+.brand-emblem {
+  display: grid;
+  place-items: center;
   width: 44px;
   height: 44px;
-  object-fit: contain;
+  border: 1px solid rgba(212, 175, 55, 0.46);
+  background:
+    linear-gradient(145deg, rgba(212, 175, 55, 0.2), rgba(255, 255, 255, 0.04)),
+    #090909;
+  color: var(--gold);
+  font-family: "Noto Serif Bengali", serif;
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: inset 0 0 22px rgba(212, 175, 55, 0.08), 0 12px 32px rgba(0, 0, 0, 0.36);
 }
 
 .nav-search {
@@ -322,6 +392,30 @@ main {
   background: rgba(255, 255, 255, 0.055);
   color: var(--text);
   padding: 10px 12px;
+}
+
+@media (max-width: 1180px) and (min-width: 901px) {
+  .nav-inner {
+    gap: 14px;
+  }
+
+  .nav-links,
+  .nav-actions {
+    gap: 13px;
+  }
+
+  .nav-link {
+    font-size: 0.72rem;
+  }
+
+  .nav-search {
+    width: 180px;
+  }
+
+  .brand-emblem {
+    width: 38px;
+    height: 38px;
+  }
 }
 
 .menu-button {
@@ -959,7 +1053,12 @@ main {
 
   .brand-lockup {
     justify-self: center;
-    font-size: 0.9rem;
+    gap: 9px;
+  }
+
+  .brand-emblem {
+    width: 38px;
+    height: 38px;
   }
 
   .menu-button {
@@ -1027,6 +1126,39 @@ main {
   }
 
   .contact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .top-bar {
+    padding: 8px;
+    font-size: 0.64rem;
+    line-height: 1.5;
+  }
+
+  .brand-wordmark-nav {
+    font-size: clamp(1.18rem, 8vw, 1.52rem);
+  }
+
+  .brand-wordmark-hero {
+    font-size: clamp(4rem, 24vw, 6.8rem);
+  }
+
+  .hero-content {
+    padding: 7vh 0 12vh;
+  }
+
+  .hero-actions a {
+    width: 100%;
+  }
+
+  .menu-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .product-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -73,7 +73,7 @@ Subtotal: ₹${
         .join("\n");
 
     const message = `
-🛍️ NABOME ORDER
+🛍️ নবME ORDER
 
 ━━━━━━━━━━━━━━
 

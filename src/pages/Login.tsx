@@ -158,7 +158,7 @@ export default function Login() {
                 textAlign: "center",
               }}
             >
-              New to NABOME?{" "}
+              New to নবME?{" "}
               <Link
                 to="/register"
                 style={{

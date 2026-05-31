@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import BrandWordmark from "./BrandWordmark";
 import { useToast } from "./Toast";
 
 export default function Footer() {
@@ -8,13 +9,13 @@ export default function Footer() {
 
   const subscribe = () => {
     if (!email.includes("@")) {
-      showToast("Enter a valid email for the NABOME list");
+      showToast("Enter a valid email for the নবME list");
       return;
     }
     const subscribers = JSON.parse(localStorage.getItem("nabome-newsletter") || "[]") as string[];
     localStorage.setItem("nabome-newsletter", JSON.stringify([...new Set([...subscribers, email])]));
     setEmail("");
-    showToast("You are on the NABOME list");
+    showToast("You are on the নবME list");
   };
 
   return (
@@ -32,7 +33,9 @@ export default function Footer() {
 
       <div className="container footer-grid">
         <div>
-          <h2>NABOME</h2>
+          <h2>
+            <BrandWordmark size="footer" />
+          </h2>
           <p className="lede">Premium Bengali streetwear crafted for modern everyday expression.</p>
           <div className="social-row">
             <a href="https://instagram.com/nabome.online" target="_blank" rel="noreferrer">Instagram</a>
@@ -45,7 +48,7 @@ export default function Footer() {
       </div>
 
       <div className="container footer-bottom">
-        <span>© 2026 NABOME. All rights reserved.</span>
+        <span>© 2026 নবME. All rights reserved.</span>
         <span>Deployment ready for www.nabome.online</span>
       </div>
     </footer>

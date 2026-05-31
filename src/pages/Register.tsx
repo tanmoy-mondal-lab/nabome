@@ -100,7 +100,7 @@ export default function Register() {
                 fontWeight: 400,
               }}
             >
-              Join NABOME
+              Join নবME
             </h2>
 
             <div

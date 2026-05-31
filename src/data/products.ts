@@ -30,7 +30,7 @@ const gallery = {
 export const products: Product[] = [
   {
     id: 1,
-    name: "NABOME Signature Oversized Tee",
+    name: "নবME Signature Oversized Tee",
     price: 1199,
     originalPrice: 1499,
     category: "Men",
@@ -140,7 +140,7 @@ export const products: Product[] = [
     image: gallery.community,
     images: [gallery.community, gallery.black, gallery.white],
     description:
-      "A heavy-duty canvas carryall for books, markets and studio days, finished with a restrained NABOME graphic.",
+      "A heavy-duty canvas carryall for books, markets and studio days, finished with a restrained নবME graphic.",
     sizes: ["One Size"],
     colors: ["Natural", "Black"],
     stock: 60,
@@ -174,7 +174,7 @@ export const products: Product[] = [
   },
   {
     id: 8,
-    name: "NABOME Essential Joggers",
+    name: "নবME Essential Joggers",
     price: 1599,
     originalPrice: 1999,
     category: "Men",

@@ -15,7 +15,7 @@ export default function SizeGuideModal({ open, onClose }: SizeGuideModalProps) {
           x
         </button>
         <p className="eyebrow">Fit Guide</p>
-        <h2 className="heading">Find your NABOME fit</h2>
+        <h2 className="heading">Find your নবME fit</h2>
         <table>
           <thead>
             <tr>
