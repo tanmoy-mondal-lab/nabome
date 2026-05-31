@@ -26,8 +26,6 @@ export default function Checkout() {
   const [pincode, setPincode] =
     useState("");
 
-  const [paymentMethod] =
-    useState("whatsapp");
 
   const total = cart.reduce(
     (sum, item) =>
