@@ -16,55 +16,79 @@ export default function Cart() {
     0
   );
 
+  const freeShippingThreshold = 999;
+
+  const amountRemaining =
+    freeShippingThreshold - total;
+
   return (
     <>
       <Navbar />
 
       <div
         style={{
+          background: "#fff",
+          color: "#111",
           minHeight: "100vh",
-          background: "#050505",
-          color: "#fff",
-          padding: "50px 6%",
         }}
       >
-        <div
+        {/* HEADER */}
+
+        <section
           style={{
-            marginBottom: "50px",
+            padding: "80px 6% 50px",
+            borderBottom:
+              "1px solid #e5e5e5",
           }}
         >
-          <span
+          <p
             style={{
-              color: "#D4AF37",
-              textTransform: "uppercase",
+              textTransform:
+                "uppercase",
               letterSpacing: "3px",
+              color: "#888",
               fontSize: ".85rem",
             }}
           >
             Shopping Bag
-          </span>
+          </p>
 
           <h1
             style={{
-              fontSize: "clamp(3rem,6vw,5rem)",
-              fontWeight: 900,
-              marginTop: "10px",
+              fontSize:
+                "clamp(3rem,7vw,5rem)",
+              fontWeight: 300,
+              marginTop: "15px",
             }}
           >
             Your Cart
           </h1>
-        </div>
+
+          <p
+            style={{
+              marginTop: "20px",
+              color: "#666",
+            }}
+          >
+            {cart.length} item(s) in your
+            shopping bag.
+          </p>
+        </section>
+
+        {/* EMPTY CART */}
 
         {cart.length === 0 && (
-          <div
+          <section
             style={{
               textAlign: "center",
-              padding: "120px 20px",
+              padding:
+                "120px 6%",
             }}
           >
             <h2
               style={{
                 marginBottom: "20px",
+                fontWeight: 400,
               }}
             >
               Your cart is empty
@@ -72,307 +96,528 @@ export default function Cart() {
 
             <p
               style={{
-                color: "#999",
-                marginBottom: "30px",
+                color: "#666",
+                marginBottom: "40px",
               }}
             >
-              Discover premium pieces from
-              our latest collection.
+              Explore our latest collection.
             </p>
 
             <Link to="/category">
               <button
                 style={{
-                  background:
-                    "linear-gradient(135deg,#FFD700,#D4AF37)",
-                  color: "#000",
+                  padding:
+                    "18px 40px",
                   border: "none",
-                  padding: "16px 32px",
-                  borderRadius: "14px",
-                  cursor: "pointer",
-                  fontWeight: 700,
+                  background:
+                    "#111",
+                  color: "#fff",
+                  cursor:
+                    "pointer",
+                  fontWeight: 600,
                 }}
               >
                 Continue Shopping
               </button>
             </Link>
-          </div>
+          </section>
         )}
 
+        {/* CART CONTENT */}
+
         {cart.length > 0 && (
-          <div
+          <section
             style={{
-              display: "grid",
-              gridTemplateColumns:
-                "2fr 1fr",
-              gap: "40px",
-              alignItems: "start",
+              padding: "60px 6%",
             }}
           >
-            {/* ITEMS */}
-            <div>
-              {cart.map((item) => (
-                <div
-                  key={item.id}
-                  style={{
-                    display: "flex",
-                    gap: "24px",
-                    marginBottom: "25px",
-                    background:
-                      "linear-gradient(180deg,#111,#0b0b0b)",
-                    border:
-                      "1px solid rgba(212,175,55,.08)",
-                    borderRadius: "24px",
-                    padding: "20px",
-                  }}
-                >
-                  <img
-                    src={(item as any).image}
-                    alt={item.name}
-                    style={{
-                      width: "180px",
-                      height: "180px",
-                      objectFit: "cover",
-                      borderRadius: "18px",
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      flex: 1,
-                    }}
-                  >
-                    <h2
-                      style={{
-                        marginBottom: "10px",
-                      }}
-                    >
-                      {item.name}
-                    </h2>
-
-                    <p
-                      style={{
-                        color: "#999",
-                        marginBottom: "8px",
-                      }}
-                    >
-                      Size:{" "}
-                      {(item as any)
-                        .selectedSize ||
-                        "N/A"}
-                    </p>
-
-                    <p
-                      style={{
-                        color: "#999",
-                        marginBottom: "20px",
-                      }}
-                    >
-                      Color:{" "}
-                      {(item as any)
-                        .selectedColor ||
-                        "N/A"}
-                    </p>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "12px",
-                        marginBottom: "20px",
-                      }}
-                    >
-                      <button
-                        onClick={() =>
-                          decreaseQuantity(
-                            item.id
-                          )
-                        }
-                        style={{
-                          width: "40px",
-                          height: "40px",
-                          borderRadius: "10px",
-                          border: "none",
-                          background: "#222",
-                          color: "#fff",
-                          cursor: "pointer",
-                        }}
-                      >
-                        -
-                      </button>
-
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          fontSize: "1.1rem",
-                        }}
-                      >
-                        {item.quantity}
-                      </span>
-
-                      <button
-                        onClick={() =>
-                          increaseQuantity(
-                            item.id
-                          )
-                        }
-                        style={{
-                          width: "40px",
-                          height: "40px",
-                          borderRadius: "10px",
-                          border: "none",
-                          background: "#222",
-                          color: "#fff",
-                          cursor: "pointer",
-                        }}
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    <h3
-                      style={{
-                        color: "#D4AF37",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      ₹{item.price}
-                    </h3>
-
-                    <p
-                      style={{
-                        color: "#aaa",
-                      }}
-                    >
-                      Subtotal: ₹
-                      {item.price *
-                        item.quantity}
-                    </p>
-
-                    <button
-                      onClick={() =>
-                        removeItem(item.id)
-                      }
-                      style={{
-                        marginTop: "20px",
-                        background:
-                          "#2a1111",
-                        color: "#ff6b6b",
-                        border:
-                          "1px solid rgba(255,107,107,.2)",
-                        padding:
-                          "10px 18px",
-                        borderRadius:
-                          "12px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Remove Item
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* SUMMARY */}
             <div
               style={{
-                background:
-                  "linear-gradient(180deg,#111,#0b0b0b)",
-                border:
-                  "1px solid rgba(212,175,55,.08)",
-                borderRadius: "24px",
-                padding: "30px",
-                position: "sticky",
-                top: "100px",
+                display: "grid",
+                gridTemplateColumns:
+                  "2fr 1fr",
+                gap: "50px",
+                alignItems: "start",
               }}
             >
-              <h2
-                style={{
-                  marginBottom: "25px",
-                }}
-              >
-                Order Summary
-              </h2>
+              {/* ITEMS */}
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  marginBottom: "15px",
-                  color: "#aaa",
-                }}
-              >
-                <span>Items</span>
-                <span>{cart.length}</span>
+              <div>
+                {amountRemaining > 0 ? (
+                  <div
+                    style={{
+                      background:
+                        "#f8f6f2",
+                      padding:
+                        "20px",
+                      marginBottom:
+                        "30px",
+                    }}
+                  >
+                    Add ₹
+                    {amountRemaining}
+                    more for free shipping.
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      background:
+                        "#f8f6f2",
+                      padding:
+                        "20px",
+                      marginBottom:
+                        "30px",
+                    }}
+                  >
+                    ✓ You qualify for
+                    free shipping.
+                  </div>
+                )}
+
+                {cart.map(
+                  (
+                    item,
+                    index
+                  ) => (
+                    <div
+                      key={`${item.id}-${item.selectedSize}-${item.selectedColor}-${index}`}
+                      style={{
+                        display:
+                          "grid",
+                        gridTemplateColumns:
+                          "180px 1fr",
+                        gap: "30px",
+                        padding:
+                          "30px 0",
+                        borderBottom:
+                          "1px solid #e5e5e5",
+                      }}
+                    >
+                      <img
+                        src={
+                          item.image
+                        }
+                        alt={
+                          item.name
+                        }
+                        style={{
+                          width:
+                            "100%",
+                          height:
+                            "220px",
+                          objectFit:
+                            "cover",
+                        }}
+                      />
+
+                      <div>
+                        <p
+                          style={{
+                            color:
+                              "#888",
+                            textTransform:
+                              "uppercase",
+                            letterSpacing:
+                              "2px",
+                            marginBottom:
+                              "10px",
+                            fontSize:
+                              ".85rem",
+                          }}
+                        >
+                          Product
+                        </p>
+
+                        <h2
+                          style={{
+                            fontWeight:
+                              500,
+                            marginBottom:
+                              "20px",
+                          }}
+                        >
+                          {item.name}
+                        </h2>
+
+                        <p
+                          style={{
+                            color:
+                              "#666",
+                            marginBottom:
+                              "8px",
+                          }}
+                        >
+                          Size:
+                          {" "}
+                          {item.selectedSize ||
+                            "N/A"}
+                        </p>
+
+                        <p
+                          style={{
+                            color:
+                              "#666",
+                            marginBottom:
+                              "20px",
+                          }}
+                        >
+                          Colour:
+                          {" "}
+                          {item.selectedColor ||
+                            "N/A"}
+                        </p>
+                                                {/* QUANTITY */}
+
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            marginBottom: "25px",
+                          }}
+                        >
+                          <button
+                            onClick={() =>
+                              decreaseQuantity(
+                                item.id,
+                                item.selectedSize,
+                                item.selectedColor
+                              )
+                            }
+                            style={{
+                              width: "42px",
+                              height: "42px",
+                              border:
+                                "1px solid #ddd",
+                              background:
+                                "#fff",
+                              cursor:
+                                "pointer",
+                              fontSize:
+                                "1.1rem",
+                            }}
+                          >
+                            −
+                          </button>
+
+                          <span
+                            style={{
+                              minWidth:
+                                "30px",
+                              textAlign:
+                                "center",
+                              fontWeight:
+                                600,
+                            }}
+                          >
+                            {item.quantity}
+                          </span>
+
+                          <button
+                            onClick={() =>
+                              increaseQuantity(
+                                item.id,
+                                item.selectedSize,
+                                item.selectedColor
+                              )
+                            }
+                            style={{
+                              width: "42px",
+                              height: "42px",
+                              border:
+                                "1px solid #ddd",
+                              background:
+                                "#fff",
+                              cursor:
+                                "pointer",
+                              fontSize:
+                                "1.1rem",
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent:
+                              "space-between",
+                            alignItems:
+                              "center",
+                            flexWrap:
+                              "wrap",
+                            gap: "15px",
+                          }}
+                        >
+                          <div>
+                            <h3
+                              style={{
+                                fontWeight:
+                                  600,
+                              }}
+                            >
+                              ₹
+                              {item.price *
+                                item.quantity}
+                            </h3>
+
+                            <p
+                              style={{
+                                color:
+                                  "#888",
+                                fontSize:
+                                  ".9rem",
+                              }}
+                            >
+                              ₹
+                              {
+                                item.price
+                              }{" "}
+                              each
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() =>
+                              removeItem(
+                                item.id,
+                                item.selectedSize,
+                                item.selectedColor
+                              )
+                            }
+                            style={{
+                              border:
+                                "1px solid #ddd",
+                              background:
+                                "#fff",
+                              padding:
+                                "12px 18px",
+                              cursor:
+                                "pointer",
+                              color:
+                                "#666",
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                )}
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  marginBottom: "15px",
-                  color: "#aaa",
-                }}
-              >
-                <span>Shipping</span>
-                <span>Free</span>
-              </div>
-
-              <hr
-                style={{
-                  borderColor: "#222",
-                  margin: "25px 0",
-                }}
-              />
+              {/* ORDER SUMMARY */}
 
               <div
                 style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  alignItems: "center",
+                  position: "sticky",
+                  top: "120px",
+                  border:
+                    "1px solid #e5e5e5",
+                  padding: "35px",
+                  background:
+                    "#fafafa",
                 }}
               >
-                <h3>Total</h3>
-
                 <h2
                   style={{
-                    color: "#D4AF37",
+                    marginBottom:
+                      "30px",
+                    fontWeight:
+                      500,
                   }}
                 >
-                  ₹{total}
+                  Order Summary
                 </h2>
-              </div>
 
-              <Link
-                to="/checkout"
-                style={{
-                  textDecoration: "none",
-                }}
-              >
-                <button
+                <div
                   style={{
-                    width: "100%",
-                    marginTop: "30px",
-                    padding: "18px",
-                    border: "none",
-                    borderRadius: "14px",
-                    cursor: "pointer",
-                    fontWeight: 800,
-                    fontSize: "1rem",
-                    background:
-                      "linear-gradient(135deg,#FFD700,#D4AF37)",
-                    color: "#000",
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    marginBottom:
+                      "15px",
+                    color:
+                      "#666",
                   }}
                 >
-                  Proceed To Checkout
-                </button>
-              </Link>
+                  <span>
+                    Items
+                  </span>
+
+                  <span>
+                    {
+                      cart.length
+                    }
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    marginBottom:
+                      "15px",
+                    color:
+                      "#666",
+                  }}
+                >
+                  <span>
+                    Shipping
+                  </span>
+
+                  <span>
+                    Free
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    marginBottom:
+                      "25px",
+                    color:
+                      "#666",
+                  }}
+                >
+                  <span>
+                    Taxes
+                  </span>
+
+                  <span>
+                    Included
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    borderTop:
+                      "1px solid #ddd",
+                    paddingTop:
+                      "20px",
+                    display:
+                      "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems:
+                      "center",
+                  }}
+                >
+                  <strong>
+                    Total
+                  </strong>
+
+                  <h2>
+                    ₹{total}
+                  </h2>
+                </div>
+
+                <Link
+                  to="/checkout"
+                  style={{
+                    textDecoration:
+                      "none",
+                  }}
+                >
+                  <button
+                    style={{
+                      width:
+                        "100%",
+                      marginTop:
+                        "30px",
+                      padding:
+                        "18px",
+                      border:
+                        "none",
+                      background:
+                        "#111",
+                      color:
+                        "#fff",
+                      cursor:
+                        "pointer",
+                      fontWeight:
+                        600,
+                      fontSize:
+                        "1rem",
+                    }}
+                  >
+                    Proceed To Checkout
+                  </button>
+                </Link>
+
+                <Link
+                  to="/category"
+                  style={{
+                    textDecoration:
+                      "none",
+                  }}
+                >
+                  <button
+                    style={{
+                      width:
+                        "100%",
+                      marginTop:
+                        "12px",
+                      padding:
+                        "18px",
+                      border:
+                        "1px solid #111",
+                      background:
+                        "#fff",
+                      color:
+                        "#111",
+                      cursor:
+                        "pointer",
+                      fontWeight:
+                        600,
+                    }}
+                  >
+                    Continue Shopping
+                  </button>
+                </Link>
+
+                <div
+                  style={{
+                    marginTop:
+                      "35px",
+                    paddingTop:
+                      "25px",
+                    borderTop:
+                      "1px solid #ddd",
+                    color:
+                      "#666",
+                    lineHeight:
+                      2,
+                  }}
+                >
+                  <p>
+                    ✓ Secure
+                    Checkout
+                  </p>
+
+                  <p>
+                    ✓ Easy
+                    Returns
+                  </p>
+
+                  <p>
+                    ✓ Free
+                    Shipping
+                  </p>
+
+                  <p>
+                    ✓ Customer
+                    Support
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
+          </section>
         )}
       </div>
     </>

@@ -4,10 +4,13 @@ import { useWishlist } from "../context/WishlistContext";
 import { useCart } from "../context/CartContext";
 
 export default function Wishlist() {
-  const { wishlist, removeFromWishlist } =
-    useWishlist();
+  const {
+    wishlist,
+    removeFromWishlist,
+  } = useWishlist();
 
-  const { addToCart } = useCart();
+  const { addToCart } =
+    useCart();
 
   return (
     <>
@@ -15,48 +18,67 @@ export default function Wishlist() {
 
       <div
         style={{
+          background: "#fff",
+          color: "#111",
           minHeight: "100vh",
-          background: "#050505",
-          color: "#fff",
-          padding: "60px 6%",
         }}
       >
-        <div
+        {/* HEADER */}
+
+        <section
           style={{
-            marginBottom: "50px",
+            padding: "80px 6% 50px",
+            borderBottom:
+              "1px solid #e5e5e5",
           }}
         >
-          <span
+          <p
             style={{
-              color: "#D4AF37",
+              textTransform:
+                "uppercase",
               letterSpacing: "3px",
-              textTransform: "uppercase",
+              color: "#888",
               fontSize: ".85rem",
             }}
           >
             Saved Collection
-          </span>
+          </p>
 
           <h1
             style={{
-              fontSize: "clamp(3rem,6vw,5rem)",
-              fontWeight: 900,
-              marginTop: "10px",
+              fontSize:
+                "clamp(3rem,7vw,5rem)",
+              fontWeight: 300,
+              marginTop: "15px",
             }}
           >
             Wishlist
           </h1>
-        </div>
+
+          <p
+            style={{
+              marginTop: "20px",
+              color: "#666",
+            }}
+          >
+            {wishlist.length} saved
+            item(s).
+          </p>
+        </section>
+
+        {/* EMPTY STATE */}
 
         {wishlist.length === 0 && (
-          <div
+          <section
             style={{
               textAlign: "center",
-              padding: "120px 20px",
+              padding:
+                "120px 6%",
             }}
           >
             <h2
               style={{
+                fontWeight: 400,
                 marginBottom: "20px",
               }}
             >
@@ -65,183 +87,334 @@ export default function Wishlist() {
 
             <p
               style={{
-                color: "#999",
-                marginBottom: "30px",
+                color: "#666",
+                marginBottom: "40px",
               }}
             >
               Save products you love and
-              come back anytime.
+              revisit them anytime.
             </p>
 
             <Link to="/category">
               <button
                 style={{
-                  background:
-                    "linear-gradient(135deg,#FFD700,#D4AF37)",
-                  color: "#000",
+                  padding:
+                    "18px 40px",
                   border: "none",
-                  padding: "16px 32px",
-                  borderRadius: "14px",
-                  cursor: "pointer",
-                  fontWeight: 700,
+                  background:
+                    "#111",
+                  color: "#fff",
+                  cursor:
+                    "pointer",
+                  fontWeight: 600,
                 }}
               >
                 Explore Collection
               </button>
             </Link>
-          </div>
+          </section>
         )}
 
+        {/* PRODUCT GRID */}
+
         {wishlist.length > 0 && (
-          <div
+          <section
             style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fill,minmax(320px,1fr))",
-              gap: "30px",
+              padding: "60px 6%",
             }}
           >
-            {wishlist.map((product: any) => (
-              <div
-                key={product.id}
-                style={{
-                  background:
-                    "linear-gradient(180deg,#111,#0b0b0b)",
-                  borderRadius: "24px",
-                  overflow: "hidden",
-                  border:
-                    "1px solid rgba(212,175,55,.08)",
-                  boxShadow:
-                    "0 20px 50px rgba(0,0,0,.35)",
-                }}
-              >
-                <Link
-                  to={`/product/${product.id}`}
-                  style={{
-                    textDecoration: "none",
-                    color: "inherit",
-                  }}
-                >
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    style={{
-                      width: "100%",
-                      height: "420px",
-                      objectFit: "cover",
-                    }}
-                  />
-
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fill,minmax(300px,1fr))",
+                gap: "40px",
+              }}
+            >
+                            {wishlist.map(
+                (product: any) => (
                   <div
-                    style={{
-                      padding: "24px",
-                    }}
+                    key={product.id}
                   >
-                    <p
+                    <Link
+                      to={`/product/${product.id}`}
                       style={{
-                        color: "#D4AF37",
-                        fontSize: ".85rem",
-                        textTransform:
-                          "uppercase",
-                        letterSpacing: "2px",
-                        marginBottom: "10px",
+                        color:
+                          "#111",
+                        textDecoration:
+                          "none",
                       }}
                     >
-                      {product.category}
-                    </p>
+                      {/* IMAGE */}
 
-                    <h3
-                      style={{
-                        marginBottom: "15px",
-                      }}
-                    >
-                      {product.name}
-                    </h3>
+                      <div
+                        style={{
+                          overflow:
+                            "hidden",
+                          background:
+                            "#f6f6f6",
+                        }}
+                      >
+                        <img
+                          src={
+                            product.image
+                          }
+                          alt={
+                            product.name
+                          }
+                          style={{
+                            width:
+                              "100%",
+                            height:
+                              "460px",
+                            objectFit:
+                              "cover",
+                          }}
+                        />
+                      </div>
+
+                      {/* INFO */}
+
+                      <div
+                        style={{
+                          paddingTop:
+                            "18px",
+                        }}
+                      >
+                        <p
+                          style={{
+                            color:
+                              "#888",
+                            fontSize:
+                              ".85rem",
+                            textTransform:
+                              "uppercase",
+                            letterSpacing:
+                              "2px",
+                            marginBottom:
+                              "8px",
+                          }}
+                        >
+                          {
+                            product.category
+                          }
+                        </p>
+
+                        <h3
+                          style={{
+                            fontWeight:
+                              500,
+                            marginBottom:
+                              "12px",
+                            lineHeight:
+                              1.4,
+                          }}
+                        >
+                          {
+                            product.name
+                          }
+                        </h3>
+
+                        <div
+                          style={{
+                            display:
+                              "flex",
+                            alignItems:
+                              "center",
+                            gap:
+                              "10px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              fontWeight:
+                                600,
+                            }}
+                          >
+                            ₹
+                            {
+                              product.price
+                            }
+                          </span>
+
+                          {(product as any)
+                            .originalPrice && (
+                            <span
+                              style={{
+                                color:
+                                  "#999",
+                                textDecoration:
+                                  "line-through",
+                                fontSize:
+                                  ".9rem",
+                              }}
+                            >
+                              ₹
+                              {
+                                (
+                                  product as any
+                                )
+                                  .originalPrice
+                              }
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+
+                    {/* ACTIONS */}
 
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
+                        display:
+                          "flex",
                         gap: "12px",
+                        marginTop:
+                          "18px",
                       }}
                     >
-                      <span
+                      <button
+                        onClick={() =>
+                          addToCart(
+                            product
+                          )
+                        }
                         style={{
-                          color: "#D4AF37",
-                          fontWeight: 800,
-                          fontSize: "1.5rem",
+                          flex: 1,
+                          padding:
+                            "15px",
+                          border:
+                            "none",
+                          background:
+                            "#111",
+                          color:
+                            "#fff",
+                          cursor:
+                            "pointer",
+                          fontWeight:
+                            600,
                         }}
                       >
-                        ₹{product.price}
-                      </span>
+                        Add To Cart
+                      </button>
 
-                      {(product as any)
-                        .originalPrice && (
-                        <span
-                          style={{
-                            textDecoration:
-                              "line-through",
-                            color: "#777",
-                          }}
-                        >
-                          ₹
-                          {
-                            (product as any)
-                              .originalPrice
-                          }
-                        </span>
-                      )}
+                      <button
+                        onClick={() =>
+                          removeFromWishlist(
+                            product.id
+                          )
+                        }
+                        style={{
+                          padding:
+                            "15px 18px",
+                          border:
+                            "1px solid #ddd",
+                          background:
+                            "#fff",
+                          color:
+                            "#666",
+                          cursor:
+                            "pointer",
+                          fontWeight:
+                            500,
+                        }}
+                      >
+                        Remove
+                      </button>
                     </div>
                   </div>
-                </Link>
+                )
+              )}
+            </div>
 
-                <div
+            {/* COLLECTION CTA */}
+
+            <section
+              style={{
+                background:
+                  "#f8f6f2",
+                padding:
+                  "100px 6%",
+                textAlign:
+                  "center",
+                marginTop:
+                  "80px",
+              }}
+            >
+              <p
+                style={{
+                  textTransform:
+                    "uppercase",
+                  letterSpacing:
+                    "4px",
+                  color:
+                    "#888",
+                  fontSize:
+                    ".85rem",
+                }}
+              >
+                Discover More
+              </p>
+
+              <h2
+                style={{
+                  fontSize:
+                    "clamp(3rem,6vw,5rem)",
+                  fontWeight:
+                    300,
+                  marginTop:
+                    "20px",
+                  lineHeight:
+                    1.1,
+                }}
+              >
+                Continue
+                <br />
+                Exploring
+              </h2>
+
+              <p
+                style={{
+                  maxWidth:
+                    "650px",
+                  margin:
+                    "30px auto",
+                  color:
+                    "#666",
+                  lineHeight:
+                    1.9,
+                }}
+              >
+                Browse our latest
+                collection and discover
+                premium essentials inspired
+                by modern Bengali fashion.
+              </p>
+
+              <Link
+                to="/category"
+              >
+                <button
                   style={{
-                    padding: "0 24px 24px",
-                    display: "flex",
-                    gap: "12px",
+                    padding:
+                      "18px 40px",
+                    border:
+                      "none",
+                    background:
+                      "#111",
+                    color:
+                      "#fff",
+                    cursor:
+                      "pointer",
+                    fontWeight:
+                      600,
                   }}
                 >
-                  <button
-                    onClick={() =>
-                      addToCart(product)
-                    }
-                    style={{
-                      flex: 1,
-                      padding: "14px",
-                      border: "none",
-                      borderRadius: "12px",
-                      cursor: "pointer",
-                      fontWeight: 700,
-                      background:
-                        "linear-gradient(135deg,#FFD700,#D4AF37)",
-                      color: "#000",
-                    }}
-                  >
-                    Add To Cart
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      removeFromWishlist(
-                        product.id
-                      )
-                    }
-                    style={{
-                      padding: "14px 18px",
-                      border: "1px solid rgba(255,90,90,.2)",
-                      borderRadius: "12px",
-                      cursor: "pointer",
-                      background: "#1a0d0d",
-                      color: "#ff6b6b",
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+                  Shop Collection
+                </button>
+              </Link>
+            </section>
+          </section>
         )}
       </div>
     </>

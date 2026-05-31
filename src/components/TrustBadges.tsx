@@ -1,64 +1,70 @@
 export default function TrustBadges() {
   const badges = [
     {
-      title: "Premium Quality",
-      text: "Carefully selected materials",
+      title: "Premium Materials",
+      text: "Selected fabrics with exceptional comfort and durability.",
     },
     {
       title: "Secure Checkout",
-      text: "Safe order processing",
+      text: "Safe ordering experience with trusted payment methods.",
     },
     {
       title: "Easy Returns",
-      text: "Customer-first support",
+      text: "Simple return and replacement assistance.",
     },
     {
       title: "Fast Delivery",
-      text: "Quick nationwide shipping",
+      text: "Quick shipping across India.",
     },
   ];
 
   return (
-    <div
+    <section
       style={{
-        display: "grid",
-        gridTemplateColumns:
-          "repeat(auto-fit,minmax(180px,1fr))",
-        gap: "15px",
-        marginTop: "40px",
+        marginTop: "60px",
+        paddingTop: "50px",
+        borderTop: "1px solid #e5e5e5",
       }}
     >
-      {badges.map((badge) => (
-        <div
-          key={badge.title}
-          style={{
-            background: "#111",
-            padding: "20px",
-            borderRadius: "16px",
-            textAlign: "center",
-            border:
-              "1px solid rgba(212,175,55,.08)",
-          }}
-        >
-          <h4
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "repeat(auto-fit,minmax(220px,1fr))",
+          gap: "20px",
+        }}
+      >
+        {badges.map((badge) => (
+          <div
+            key={badge.title}
             style={{
-              color: "#D4AF37",
-              marginBottom: "8px",
+              padding: "25px",
+              border: "1px solid #e5e5e5",
+              background: "#fff",
             }}
           >
-            {badge.title}
-          </h4>
+            <h4
+              style={{
+                color: "#111",
+                marginBottom: "12px",
+                fontWeight: 600,
+              }}
+            >
+              {badge.title}
+            </h4>
 
-          <p
-            style={{
-              color: "#999",
-              fontSize: ".9rem",
-            }}
-          >
-            {badge.text}
-          </p>
-        </div>
-      ))}
-    </div>
+            <p
+              style={{
+                color: "#666",
+                lineHeight: 1.8,
+                fontSize: ".95rem",
+              }}
+            >
+              {badge.text}
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }

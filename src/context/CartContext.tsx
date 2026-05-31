@@ -19,9 +19,23 @@ interface CartItem {
 interface CartContextType {
   cart: CartItem[];
   addToCart: (product: any) => void;
-  removeItem: (id: number) => void;
-  increaseQuantity: (id: number) => void;
-  decreaseQuantity: (id: number) => void;
+  removeItem: (
+  id: number,
+  selectedSize?: string,
+  selectedColor?: string
+) => void;
+
+increaseQuantity: (
+  id: number,
+  selectedSize?: string,
+  selectedColor?: string
+) => void;
+
+decreaseQuantity: (
+  id: number,
+  selectedSize?: string,
+  selectedColor?: string
+) => void;
   clearCart: () => void;
 }
 
@@ -86,49 +100,72 @@ export function CartProvider({
     }
   };
 
-  const removeItem = (id: number) => {
-    setCart(
-      cart.filter(
-        (item) => item.id !== id
-      )
-    );
-  };
+  const removeItem = (
+  id: number,
+  selectedSize?: string,
+  selectedColor?: string
+) => {
+  setCart(
+    cart.filter(
+      (item) =>
+        !(
+          item.id === id &&
+          item.selectedSize ===
+            selectedSize &&
+          item.selectedColor ===
+            selectedColor
+        )
+    )
+  );
+};
 
   const increaseQuantity = (
-    id: number
-  ) => {
-    setCart(
-      cart.map((item) =>
-        item.id === id
+  id: number,
+  selectedSize?: string,
+  selectedColor?: string
+) => {
+  setCart(
+    cart.map((item) =>
+      item.id === id &&
+      item.selectedSize ===
+        selectedSize &&
+      item.selectedColor ===
+        selectedColor
+        ? {
+            ...item,
+            quantity:
+              item.quantity + 1,
+          }
+        : item
+    )
+  );
+};
+
+  const decreaseQuantity = (
+  id: number,
+  selectedSize?: string,
+  selectedColor?: string
+) => {
+  setCart(
+    cart
+      .map((item) =>
+        item.id === id &&
+        item.selectedSize ===
+          selectedSize &&
+        item.selectedColor ===
+          selectedColor
           ? {
               ...item,
               quantity:
-                item.quantity + 1,
+                item.quantity - 1,
             }
           : item
       )
-    );
-  };
-
-  const decreaseQuantity = (
-    id: number
-  ) => {
-    setCart(
-      cart
-        .map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                quantity:
-                  item.quantity - 1,
-              }
-            : item
-        )
-        .filter(
-          (item) => item.quantity > 0
-        )
-    );
-  };
+      .filter(
+        (item) => item.quantity > 0
+      )
+  );
+};
 
   const clearCart = () => {
     setCart([]);

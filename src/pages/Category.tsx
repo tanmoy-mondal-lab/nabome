@@ -47,258 +47,416 @@ export default function Category() {
 
       <div
         style={{
+          background: "#fff",
           minHeight: "100vh",
-          background: "#050505",
-          color: "#fff",
-          padding: "40px 6%",
+          color: "#111",
         }}
       >
-        {/* HEADER */}
-        <div
+        {/* HERO */}
+
+        <section
           style={{
-            marginBottom: "50px",
+            padding: "80px 6% 60px",
+            borderBottom:
+              "1px solid #e5e5e5",
           }}
         >
-          <span
+          <p
             style={{
-              color: "#D4AF37",
+              textTransform:
+                "uppercase",
               letterSpacing: "3px",
-              textTransform: "uppercase",
-              fontSize: "0.9rem",
+              color: "#888",
+              fontSize: ".85rem",
             }}
           >
-            Premium Collection
-          </span>
+            Collection
+          </p>
 
           <h1
             style={{
-              fontSize: "clamp(3rem,6vw,5rem)",
-              marginTop: "10px",
-              fontWeight: 900,
-              letterSpacing: "-2px",
+              fontSize:
+                "clamp(3rem,7vw,6rem)",
+              fontWeight: 300,
+              marginTop: "15px",
+              lineHeight: 1,
             }}
           >
-            Shop All Products
+            Shop All
           </h1>
 
           {search && (
             <p
               style={{
-                color: "#999",
-                marginTop: "15px",
+                marginTop: "20px",
+                color: "#666",
               }}
             >
-              Search results for: "{search}"
+              Showing results for:
+              <strong>
+                {" "}
+                "{search}"
+              </strong>
             </p>
           )}
-        </div>
+        </section>
 
         {/* FILTERS */}
-        <div
+
+        <section
           style={{
-            display: "flex",
-            gap: "12px",
-            flexWrap: "wrap",
-            marginBottom: "50px",
+            padding: "40px 6%",
           }}
         >
-          {[
-            "All",
-            "Men",
-            "Women",
-            "Unisex",
-            "Accessories",
-          ].map((category) => (
-            <button
-              key={category}
-              onClick={() =>
-                setSelectedCategory(
-                  category
-                )
-              }
-              style={{
-                padding: "12px 24px",
-                outline: "none",
-                cursor: "pointer",
-                borderRadius: "999px",
-                fontWeight: 700,
-                transition: "0.3s",
-                background:
-                  selectedCategory ===
-                  category
-                    ? "linear-gradient(135deg,#FFD700,#D4AF37)"
-                    : "#111",
-                color:
-                  selectedCategory ===
-                  category
-                    ? "#000"
-                    : "#fff",
-                border:
-                  selectedCategory ===
-                  category
-                    ? "none"
-                    : "1px solid rgba(255,255,255,.08)",
-              }}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-
-        {/* EMPTY */}
-        {filteredProducts.length === 0 && (
           <div
             style={{
-              textAlign: "center",
-              padding: "80px 0",
+              display: "flex",
+              justifyContent:
+                "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "20px",
+              marginBottom: "50px",
             }}
           >
-            <h2>No products found.</h2>
-          </div>
-        )}
-
-        {/* PRODUCTS */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fill,minmax(320px,1fr))",
-            gap: "30px",
-          }}
-        >
-          {filteredProducts.map(
-            (product) => (
-              <div
-                key={product.id}
-                style={{
-                  background:
-                    "linear-gradient(180deg,#111,#0b0b0b)",
-                  borderRadius: "24px",
-                  overflow: "hidden",
-                  border:
-                    "1px solid rgba(212,175,55,.08)",
-                  boxShadow:
-                    "0 20px 50px rgba(0,0,0,.35)",
-                }}
-              >
-                <Link
-                  to={`/product/${product.id}`}
+            <div
+              style={{
+                display: "flex",
+                gap: "12px",
+                flexWrap: "wrap",
+              }}
+            >
+              {[
+                "All",
+                "Men",
+                "Women",
+                "Unisex",
+                "Accessories",
+              ].map((category) => (
+                <button
+                  key={category}
+                  onClick={() =>
+                    setSelectedCategory(
+                      category
+                    )
+                  }
                   style={{
-                    textDecoration: "none",
-                    color: "inherit",
+                    padding:
+                      "12px 22px",
+                    cursor:
+                      "pointer",
+                    background:
+                      selectedCategory ===
+                      category
+                        ? "#111"
+                        : "#fff",
+                    color:
+                      selectedCategory ===
+                      category
+                        ? "#fff"
+                        : "#111",
+                    border:
+                      "1px solid #ddd",
+                    fontWeight: 600,
                   }}
                 >
-                  <div
+                  {category}
+                </button>
+              ))}
+            </div>
+
+            <p
+              style={{
+                color: "#666",
+              }}
+            >
+              {
+                filteredProducts.length
+              }{" "}
+              Products
+            </p>
+          </div>
+
+          {/* EMPTY STATE */}
+
+          {filteredProducts.length ===
+            0 && (
+            <div
+              style={{
+                textAlign:
+                  "center",
+                padding:
+                  "100px 0",
+              }}
+            >
+              <h2>
+                No products found
+              </h2>
+
+              <p
+                style={{
+                  marginTop:
+                    "15px",
+                  color:
+                    "#666",
+                }}
+              >
+                Try another
+                search or
+                category.
+              </p>
+            </div>
+          )}
+
+          {/* PRODUCT GRID */}
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fill,minmax(300px,1fr))",
+              gap: "40px",
+            }}
+          >
+                        {filteredProducts.map(
+              (product) => (
+                <div
+                  key={product.id}
+                >
+                  <Link
+                    to={`/product/${product.id}`}
                     style={{
-                      overflow: "hidden",
+                      color:
+                        "#111",
                     }}
                   >
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      style={{
-                        width: "100%",
-                        height: "420px",
-                        objectFit: "cover",
-                        display: "block",
-                      }}
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      padding: "24px",
-                    }}
-                  >
-                    <p
-                      style={{
-                        color: "#D4AF37",
-                        fontSize: "0.85rem",
-                        textTransform:
-                          "uppercase",
-                        letterSpacing: "2px",
-                        marginBottom: "10px",
-                      }}
-                    >
-                      {product.category}
-                    </p>
-
-                    <h3
-                      style={{
-                        fontSize: "1.3rem",
-                        marginBottom: "18px",
-                        color: "#fff",
-                      }}
-                    >
-                      {product.name}
-                    </h3>
+                    {/* IMAGE */}
 
                     <div
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "10px",
+                        overflow:
+                          "hidden",
+                        background:
+                          "#f6f6f6",
                       }}
                     >
-                      <span
+                      <img
+                        src={
+                          product.image
+                        }
+                        alt={
+                          product.name
+                        }
                         style={{
-                          color: "#D4AF37",
-                          fontSize: "1.5rem",
-                          fontWeight: 800,
+                          width:
+                            "100%",
+                          height:
+                            "460px",
+                          objectFit:
+                            "cover",
+                          transition:
+                            "transform .4s ease",
+                        }}
+                      />
+                    </div>
+
+                    {/* INFO */}
+
+                    <div
+                      style={{
+                        paddingTop:
+                          "18px",
+                      }}
+                    >
+                      <p
+                        style={{
+                          color:
+                            "#888",
+                          fontSize:
+                            ".85rem",
+                          textTransform:
+                            "uppercase",
+                          letterSpacing:
+                            "2px",
+                          marginBottom:
+                            "8px",
                         }}
                       >
-                        ₹{product.price}
-                      </span>
+                        {
+                          product.category
+                        }
+                      </p>
 
-                      {(product as any)
-                        .originalPrice && (
+                      <h3
+                        style={{
+                          fontWeight:
+                            500,
+                          marginBottom:
+                            "12px",
+                          lineHeight:
+                            1.4,
+                        }}
+                      >
+                        {
+                          product.name
+                        }
+                      </h3>
+
+                      <div
+                        style={{
+                          display:
+                            "flex",
+                          alignItems:
+                            "center",
+                          gap:
+                            "10px",
+                        }}
+                      >
                         <span
                           style={{
-                            textDecoration:
-                              "line-through",
-                            color: "#777",
+                            fontWeight:
+                              600,
                           }}
                         >
                           ₹
                           {
-                            (product as any)
-                              .originalPrice
+                            product.price
                           }
                         </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
 
-                <div
-                  style={{
-                    padding: "0 24px 24px",
-                  }}
-                >
+                        {(product as any)
+                          .originalPrice && (
+                          <span
+                            style={{
+                              color:
+                                "#999",
+                              textDecoration:
+                                "line-through",
+                              fontSize:
+                                ".9rem",
+                            }}
+                          >
+                            ₹
+                            {
+                              (
+                                product as any
+                              )
+                                .originalPrice
+                            }
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+
+                  {/* QUICK ADD */}
+
                   <button
                     onClick={() =>
-                      addToCart(product)
+                      addToCart(
+                        product
+                      )
                     }
                     style={{
-                      width: "100%",
-                      padding: "15px",
-                      border: "none",
-                      borderRadius: "14px",
-                      cursor: "pointer",
-                      fontWeight: 700,
-                      fontSize: "1rem",
+                      width:
+                        "100%",
+                      marginTop:
+                        "18px",
+                      padding:
+                        "15px",
+                      border:
+                        "1px solid #111",
                       background:
-                        "linear-gradient(135deg,#FFD700,#D4AF37)",
-                      color: "#000",
+                        "#fff",
+                      color:
+                        "#111",
+                      cursor:
+                        "pointer",
+                      fontWeight:
+                        600,
+                      transition:
+                        ".3s",
                     }}
                   >
-                    Add To Cart
+                    Quick Add
                   </button>
                 </div>
-              </div>
-            )
-          )}
-        </div>
+              )
+            )}
+          </div>
+        </section>
+
+        {/* COLLECTION MESSAGE */}
+
+        <section
+          style={{
+            background:
+              "#f8f6f2",
+            padding:
+              "120px 6%",
+            textAlign:
+              "center",
+            marginTop:
+              "60px",
+          }}
+        >
+          <span
+            style={{
+              textTransform:
+                "uppercase",
+              letterSpacing:
+                "4px",
+              color:
+                "#888",
+            }}
+          >
+            NABOME
+          </span>
+
+          <h2
+            style={{
+              fontSize:
+                "clamp(3rem,6vw,5rem)",
+              fontWeight:
+                300,
+              marginTop:
+                "20px",
+              lineHeight:
+                1.1,
+            }}
+          >
+            Modern Fashion
+            <br />
+            Inspired By
+            <br />
+            Bengal
+          </h2>
+
+          <p
+            style={{
+              maxWidth:
+                "700px",
+              margin:
+                "30px auto 0",
+              color:
+                "#666",
+              lineHeight:
+                1.9,
+            }}
+          >
+            Discover
+            premium
+            essentials,
+            timeless
+            silhouettes
+            and everyday
+            pieces
+            designed for
+            comfort,
+            quality and
+            expression.
+          </p>
+        </section>
       </div>
     </>
   );

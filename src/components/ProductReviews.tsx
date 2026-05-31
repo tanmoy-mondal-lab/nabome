@@ -1,22 +1,25 @@
 export default function ProductReviews() {
   const reviews = [
     {
-      name: "Rahul",
+      name: "Rahul Sharma",
+      city: "Kolkata",
       rating: 5,
       review:
-        "Excellent quality. The fabric feels premium and the fit is perfect.",
+        "Excellent quality and fit. The fabric feels premium and the finishing is outstanding.",
     },
     {
-      name: "Ananya",
+      name: "Ananya Das",
+      city: "Bengaluru",
       rating: 5,
       review:
-        "Packaging, delivery and quality exceeded expectations.",
+        "Beautiful packaging and excellent customer experience. Definitely purchasing again.",
     },
     {
-      name: "Arjun",
+      name: "Arjun Roy",
+      city: "Mumbai",
       rating: 4,
       review:
-        "Very comfortable and stylish. Will order again.",
+        "Minimal design, comfortable fit and premium construction. Very satisfied.",
     },
   ];
 
@@ -24,23 +27,43 @@ export default function ProductReviews() {
     <section
       style={{
         marginTop: "120px",
+        paddingTop: "80px",
+        borderTop: "1px solid #e5e5e5",
       }}
     >
-      <h2
+      <div
         style={{
-          fontSize: "2.5rem",
-          marginBottom: "40px",
-          color: "#fff",
+          marginBottom: "60px",
         }}
       >
-        Customer Reviews
-      </h2>
+        <span
+          style={{
+            textTransform: "uppercase",
+            letterSpacing: "3px",
+            color: "#888",
+            fontSize: ".85rem",
+          }}
+        >
+          Reviews
+        </span>
+
+        <h2
+          style={{
+            fontSize: "clamp(2.5rem,5vw,4rem)",
+            fontWeight: 300,
+            color: "#111",
+            marginTop: "15px",
+          }}
+        >
+          Customer Experiences
+        </h2>
+      </div>
 
       <div
         style={{
           display: "grid",
           gridTemplateColumns:
-            "repeat(auto-fit,minmax(280px,1fr))",
+            "repeat(auto-fit,minmax(320px,1fr))",
           gap: "25px",
         }}
       >
@@ -48,39 +71,49 @@ export default function ProductReviews() {
           <div
             key={index}
             style={{
-              background: "#111",
-              padding: "30px",
-              borderRadius: "24px",
-              border:
-                "1px solid rgba(212,175,55,.08)",
+              border: "1px solid #e5e5e5",
+              padding: "35px",
+              background: "#fff",
             }}
           >
-            <p
+            <div
               style={{
-                color: "#D4AF37",
-                marginBottom: "15px",
+                color: "#111",
+                marginBottom: "20px",
+                fontSize: "1rem",
               }}
             >
               {"★".repeat(review.rating)}
-            </p>
+            </div>
 
             <p
               style={{
-                color: "#ccc",
-                lineHeight: 1.8,
-                marginBottom: "20px",
+                color: "#666",
+                lineHeight: 1.9,
+                marginBottom: "30px",
               }}
             >
               {review.review}
             </p>
 
-            <strong
+            <h4
               style={{
-                color: "#fff",
+                color: "#111",
+                marginBottom: "5px",
+                fontWeight: 600,
               }}
             >
               {review.name}
-            </strong>
+            </h4>
+
+            <p
+              style={{
+                color: "#999",
+                fontSize: ".9rem",
+              }}
+            >
+              {review.city}
+            </p>
           </div>
         ))}
       </div>

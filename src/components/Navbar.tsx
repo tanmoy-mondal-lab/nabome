@@ -19,278 +19,296 @@ export default function Navbar() {
   );
 
   return (
-    <nav
-      style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 9999,
-        backdropFilter: "blur(20px)",
-        background: "rgba(5,5,5,.92)",
-        borderBottom:
-          "1px solid rgba(212,175,55,.08)",
-      }}
-    >
+    <>
+      {/* TOP BAR */}
       <div
         style={{
-          maxWidth: "1600px",
-          margin: "0 auto",
-          padding: "18px 6%",
+          background: "#111",
+          color: "#fff",
+          textAlign: "center",
+          padding: "10px",
+          fontSize: ".8rem",
+          letterSpacing: "2px",
+          textTransform: "uppercase",
         }}
       >
-        {/* TOP BAR */}
+        Free Shipping On Orders Above ₹999
+      </div>
+
+      <nav
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 9999,
+          background: "#fff",
+          borderBottom: "1px solid #eee",
+        }}
+      >
         <div
           style={{
-            display: "flex",
-            justifyContent:
-              "space-between",
-            alignItems: "center",
+            maxWidth: "1600px",
+            margin: "0 auto",
+            padding: "20px 6%",
           }}
         >
-          <Link
-            to="/"
+          <div
             style={{
               display: "flex",
+              justifyContent:
+                "space-between",
               alignItems: "center",
-              gap: "10px",
-              textDecoration: "none",
             }}
           >
-            <img
-              src="/images/logo/logo.png"
-              alt="NABOME"
+            {/* LEFT */}
+            <div
+              className="desktop-nav"
               style={{
-                height: "42px",
-              }}
-            />
-
-            <span
-              style={{
-                color: "#D4AF37",
-                fontWeight: 900,
-                letterSpacing: "2px",
-                fontSize: "1.2rem",
+                display: "flex",
+                gap: "25px",
+                alignItems: "center",
               }}
             >
-              NABOME
-            </span>
-          </Link>
+              <Link
+                to="/category"
+                style={navLink}
+              >
+                SHOP
+              </Link>
 
-          {/* DESKTOP */}
-          <div
-            className="desktop-nav"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "25px",
-            }}
-          >
+              <Link
+                to="/category"
+                style={navLink}
+              >
+                NEW
+              </Link>
+
+              <Link
+                to="/about"
+                style={navLink}
+              >
+                ABOUT
+              </Link>
+
+              <Link
+                to="/contact"
+                style={navLink}
+              >
+                CONTACT
+              </Link>
+            </div>
+
+            {/* LOGO */}
             <Link
               to="/"
-              style={linkStyle}
-            >
-              Home
-            </Link>
-
-            <Link
-              to="/category"
-              style={linkStyle}
-            >
-              Shop
-            </Link>
-
-            <Link
-              to="/about"
-              style={linkStyle}
-            >
-              About
-            </Link>
-
-            <Link
-              to="/contact"
-              style={linkStyle}
-            >
-              Contact
-            </Link>
-
-            <input
-              type="text"
-              placeholder="Search..."
-              value={search}
-              onChange={(e) =>
-                setSearch(
-                  e.target.value
-                )
-              }
-              onKeyDown={(e) => {
-                if (
-                  e.key === "Enter" &&
-                  search.trim()
-                ) {
-                  navigate(
-                    `/category?search=${search}`
-                  );
-                }
-              }}
               style={{
-                background: "#111",
-                border:
-                  "1px solid rgba(212,175,55,.08)",
-                color: "#fff",
-                borderRadius: "999px",
-                padding: "12px 18px",
-                minWidth: "220px",
-                outline: "none",
-              }}
-            />
-
-            <Link
-              to="/wishlist"
-              style={iconStyle}
-            >
-              ♡ {wishlist.length}
-            </Link>
-
-            <Link
-              to="/cart"
-              style={{
-                background:
-                  "linear-gradient(135deg,#FFD700,#D4AF37)",
-                color: "#000",
-                padding: "12px 18px",
-                borderRadius: "999px",
                 textDecoration: "none",
-                fontWeight: 800,
+                color: "#111",
               }}
             >
-              🛒 {cartCount}
-            </Link>
-          </div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                <img
+                  src="/images/logo/logo.png"
+                  alt="NABOME"
+                  style={{
+                    height: "42px",
+                  }}
+                />
 
-          {/* MOBILE BUTTON */}
-          <button
-            onClick={() =>
-              setMenuOpen(!menuOpen)
-            }
-            style={{
-              background: "none",
-              border: "none",
-              color: "#fff",
-              fontSize: "1.8rem",
-              cursor: "pointer",
-            }}
-          >
-            ☰
-          </button>
-        </div>
-
-        {/* MOBILE MENU */}
-        {menuOpen && (
-          <div
-            style={{
-              marginTop: "20px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "15px",
-              paddingTop: "20px",
-              borderTop:
-                "1px solid rgba(255,255,255,.08)",
-            }}
-          >
-            <Link
-              to="/"
-              style={mobileLink}
-            >
-              Home
+                <span
+                  style={{
+                    fontSize: "1.3rem",
+                    letterSpacing: "4px",
+                    fontWeight: 700,
+                  }}
+                >
+                  NABOME
+                </span>
+              </div>
             </Link>
 
-            <Link
-              to="/category"
-              style={mobileLink}
-            >
-              Shop
-            </Link>
-
-            <Link
-              to="/about"
-              style={mobileLink}
-            >
-              About
-            </Link>
-
-            <Link
-              to="/contact"
-              style={mobileLink}
-            >
-              Contact
-            </Link>
-
-            <Link
-              to="/wishlist"
-              style={mobileLink}
-            >
-              Wishlist (
-              {wishlist.length})
-            </Link>
-
-            <Link
-              to="/cart"
-              style={mobileLink}
-            >
-              Cart ({cartCount})
-            </Link>
-
-            <input
-              type="text"
-              placeholder="Search..."
-              value={search}
-              onChange={(e) =>
-                setSearch(
-                  e.target.value
-                )
-              }
-              onKeyDown={(e) => {
-                if (
-                  e.key === "Enter" &&
-                  search.trim()
-                ) {
-                  navigate(
-                    `/category?search=${search}`
-                  );
-                  setMenuOpen(false);
-                }
-              }}
+            {/* RIGHT */}
+            <div
+              className="desktop-nav"
               style={{
-                background: "#111",
-                border:
-                  "1px solid rgba(212,175,55,.08)",
-                color: "#fff",
-                borderRadius: "12px",
-                padding: "14px",
-                outline: "none",
+                display: "flex",
+                alignItems: "center",
+                gap: "18px",
               }}
-            />
+            >
+              <input
+                type="text"
+                placeholder="Search"
+                value={search}
+                onChange={(e) =>
+                  setSearch(
+                    e.target.value
+                  )
+                }
+                onKeyDown={(e) => {
+                  if (
+                    e.key === "Enter" &&
+                    search.trim()
+                  ) {
+                    navigate(
+                      `/category?search=${search}`
+                    );
+                  }
+                }}
+                style={{
+                  border: "1px solid #ddd",
+                  padding: "12px 15px",
+                  outline: "none",
+                  minWidth: "180px",
+                  fontSize: ".9rem",
+                }}
+              />
+
+              <Link
+                to="/profile"
+                style={navLink}
+              >
+                ACCOUNT
+              </Link>
+
+              <Link
+                to="/wishlist"
+                style={navLink}
+              >
+                ♡ {wishlist.length}
+              </Link>
+
+              <Link
+                to="/cart"
+                style={navLink}
+              >
+                👜 {cartCount}
+              </Link>
+            </div>
+
+            {/* MOBILE BUTTON */}
+            <button
+              onClick={() =>
+                setMenuOpen(!menuOpen)
+              }
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: "1.8rem",
+                color: "#111",
+                cursor: "pointer",
+              }}
+            >
+              ☰
+            </button>
           </div>
-        )}
-      </div>
-    </nav>
+
+          {/* MOBILE MENU */}
+          {menuOpen && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "15px",
+                marginTop: "25px",
+                paddingTop: "25px",
+                borderTop:
+                  "1px solid #eee",
+              }}
+            >
+              <Link
+                to="/category"
+                style={mobileLink}
+              >
+                SHOP
+              </Link>
+
+              <Link
+                to="/about"
+                style={mobileLink}
+              >
+                ABOUT
+              </Link>
+
+              <Link
+                to="/contact"
+                style={mobileLink}
+              >
+                CONTACT
+              </Link>
+
+              <Link
+                to="/profile"
+                style={mobileLink}
+              >
+                ACCOUNT
+              </Link>
+
+              <Link
+                to="/wishlist"
+                style={mobileLink}
+              >
+                WISHLIST (
+                {wishlist.length})
+              </Link>
+
+              <Link
+                to="/cart"
+                style={mobileLink}
+              >
+                CART ({cartCount})
+              </Link>
+
+              <input
+                type="text"
+                placeholder="Search"
+                value={search}
+                onChange={(e) =>
+                  setSearch(
+                    e.target.value
+                  )
+                }
+                onKeyDown={(e) => {
+                  if (
+                    e.key === "Enter" &&
+                    search.trim()
+                  ) {
+                    navigate(
+                      `/category?search=${search}`
+                    );
+                    setMenuOpen(false);
+                  }
+                }}
+                style={{
+                  border: "1px solid #ddd",
+                  padding: "14px",
+                  outline: "none",
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </nav>
+    </>
   );
 }
 
-const linkStyle = {
-  color: "#fff",
+const navLink = {
+  color: "#111",
   textDecoration: "none",
   fontWeight: 600,
+  fontSize: ".9rem",
+  letterSpacing: "1px",
 } as const;
 
 const mobileLink = {
-  color: "#fff",
+  color: "#111",
   textDecoration: "none",
   fontWeight: 600,
-  padding: "8px 0",
-} as const;
-
-const iconStyle = {
-  color: "#fff",
-  textDecoration: "none",
-  fontWeight: 700,
+  padding: "6px 0",
 } as const;

@@ -2,10 +2,10 @@ import { useParams, Link } from "react-router-dom";
 import { products } from "../data/products";
 import Navbar from "../components/Navbar";
 import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
 import { useState } from "react";
 import ProductReviews from "../components/ProductReviews";
 import TrustBadges from "../components/TrustBadges";
-import { useWishlist } from "../context/WishlistContext";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -15,7 +15,12 @@ export default function ProductDetail() {
   );
 
   const { addToCart } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+
+  const {
+    addToWishlist,
+    removeFromWishlist,
+    isInWishlist,
+  } = useWishlist();
 
   const [selectedSize, setSelectedSize] =
     useState("");
@@ -26,18 +31,22 @@ export default function ProductDetail() {
   const [selectedImage, setSelectedImage] =
     useState(product?.image || "");
 
+  const [pincode, setPincode] =
+    useState("");
+
   if (!product) {
     return (
       <>
         <Navbar />
+
         <div
           style={{
             minHeight: "100vh",
-            background: "#050505",
-            color: "#fff",
+            background: "#fff",
+            color: "#111",
             display: "flex",
-            alignItems: "center",
             justifyContent: "center",
+            alignItems: "center",
           }}
         >
           <h1>Product Not Found</h1>
@@ -66,428 +75,777 @@ export default function ProductDetail() {
 
       <div
         style={{
-          background: "#050505",
-          color: "#fff",
+          background: "#fff",
+          color: "#111",
           minHeight: "100vh",
-          padding: "60px 6%",
         }}
       >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit,minmax(450px,1fr))",
-            gap: "60px",
-            alignItems: "start",
-          }}
-        >
-          {/* LEFT */}
-          <div>
-            <img
-              src={selectedImage}
-              alt={product.name}
-              style={{
-                width: "100%",
-                borderRadius: "28px",
-                objectFit: "cover",
-                border:
-                  "1px solid rgba(212,175,55,.08)",
-              }}
-            />
+        {/* BREADCRUMB */}
 
-            {product.images &&
-              product.images.length > 0 && (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "12px",
-                    marginTop: "20px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {product.images.map((img) => (
-                    <img
-                      key={img}
-                      src={img}
-                      alt="thumbnail"
-                      onClick={() =>
-                        setSelectedImage(img)
-                      }
-                      style={{
-                        width: "90px",
-                        height: "90px",
-                        objectFit: "cover",
-                        borderRadius: "14px",
-                        cursor: "pointer",
-                        border:
-                          selectedImage === img
-                            ? "2px solid #D4AF37"
-                            : "1px solid #333",
-                      }}
-                    />
-                  ))}
-                </div>
-              )}
-          </div>
-
-          {/* RIGHT */}
-          <div>
-            <span
-              style={{
-                color: "#D4AF37",
-                letterSpacing: "3px",
-                textTransform: "uppercase",
-                fontSize: ".85rem",
-              }}
-            >
-              Premium Collection
-            </span>
-
-            <h1
-              style={{
-                fontSize: "clamp(2.5rem,5vw,4rem)",
-                marginTop: "10px",
-                marginBottom: "15px",
-                fontWeight: 900,
-              }}
-            >
-              {product.name}
-            </h1>
-
-            <p
-              style={{
-                color: "#D4AF37",
-                marginBottom: "25px",
-                fontSize: "1.1rem",
-              }}
-            >
-              ★★★★★ 4.9 Rating
-            </p>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "15px",
-                marginBottom: "10px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "2.2rem",
-                  fontWeight: 800,
-                  color: "#D4AF37",
-                }}
-              >
-                ₹{product.price}
-              </span>
-
-              {(product as any)
-                .originalPrice && (
-                <span
-                  style={{
-                    color: "#777",
-                    textDecoration:
-                      "line-through",
-                    fontSize: "1.2rem",
-                  }}
-                >
-                  ₹
-                  {
-                    (product as any)
-                      .originalPrice
-                  }
-                </span>
-              )}
-            </div>
-
-            {discount > 0 && (
-              <div
-                style={{
-                  marginBottom: "25px",
-                }}
-              >
-                <span
-                  style={{
-                    background:
-                      "rgba(212,175,55,.15)",
-                    color: "#D4AF37",
-                    padding: "8px 14px",
-                    borderRadius: "999px",
-                    fontWeight: 700,
-                  }}
-                >
-                  {discount}% OFF
-                </span>
-              </div>
-            )}
-
-            <p
-              style={{
-                color: "#aaa",
-                lineHeight: 1.9,
-                marginBottom: "35px",
-              }}
-            >
-              {product.description}
-            </p>
-
-            {/* SIZES */}
-            <h3
-              style={{
-                marginBottom: "15px",
-              }}
-            >
-              Select Size
-            </h3>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                flexWrap: "wrap",
-                marginBottom: "30px",
-              }}
-            >
-              {product.sizes.map((size) => (
-                <button
-                  key={size}
-                  onClick={() =>
-                    setSelectedSize(size)
-                  }
-                  style={{
-                    padding: "12px 22px",
-                    borderRadius: "12px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    border:
-                      selectedSize === size
-                        ? "none"
-                        : "1px solid #333",
-                    background:
-                      selectedSize === size
-                        ? "#D4AF37"
-                        : "#111",
-                    color:
-                      selectedSize === size
-                        ? "#000"
-                        : "#fff",
-                  }}
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-
-            {/* COLORS */}
-            <h3
-              style={{
-                marginBottom: "15px",
-              }}
-            >
-              Select Color
-            </h3>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "12px",
-                flexWrap: "wrap",
-                marginBottom: "40px",
-              }}
-            >
-              {product.colors.map((color) => (
-                <button
-                  key={color}
-                  onClick={() =>
-                    setSelectedColor(color)
-                  }
-                  style={{
-                    padding: "12px 22px",
-                    borderRadius: "12px",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    border:
-                      selectedColor ===
-                      color
-                        ? "none"
-                        : "1px solid #333",
-                    background:
-                      selectedColor ===
-                      color
-                        ? "#D4AF37"
-                        : "#111",
-                    color:
-                      selectedColor ===
-                      color
-                        ? "#000"
-                        : "#fff",
-                  }}
-                >
-                  {color}
-                </button>
-              ))}
-            </div>
-
-            <div
-              style={{
-                display: "flex",
-                gap: "15px",
-                marginTop: "20px",
-              }}
-            >
-              <button
-                onClick={() => {
-                  if (!selectedSize) {
-                    alert("Please select a size");
-                    return;
-                  }
-
-                  if (!selectedColor) {
-                    alert("Please select a color");
-                    return;
-                  }
-
-                  addToCart({
-                    ...product,
-                    selectedSize,
-                    selectedColor,
-                  });
-
-                  alert("Added To Cart!");
-                }}
-                style={{
-                  flex: 1,
-                  padding: "18px",
-                  border: "none",
-                  borderRadius: "16px",
-                  cursor: "pointer",
-                  fontWeight: 800,
-                  background:
-                    "linear-gradient(135deg,#FFD700,#D4AF37)",
-                  color: "#000",
-                }}
-              >
-                Add To Cart
-              </button>
-
-              <button
-                onClick={() => {
-                  if (isInWishlist(product.id)) {
-                    removeFromWishlist(product.id);
-                  } else {
-                    addToWishlist(product);
-                  }
-                }}
-                style={{
-                  minWidth: "160px",
-                  border: "1px solid rgba(212,175,55,.2)",
-                  borderRadius: "16px",
-                  cursor: "pointer",
-                  background: isInWishlist(product.id)
-                    ? "#D4AF37"
-                    : "#111",
-                  color: isInWishlist(product.id)
-                    ? "#000"
-                    : "#D4AF37",
-                  fontWeight: 700,
-                  fontSize: "1rem",
-                  padding: "18px 20px",
-                }}
-              >
-                {isInWishlist(product.id)
-                  ? "♥ Saved"
-                  : "♡ Wishlist"}
-              </button>
-            </div>
-
-            <TrustBadges />
-          </div>
-        </div>
-
-        {/* RELATED PRODUCTS */}
         <section
           style={{
-            marginTop: "120px",
+            padding: "30px 6%",
+            borderBottom: "1px solid #e5e5e5",
           }}
         >
-          <h2
+          <p
             style={{
-              fontSize: "2.5rem",
-              marginBottom: "40px",
+              color: "#777",
+              fontSize: ".9rem",
             }}
           >
-            You May Also Like
-          </h2>
+            Home / Shop / {product.category}
+          </p>
+        </section>
 
+        {/* PRODUCT SECTION */}
+
+        <section
+          style={{
+            padding: "60px 6%",
+          }}
+        >
           <div
             style={{
               display: "grid",
               gridTemplateColumns:
-                "repeat(auto-fill,minmax(280px,1fr))",
+                "repeat(auto-fit,minmax(500px,1fr))",
+              gap: "70px",
+              alignItems: "start",
+            }}
+          >
+            {/* LEFT SIDE */}
+
+            <div>
+              <div
+                style={{
+                  border: "1px solid #e5e5e5",
+                  background: "#fafafa",
+                }}
+              >
+                <img
+                  src={selectedImage}
+                  alt={product.name}
+                  style={{
+                    width: "100%",
+                    height: "700px",
+                    objectFit: "cover",
+                  }}
+                />
+              </div>
+
+              {/* THUMBNAILS */}
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "15px",
+                  marginTop: "20px",
+                  flexWrap: "wrap",
+                }}
+              >
+                {product.images.map((img) => (
+                  <img
+                    key={img}
+                    src={img}
+                    alt=""
+                    onClick={() =>
+                      setSelectedImage(img)
+                    }
+                    style={{
+                      width: "100px",
+                      height: "120px",
+                      objectFit: "cover",
+                      cursor: "pointer",
+                      border:
+                        selectedImage === img
+                          ? "2px solid #111"
+                          : "1px solid #ddd",
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* RIGHT SIDE */}
+
+            <div
+              style={{
+                position: "sticky",
+                top: "120px",
+              }}
+            >
+              <p
+                style={{
+                  color: "#888",
+                  textTransform: "uppercase",
+                  letterSpacing: "3px",
+                  fontSize: ".8rem",
+                }}
+              >
+                {product.category}
+              </p>
+
+              <h1
+                style={{
+                  fontSize:
+                    "clamp(2.5rem,5vw,4.5rem)",
+                  fontWeight: 300,
+                  lineHeight: 1,
+                  marginTop: "15px",
+                }}
+              >
+                {product.name}
+              </h1>
+
+              {/* PRICE */}
+
+              <div
+                style={{
+                  marginTop: "30px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "15px",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "2rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  ₹{product.price}
+                </span>
+
+                {(product as any)
+                  .originalPrice && (
+                  <span
+                    style={{
+                      color: "#999",
+                      textDecoration:
+                        "line-through",
+                    }}
+                  >
+                    ₹
+                    {
+                      (product as any)
+                        .originalPrice
+                    }
+                  </span>
+                )}
+
+                {discount > 0 && (
+                  <span
+                    style={{
+                      color: "#111",
+                      border:
+                        "1px solid #111",
+                      padding: "6px 10px",
+                      fontSize: ".8rem",
+                    }}
+                  >
+                    {discount}% OFF
+                  </span>
+                )}
+              </div>
+
+              {/* DESCRIPTION */}
+
+              <p
+                style={{
+                  marginTop: "30px",
+                  color: "#666",
+                  lineHeight: 1.9,
+                  fontSize: "1rem",
+                }}
+              >
+                {product.description}
+              </p>
+
+              {/* SIZE */}
+
+              <div
+                style={{
+                  marginTop: "40px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    marginBottom: "15px",
+                  }}
+                >
+                  <h3>Size</h3>
+
+                  <button
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "#666",
+                    }}
+                  >
+                    Size Guide
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {product.sizes.map(
+                    (size) => (
+                      <button
+                        key={size}
+                        onClick={() =>
+                          setSelectedSize(
+                            size
+                          )
+                        }
+                        style={{
+                          minWidth: "60px",
+                          padding:
+                            "14px 18px",
+                          border:
+                            selectedSize ===
+                            size
+                              ? "2px solid #111"
+                              : "1px solid #ddd",
+                          background:
+                            "#fff",
+                          cursor:
+                            "pointer",
+                          fontWeight:
+                            600,
+                        }}
+                      >
+                        {size}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* COLOR */}
+
+              <div
+                style={{
+                  marginTop: "35px",
+                }}
+              >
+                <h3
+                  style={{
+                    marginBottom: "15px",
+                  }}
+                >
+                  Colour
+                </h3>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  {product.colors.map(
+                    (color) => (
+                      <button
+                        key={color}
+                        onClick={() =>
+                          setSelectedColor(
+                            color
+                          )
+                        }
+                        style={{
+                          padding:
+                            "14px 18px",
+                          border:
+                            selectedColor ===
+                            color
+                              ? "2px solid #111"
+                              : "1px solid #ddd",
+                          background:
+                            "#fff",
+                          cursor:
+                            "pointer",
+                          fontWeight:
+                            500,
+                        }}
+                      >
+                        {color}
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+                            {/* ACTION BUTTONS */}
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "15px",
+                  marginTop: "45px",
+                  flexWrap: "wrap",
+                }}
+              >
+                <button
+                  onClick={() => {
+                    if (!selectedSize) {
+                      alert(
+                        "Please select a size"
+                      );
+                      return;
+                    }
+
+                    if (!selectedColor) {
+                      alert(
+                        "Please select a colour"
+                      );
+                      return;
+                    }
+
+                    addToCart({
+                      ...product,
+                      selectedSize,
+                      selectedColor,
+                    });
+
+                    alert(
+                      "Added To Bag"
+                    );
+                  }}
+                  style={{
+                    flex: 1,
+                    minWidth: "220px",
+                    padding: "18px",
+                    border: "none",
+                    background: "#111",
+                    color: "#fff",
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    fontSize: "1rem",
+                  }}
+                >
+                  Add To Bag
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (
+                      isInWishlist(
+                        product.id
+                      )
+                    ) {
+                      removeFromWishlist(
+                        product.id
+                      );
+                    } else {
+                      addToWishlist(
+                        product
+                      );
+                    }
+                  }}
+                  style={{
+                    minWidth: "180px",
+                    padding: "18px",
+                    border:
+                      "1px solid #111",
+                    background: "#fff",
+                    color: "#111",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                  }}
+                >
+                  {isInWishlist(
+                    product.id
+                  )
+                    ? "Saved"
+                    : "Wishlist"}
+                </button>
+              </div>
+
+              {/* DELIVERY */}
+
+              <div
+                style={{
+                  marginTop: "60px",
+                  paddingTop: "35px",
+                  borderTop:
+                    "1px solid #e5e5e5",
+                }}
+              >
+                <h3
+                  style={{
+                    marginBottom: "20px",
+                  }}
+                >
+                  Delivery & Returns
+                </h3>
+
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "12px",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <input
+                    type="text"
+                    placeholder="Enter Pincode"
+                    value={pincode}
+                    onChange={(e) =>
+                      setPincode(
+                        e.target.value
+                      )
+                    }
+                    style={{
+                      flex: 1,
+                      minWidth: "200px",
+                      padding: "15px",
+                      border:
+                        "1px solid #ddd",
+                      outline: "none",
+                    }}
+                  />
+
+                  <button
+                    style={{
+                      padding:
+                        "15px 30px",
+                      border:
+                        "1px solid #111",
+                      background:
+                        "#fff",
+                      cursor:
+                        "pointer",
+                    }}
+                  >
+                    Check
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "20px",
+                    color: "#666",
+                    lineHeight: 2,
+                  }}
+                >
+                  <p>
+                    ✓ Free Shipping on
+                    orders above ₹999
+                  </p>
+
+                  <p>
+                    ✓ Easy Returns &
+                    Exchanges
+                  </p>
+
+                  <p>
+                    ✓ Estimated Delivery
+                    3-5 Business Days
+                  </p>
+                </div>
+              </div>
+
+              {/* PRODUCT DETAILS */}
+
+              <div
+                style={{
+                  marginTop: "60px",
+                  paddingTop: "35px",
+                  borderTop:
+                    "1px solid #e5e5e5",
+                }}
+              >
+                <h3
+                  style={{
+                    marginBottom: "25px",
+                  }}
+                >
+                  Product Details
+                </h3>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: "18px",
+                  }}
+                >
+                  <div
+                    style={detailRow}
+                  >
+                    <span>
+                      Material
+                    </span>
+                    <span>
+                      Premium Cotton
+                    </span>
+                  </div>
+
+                  <div
+                    style={detailRow}
+                  >
+                    <span>Fit</span>
+                    <span>
+                      Oversized
+                    </span>
+                  </div>
+
+                  <div
+                    style={detailRow}
+                  >
+                    <span>
+                      Category
+                    </span>
+                    <span>
+                      {
+                        product.category
+                      }
+                    </span>
+                  </div>
+
+                  <div
+                    style={detailRow}
+                  >
+                    <span>
+                      Wash Care
+                    </span>
+                    <span>
+                      Machine Wash
+                    </span>
+                  </div>
+
+                  <div
+                    style={detailRow}
+                  >
+                    <span>
+                      Country
+                    </span>
+                    <span>
+                      India
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <TrustBadges />
+            </div>
+          </div>
+        </section>
+
+        {/* BRAND MESSAGE */}
+
+        <section
+          style={{
+            padding:
+              "120px 6%",
+            background:
+              "#f8f6f2",
+            textAlign:
+              "center",
+          }}
+        >
+          <span
+            style={{
+              textTransform:
+                "uppercase",
+              letterSpacing:
+                "4px",
+              color: "#888",
+            }}
+          >
+            NABOME
+          </span>
+
+          <h2
+            style={{
+              fontSize:
+                "clamp(3rem,6vw,5rem)",
+              fontWeight: 300,
+              marginTop:
+                "20px",
+            }}
+          >
+            Designed In
+            <br />
+            Bengal
+          </h2>
+
+          <p
+            style={{
+              maxWidth:
+                "700px",
+              margin:
+                "30px auto 0",
+              color: "#666",
+              lineHeight: 1.9,
+            }}
+          >
+            Modern
+            silhouettes,
+            premium
+            materials and
+            timeless
+            design inspired
+            by culture,
+            identity and
+            everyday
+            expression.
+          </p>
+        </section>
+
+        {/* RELATED PRODUCTS */}
+
+        <section
+          style={{
+            padding:
+              "120px 6%",
+            background:
+              "#fff",
+          }}
+        >
+          <div
+            style={{
+              marginBottom:
+                "60px",
+            }}
+          >
+            <span
+              style={{
+                textTransform:
+                  "uppercase",
+                letterSpacing:
+                  "3px",
+                color:
+                  "#888",
+              }}
+            >
+              More To
+              Explore
+            </span>
+
+            <h2
+              style={{
+                fontSize:
+                  "3rem",
+                fontWeight:
+                  300,
+                marginTop:
+                  "15px",
+              }}
+            >
+              You May
+              Also Like
+            </h2>
+          </div>
+
+          <div
+            style={{
+              display:
+                "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit,minmax(280px,1fr))",
               gap: "30px",
             }}
           >
             {relatedProducts
               .slice(0, 4)
-              .map((item) => (
-                <Link
-                  key={item.id}
-                  to={`/product/${item.id}`}
-                  style={{
-                    textDecoration: "none",
-                    color: "#fff",
-                  }}
-                >
-                  <div
+              .map(
+                (
+                  item
+                ) => (
+                  <Link
+                    key={
+                      item.id
+                    }
+                    to={`/product/${item.id}`}
                     style={{
-                      background: "#111",
-                      borderRadius: "24px",
-                      overflow: "hidden",
-                      border:
-                        "1px solid rgba(212,175,55,.08)",
+                      color:
+                        "#111",
                     }}
                   >
                     <img
-                      src={item.image}
-                      alt={item.name}
+                      src={
+                        item.image
+                      }
+                      alt={
+                        item.name
+                      }
                       style={{
-                        width: "100%",
-                        height: "350px",
-                        objectFit: "cover",
+                        width:
+                          "100%",
+                        height:
+                          "420px",
+                        objectFit:
+                          "cover",
                       }}
                     />
 
                     <div
                       style={{
-                        padding: "20px",
+                        marginTop:
+                          "18px",
                       }}
                     >
-                      <h3
-                        style={{
-                          marginBottom: "10px",
-                        }}
-                      >
-                        {item.name}
-                      </h3>
-
                       <p
                         style={{
-                          color: "#D4AF37",
-                          fontWeight: 700,
+                          color:
+                            "#888",
+                          marginBottom:
+                            "8px",
                         }}
                       >
-                        ₹{item.price}
+                        {
+                          item.category
+                        }
+                      </p>
+
+                      <h3
+                        style={{
+                          fontWeight:
+                            500,
+                          marginBottom:
+                            "10px",
+                        }}
+                      >
+                        {
+                          item.name
+                        }
+                      </h3>
+
+                      <p>
+                        ₹
+                        {
+                          item.price
+                        }
                       </p>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                )
+              )}
           </div>
-        </section>
 
-        <ProductReviews />
+          <ProductReviews />
+        </section>
       </div>
     </>
   );
 }
+
+const detailRow = {
+  display: "flex",
+  justifyContent:
+    "space-between",
+  paddingBottom:
+    "12px",
+  borderBottom:
+    "1px solid #eee",
+  color: "#666",
+} as const;

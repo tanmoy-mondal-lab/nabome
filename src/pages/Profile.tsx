@@ -1,4 +1,5 @@
 import Navbar from "../components/Navbar";
+import { Link } from "react-router-dom";
 
 export default function Profile() {
   const user = JSON.parse(
@@ -6,70 +7,368 @@ export default function Profile() {
       "{}"
   );
 
+  const logout = () => {
+    localStorage.removeItem(
+      "nabome-user"
+    );
+
+    window.location.href = "/";
+  };
+
   return (
     <>
       <Navbar />
 
       <div
         style={{
+          background: "#fff",
+          color: "#111",
           minHeight: "100vh",
-          background: "#050505",
-          color: "#fff",
-          padding: "80px 6%",
         }}
       >
-        <h1
+        {/* HERO */}
+
+        <section
           style={{
-            marginBottom: "40px",
+            padding: "100px 6% 60px",
+            borderBottom:
+              "1px solid #e5e5e5",
           }}
         >
-          My Profile
-        </h1>
-
-        <div
-          style={{
-            background: "#111",
-            padding: "40px",
-            borderRadius: "24px",
-            maxWidth: "600px",
-          }}
-        >
-          <p>
-            <strong>Name:</strong>{" "}
-            {user.name || "Customer"}
-          </p>
-
-          <br />
-
-          <p>
-            <strong>Email:</strong>{" "}
-            {user.email || "Not Provided"}
-          </p>
-
-          <br />
-
-          <button
-            onClick={() => {
-              localStorage.removeItem(
-                "nabome-user"
-              );
-
-              window.location.href =
-                "/";
-            }}
+          <p
             style={{
-              padding: "14px 24px",
-              border: "none",
-              borderRadius: "12px",
-              background: "#dc3545",
-              color: "#fff",
-              cursor: "pointer",
+              textTransform:
+                "uppercase",
+              letterSpacing: "4px",
+              color: "#888",
+              fontSize: ".85rem",
             }}
           >
-            Logout
-          </button>
-        </div>
+            Account
+          </p>
+
+          <h1
+            style={{
+              fontSize:
+                "clamp(3rem,6vw,5rem)",
+              fontWeight: 300,
+              marginTop: "15px",
+            }}
+          >
+            My Profile
+          </h1>
+        </section>
+
+        {/* PROFILE */}
+
+        <section
+          style={{
+            padding: "80px 6%",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: "900px",
+              margin: "0 auto",
+            }}
+          >
+            <div
+              style={{
+                border:
+                  "1px solid #e5e5e5",
+                padding: "50px",
+                background: "#fafafa",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "25px",
+                  flexWrap: "wrap",
+                  marginBottom: "40px",
+                }}
+              >
+                <div
+                  style={{
+                    width: "90px",
+                    height: "90px",
+                    background: "#111",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent:
+                      "center",
+                    fontSize: "2rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  {(
+                    user.name ||
+                    "C"
+                  )
+                    .charAt(0)
+                    .toUpperCase()}
+                </div>
+
+                <div>
+                  <h2
+                    style={{
+                      fontWeight: 400,
+                      marginBottom: "8px",
+                    }}
+                  >
+                    {user.name ||
+                      "Customer"}
+                  </h2>
+
+                  <p
+                    style={{
+                      color: "#666",
+                    }}
+                  >
+                    {user.email ||
+                      "Not Provided"}
+                  </p>
+                </div>
+              </div>
+
+              {/* ACCOUNT DETAILS */}
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit,minmax(250px,1fr))",
+                  gap: "20px",
+                }}
+              >
+                <div
+                  style={cardStyle}
+                >
+                  <h4>
+                    Name
+                  </h4>
+
+                  <p>
+                    {user.name ||
+                      "Customer"}
+                  </p>
+                </div>
+
+                <div
+                  style={cardStyle}
+                >
+                  <h4>
+                    Email
+                  </h4>
+
+                  <p>
+                    {user.email ||
+                      "Not Provided"}
+                  </p>
+                </div>
+
+                <div
+                  style={cardStyle}
+                >
+                  <h4>
+                    Wishlist
+                  </h4>
+
+                  <Link
+                    to="/wishlist"
+                    style={{
+                      color:
+                        "#111",
+                    }}
+                  >
+                    View Saved
+                    Products
+                  </Link>
+                </div>
+
+                <div
+                  style={cardStyle}
+                >
+                  <h4>
+                    Shopping
+                  </h4>
+
+                  <Link
+                    to="/cart"
+                    style={{
+                      color:
+                        "#111",
+                    }}
+                  >
+                    View Cart
+                  </Link>
+                </div>
+              </div>
+
+              {/* ACTIONS */}
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: "15px",
+                  flexWrap: "wrap",
+                  marginTop: "40px",
+                }}
+              >
+                <Link
+                  to="/category"
+                >
+                  <button
+                    style={{
+                      padding:
+                        "16px 30px",
+                      border:
+                        "none",
+                      background:
+                        "#111",
+                      color:
+                        "#fff",
+                      cursor:
+                        "pointer",
+                      fontWeight:
+                        600,
+                    }}
+                  >
+                    Shop Collection
+                  </button>
+                </Link>
+
+                <button
+                  onClick={
+                    logout
+                  }
+                  style={{
+                    padding:
+                      "16px 30px",
+                    border:
+                      "1px solid #ddd",
+                    background:
+                      "#fff",
+                    color:
+                      "#111",
+                    cursor:
+                      "pointer",
+                      fontWeight:
+                      600,
+                  }}
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* MEMBER BENEFITS */}
+
+        <section
+          style={{
+            background: "#f8f6f2",
+            padding: "100px 6%",
+          }}
+        >
+          <div
+            style={{
+              textAlign: "center",
+              marginBottom: "50px",
+            }}
+          >
+            <h2
+              style={{
+                fontSize:
+                  "clamp(2.5rem,5vw,4rem)",
+                fontWeight: 300,
+              }}
+            >
+              Member Benefits
+            </h2>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit,minmax(250px,1fr))",
+              gap: "25px",
+            }}
+          >
+            {[
+              {
+                title:
+                  "Wishlist",
+                text:
+                  "Save your favourite products.",
+              },
+              {
+                title:
+                  "Fast Checkout",
+                text:
+                  "Complete future orders quickly.",
+              },
+              {
+                title:
+                  "Exclusive Updates",
+                text:
+                  "Stay informed about new collections.",
+              },
+              {
+                title:
+                  "Future Order Tracking",
+                text:
+                  "Track orders when available.",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                style={{
+                  background:
+                    "#fff",
+                  border:
+                    "1px solid #e5e5e5",
+                  padding:
+                    "35px",
+                }}
+              >
+                <h3
+                  style={{
+                    marginBottom:
+                      "15px",
+                  }}
+                >
+                  {item.title}
+                </h3>
+
+                <p
+                  style={{
+                    color:
+                      "#666",
+                    lineHeight:
+                      1.8,
+                  }}
+                >
+                  {item.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </>
   );
 }
+
+const cardStyle = {
+  background: "#fff",
+  border: "1px solid #e5e5e5",
+  padding: "25px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "10px",
+} as const;

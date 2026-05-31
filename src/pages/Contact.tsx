@@ -1,260 +1,354 @@
 import Navbar from "../components/Navbar";
+import { useState } from "react";
 
 export default function Contact() {
+  const [name, setName] =
+    useState("");
+
+  const [email, setEmail] =
+    useState("");
+
+  const [subject, setSubject] =
+    useState("");
+
+  const [message, setMessage] =
+    useState("");
+
+  const openWhatsApp = () => {
+    const text = `
+NABOME CONTACT REQUEST
+
+Name:
+${name}
+
+Email:
+${email}
+
+Subject:
+${subject}
+
+Message:
+${message}
+`;
+
+    const encoded =
+      encodeURIComponent(text);
+
+    window.open(
+      `https://wa.me/919163854706?text=${encoded}`,
+      "_blank"
+    );
+  };
+
   return (
     <>
       <Navbar />
 
       <div
         style={{
-          background: "#050505",
-          color: "#fff",
+          background: "#fff",
+          color: "#111",
           minHeight: "100vh",
         }}
       >
         {/* HERO */}
+
         <section
           style={{
-            padding: "120px 8% 80px",
+            padding: "120px 6% 80px",
             textAlign: "center",
+            borderBottom:
+              "1px solid #e5e5e5",
           }}
         >
-          <span
+          <p
             style={{
-              color: "#D4AF37",
-              textTransform: "uppercase",
-              letterSpacing: "4px",
+              textTransform:
+                "uppercase",
+              letterSpacing:
+                "4px",
+              color: "#888",
               fontSize: ".85rem",
             }}
           >
-            Get In Touch
-          </span>
+            Contact
+          </p>
 
           <h1
             style={{
-              fontSize: "clamp(4rem,8vw,7rem)",
-              fontWeight: 900,
+              fontSize:
+                "clamp(4rem,8vw,7rem)",
+              fontWeight: 300,
+              lineHeight: 1,
               marginTop: "20px",
-              lineHeight: ".95",
             }}
           >
-            LET'S TALK.
+            Let's Talk
           </h1>
 
           <p
             style={{
-              color: "#999",
               maxWidth: "700px",
               margin: "30px auto 0",
-              lineHeight: 1.8,
-              fontSize: "1.1rem",
+              color: "#666",
+              lineHeight: 1.9,
+              fontSize: "1.05rem",
             }}
           >
-            Have questions, custom requests, business
-            inquiries, or need support? Our team is
-            always ready to help.
+            Questions, support requests,
+            collaborations or business
+            enquiries — we'd love to hear
+            from you.
           </p>
         </section>
 
         {/* CONTACT SECTION */}
+
         <section
           style={{
-            padding: "0 8% 120px",
+            padding: "80px 6%",
           }}
         >
           <div
             style={{
               display: "grid",
               gridTemplateColumns:
-                "repeat(auto-fit,minmax(350px,1fr))",
-              gap: "40px",
+                "repeat(auto-fit,minmax(450px,1fr))",
+              gap: "60px",
+              alignItems: "start",
             }}
           >
             {/* LEFT */}
-            <div
-              style={{
-                background:
-                  "linear-gradient(180deg,#111,#0b0b0b)",
-                border:
-                  "1px solid rgba(212,175,55,.08)",
-                borderRadius: "30px",
-                padding: "40px",
-              }}
-            >
-              <h2
+
+            <div>
+              <p
                 style={{
-                  marginBottom: "30px",
+                  textTransform:
+                    "uppercase",
+                  letterSpacing:
+                    "3px",
+                  color: "#888",
+                  fontSize: ".85rem",
                 }}
               >
                 Contact Information
+              </p>
+
+              <h2
+                style={{
+                  fontSize:
+                    "clamp(2.5rem,5vw,4rem)",
+                  fontWeight: 300,
+                  marginTop: "20px",
+                  marginBottom: "40px",
+                }}
+              >
+                We're Here
+                <br />
+                To Help
               </h2>
 
               <div
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "25px",
+                  display: "grid",
+                  gap: "30px",
                 }}
               >
                 <div>
-                  <p
-                    style={{
-                      color: "#D4AF37",
-                      marginBottom: "5px",
-                    }}
-                  >
+                  <h4>
                     WhatsApp
-                  </p>
+                  </h4>
 
-                  <h3>+91 9163854706</h3>
+                  <p
+                    style={{
+                      color: "#666",
+                      marginTop: "8px",
+                    }}
+                  >
+                    +91 9163854706
+                  </p>
                 </div>
 
                 <div>
+                  <h4>Email</h4>
+
                   <p
                     style={{
-                      color: "#D4AF37",
-                      marginBottom: "5px",
+                      color: "#666",
+                      marginTop: "8px",
                     }}
                   >
-                    Email
-                  </p>
-
-                  <h3>
                     support@nabome.in
-                  </h3>
+                  </p>
                 </div>
 
                 <div>
-                  <p
-                    style={{
-                      color: "#D4AF37",
-                      marginBottom: "5px",
-                    }}
-                  >
+                  <h4>
                     Business
-                  </p>
+                  </h4>
 
-                  <h3>
+                  <p
+                    style={{
+                      color: "#666",
+                      marginTop: "8px",
+                    }}
+                  >
                     business@nabome.in
-                  </h3>
+                  </p>
                 </div>
 
                 <div>
+                  <h4>
+                    Working Hours
+                  </h4>
+
                   <p
                     style={{
-                      color: "#D4AF37",
-                      marginBottom: "5px",
+                      color: "#666",
+                      marginTop: "8px",
+                      lineHeight: 1.8,
                     }}
                   >
-                    Working Hours
-                  </p>
-
-                  <h3>
-                    Monday - Saturday
+                    Monday – Saturday
                     <br />
-                    10:00 AM - 8:00 PM
-                  </h3>
+                    10:00 AM – 8:00 PM
+                  </p>
                 </div>
               </div>
             </div>
+                        {/* RIGHT */}
 
-            {/* RIGHT */}
             <div
               style={{
-                background:
-                  "linear-gradient(180deg,#111,#0b0b0b)",
                 border:
-                  "1px solid rgba(212,175,55,.08)",
-                borderRadius: "30px",
+                  "1px solid #e5e5e5",
                 padding: "40px",
+                background: "#fafafa",
               }}
             >
-              <h2
+              <h3
                 style={{
+                  fontSize: "2rem",
+                  fontWeight: 300,
                   marginBottom: "30px",
                 }}
               >
-                Send Message
-              </h2>
+                Send A Message
+              </h3>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-
-                  window.open(
-                    "https://wa.me/919163854706",
-                    "_blank"
-                  );
+              <div
+                style={{
+                  display: "grid",
+                  gap: "18px",
                 }}
               >
-                <div
+                <input
+                  placeholder="Your Name"
+                  value={name}
+                  onChange={(e) =>
+                    setName(
+                      e.target.value
+                    )
+                  }
+                  style={inputStyle}
+                />
+
+                <input
+                  placeholder="Email Address"
+                  value={email}
+                  onChange={(e) =>
+                    setEmail(
+                      e.target.value
+                    )
+                  }
+                  style={inputStyle}
+                />
+
+                <input
+                  placeholder="Subject"
+                  value={subject}
+                  onChange={(e) =>
+                    setSubject(
+                      e.target.value
+                    )
+                  }
+                  style={inputStyle}
+                />
+
+                <textarea
+                  rows={7}
+                  placeholder="Your Message"
+                  value={message}
+                  onChange={(e) =>
+                    setMessage(
+                      e.target.value
+                    )
+                  }
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "18px",
+                    ...inputStyle,
+                    resize: "none",
+                  }}
+                />
+
+                <button
+                  onClick={
+                    openWhatsApp
+                  }
+                  style={{
+                    padding: "18px",
+                    border: "none",
+                    background: "#111",
+                    color: "#fff",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    fontSize: "1rem",
                   }}
                 >
-                  <input
-                    placeholder="Your Name"
-                    style={inputStyle}
-                  />
-
-                  <input
-                    placeholder="Email Address"
-                    style={inputStyle}
-                  />
-
-                  <input
-                    placeholder="Subject"
-                    style={inputStyle}
-                  />
-
-                  <textarea
-                    placeholder="Your Message"
-                    rows={6}
-                    style={{
-                      ...inputStyle,
-                      resize: "none",
-                    }}
-                  />
-
-                  <button
-                    type="submit"
-                    style={{
-                      padding: "18px",
-                      border: "none",
-                      borderRadius: "14px",
-                      cursor: "pointer",
-                      fontWeight: 800,
-                      fontSize: "1rem",
-                      background:
-                        "linear-gradient(135deg,#FFD700,#D4AF37)",
-                      color: "#000",
-                    }}
-                  >
-                    Send Message
-                  </button>
-                </div>
-              </form>
+                  Send Via WhatsApp
+                </button>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* SUPPORT CARDS */}
+        {/* SUPPORT SERVICES */}
+
         <section
           style={{
-            padding: "0 8% 120px",
+            background: "#f8f6f2",
+            padding: "100px 6%",
           }}
         >
-          <h2
+          <div
             style={{
               textAlign: "center",
-              fontSize: "3rem",
-              marginBottom: "50px",
+              marginBottom: "60px",
             }}
           >
-            We're Here To Help
-          </h2>
+            <p
+              style={{
+                textTransform:
+                  "uppercase",
+                letterSpacing:
+                  "4px",
+                color: "#888",
+                fontSize: ".85rem",
+              }}
+            >
+              Support
+            </p>
+
+            <h2
+              style={{
+                fontSize:
+                  "clamp(3rem,6vw,5rem)",
+                fontWeight: 300,
+                marginTop: "20px",
+              }}
+            >
+              How Can We Help?
+            </h2>
+          </div>
 
           <div
             style={{
@@ -266,36 +360,46 @@ export default function Contact() {
           >
             {[
               {
-                title: "Order Support",
-                text: "Track orders and delivery updates.",
+                title:
+                  "Order Support",
+                text:
+                  "Track orders and delivery updates.",
               },
               {
-                title: "Returns",
-                text: "Easy replacement and return assistance.",
+                title:
+                  "Returns & Exchanges",
+                text:
+                  "Quick assistance for replacements and returns.",
               },
               {
-                title: "Custom Orders",
-                text: "Special requests and collaborations.",
+                title:
+                  "Custom Requests",
+                text:
+                  "Special designs and collaboration enquiries.",
               },
               {
-                title: "Business Enquiries",
-                text: "Partnership and wholesale opportunities.",
+                title:
+                  "Business Partnerships",
+                text:
+                  "Wholesale and partnership opportunities.",
               },
             ].map((item) => (
               <div
                 key={item.title}
                 style={{
-                  background: "#111",
+                  background:
+                    "#fff",
                   padding: "35px",
-                  borderRadius: "24px",
                   border:
-                    "1px solid rgba(212,175,55,.08)",
+                    "1px solid #e5e5e5",
                 }}
               >
                 <h3
                   style={{
-                    color: "#D4AF37",
-                    marginBottom: "15px",
+                    marginBottom:
+                      "15px",
+                    fontWeight:
+                      600,
                   }}
                 >
                   {item.title}
@@ -303,8 +407,10 @@ export default function Contact() {
 
                 <p
                   style={{
-                    color: "#999",
-                    lineHeight: 1.8,
+                    color:
+                      "#666",
+                    lineHeight:
+                      1.8,
                   }}
                 >
                   {item.text}
@@ -315,29 +421,40 @@ export default function Contact() {
         </section>
 
         {/* CTA */}
+
         <section
           style={{
-            padding: "0 8% 120px",
+            background: "#111",
+            color: "#fff",
+            padding: "120px 6%",
             textAlign: "center",
           }}
         >
           <h2
             style={{
-              fontSize: "clamp(3rem,6vw,5rem)",
-              marginBottom: "20px",
+              fontSize:
+                "clamp(3rem,6vw,5rem)",
+              fontWeight: 300,
+              lineHeight: 1,
             }}
           >
-            Ready To Connect?
+            Ready To
+            <br />
+            Connect?
           </h2>
 
           <p
             style={{
-              color: "#999",
-              marginBottom: "40px",
+              maxWidth: "650px",
+              margin:
+                "30px auto 40px",
+              color: "#bbb",
+              lineHeight: 1.9,
             }}
           >
-            Reach out and we'll get back to you
-            as soon as possible.
+            Reach out anytime and our
+            team will get back to you as
+            quickly as possible.
           </p>
 
           <a
@@ -345,14 +462,17 @@ export default function Contact() {
             target="_blank"
             rel="noreferrer"
             style={{
-              display: "inline-block",
-              padding: "18px 40px",
-              borderRadius: "14px",
-              textDecoration: "none",
-              fontWeight: 800,
+              display:
+                "inline-block",
+              padding:
+                "18px 40px",
               background:
-                "linear-gradient(135deg,#25D366,#128C7E)",
-              color: "#fff",
+                "#fff",
+              color: "#111",
+              textDecoration:
+                "none",
+              fontWeight:
+                600,
             }}
           >
             Chat On WhatsApp
@@ -366,10 +486,9 @@ export default function Contact() {
 const inputStyle = {
   width: "100%",
   padding: "16px",
-  borderRadius: "14px",
-  border: "1px solid #222",
-  background: "#0a0a0a",
-  color: "#fff",
+  border: "1px solid #ddd",
+  background: "#fff",
+  color: "#111",
   outline: "none",
   fontSize: "1rem",
 } as const;

@@ -5,10 +5,20 @@ import Navbar from "../components/Navbar";
 export default function Register() {
   const navigate = useNavigate();
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] =
+    useState("");
+
+  const [email, setEmail] =
+    useState("");
 
   const register = () => {
+    if (!name || !email) {
+      alert(
+        "Please complete all fields."
+      );
+      return;
+    }
+
     localStorage.setItem(
       "nabome-user",
       JSON.stringify({
@@ -26,69 +36,235 @@ export default function Register() {
 
       <div
         style={{
+          background: "#fff",
           minHeight: "100vh",
-          background: "#050505",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: "40px",
+          color: "#111",
         }}
       >
-        <div
+        {/* HERO */}
+
+        <section
           style={{
-            width: "100%",
-            maxWidth: "500px",
-            background: "#111",
-            padding: "40px",
-            borderRadius: "24px",
+            padding: "100px 6% 60px",
+            textAlign: "center",
+            borderBottom:
+              "1px solid #e5e5e5",
           }}
         >
+          <p
+            style={{
+              textTransform:
+                "uppercase",
+              letterSpacing: "4px",
+              color: "#888",
+              fontSize: ".85rem",
+            }}
+          >
+            Account
+          </p>
+
           <h1
             style={{
-              color: "#fff",
-              marginBottom: "25px",
+              fontSize:
+                "clamp(3rem,6vw,5rem)",
+              fontWeight: 300,
+              marginTop: "15px",
             }}
           >
             Create Account
           </h1>
+        </section>
 
-          <input
-            placeholder="Full Name"
-            value={name}
-            onChange={(e) =>
-              setName(e.target.value)
-            }
-            style={inputStyle}
-          />
+        {/* FORM */}
 
-          <input
-            placeholder="Email"
-            value={email}
-            onChange={(e) =>
-              setEmail(e.target.value)
-            }
-            style={inputStyle}
-          />
-
-          <button
-            onClick={register}
-            style={buttonStyle}
-          >
-            Create Account
-          </button>
-
-          <p
+        <section
+          style={{
+            padding: "80px 6%",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          <div
             style={{
-              marginTop: "20px",
-              color: "#fff",
+              width: "100%",
+              maxWidth: "520px",
+              border:
+                "1px solid #e5e5e5",
+              padding: "40px",
+              background: "#fafafa",
             }}
           >
-            Already have an account?{" "}
-            <Link to="/login">
-              Login
-            </Link>
-          </p>
-        </div>
+            <h2
+              style={{
+                marginBottom: "30px",
+                fontWeight: 400,
+              }}
+            >
+              Join NABOME
+            </h2>
+
+            <div
+              style={{
+                display: "grid",
+                gap: "18px",
+              }}
+            >
+              <input
+                placeholder="Full Name"
+                value={name}
+                onChange={(e) =>
+                  setName(
+                    e.target.value
+                  )
+                }
+                style={inputStyle}
+              />
+
+              <input
+                type="email"
+                placeholder="Email Address"
+                value={email}
+                onChange={(e) =>
+                  setEmail(
+                    e.target.value
+                  )
+                }
+                style={inputStyle}
+              />
+
+              <button
+                onClick={
+                  register
+                }
+                style={{
+                  padding: "18px",
+                  border: "none",
+                  background: "#111",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: "1rem",
+                  marginTop: "10px",
+                }}
+              >
+                Create Account
+              </button>
+            </div>
+
+            <p
+              style={{
+                marginTop: "25px",
+                textAlign: "center",
+                color: "#666",
+              }}
+            >
+              Already have an account?{" "}
+              <Link
+                to="/login"
+                style={{
+                  color: "#111",
+                  fontWeight: 600,
+                }}
+              >
+                Login
+              </Link>
+            </p>
+          </div>
+        </section>
+
+        {/* BENEFITS */}
+
+        <section
+          style={{
+            background: "#f8f6f2",
+            padding: "100px 6%",
+          }}
+        >
+          <div
+            style={{
+              textAlign: "center",
+              marginBottom: "50px",
+            }}
+          >
+            <h2
+              style={{
+                fontSize:
+                  "clamp(2.5rem,5vw,4rem)",
+                fontWeight: 300,
+              }}
+            >
+              Why Create An Account?
+            </h2>
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit,minmax(250px,1fr))",
+              gap: "25px",
+            }}
+          >
+            {[
+              {
+                title:
+                  "Faster Checkout",
+                text:
+                  "Save time during future purchases.",
+              },
+              {
+                title:
+                  "Wishlist Access",
+                text:
+                  "Save your favorite products.",
+              },
+              {
+                title:
+                  "Order Tracking",
+                text:
+                  "Future-ready account management.",
+              },
+              {
+                title:
+                  "Exclusive Updates",
+                text:
+                  "Receive collection announcements and offers.",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                style={{
+                  background:
+                    "#fff",
+                  border:
+                    "1px solid #e5e5e5",
+                  padding:
+                    "35px",
+                }}
+              >
+                <h3
+                  style={{
+                    marginBottom:
+                      "15px",
+                  }}
+                >
+                  {item.title}
+                </h3>
+
+                <p
+                  style={{
+                    color:
+                      "#666",
+                    lineHeight:
+                      1.8,
+                  }}
+                >
+                  {item.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
     </>
   );
@@ -97,20 +273,9 @@ export default function Register() {
 const inputStyle = {
   width: "100%",
   padding: "16px",
-  marginBottom: "15px",
-  borderRadius: "12px",
-  border: "1px solid #333",
-  background: "#050505",
-  color: "#fff",
-} as const;
-
-const buttonStyle = {
-  width: "100%",
-  padding: "16px",
-  border: "none",
-  borderRadius: "12px",
-  background:
-    "linear-gradient(135deg,#FFD700,#D4AF37)",
-  fontWeight: 700,
-  cursor: "pointer",
+  border: "1px solid #ddd",
+  background: "#fff",
+  color: "#111",
+  outline: "none",
+  fontSize: "1rem",
 } as const;

@@ -5,13 +5,35 @@ import { useCart } from "../context/CartContext";
 export default function Checkout() {
   const { cart } = useCart();
 
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [pincode, setPincode] = useState("");
+  const [name, setName] =
+    useState("");
+
+  const [phone, setPhone] =
+    useState("");
+
+  const [email, setEmail] =
+    useState("");
+
+  const [address, setAddress] =
+    useState("");
+
+  const [city, setCity] =
+    useState("");
+
+  const [state, setState] =
+    useState("");
+
+  const [pincode, setPincode] =
+    useState("");
+
+  const [paymentMethod] =
+    useState("whatsapp");
 
   const total = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) =>
+      sum +
+      item.price *
+        item.quantity,
     0
   );
 
@@ -20,6 +42,8 @@ export default function Checkout() {
       !name ||
       !phone ||
       !address ||
+      !city ||
+      !state ||
       !pincode
     ) {
       alert(
@@ -28,28 +52,64 @@ export default function Checkout() {
       return;
     }
 
-    const productList = cart
-      .map(
-        (item) =>
-          `${item.name}
+    const productList =
+      cart
+        .map(
+          (
+            item
+          ) => `
+${item.name}
+
 Qty: ${item.quantity}
-Size: ${(item as any).selectedSize || "N/A"}
-Color: ${(item as any).selectedColor || "N/A"}
-Subtotal: ₹${item.price * item.quantity}`
-      )
-      .join("\n\n");
+
+Size: ${
+              (
+                item as any
+              )
+                .selectedSize ||
+              "N/A"
+            }
+
+Color: ${
+              (
+                item as any
+              )
+                .selectedColor ||
+              "N/A"
+            }
+
+Subtotal: ₹${
+              item.price *
+              item.quantity
+            }
+`
+        )
+        .join("\n");
 
     const message = `
 🛍️ NABOME ORDER
 
-Customer Name:
+━━━━━━━━━━━━━━
+
+CUSTOMER DETAILS
+
+Name:
 ${name}
 
 Phone:
 ${phone}
 
+Email:
+${email || "Not Provided"}
+
 Address:
 ${address}
+
+City:
+${city}
+
+State:
+${state}
 
 Pincode:
 ${pincode}
@@ -66,15 +126,13 @@ TOTAL: ₹${total}
 `;
 
     const encoded =
-      encodeURIComponent(message);
+      encodeURIComponent(
+        message
+      );
 
     window.open(
       `https://wa.me/919163854706?text=${encoded}`,
       "_blank"
-    );
-
-    localStorage.removeItem(
-      "nabome-cart"
     );
 
     setTimeout(() => {
@@ -89,252 +147,497 @@ TOTAL: ₹${total}
 
       <div
         style={{
-          minHeight: "100vh",
-          background: "#050505",
-          color: "#fff",
-          padding: "60px 6%",
+          background:
+            "#fff",
+          color:
+            "#111",
+          minHeight:
+            "100vh",
         }}
       >
-        <div
+        {/* HEADER */}
+
+        <section
           style={{
-            marginBottom: "50px",
+            padding:
+              "80px 6% 50px",
+            borderBottom:
+              "1px solid #e5e5e5",
           }}
         >
-          <span
+          <p
             style={{
-              color: "#D4AF37",
-              textTransform: "uppercase",
-              letterSpacing: "3px",
-              fontSize: ".85rem",
-            }}
-          >
-            Secure Checkout
-          </span>
-
-          <h1
-            style={{
-              fontSize: "clamp(3rem,6vw,5rem)",
-              fontWeight: 900,
-              marginTop: "10px",
+              textTransform:
+                "uppercase",
+              letterSpacing:
+                "3px",
+              color:
+                "#888",
+              fontSize:
+                ".85rem",
             }}
           >
             Checkout
-          </h1>
-        </div>
+          </p>
 
-        <div
+          <h1
+            style={{
+              fontSize:
+                "clamp(3rem,7vw,5rem)",
+              fontWeight:
+                300,
+              marginTop:
+                "15px",
+            }}
+          >
+            Secure Checkout
+          </h1>
+        </section>
+
+        <section
           style={{
-            display: "grid",
-            gridTemplateColumns:
-              "2fr 1fr",
-            gap: "40px",
-            alignItems: "start",
+            padding:
+              "60px 6%",
           }}
         >
-          {/* FORM */}
           <div
             style={{
-              background:
-                "linear-gradient(180deg,#111,#0b0b0b)",
-              border:
-                "1px solid rgba(212,175,55,.08)",
-              borderRadius: "24px",
-              padding: "35px",
+              display:
+                "grid",
+              gridTemplateColumns:
+                "2fr 1fr",
+              gap:
+                "50px",
+              alignItems:
+                "start",
             }}
           >
-            <h2
-              style={{
-                marginBottom: "30px",
-              }}
-            >
-              Delivery Details
-            </h2>
+            {/* FORM */}
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "20px",
-              }}
-            >
-              <input
-                placeholder="Full Name"
-                value={name}
-                onChange={(e) =>
-                  setName(e.target.value)
-                }
-                style={inputStyle}
-              />
-
-              <input
-                placeholder="Phone Number"
-                value={phone}
-                onChange={(e) =>
-                  setPhone(e.target.value)
-                }
-                style={inputStyle}
-              />
-
-              <textarea
-                placeholder="Full Address"
-                value={address}
-                onChange={(e) =>
-                  setAddress(
-                    e.target.value
-                  )
-                }
-                rows={5}
+            <div>
+              <h2
                 style={{
-                  ...inputStyle,
-                  resize: "none",
-                }}
-              />
-
-              <input
-                placeholder="Pincode"
-                value={pincode}
-                onChange={(e) =>
-                  setPincode(
-                    e.target.value
-                  )
-                }
-                style={inputStyle}
-              />
-            </div>
-          </div>
-
-          {/* SUMMARY */}
-          <div
-            style={{
-              background:
-                "linear-gradient(180deg,#111,#0b0b0b)",
-              border:
-                "1px solid rgba(212,175,55,.08)",
-              borderRadius: "24px",
-              padding: "30px",
-              position: "sticky",
-              top: "100px",
-            }}
-          >
-            <h2
-              style={{
-                marginBottom: "25px",
-              }}
-            >
-              Order Summary
-            </h2>
-
-            {cart.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  paddingBottom: "15px",
-                  marginBottom: "15px",
-                  borderBottom:
-                    "1px solid #222",
+                  marginBottom:
+                    "30px",
+                  fontWeight:
+                    500,
                 }}
               >
-                <p
-                  style={{
-                    fontWeight: 700,
-                  }}
-                >
-                  {item.name}
-                </p>
+                Contact Information
+              </h2>
 
-                <p
-                  style={{
-                    color: "#999",
-                    fontSize: ".9rem",
-                  }}
-                >
-                  Qty: {item.quantity}
-                </p>
+              <div
+                style={{
+                  display:
+                    "grid",
+                  gap:
+                    "18px",
+                }}
+              >
+                <input
+                  placeholder="Full Name"
+                  value={name}
+                  onChange={(e) =>
+                    setName(
+                      e.target
+                        .value
+                    )
+                  }
+                  style={
+                    inputStyle
+                  }
+                />
 
-                <p
-                  style={{
-                    color: "#D4AF37",
-                    fontWeight: 700,
-                  }}
-                >
-                  ₹
-                  {item.price *
-                    item.quantity}
-                </p>
+                <input
+                  placeholder="Phone Number"
+                  value={phone}
+                  onChange={(e) =>
+                    setPhone(
+                      e.target
+                        .value
+                    )
+                  }
+                  style={
+                    inputStyle
+                  }
+                />
+
+                <input
+                  placeholder="Email Address (Optional)"
+                  value={email}
+                  onChange={(e) =>
+                    setEmail(
+                      e.target
+                        .value
+                    )
+                  }
+                  style={
+                    inputStyle
+                  }
+                />
               </div>
-            ))}
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent:
-                  "space-between",
-                marginTop: "20px",
-                color: "#999",
-              }}
-            >
-              <span>Shipping</span>
-              <span>Free</span>
-            </div>
-
-            <hr
-              style={{
-                margin: "25px 0",
-                borderColor: "#222",
-              }}
-            />
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent:
-                  "space-between",
-                alignItems: "center",
-              }}
-            >
-              <h3>Total</h3>
 
               <h2
                 style={{
-                  color: "#D4AF37",
+                  marginTop:
+                    "60px",
+                  marginBottom:
+                    "30px",
+                  fontWeight:
+                    500,
                 }}
               >
-                ₹{total}
+                Shipping Address
               </h2>
+
+              <div
+                style={{
+                  display:
+                    "grid",
+                  gap:
+                    "18px",
+                }}
+              >
+                <textarea
+                  rows={5}
+                  placeholder="Street Address"
+                  value={address}
+                  onChange={(e) =>
+                    setAddress(
+                      e.target
+                        .value
+                    )
+                  }
+                  style={{
+                    ...inputStyle,
+                    resize:
+                      "none",
+                  }}
+                />
+
+                <input
+                  placeholder="City"
+                  value={city}
+                  onChange={(e) =>
+                    setCity(
+                      e.target
+                        .value
+                    )
+                  }
+                  style={
+                    inputStyle
+                  }
+                />
+
+                <input
+                  placeholder="State"
+                  value={state}
+                  onChange={(e) =>
+                    setState(
+                      e.target
+                        .value
+                    )
+                  }
+                  style={
+                    inputStyle
+                  }
+                />
+
+                <input
+                  placeholder="Pincode"
+                  value={
+                    pincode
+                  }
+                  onChange={(e) =>
+                    setPincode(
+                      e.target
+                        .value
+                    )
+                  }
+                  style={
+                    inputStyle
+                  }
+                />
+              </div>
             </div>
 
-            <button
-              onClick={sendToWhatsapp}
-              style={{
-                width: "100%",
-                marginTop: "30px",
-                padding: "18px",
-                border: "none",
-                borderRadius: "14px",
-                cursor: "pointer",
-                fontWeight: 800,
-                fontSize: "1rem",
-                background:
-                  "linear-gradient(135deg,#25D366,#128C7E)",
-                color: "#fff",
-              }}
-            >
-              Complete Order On WhatsApp
-            </button>
+                          {/* ORDER SUMMARY */}
 
-            <p
+            <div
               style={{
-                marginTop: "15px",
-                color: "#777",
-                fontSize: ".85rem",
-                textAlign: "center",
+                position: "sticky",
+                top: "120px",
+                border: "1px solid #e5e5e5",
+                padding: "35px",
+                background: "#fafafa",
               }}
             >
-              Secure order confirmation via
-              WhatsApp
-            </p>
+              <h2
+                style={{
+                  marginBottom: "30px",
+                  fontWeight: 500,
+                }}
+              >
+                Order Summary
+              </h2>
+
+              {cart.map((item, index) => (
+                <div
+                  key={`${item.id}-${index}`}
+                  style={{
+                    paddingBottom: "20px",
+                    marginBottom: "20px",
+                    borderBottom:
+                      "1px solid #e5e5e5",
+                  }}
+                >
+                  <h4
+                    style={{
+                      marginBottom: "10px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {item.name}
+                  </h4>
+
+                  <div
+                    style={{
+                      color: "#666",
+                      fontSize: ".95rem",
+                      lineHeight: 1.8,
+                    }}
+                  >
+                    <p>
+                      Quantity:
+                      {" "}
+                      {item.quantity}
+                    </p>
+
+                    <p>
+                      Size:
+                      {" "}
+                      {(item as any)
+                        .selectedSize ||
+                        "N/A"}
+                    </p>
+
+                    <p>
+                      Colour:
+                      {" "}
+                      {(item as any)
+                        .selectedColor ||
+                        "N/A"}
+                    </p>
+                  </div>
+
+                  <p
+                    style={{
+                      marginTop: "10px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    ₹
+                    {item.price *
+                      item.quantity}
+                  </p>
+                </div>
+              ))}
+
+              {/* TOTALS */}
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  marginBottom: "12px",
+                  color: "#666",
+                }}
+              >
+                <span>
+                  Shipping
+                </span>
+
+                <span>
+                  Free
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  marginBottom: "25px",
+                  color: "#666",
+                }}
+              >
+                <span>
+                  Taxes
+                </span>
+
+                <span>
+                  Included
+                </span>
+              </div>
+
+              <div
+                style={{
+                  borderTop:
+                    "1px solid #ddd",
+                  paddingTop: "20px",
+                  display: "flex",
+                  justifyContent:
+                    "space-between",
+                  alignItems:
+                    "center",
+                }}
+              >
+                <strong>
+                  Total
+                </strong>
+
+                <h2>
+                  ₹{total}
+                </h2>
+              </div>
+
+              {/* PAYMENT */}
+
+              <div
+                style={{
+                  marginTop: "40px",
+                  paddingTop: "30px",
+                  borderTop:
+                    "1px solid #ddd",
+                }}
+              >
+                <h3
+                  style={{
+                    marginBottom: "20px",
+                  }}
+                >
+                  Payment Method
+                </h3>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gap: "12px",
+                  }}
+                >
+                  <div
+                    style={{
+                      border:
+                        "1px solid #111",
+                      padding: "14px",
+                      background:
+                        "#fff",
+                    }}
+                  >
+                    ● WhatsApp Order
+                    (Available)
+                  </div>
+
+                  <div
+                    style={{
+                      border:
+                        "1px solid #ddd",
+                      padding: "14px",
+                      color: "#999",
+                    }}
+                  >
+                    ○ Razorpay
+                    (Coming Soon)
+                  </div>
+
+                  <div
+                    style={{
+                      border:
+                        "1px solid #ddd",
+                      padding: "14px",
+                      color: "#999",
+                    }}
+                  >
+                    ○ Cash On
+                    Delivery
+                    (Coming Soon)
+                  </div>
+                </div>
+              </div>
+
+              {/* TRUST */}
+
+              <div
+                style={{
+                  marginTop: "40px",
+                  paddingTop: "30px",
+                  borderTop:
+                    "1px solid #ddd",
+                  color: "#666",
+                  lineHeight: 2,
+                }}
+              >
+                <p>
+                  ✓ Secure
+                  Checkout
+                </p>
+
+                <p>
+                  ✓ Easy Returns
+                </p>
+
+                <p>
+                  ✓ Free Shipping
+                  Above ₹999
+                </p>
+
+                <p>
+                  ✓ Customer
+                  Support
+                </p>
+              </div>
+
+              {/* BUTTON */}
+
+              <button
+                onClick={
+                  sendToWhatsapp
+                }
+                style={{
+                  width: "100%",
+                  marginTop: "35px",
+                  padding: "18px",
+                  border: "none",
+                  background: "#111",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  fontSize: "1rem",
+                }}
+              >
+                Review & Send
+                Order
+              </button>
+
+              <p
+                style={{
+                  marginTop: "15px",
+                  color: "#888",
+                  textAlign:
+                    "center",
+                  fontSize: ".85rem",
+                  lineHeight: 1.6,
+                }}
+              >
+                Your order will
+                open in WhatsApp
+                for final review
+                before submission.
+              </p>
+            </div>
           </div>
-        </div>
+        </section>
       </div>
     </>
   );
@@ -343,10 +646,9 @@ TOTAL: ₹${total}
 const inputStyle = {
   width: "100%",
   padding: "16px",
-  borderRadius: "14px",
-  border: "1px solid #222",
-  background: "#0a0a0a",
-  color: "#fff",
+  border: "1px solid #ddd",
+  background: "#fff",
   outline: "none",
   fontSize: "1rem",
+  color: "#111",
 } as const;

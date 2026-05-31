@@ -4,45 +4,119 @@ export default function Footer() {
   return (
     <footer
       style={{
-        background: "#030303",
-        color: "#fff",
-        borderTop:
-          "1px solid rgba(212,175,55,.08)",
-        marginTop: "100px",
+        background: "#fff",
+        color: "#111",
+        borderTop: "1px solid #e5e5e5",
+        marginTop: "120px",
       }}
     >
+      {/* NEWSLETTER */}
+
+      <section
+        style={{
+          padding: "100px 6%",
+          textAlign: "center",
+          borderBottom: "1px solid #e5e5e5",
+        }}
+      >
+        <p
+          style={{
+            textTransform: "uppercase",
+            letterSpacing: "4px",
+            color: "#888",
+            fontSize: ".85rem",
+          }}
+        >
+          Newsletter
+        </p>
+
+        <h2
+          style={{
+            fontSize:
+              "clamp(3rem,5vw,4.5rem)",
+            fontWeight: 300,
+            marginTop: "20px",
+          }}
+        >
+          Stay Updated
+        </h2>
+
+        <p
+          style={{
+            color: "#666",
+            marginTop: "20px",
+            maxWidth: "600px",
+            marginLeft: "auto",
+            marginRight: "auto",
+            lineHeight: 1.8,
+          }}
+        >
+          Receive updates on new
+          collections, exclusive releases,
+          and special offers.
+        </p>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "10px",
+            flexWrap: "wrap",
+            marginTop: "35px",
+          }}
+        >
+          <input
+            type="email"
+            placeholder="Your email address"
+            style={{
+              minWidth: "320px",
+              padding: "16px",
+              border: "1px solid #ddd",
+              outline: "none",
+              background: "#fff",
+            }}
+          />
+
+          <button
+            style={{
+              padding: "16px 30px",
+              border: "none",
+              background: "#111",
+              color: "#fff",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            Subscribe
+          </button>
+        </div>
+      </section>
+
+      {/* MAIN FOOTER */}
+
       <div
         style={{
           maxWidth: "1600px",
           margin: "0 auto",
-          padding: "80px 6% 40px",
+          padding: "80px 6%",
         }}
       >
         <div
           style={{
             display: "grid",
             gridTemplateColumns:
-              "repeat(auto-fit,minmax(250px,1fr))",
+              "repeat(auto-fit,minmax(220px,1fr))",
             gap: "50px",
-            marginBottom: "60px",
           }}
         >
           {/* BRAND */}
-          <div>
-            <img
-              src="/images/logo/logo.png"
-              alt="NABOME"
-              style={{
-                width: "120px",
-                marginBottom: "20px",
-              }}
-            />
 
+          <div>
             <h2
               style={{
-                color: "#D4AF37",
-                marginBottom: "15px",
-                fontWeight: 800,
+                fontWeight: 700,
+                letterSpacing: "4px",
+                marginBottom: "20px",
               }}
             >
               NABOME
@@ -50,27 +124,28 @@ export default function Footer() {
 
             <p
               style={{
-                color: "#999",
-                lineHeight: 1.8,
+                color: "#666",
+                lineHeight: 1.9,
               }}
             >
-              Premium Bengali streetwear
-              designed for creators,
-              dreamers, and individuals who
-              build their own story.
+              Contemporary fashion inspired
+              by Bengal. Premium essentials,
+              timeless silhouettes and modern
+              everyday wear.
             </p>
           </div>
 
           {/* SHOP */}
+
           <div>
-            <h3
+            <h4
               style={{
                 marginBottom: "20px",
-                color: "#D4AF37",
+                fontWeight: 600,
               }}
             >
               Shop
-            </h3>
+            </h4>
 
             <div
               style={{
@@ -98,15 +173,16 @@ export default function Footer() {
           </div>
 
           {/* COMPANY */}
+
           <div>
-            <h3
+            <h4
               style={{
                 marginBottom: "20px",
-                color: "#D4AF37",
+                fontWeight: 600,
               }}
             >
               Company
-            </h3>
+            </h4>
 
             <div
               style={{
@@ -116,7 +192,7 @@ export default function Footer() {
               }}
             >
               <Link to="/about">
-                About Us
+                About
               </Link>
 
               <Link to="/contact">
@@ -133,23 +209,59 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* CONTACT */}
+          {/* HELP */}
+
           <div>
-            <h3
+            <h4
               style={{
                 marginBottom: "20px",
-                color: "#D4AF37",
+                fontWeight: 600,
               }}
             >
-              Contact
-            </h3>
+              Help
+            </h4>
 
             <div
               style={{
                 display: "flex",
                 flexDirection: "column",
                 gap: "12px",
-                color: "#999",
+              }}
+            >
+              <Link to="#">
+                Shipping Policy
+              </Link>
+
+              <Link to="#">
+                Return Policy
+              </Link>
+
+              <Link to="#">
+                Privacy Policy
+              </Link>
+
+              <Link to="#">
+                Terms & Conditions
+              </Link>
+            </div>
+          </div>
+
+          {/* CONTACT */}
+
+          <div>
+            <h4
+              style={{
+                marginBottom: "20px",
+                fontWeight: 600,
+              }}
+            >
+              Contact
+            </h4>
+
+            <div
+              style={{
+                color: "#666",
+                lineHeight: 2,
               }}
             >
               <p>+91 9163854706</p>
@@ -164,82 +276,13 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* NEWSLETTER */}
-        <div
-          style={{
-            background:
-              "linear-gradient(180deg,#111,#0b0b0b)",
-            border:
-              "1px solid rgba(212,175,55,.08)",
-            borderRadius: "24px",
-            padding: "40px",
-            textAlign: "center",
-            marginBottom: "50px",
-          }}
-        >
-          <h2
-            style={{
-              marginBottom: "15px",
-            }}
-          >
-            Join The Community
-          </h2>
-
-          <p
-            style={{
-              color: "#999",
-              marginBottom: "25px",
-            }}
-          >
-            Get updates on new drops,
-            limited editions, and exclusive
-            offers.
-          </p>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: "10px",
-              flexWrap: "wrap",
-            }}
-          >
-            <input
-              type="email"
-              placeholder="Enter your email"
-              style={{
-                padding: "14px 18px",
-                minWidth: "280px",
-                borderRadius: "12px",
-                border: "1px solid #222",
-                background: "#050505",
-                color: "#fff",
-              }}
-            />
-
-            <button
-              style={{
-                padding: "14px 24px",
-                border: "none",
-                borderRadius: "12px",
-                cursor: "pointer",
-                fontWeight: 700,
-                background:
-                  "linear-gradient(135deg,#FFD700,#D4AF37)",
-                color: "#000",
-              }}
-            >
-              Subscribe
-            </button>
-          </div>
-        </div>
-
         {/* BOTTOM */}
+
         <div
           style={{
-            borderTop:
-              "1px solid rgba(255,255,255,.06)",
-            paddingTop: "25px",
+            borderTop: "1px solid #e5e5e5",
+            marginTop: "60px",
+            paddingTop: "30px",
             display: "flex",
             justifyContent:
               "space-between",
@@ -249,16 +292,16 @@ export default function Footer() {
         >
           <p
             style={{
-              color: "#777",
+              color: "#888",
             }}
           >
-            © 2026 NABOME. All Rights
-            Reserved.
+            © 2026 NABOME.
+            All Rights Reserved.
           </p>
 
           <p
             style={{
-              color: "#777",
+              color: "#888",
             }}
           >
             Build Your Story.
