@@ -61,6 +61,20 @@ create table if not exists newsletter_subscribers (
   subscribed_at timestamptz default now()
 );
 
+-- 5. PROFILES (synced with auth.users)
+create table if not exists profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  name text,
+  phone text,
+  email text,
+  address text,
+  city text,
+  state text,
+  pincode text,
+  customer_upi text,
+  updated_at timestamptz default now()
+);
+
 -- =============================================
 -- ROW LEVEL SECURITY
 -- =============================================
@@ -68,6 +82,7 @@ alter table products enable row level security;
 alter table customers enable row level security;
 alter table orders enable row level security;
 alter table newsletter_subscribers enable row level security;
+alter table profiles enable row level security;
 
 -- Products: public read
 create policy "Products are publicly readable"
@@ -107,3 +122,16 @@ create policy "Orders readable by matching user_email"
 create policy "Anyone can subscribe"
   on newsletter_subscribers for insert
   with check (true);
+
+-- Profiles: users can upsert and read their own profile
+create policy "Users can insert own profile"
+  on profiles for insert
+  with check (auth.uid() = id);
+
+create policy "Users can update own profile"
+  on profiles for update
+  using (auth.uid() = id);
+
+create policy "Users can read own profile"
+  on profiles for select
+  using (auth.uid() = id);

@@ -6,6 +6,7 @@ import { useCart } from "../context/CartContext";
 import { createOrder } from "../lib/db";
 import type { CustomerData } from "../lib/db";
 import { supabase } from "../lib/supabase";
+import { loadProfile, saveProfileLocally, saveProfileToSupabase } from "../lib/db";
 
 const MERCHANT_UPI = "mondaltanmoy230@oksbi";
 const MERCHANT_NAME = "নবME";
@@ -32,10 +33,18 @@ export default function Checkout() {
   const { cart, clearCart } = useCart();
   const paidRef = useRef(false);
 
-  const [form, setForm] = useState({
-    name: "", phone: "", email: "",
-    address: "", city: "", state: "", pincode: "",
-    customerUpi: "",
+  const [form, setForm] = useState(() => {
+    const saved = loadProfile();
+    return {
+      name: saved.name,
+      phone: saved.phone,
+      email: saved.email,
+      address: saved.address,
+      city: saved.city,
+      state: saved.state,
+      pincode: saved.pincode,
+      customerUpi: saved.customerUpi,
+    };
   });
   const [paymentMethod, setPaymentMethod] = useState<"whatsapp" | "upi">("whatsapp");
   const [upiStep, setUpiStep] = useState<"idle" | "paying" | "confirming" | "done">("idle");
@@ -86,6 +95,27 @@ export default function Checkout() {
 
     createOrder(billWithMeta);
 
+    saveProfileLocally({
+      name: form.name,
+      phone: form.phone,
+      email: form.email,
+      address: form.address,
+      city: form.city,
+      state: form.state,
+      pincode: form.pincode,
+      customerUpi: form.customerUpi,
+    });
+    saveProfileToSupabase({
+      name: form.name,
+      phone: form.phone,
+      email: form.email,
+      address: form.address,
+      city: form.city,
+      state: form.state,
+      pincode: form.pincode,
+      customerUpi: form.customerUpi,
+    });
+
     localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
     localStorage.removeItem("nabome-cart");
     clearCart();
@@ -117,6 +147,26 @@ export default function Checkout() {
 
     const bill = buildBill(customer, cart, total, "whatsapp");
     localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
+    saveProfileLocally({
+      name: form.name,
+      phone: form.phone,
+      email: form.email,
+      address: form.address,
+      city: form.city,
+      state: form.state,
+      pincode: form.pincode,
+      customerUpi: form.customerUpi,
+    });
+    saveProfileToSupabase({
+      name: form.name,
+      phone: form.phone,
+      email: form.email,
+      address: form.address,
+      city: form.city,
+      state: form.state,
+      pincode: form.pincode,
+      customerUpi: form.customerUpi,
+    });
     saveOrder("whatsapp");
 
     const productList = cart

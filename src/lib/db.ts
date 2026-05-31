@@ -154,6 +154,90 @@ export async function getOrdersByEmail(email: string) {
   return data;
 }
 
+// ─── PROFILES ──────────────────────────────────────────
+
+export type ProfileData = {
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  customerUpi: string;
+};
+
+export function loadProfile(): ProfileData {
+  const saved = localStorage.getItem("nabome-profile");
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      /* fall through */
+    }
+  }
+  return {
+    name: "", phone: "", email: "",
+    address: "", city: "", state: "", pincode: "",
+    customerUpi: "",
+  };
+}
+
+export function saveProfileLocally(data: ProfileData) {
+  localStorage.setItem("nabome-profile", JSON.stringify(data));
+}
+
+export async function saveProfileToSupabase(data: ProfileData) {
+  if (!supabase) return;
+
+  const { data: session } = await supabase.auth.getSession();
+  const userId = session?.session?.user?.id;
+  if (!userId) return;
+
+  await supabase.from("profiles").upsert(
+    {
+      id: userId,
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      pincode: data.pincode,
+      customer_upi: data.customerUpi,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "id" }
+  );
+}
+
+export async function loadProfileFromSupabase(): Promise<ProfileData | null> {
+  if (!supabase) return null;
+
+  const { data: session } = await supabase.auth.getSession();
+  const userId = session?.session?.user?.id;
+  if (!userId) return null;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", userId)
+    .single();
+
+  if (error || !data) return null;
+
+  return {
+    name: data.name || "",
+    phone: data.phone || "",
+    email: data.email || "",
+    address: data.address || "",
+    city: data.city || "",
+    state: data.state || "",
+    pincode: data.pincode || "",
+    customerUpi: data.customer_upi || "",
+  };
+}
+
 // ─── NEWSLETTER ────────────────────────────────────────
 
 export async function subscribeNewsletter(email: string) {
