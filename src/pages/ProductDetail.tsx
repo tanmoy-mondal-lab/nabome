@@ -3,6 +3,9 @@ import { products } from "../data/products";
 import Navbar from "../components/Navbar";
 import { useCart } from "../context/CartContext";
 import { useState } from "react";
+import ProductReviews from "../components/ProductReviews";
+import TrustBadges from "../components/TrustBadges";
+import { useWishlist } from "../context/WishlistContext";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -12,6 +15,7 @@ export default function ProductDetail() {
   );
 
   const { addToCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
 
   const [selectedSize, setSelectedSize] =
     useState("");
@@ -325,47 +329,79 @@ export default function ProductDetail() {
               ))}
             </div>
 
-            <button
-              onClick={() => {
-                if (!selectedSize) {
-                  alert(
-                    "Please select a size"
-                  );
-                  return;
-                }
-
-                if (!selectedColor) {
-                  alert(
-                    "Please select a color"
-                  );
-                  return;
-                }
-
-                addToCart({
-                  ...product,
-                  selectedSize,
-                  selectedColor,
-                });
-
-                alert(
-                  "Added To Cart Successfully!"
-                );
-              }}
+            <div
               style={{
-                width: "100%",
-                padding: "18px",
-                border: "none",
-                borderRadius: "16px",
-                cursor: "pointer",
-                fontSize: "1rem",
-                fontWeight: 800,
-                background:
-                  "linear-gradient(135deg,#FFD700,#D4AF37)",
-                color: "#000",
+                display: "flex",
+                gap: "15px",
+                marginTop: "20px",
               }}
             >
-              Add To Cart
-            </button>
+              <button
+                onClick={() => {
+                  if (!selectedSize) {
+                    alert("Please select a size");
+                    return;
+                  }
+
+                  if (!selectedColor) {
+                    alert("Please select a color");
+                    return;
+                  }
+
+                  addToCart({
+                    ...product,
+                    selectedSize,
+                    selectedColor,
+                  });
+
+                  alert("Added To Cart!");
+                }}
+                style={{
+                  flex: 1,
+                  padding: "18px",
+                  border: "none",
+                  borderRadius: "16px",
+                  cursor: "pointer",
+                  fontWeight: 800,
+                  background:
+                    "linear-gradient(135deg,#FFD700,#D4AF37)",
+                  color: "#000",
+                }}
+              >
+                Add To Cart
+              </button>
+
+              <button
+                onClick={() => {
+                  if (isInWishlist(product.id)) {
+                    removeFromWishlist(product.id);
+                  } else {
+                    addToWishlist(product);
+                  }
+                }}
+                style={{
+                  minWidth: "160px",
+                  border: "1px solid rgba(212,175,55,.2)",
+                  borderRadius: "16px",
+                  cursor: "pointer",
+                  background: isInWishlist(product.id)
+                    ? "#D4AF37"
+                    : "#111",
+                  color: isInWishlist(product.id)
+                    ? "#000"
+                    : "#D4AF37",
+                  fontWeight: 700,
+                  fontSize: "1rem",
+                  padding: "18px 20px",
+                }}
+              >
+                {isInWishlist(product.id)
+                  ? "♥ Saved"
+                  : "♡ Wishlist"}
+              </button>
+            </div>
+
+            <TrustBadges />
           </div>
         </div>
 
@@ -449,6 +485,8 @@ export default function ProductDetail() {
               ))}
           </div>
         </section>
+
+        <ProductReviews />
       </div>
     </>
   );

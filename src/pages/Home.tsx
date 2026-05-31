@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import { products } from "../data/products";
 
 export default function Home() {
+  const featuredProducts = products.slice(0, 4);
+
   return (
     <>
       <Navbar />
@@ -27,8 +30,8 @@ export default function Home() {
               color: "#D4AF37",
               letterSpacing: "4px",
               textTransform: "uppercase",
-              fontSize: "0.9rem",
-              fontWeight: 600,
+              fontSize: ".85rem",
+              fontWeight: 700,
             }}
           >
             Premium Bengali Streetwear
@@ -36,31 +39,30 @@ export default function Home() {
 
           <h1
             style={{
-              fontSize: "clamp(4rem,8vw,7rem)",
-              lineHeight: 0.9,
+              fontSize: "clamp(4rem,9vw,8rem)",
+              fontWeight: 900,
+              lineHeight: ".9",
               marginTop: "20px",
               marginBottom: "30px",
-              fontWeight: 900,
-              letterSpacing: "-4px",
             }}
           >
-            WEAR
+            BUILD
             <br />
-            IDENTITY
+            YOUR STORY
           </h1>
 
           <p
             style={{
-              color: "#A0A0A0",
+              color: "#999",
               fontSize: "1.15rem",
               lineHeight: 1.9,
-              maxWidth: "600px",
+              maxWidth: "650px",
               marginBottom: "40px",
             }}
           >
-            Premium clothing and accessories designed
-            for creators, dreamers and disruptors.
-            Minimal design. Maximum expression.
+            Luxury streetwear inspired by Bengali
+            culture, modern fashion, and fearless
+            self-expression.
           </p>
 
           <div
@@ -73,49 +75,47 @@ export default function Home() {
             <Link to="/category">
               <button
                 style={{
-                  padding: "16px 36px",
+                  padding: "18px 36px",
+                  borderRadius: "14px",
                   border: "none",
-                  borderRadius: "12px",
                   cursor: "pointer",
-                  fontWeight: 700,
-                  fontSize: "1rem",
+                  fontWeight: 800,
                   background:
                     "linear-gradient(135deg,#FFD700,#D4AF37)",
                   color: "#000",
-                  boxShadow:
-                    "0 15px 40px rgba(212,175,55,.35)",
                 }}
               >
                 Shop Collection
               </button>
             </Link>
 
-            <button
-              style={{
-                padding: "16px 36px",
-                borderRadius: "12px",
-                border: "1px solid #333",
-                background: "transparent",
-                color: "#fff",
-                cursor: "pointer",
-              }}
-            >
-              Explore Brand
-            </button>
+            <Link to="/about">
+              <button
+                style={{
+                  padding: "18px 36px",
+                  borderRadius: "14px",
+                  border:
+                    "1px solid rgba(255,255,255,.15)",
+                  background: "transparent",
+                  color: "#fff",
+                  cursor: "pointer",
+                }}
+              >
+                Our Story
+              </button>
+            </Link>
           </div>
         </div>
 
         <div style={{ flex: 1, minWidth: "320px" }}>
           <img
             src="/images/hero/hero-banner.png"
-            alt="Hero"
+            alt="Nabome"
             style={{
               width: "100%",
               borderRadius: "30px",
               boxShadow:
-                "0 40px 100px rgba(0,0,0,.6)",
-              border:
-                "1px solid rgba(212,175,55,.15)",
+                "0 30px 80px rgba(0,0,0,.6)",
             }}
           />
         </div>
@@ -129,8 +129,7 @@ export default function Home() {
           display: "grid",
           gridTemplateColumns:
             "repeat(auto-fit,minmax(220px,1fr))",
-          gap: "30px",
-          color: "#fff",
+          gap: "25px",
         }}
       >
         {[
@@ -143,43 +142,168 @@ export default function Home() {
             key={text}
             style={{
               background: "#111",
+              borderRadius: "24px",
               padding: "40px",
-              borderRadius: "20px",
-              border:
-                "1px solid rgba(212,175,55,.12)",
             }}
           >
             <h2
               style={{
                 color: "#D4AF37",
                 fontSize: "3rem",
-                marginBottom: "10px",
               }}
             >
               {number}
             </h2>
 
-            <p style={{ color: "#999" }}>{text}</p>
+            <p style={{ color: "#999" }}>
+              {text}
+            </p>
           </div>
         ))}
       </section>
 
-      {/* COLLECTIONS */}
+      {/* FEATURED PRODUCTS */}
       <section
         style={{
           padding: "120px 8%",
+          background: "#050505",
+          color: "#fff",
+        }}
+      >
+        <div
+          style={{
+            textAlign: "center",
+            marginBottom: "60px",
+          }}
+        >
+          <span
+            style={{
+              color: "#D4AF37",
+              letterSpacing: "3px",
+            }}
+          >
+            FEATURED COLLECTION
+          </span>
+
+          <h2
+            style={{
+              fontSize: "4rem",
+              marginTop: "15px",
+            }}
+          >
+            Best Sellers
+          </h2>
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit,minmax(280px,1fr))",
+            gap: "30px",
+          }}
+        >
+          {featuredProducts.map((product) => (
+            <Link
+              key={product.id}
+              to={`/product/${product.id}`}
+              style={{
+                textDecoration: "none",
+                color: "#fff",
+              }}
+            >
+              <div
+                style={{
+                  background:
+                    "linear-gradient(180deg,#111,#0b0b0b)",
+                  borderRadius: "24px",
+                  overflow: "hidden",
+                  border:
+                    "1px solid rgba(212,175,55,.08)",
+                }}
+              >
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  style={{
+                    width: "100%",
+                    height: "380px",
+                    objectFit: "cover",
+                  }}
+                />
+
+                <div
+                  style={{
+                    padding: "24px",
+                  }}
+                >
+                  <h3>{product.name}</h3>
+
+                  <p
+                    style={{
+                      color: "#D4AF37",
+                      marginTop: "10px",
+                      fontWeight: 700,
+                    }}
+                  >
+                    ₹{product.price}
+                  </p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* BRAND STORY */}
+      <section
+        style={{
           background: "#0d0d0d",
           color: "#fff",
+          padding: "120px 8%",
+          textAlign: "center",
+        }}
+      >
+        <h2
+          style={{
+            fontSize: "4rem",
+            marginBottom: "25px",
+          }}
+        >
+          Fashion With Identity
+        </h2>
+
+        <p
+          style={{
+            maxWidth: "900px",
+            margin: "0 auto",
+            color: "#999",
+            lineHeight: 1.9,
+          }}
+        >
+          NABOME blends Bengali culture with
+          modern streetwear aesthetics, creating
+          timeless pieces that help you express
+          who you are.
+        </p>
+      </section>
+
+      {/* TESTIMONIALS */}
+      <section
+        style={{
+          padding: "120px 8%",
+          background: "#050505",
         }}
       >
         <h2
           style={{
             textAlign: "center",
-            fontSize: "4rem",
-            marginBottom: "70px",
+            color: "#fff",
+            fontSize: "3rem",
+            marginBottom: "60px",
           }}
         >
-          Collections
+          What Customers Say
         </h2>
 
         <div
@@ -191,151 +315,38 @@ export default function Home() {
           }}
         >
           {[
-            "Men",
-            "Women",
-            "Unisex",
-            "Accessories",
-          ].map((item) => (
+            "Amazing quality and premium feel.",
+            "The fit is perfect. Love the design.",
+            "Best Bengali streetwear brand I've found.",
+          ].map((review, index) => (
             <div
-              key={item}
-              style={{
-                background:
-                  "linear-gradient(180deg,#1a1a1a,#0f0f0f)",
-                padding: "60px 40px",
-                borderRadius: "24px",
-                border:
-                  "1px solid rgba(212,175,55,.12)",
-                boxShadow:
-                  "0 20px 60px rgba(0,0,0,.4)",
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: "2rem",
-                  marginBottom: "15px",
-                }}
-              >
-                {item}
-              </h3>
-
-              <p style={{ color: "#888" }}>
-                Discover premium pieces crafted
-                for everyday expression.
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* WHY NABOME */}
-      <section
-        style={{
-          background: "#050505",
-          color: "#fff",
-          padding: "120px 8%",
-        }}
-      >
-        <h2
-          style={{
-            textAlign: "center",
-            fontSize: "4rem",
-            marginBottom: "70px",
-          }}
-        >
-          Why Nabome
-        </h2>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit,minmax(260px,1fr))",
-            gap: "30px",
-          }}
-        >
-          {[
-            {
-              title: "Premium Quality",
-              text: "Crafted with premium fabrics and exceptional finishing.",
-            },
-            {
-              title: "Bengali Identity",
-              text: "Rooted in culture while embracing global fashion.",
-            },
-            {
-              title: "Print On Demand",
-              text: "Less waste. Better quality. Smarter production.",
-            },
-            {
-              title: "Built For Expression",
-              text: "Designed for people who wear their story proudly.",
-            },
-          ].map((item) => (
-            <div
-              key={item.title}
+              key={index}
               style={{
                 background: "#111",
-                padding: "40px",
+                padding: "35px",
                 borderRadius: "24px",
               }}
             >
-              <h3
+              <p
                 style={{
                   color: "#D4AF37",
                   marginBottom: "15px",
                 }}
               >
-                {item.title}
-              </h3>
+                ★★★★★
+              </p>
 
-              <p style={{ color: "#999" }}>
-                {item.text}
+              <p
+                style={{
+                  color: "#ccc",
+                  lineHeight: 1.8,
+                }}
+              >
+                {review}
               </p>
             </div>
           ))}
         </div>
-      </section>
-
-      {/* COMMUNITY */}
-      <section
-        style={{
-          background: "#0d0d0d",
-          color: "#fff",
-          padding: "120px 8%",
-          textAlign: "center",
-        }}
-      >
-        <h2
-          style={{
-            fontSize: "4rem",
-            marginBottom: "20px",
-          }}
-        >
-          Built By Us.
-          <br />
-          Worn By You.
-        </h2>
-
-        <p
-          style={{
-            color: "#999",
-            marginBottom: "50px",
-          }}
-        >
-          Join the growing Nabome community.
-        </p>
-
-        <img
-          src="/images/community/community.jpeg"
-          alt="Community"
-          style={{
-            width: "100%",
-            maxWidth: "900px",
-            borderRadius: "30px",
-            boxShadow:
-              "0 30px 80px rgba(0,0,0,.5)",
-          }}
-        />
       </section>
 
       {/* CTA */}
@@ -343,19 +354,17 @@ export default function Home() {
         style={{
           padding: "120px 8%",
           textAlign: "center",
-          background: "#050505",
+          background: "#0a0a0a",
           color: "#fff",
         }}
       >
         <h2
           style={{
-            fontSize: "4rem",
+            fontSize: "clamp(3rem,6vw,5rem)",
             marginBottom: "20px",
           }}
         >
-          Ready To Build
-          <br />
-          Your Story?
+          Wear Your Story
         </h2>
 
         <p
@@ -364,26 +373,25 @@ export default function Home() {
             marginBottom: "40px",
           }}
         >
-          Discover premium apparel and accessories.
+          Join thousands who choose identity over trends.
         </p>
 
         <Link to="/category">
           <button
             style={{
-              padding: "18px 42px",
+              padding: "18px 40px",
               border: "none",
               borderRadius: "14px",
-              fontWeight: 700,
               cursor: "pointer",
+              fontWeight: 800,
               background:
                 "linear-gradient(135deg,#FFD700,#D4AF37)",
             }}
           >
-            Start Shopping
+            Explore Collection
           </button>
         </Link>
       </section>
-
     </>
   );
 }
