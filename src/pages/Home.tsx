@@ -10,15 +10,47 @@ import { useCart } from "../context/CartContext";
 import { products, type Product } from "../data/products";
 import { useState } from "react";
 
+const categoryEmoji: Record<string, string> = {
+  Men: "👔",
+  Women: "👗",
+  Unisex: "🔄",
+  Accessories: "👜",
+};
+
+const perkIcon: Record<string, string> = {
+  "Premium GSM": "🧵",
+  "WhatsApp Checkout": "📱",
+  "Bengal Story": "🌾",
+  "Open Roadmap": "📋",
+};
+
 export default function Home() {
   const [quickView, setQuickView] = useState<Product | null>(null);
   const { addToCart } = useCart();
   const { showToast } = useToast();
-  const newArrivals = products.filter((product) => product.isNew).slice(0, 4);
+
+  const newArrivals = products.filter((p) => p.isNew).slice(0, 4);
+  const bestSellers = products.filter((p) => p.isBestSeller).slice(0, 4);
+  const categories = [...new Set(products.map((p) => p.category))];
 
   const quickAdd = (product: Product) => {
     addToCart({ ...product, selectedSize: product.sizes[0], selectedColor: product.colors[0] });
     showToast(`${product.name} added to bag`);
+  };
+
+  const sectionStyle: React.CSSProperties = {
+    padding: "clamp(48px, 8vw, 80px) 0",
+  };
+
+  const categoryCard: React.CSSProperties = {
+    padding: "32px 24px",
+    textAlign: "center",
+    textDecoration: "none",
+    color: "var(--text)",
+    border: "1px solid var(--line)",
+    background: "var(--surface)",
+    cursor: "pointer",
+    transition: "border-color 0.3s, background 0.3s",
   };
 
   return (
@@ -36,6 +68,7 @@ export default function Home() {
       />
       <Navbar />
       <main className="page">
+        {/* ── HERO ── */}
         <section className="hero-premium">
           <img src="/images/hero/hero-banner.webp" alt="নবME Bengali streetwear editorial" />
           <div className="hero-overlay" />
@@ -44,7 +77,7 @@ export default function Home() {
             <h1 className="display brand-hero-heading">
               <BrandWordmark size="hero" />
             </h1>
-            <p className="lede">
+            <p className="lede" style={{ maxWidth: 560 }}>
               Bengali streetwear shaped by culture, quiet confidence and premium everyday craft.
             </p>
             <div className="hero-actions">
@@ -58,7 +91,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="section">
+        {/* ── NEW ARRIVALS ── */}
+        <section className="section" style={sectionStyle}>
           <div className="container split-intro">
             <div>
               <p className="eyebrow">New Arrivals</p>
@@ -75,7 +109,47 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="section editorial-band">
+        {/* ── BEST SELLERS ── */}
+        {bestSellers.length > 0 && (
+          <section className="section" style={{ ...sectionStyle, paddingTop: 0 }}>
+            <div className="container split-intro">
+              <div>
+                <p className="eyebrow">Best Sellers</p>
+                <h2 className="heading">Crowd favourites that define the নবME wardrobe.</h2>
+              </div>
+              <Link className="ghost-button" to="/category">View All →</Link>
+            </div>
+            <div className="container product-grid">
+              {bestSellers.map((product) => (
+                <ProductCard key={product.id} product={product} onQuickView={setQuickView} onQuickAdd={quickAdd} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── SHOP BY CATEGORY ── */}
+        <section className="section" style={{ ...sectionStyle, paddingTop: 0 }}>
+          <div className="container split-intro">
+            <div>
+              <p className="eyebrow">Categories</p>
+              <h2 className="heading">Shop by collection.</h2>
+            </div>
+          </div>
+          <div className="container" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
+            {categories.map((cat) => (
+              <Link key={cat} to={`/category?category=${cat}`} style={categoryCard}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--gold)"; e.currentTarget.style.background = "var(--gold-soft)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.background = "var(--surface)"; }}
+              >
+                <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>{categoryEmoji[cat] || "✦"}</div>
+                <h3 style={{ fontWeight: 600 }}>{cat}</h3>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {/* ── EDITORIAL ── */}
+        <section className="section editorial-band" style={sectionStyle}>
           <div className="container editorial-grid">
             <div className="glass editorial-copy">
               <p className="eyebrow">Bengali Culture</p>
@@ -88,6 +162,7 @@ export default function Home() {
           </div>
         </section>
 
+        {/* ── CULTURAL QUOTE ROTATOR ── */}
         <section className="section" style={{ padding: "60px 0" }}>
           <div className="container" style={{ textAlign: "center", maxWidth: 900 }}>
             <p className="eyebrow">বাংলা সংস্কৃতি</p>
@@ -96,7 +171,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="section">
+        {/* ── VALUE PROPOSITION ── */}
+        <section className="section" style={sectionStyle}>
           <div className="container card-grid">
             {[
               ["Premium GSM", "Heavyweight fabrics selected for structure, comfort and long wear."],
@@ -105,6 +181,7 @@ export default function Home() {
               ["Open Roadmap", "Ready for inventory, coupons, admin dashboards and payment gateways."],
             ].map(([title, text]) => (
               <article className="glass" key={title} style={{ padding: 28 }}>
+                <div style={{ fontSize: "1.8rem", marginBottom: 12 }}>{perkIcon[title] || "✦"}</div>
                 <h3>{title}</h3>
                 <p className="lede" style={{ marginTop: 12, fontSize: ".98rem" }}>
                   {text}
@@ -114,7 +191,8 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="section instagram-strip">
+        {/* ── COMMUNITY / INSTAGRAM ── */}
+        <section className="section instagram-strip" style={sectionStyle}>
           <div className="container split-intro">
             <div>
               <p className="eyebrow">Community</p>

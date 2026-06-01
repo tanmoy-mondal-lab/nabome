@@ -22,6 +22,16 @@ const content = {
     description: "By using নবME you agree to product, ordering, payment, return and communication terms for the storefront.",
     points: ["Product colors may vary slightly by display.", "Prices and availability can change before order confirmation.", "WhatsApp checkout requires final review before submission.", "নবME may update policies as operations scale."],
   },
+  refund: {
+    title: "Refund Policy",
+    description: "নবME offers refunds for eligible returns once the product is received and inspected.",
+    points: ["Refunds are processed within 5-7 business days after we receive the returned item.", "Refunds are credited to the original payment method or as store credit.", "Shipping charges are non-refundable unless the return is due to our error.", "Only items purchased directly from নবME are eligible for refund."],
+  },
+  cancellation: {
+    title: "Cancellation Policy",
+    description: "নবME allows order cancellations before dispatch. Once shipped, cancellation is not possible.",
+    points: ["Orders can be cancelled within 2 hours of placement, free of charge.", "After 2 hours but before dispatch, cancellation may incur a 5% processing fee.", "Once an order is shipped, cancellation is not possible — initiate a return after delivery.", "To cancel, contact us via WhatsApp or email with your order number.", "Limited edition and pre-order items cannot be cancelled."],
+  },
 };
 
 export default function PolicyPage({ type }: { type: keyof typeof content }) {

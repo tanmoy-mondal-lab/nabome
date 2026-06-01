@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import Navbar from "../components/Navbar";
 import SEO from "../components/SEO";
 import { useCart } from "../context/CartContext";
-import { createOrder } from "../lib/db";
-import type { CustomerData } from "../lib/db";
-import { supabase } from "../lib/supabase";
-import { loadProfile, saveProfileLocally, saveProfileToSupabase } from "../lib/db";
+import { useCustomer } from "../context/CustomerContext";
+import { useDelivery } from "../context/DeliveryContext";
+import type { CustomerData, Address } from "../lib/db";
+import { getAddresses, createAddress } from "../lib/db";
 import { sendOrderConfirmation, sendAdminOrderNotification, type BillData } from "../lib/email";
 import { useToast } from "../components/Toast";
 
@@ -31,108 +31,128 @@ function buildBill(customer: CustomerData, items: import("../lib/db").CartItem[]
   };
 }
 
+const emptyDelivery = {
+  name: "",
+  phone: "",
+  email: "",
+  address: "",
+  district: "",
+  city: "",
+  state: "",
+  pincode: "",
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "16px",
+  border: "1px solid var(--line)",
+  background: "rgba(255,255,255,0.06)",
+  outline: "none",
+  fontSize: "1rem",
+  color: "var(--text)",
+};
+
 export default function Checkout() {
   const navigate = useNavigate();
   const { cart, clearCart } = useCart();
+  const { customer } = useCustomer();
+  const { createDelivery } = useDelivery();
   const paidRef = useRef(false);
   const { showToast } = useToast();
 
-  const [form, setForm] = useState(() => {
-    const saved = loadProfile();
-    return {
-      name: saved.name,
-      phone: saved.phone,
-      email: saved.email,
-      address: saved.address,
-      city: saved.city,
-      state: saved.state,
-      pincode: saved.pincode,
-      customerUpi: saved.customerUpi,
-    };
-  });
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [delivery, setDelivery] = useState(emptyDelivery);
+  const [saving, setSaving] = useState(false);
+
   const [paymentMethod, setPaymentMethod] = useState<"whatsapp" | "upi">("whatsapp");
   const [upiStep, setUpiStep] = useState<"idle" | "paying" | "confirming" | "done">("idle");
   const [qrView, setQrView] = useState(false);
   const [utr, setUtr] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [placing, setPlacing] = useState(false);
 
   const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
 
-  const update = (key: keyof typeof form, value: string) =>
-    setForm((f) => ({ ...f, [key]: value }));
+  useEffect(() => {
+    if (!customer) return;
+    getAddresses(customer.id).then((data) => {
+      setAddresses(data || []);
+      const def = (data || []).find((a) => a.is_default) || (data || [])[0];
+      if (def) {
+        setSelectedAddressId(def.id);
+        setDelivery({
+          name: def.name,
+          phone: def.phone,
+          email: def.email || "",
+          address: def.address,
+          district: def.district,
+          city: def.city,
+          state: def.state,
+          pincode: def.pincode,
+        });
+      }
+    });
+  }, [customer]);
 
   function validate(): boolean {
     const e: Record<string, string> = {};
-    if (!form.name?.trim()) e.name = "Required";
-    if (!form.phone?.trim() || !/^[0-9]{10,15}$/.test(form.phone.trim())) e.phone = "Valid 10-digit phone required";
-    if (!form.address?.trim()) e.address = "Required";
-    if (!form.city?.trim()) e.city = "Required";
-    if (!form.state?.trim()) e.state = "Required";
-    if (!form.pincode?.trim() || !/^[0-9]{6}$/.test(form.pincode.trim())) e.pincode = "6-digit pincode required";
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Invalid email format";
+    if (!delivery.name?.trim()) e.name = "Required";
+    if (!delivery.phone?.trim() || !/^[0-9]{10,15}$/.test(delivery.phone.trim())) e.phone = "Valid 10-digit phone required";
+    if (!delivery.address?.trim()) e.address = "Required";
+    if (!delivery.city?.trim()) e.city = "Required";
+    if (!delivery.state?.trim()) e.state = "Required";
+    if (!delivery.pincode?.trim() || !/^[0-9]{6}$/.test(delivery.pincode.trim())) e.pincode = "6-digit pincode required";
+    if (delivery.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(delivery.email)) e.email = "Invalid email format";
     if (!cart.length) e.cart = "Cart is empty";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
-  const customer: CustomerData = {
-    name: form.name,
-    phone: form.phone,
-    email: form.email || "Not Provided",
-    address: form.address,
-    city: form.city,
-    state: form.state,
-    pincode: form.pincode,
-    customerUpi: form.customerUpi || undefined,
-  };
-
-  const upiLink = `upi://pay?pa=${MERCHANT_UPI}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${total}&cu=INR&tn=${encodeURIComponent(`নবME Order ${form.name}`)}`;
-
-  function saveProfileOnce() {
-    const data = {
-      name: form.name,
-      phone: form.phone,
-      email: form.email,
-      address: form.address,
-      city: form.city,
-      state: form.state,
-      pincode: form.pincode,
-      customerUpi: form.customerUpi,
-      role: "customer",
+  async function saveOrder(method: string) {
+    const customerData: CustomerData = {
+      name: customer?.name || delivery.name,
+      phone: customer?.phone || delivery.phone,
+      email: customer?.email || delivery.email || "Not Provided",
+      address: delivery.address,
+      city: delivery.city,
+      state: delivery.state,
+      pincode: delivery.pincode,
+      gender: customer?.gender || undefined,
     };
-    saveProfileLocally(data);
-    saveProfileToSupabase(data);
-  }
 
-  async function saveOrder(paymentMethod: string) {
-    const session = supabase ? await supabase.auth.getSession() : null;
-    const userEmail = session?.data?.session?.user?.email;
-
-    const bill = buildBill(customer, cart, total, paymentMethod === "upi" ? "UPI / QR" : "WhatsApp");
+    const bill = buildBill(customerData, cart, total, method === "upi" ? "UPI / QR" : "WhatsApp");
 
     const billWithMeta = {
       ...bill,
       paymentStatus: "paid" as const,
       orderStatus: "confirmed" as const,
-      userEmail,
-      utr: utr || undefined,
+      customerId: customer?.id,
+      shippingAddressId: selectedAddressId,
+      delivery: {
+        name: delivery.name,
+        phone: delivery.phone,
+        email: delivery.email || undefined,
+        address: delivery.address,
+        district: delivery.district,
+        city: delivery.city,
+        state: delivery.state,
+        pincode: delivery.pincode,
+      },
+      utr: method === "upi" ? (utr || undefined) : undefined,
     };
 
-    const billNo = await createOrder(billWithMeta);
+    const billNo = await createDelivery(billWithMeta);
 
-    // Send order confirmation email (non-blocking — don't fail the order if email fails)
-    if (billNo && bill.customer.email) {
+    if (billNo && customerData.email) {
       sendOrderConfirmation(bill as BillData)
         .then((result) => {
-          if (result.ok) {
-            showToast(`Confirmation email sent to ${bill.customer.email}`);
-          } else if (!result.skipped) {
-            console.warn("Order confirmation email failed:", result.error);
-          }
+          if (result.ok) showToast(`Confirmation email sent to ${customerData.email}`);
+          else if (!result.skipped) console.warn("Email failed:", result.error);
         })
-        .catch((err) => console.error("Email send error:", err));
+        .catch((err) => console.error("Email error:", err));
 
-      // Notify admin of new order
       const adminEmail = import.meta.env.VITE_ADMIN_EMAIL as string | undefined;
       if (adminEmail) {
         sendAdminOrderNotification(bill as BillData, adminEmail).catch((err) =>
@@ -146,11 +166,79 @@ export default function Checkout() {
     clearCart();
   }
 
+  const handleSelectAddress = (addr: Address) => {
+    setSelectedAddressId(addr.id);
+    setDelivery({
+      name: addr.name,
+      phone: addr.phone,
+      email: addr.email || "",
+      address: addr.address,
+      district: addr.district,
+      city: addr.city,
+      state: addr.state,
+      pincode: addr.pincode,
+    });
+    setShowAddForm(false);
+  };
+
+  const handleAddNewToggle = () => {
+    setShowAddForm(true);
+    setSelectedAddressId(null);
+    if (customer) {
+      setDelivery({
+        name: customer.name || "",
+        phone: customer.phone || "",
+        email: customer.email || "",
+        address: "",
+        district: "",
+        city: "",
+        state: "",
+        pincode: "",
+      });
+    }
+  };
+
+  const handleSaveNewAddress = async () => {
+    if (!customer || !validate()) return;
+    setSaving(true);
+    const result = await createAddress({
+      customer_id: customer.id,
+      label: "Home",
+      name: delivery.name,
+      phone: delivery.phone,
+      email: delivery.email || undefined,
+      address: delivery.address,
+      district: delivery.district,
+      city: delivery.city,
+      state: delivery.state,
+      pincode: delivery.pincode,
+    });
+    if (result) {
+      setShowAddForm(false);
+      const data = await getAddresses(customer.id);
+      setAddresses(data || []);
+      const fresh = (data || []).find((a) => a.id === result.id);
+      if (fresh) {
+        setSelectedAddressId(fresh.id);
+        setDelivery({
+          name: fresh.name, phone: fresh.phone, email: fresh.email || "",
+          address: fresh.address, district: fresh.district,
+          city: fresh.city, state: fresh.state, pincode: fresh.pincode,
+        });
+      }
+    }
+    setSaving(false);
+  };
+
+  const updateDelivery = (key: keyof typeof emptyDelivery, val: string) =>
+    setDelivery((d) => ({ ...d, [key]: val }));
+
+  const upiLink = `upi://pay?pa=${MERCHANT_UPI}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${total}&cu=INR&tn=${encodeURIComponent(`নবME Order ${delivery.name}`)}`;
+
   const handlePayNow = () => {
     if (!validate()) return;
     setUpiStep("paying");
     setQrView(false);
-    saveProfileOnce();
     window.open(upiLink, "_blank");
   };
 
@@ -172,13 +260,11 @@ export default function Checkout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [upiStep]);
 
-  const sendToWhatsapp = () => {
+  const sendToWhatsapp = async () => {
     if (!validate()) return;
+    setPlacing(true);
 
-    const bill = buildBill(customer, cart, total, "whatsapp");
-    localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
-    saveProfileOnce();
-    saveOrder("whatsapp");
+    await saveOrder("whatsapp");
 
     const productList = cart
       .map((item) => `
@@ -199,31 +285,31 @@ Subtotal: ₹${item.price * item.quantity}
 
 ━━━━━━━━━━━━━━
 
-CUSTOMER DETAILS
+DELIVERY DETAILS
 
 Name:
-${form.name}
+${delivery.name}
 
 Phone:
-${form.phone}
+${delivery.phone}
 
 Email:
-${form.email || "Not Provided"}
-
-UPI:
-${form.customerUpi || "Not Provided"}
+${delivery.email || "Not Provided"}
 
 Address:
-${form.address}
+${delivery.address}
+
+District:
+${delivery.district}
 
 City:
-${form.city}
+${delivery.city}
 
 State:
-${form.state}
+${delivery.state}
 
 Pincode:
-${form.pincode}
+${delivery.pincode}
 
 ━━━━━━━━━━━━━━
 
@@ -243,7 +329,7 @@ TOTAL: ₹${total}
 
     setTimeout(() => {
       navigate("/order-success");
-    }, 1000);
+    }, 1500);
   };
 
   const fieldMsg = (key: string) =>
@@ -271,50 +357,177 @@ TOTAL: ₹${total}
             </div>
           )}
 
+          {!customer && (
+            <div style={{ padding: "20px", border: "1px solid var(--gold)", background: "var(--gold-soft)", marginBottom: 32, textAlign: "center" }}>
+              <p style={{ marginBottom: 8, color: "var(--text)" }}>
+                Already have an account? Sign in to use your saved addresses.
+              </p>
+              <Link to="/login" style={{ color: "var(--gold)", fontWeight: 600, textDecoration: "underline" }}>
+                Sign In
+              </Link>
+            </div>
+          )}
+
           <div className="checkout-grid">
-            {/* FORM */}
+            {/* LEFT COLUMN */}
             <div>
-              <h2 style={{ marginBottom: "30px", fontWeight: 500 }}>Contact Information</h2>
-              <div style={{ display: "grid", gap: "18px" }}>
-                <div>
-                  <input placeholder="Full Name" value={form.name} onChange={(e) => update("name", e.target.value)} style={inputStyle} />
-                  {fieldMsg("name")}
-                </div>
-                <div>
-                  <input placeholder="Phone Number" value={form.phone} onChange={(e) => update("phone", e.target.value)} style={inputStyle} />
-                  {fieldMsg("phone")}
-                </div>
-                <div>
-                  <input placeholder="Email Address (Optional)" value={form.email} onChange={(e) => update("email", e.target.value)} style={inputStyle} />
-                  {fieldMsg("email")}
-                </div>
-              </div>
+              {/* ── DELIVERY ADDRESS ── */}
+              <h2 style={{ marginBottom: "24px", fontWeight: 500 }}>Delivery Address</h2>
 
-              <h2 style={{ marginTop: "60px", marginBottom: "30px", fontWeight: 500 }}>Shipping Address</h2>
-              <div style={{ display: "grid", gap: "18px" }}>
-                <div>
-                  <textarea rows={5} placeholder="Street Address" value={form.address} onChange={(e) => update("address", e.target.value)} style={{ ...inputStyle, resize: "none" }} />
-                  {fieldMsg("address")}
+              {/* Saved addresses */}
+              {customer && addresses.length > 0 && (
+                <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
+                  {addresses.map((addr) => (
+                    <div
+                      key={addr.id}
+                      onClick={() => handleSelectAddress(addr)}
+                      style={{
+                        padding: 16,
+                        border: selectedAddressId === addr.id ? "2px solid var(--gold)" : "1px solid var(--line)",
+                        background: selectedAddressId === addr.id ? "var(--gold-soft)" : "var(--surface)",
+                        cursor: "pointer",
+                        borderRadius: 8,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                        <strong style={{ color: "var(--gold)", fontSize: ".85rem", textTransform: "uppercase", letterSpacing: "1px" }}>
+                          {addr.label}
+                          {addr.is_default && <span style={{ color: "var(--muted)", marginLeft: 8, fontWeight: 400, letterSpacing: 0 }}>· Default</span>}
+                        </strong>
+                        {selectedAddressId === addr.id && (
+                          <span style={{ color: "var(--gold)", fontSize: "1.2rem" }}>✓</span>
+                        )}
+                      </div>
+                      <p style={{ fontWeight: 600, fontSize: ".95rem" }}>{addr.name}</p>
+                      <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>{addr.phone}</p>
+                      <p style={{ color: "var(--muted)", fontSize: ".85rem", lineHeight: 1.5, marginTop: 4 }}>
+                        {addr.address}, {addr.district ? `${addr.district}, ` : ""}{addr.city}, {addr.state} — {addr.pincode}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <input placeholder="City" value={form.city} onChange={(e) => update("city", e.target.value)} style={inputStyle} />
-                  {fieldMsg("city")}
-                </div>
-                <div>
-                  <input placeholder="State" value={form.state} onChange={(e) => update("state", e.target.value)} style={inputStyle} />
-                  {fieldMsg("state")}
-                </div>
-                <div>
-                  <input placeholder="Pincode" value={form.pincode} onChange={(e) => update("pincode", e.target.value)} style={inputStyle} />
-                  {fieldMsg("pincode")}
-                </div>
-              </div>
+              )}
 
+              {/* Add new address button or form */}
+              {customer && !showAddForm && (
+                <button onClick={handleAddNewToggle} style={{ width: "100%", padding: "14px", border: "1px dashed var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontWeight: 500, fontSize: ".9rem", marginBottom: 24 }}>
+                  + Add New Address
+                </button>
+              )}
+
+              {/* Address form (shown when no saved addresses, when adding new, or when not logged in) */}
+              {(!customer || showAddForm || addresses.length === 0) && (
+                <div style={{ display: "grid", gap: "18px", marginBottom: 24 }}>
+                  <div>
+                    <input
+                      placeholder="Receiver Full Name"
+                      value={delivery.name}
+                      onChange={(e) => updateDelivery("name", e.target.value)}
+                      style={inputStyle}
+                    />
+                    {fieldMsg("name")}
+                  </div>
+                  <div>
+                    <input
+                      placeholder="Receiver Phone"
+                      value={delivery.phone}
+                      onChange={(e) => updateDelivery("phone", e.target.value)}
+                      style={inputStyle}
+                    />
+                    {fieldMsg("phone")}
+                  </div>
+                  <div>
+                    <input
+                      placeholder="Receiver Email (Optional)"
+                      value={delivery.email}
+                      onChange={(e) => updateDelivery("email", e.target.value)}
+                      style={inputStyle}
+                    />
+                    {fieldMsg("email")}
+                  </div>
+                  <div>
+                    <textarea
+                      rows={3}
+                      placeholder="Street / Area / Landmark"
+                      value={delivery.address}
+                      onChange={(e) => updateDelivery("address", e.target.value)}
+                      style={{ ...inputStyle, resize: "none" } as React.CSSProperties}
+                    />
+                    {fieldMsg("address")}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                    <div>
+                      <input
+                        placeholder="District"
+                        value={delivery.district}
+                        onChange={(e) => updateDelivery("district", e.target.value)}
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      <input
+                        placeholder="City"
+                        value={delivery.city}
+                        onChange={(e) => updateDelivery("city", e.target.value)}
+                        style={inputStyle}
+                      />
+                      {fieldMsg("city")}
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                    <div>
+                      <input
+                        placeholder="State"
+                        value={delivery.state}
+                        onChange={(e) => updateDelivery("state", e.target.value)}
+                        style={inputStyle}
+                      />
+                      {fieldMsg("state")}
+                    </div>
+                    <div>
+                      <input
+                        placeholder="Pincode"
+                        value={delivery.pincode}
+                        onChange={(e) => updateDelivery("pincode", e.target.value)}
+                        style={inputStyle}
+                      />
+                      {fieldMsg("pincode")}
+                    </div>
+                  </div>
+
+                  {showAddForm && (
+                    <div style={{ display: "flex", gap: 12 }}>
+                      <button
+                        onClick={handleSaveNewAddress}
+                        disabled={saving}
+                        style={{
+                          padding: "14px 28px",
+                          border: "none",
+                          background: "var(--gold)",
+                          color: "#050505",
+                          cursor: "pointer",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {saving ? "Saving..." : "Save Address"}
+                      </button>
+                      <button
+                        onClick={() => { setShowAddForm(false); const def = addresses.find((a) => a.is_default) || addresses[0]; if (def) handleSelectAddress(def); else setDelivery(emptyDelivery); }}
+                        style={{ padding: "14px 28px", border: "1px solid var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontWeight: 500 }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ════════ UPI DETAILS ════════ */}
               {paymentMethod === "upi" && (
                 <>
-                  <h2 style={{ marginTop: "60px", marginBottom: "30px", fontWeight: 500 }}>UPI Payment Details</h2>
+                  <h2 style={{ marginTop: "40px", marginBottom: "24px", fontWeight: 500 }}>UPI Payment Details</h2>
                   <div style={{ display: "grid", gap: "18px" }}>
-                    <input placeholder="Your UPI ID (e.g. name@upi) or phone number" value={form.customerUpi} onChange={(e) => update("customerUpi", e.target.value)} style={inputStyle} />
+                    <input placeholder="Your UPI ID (e.g. name@upi)" value={delivery.email} onChange={(e) => updateDelivery("email", e.target.value)} style={inputStyle} />
                     <input placeholder="UPI Transaction Reference (UTR) — optional" value={utr} onChange={(e) => setUtr(e.target.value)} style={inputStyle} />
                     <div style={{ padding: "16px", border: "1px solid var(--gold)", background: "var(--gold-soft)", fontSize: ".9rem", lineHeight: 1.7 }}>
                       <strong style={{ color: "var(--gold)" }}>Payment Request</strong>
@@ -330,7 +543,7 @@ TOTAL: ₹${total}
               )}
             </div>
 
-            {/* ORDER SUMMARY */}
+            {/* RIGHT COLUMN — ORDER SUMMARY */}
             <div className="checkout-sidebar">
               <h2 style={{ marginBottom: "30px", fontWeight: 500 }}>Order Summary</h2>
 
@@ -382,12 +595,8 @@ TOTAL: ₹${total}
                   {upiStep === "idle" && !qrView && (
                     <div style={{ display: "grid", gap: 12 }}>
                       <div style={{ padding: "16px", border: "1px solid var(--line)", textAlign: "center", fontSize: ".9rem", lineHeight: 1.7 }}>
-                        <p style={{ color: "var(--muted)" }}>Payment request will be sent to</p>
-                        <strong style={{ fontSize: "1.2rem", color: "var(--gold)", letterSpacing: "0.03em" }}>{form.customerUpi || "your UPI app"}</strong>
-                        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
-                          <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>Paying to</p>
-                          <strong style={{ fontSize: "1rem" }}>{MERCHANT_UPI}</strong>
-                        </div>
+                        <p style={{ color: "var(--muted)" }}>Pay to</p>
+                        <strong style={{ fontSize: "1.1rem", color: "var(--gold)" }}>{MERCHANT_UPI}</strong>
                       </div>
                       <button onClick={handlePayNow} disabled={Object.keys(errors).length > 0} style={{ width: "100%", padding: "20px", border: "none", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 800, fontSize: "1.1rem", letterSpacing: "0.05em" }}>
                         Pay ₹{total} via UPI
@@ -465,8 +674,16 @@ TOTAL: ₹${total}
 
               {paymentMethod === "whatsapp" && (
                 <>
-                  <button onClick={sendToWhatsapp} style={{ width: "100%", marginTop: "35px", padding: "18px", border: "none", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 600, fontSize: "1rem" }}>
-                    Review & Send Order
+                  <button
+                    onClick={sendToWhatsapp}
+                    disabled={placing}
+                    style={{
+                      width: "100%", marginTop: "35px", padding: "18px", border: "none",
+                      background: placing ? "var(--muted)" : "var(--gold)", color: "#050505",
+                      cursor: placing ? "not-allowed" : "pointer", fontWeight: 600, fontSize: "1rem",
+                    }}
+                  >
+                    {placing ? "Placing Order..." : "Review & Send Order"}
                   </button>
                   <p style={{ marginTop: "15px", color: "var(--muted)", textAlign: "center", fontSize: ".85rem", lineHeight: 1.6 }}>
                     Your order will open in WhatsApp for final review before submission.
@@ -480,13 +697,3 @@ TOTAL: ₹${total}
     </>
   );
 }
-
-const inputStyle = {
-  width: "100%",
-  padding: "16px",
-  border: "1px solid var(--line)",
-  background: "rgba(255,255,255,0.06)",
-  outline: "none",
-  fontSize: "1rem",
-  color: "var(--text)",
-} as const;

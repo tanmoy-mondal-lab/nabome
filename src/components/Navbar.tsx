@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import BrandWordmark from "./BrandWordmark";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
+import { useCustomer } from "../context/CustomerContext";
 import { getUserRole } from "../lib/db";
 
 const links = [
@@ -15,11 +16,11 @@ const links = [
 export default function Navbar() {
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isLoggedIn] = useState(() => !!localStorage.getItem("nabome-user"));
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { cart } = useCart();
   const { wishlist } = useWishlist();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { customer, logout } = useCustomer();
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -34,6 +35,14 @@ export default function Navbar() {
     }
   };
 
+  const userMenuItems = customer
+    ? [
+        { to: "/profile", label: "Profile" },
+        { to: "/profile?tab=orders", label: "Orders" },
+        { to: "/profile?tab=addresses", label: "Addresses" },
+      ]
+    : [];
+
   return (
     <>
       <div className="top-bar">Free shipping above ₹999 · WhatsApp checkout · Made for Bengal</div>
@@ -45,6 +54,11 @@ export default function Navbar() {
                 {link.label}
               </NavLink>
             ))}
+            {customer && (
+              <NavLink className="nav-link" to="/profile">
+                Profile
+              </NavLink>
+            )}
           </div>
 
           <Link className="brand-lockup" to="/" aria-label="নবME home">
@@ -60,9 +74,7 @@ export default function Navbar() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  submitSearch();
-                }
+                if (event.key === "Enter") submitSearch();
               }}
             />
             {isAdmin && (
@@ -70,17 +82,25 @@ export default function Navbar() {
                 Admin
               </Link>
             )}
-            <Link
-              className="nav-icon-link"
-              to={isLoggedIn ? "/profile" : "/login"}
-              aria-label={isLoggedIn ? "My account" : "Login"}
-              title={isLoggedIn ? "My account" : "Login"}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </Link>
+            {customer ? (
+              <div className="nav-user-menu" style={{ position: "relative", display: "inline-block" }}>
+                <Link
+                  className="nav-icon-link"
+                  to="/profile"
+                  aria-label="My account"
+                  title={customer.name}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </Link>
+              </div>
+            ) : (
+              <Link className="nav-link" to="/login" style={{ fontWeight: 600 }}>
+                Login
+              </Link>
+            )}
             <Link
               className="nav-icon-link"
               to="/wishlist"
@@ -118,14 +138,26 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <Link className="nav-link" to={isLoggedIn ? "/profile" : "/login"} onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-                {isLoggedIn ? "My Account" : "Login"}
-              </Link>
-              {!isLoggedIn && (
+              {customer && userMenuItems.map((item) => (
+                <Link key={item.label} className="nav-link" to={item.to} onClick={() => setMenuOpen(false)}>
+                  {item.label}
+                </Link>
+              ))}
+              {customer ? (
+                <button onClick={() => { logout(); setMenuOpen(false); navigate("/"); }}
+                  style={{ background: "none", border: "none", cursor: "pointer", textAlign: "left", fontSize: "1rem", color: "var(--muted)", padding: "12px 0", width: "100%" }}>
+                  Logout
+                </button>
+              ) : (
+                <Link className="nav-link" to="/login" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  Login
+                </Link>
+              )}
+              {!customer && (
                 <Link className="nav-link" to="/register" onClick={() => setMenuOpen(false)}>
                   Register
                 </Link>
@@ -156,9 +188,7 @@ export default function Navbar() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    submitSearch();
-                  }
+                  if (event.key === "Enter") submitSearch();
                 }}
               />
             </div>

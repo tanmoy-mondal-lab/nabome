@@ -23,6 +23,8 @@ const PolicyPage = lazy(() => import("./pages/PolicyPage"));
 const OrderTracking = lazy(() => import("./pages/OrderTracking"));
 const Admin = lazy(() => import("./pages/Admin"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const AdminLogin = lazy(() => import("./pages/AdminLogin"));
+const FAQ = lazy(() => import("./pages/FAQ"));
 
 function Loader() {
   return (
@@ -64,12 +66,16 @@ function App() {
               <Route path="/order-tracking" element={<OrderTracking />} />
               <Route path="/shipping-policy" element={<PolicyPage type="shipping" />} />
               <Route path="/return-policy" element={<PolicyPage type="returns" />} />
+              <Route path="/refund-policy" element={<PolicyPage type="refund" />} />
+              <Route path="/cancellation-policy" element={<PolicyPage type="cancellation" />} />
               <Route path="/privacy-policy" element={<PolicyPage type="privacy" />} />
               <Route path="/terms" element={<PolicyPage type="terms" />} />
+              <Route path="/faq" element={<FAQ />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/admin-login" element={<AdminLogin />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

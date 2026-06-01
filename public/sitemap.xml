@@ -7,8 +7,11 @@
   <url><loc>https://www.nabome.online/cart</loc><priority>0.4</priority></url>
   <url><loc>https://www.nabome.online/wishlist</loc><priority>0.4</priority></url>
   <url><loc>https://www.nabome.online/order-tracking</loc><priority>0.5</priority></url>
+  <url><loc>https://www.nabome.online/faq</loc><priority>0.6</priority></url>
   <url><loc>https://www.nabome.online/shipping-policy</loc><priority>0.5</priority></url>
   <url><loc>https://www.nabome.online/return-policy</loc><priority>0.5</priority></url>
+  <url><loc>https://www.nabome.online/refund-policy</loc><priority>0.5</priority></url>
+  <url><loc>https://www.nabome.online/cancellation-policy</loc><priority>0.5</priority></url>
   <url><loc>https://www.nabome.online/privacy-policy</loc><priority>0.5</priority></url>
   <url><loc>https://www.nabome.online/terms</loc><priority>0.5</priority></url>
   <url><loc>https://www.nabome.online/product/1</loc><priority>0.8</priority></url>
@@ -23,7 +26,7 @@
   <url><loc>https://www.nabome.online/order-success</loc><priority>0.5</priority></url>
   <url><loc>https://www.nabome.online/login</loc><priority>0.5</priority></url>
   <url><loc>https://www.nabome.online/register</loc><priority>0.5</priority></url>
-  <url><loc>https://www.nabome.online/admin</loc><priority>0.5</priority></url>
   <url><loc>https://www.nabome.online/profile</loc><priority>0.5</priority></url>
-  <url><loc>https://www.nabome.online/forgot-password</loc><priority>0.3</priority></url>
+  <url><loc>https://www.nabome.online/admin</loc><priority>0.3</priority></url>
+  <url><loc>https://www.nabome.online/admin-login</loc><priority>0.3</priority></url>
 </urlset>

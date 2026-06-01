@@ -1,5 +1,5 @@
 import { Link, useParams } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ProductCard from "../components/ProductCard";
@@ -12,6 +12,14 @@ import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { getBadges, products, type Product } from "../data/products";
 
+function StarRating({ rating, size = ".85rem" }: { rating: number; size?: string }) {
+  return (
+    <span style={{ color: "var(--gold)", fontSize: size, letterSpacing: "0.1em" }}>
+      {"★".repeat(Math.floor(rating))}{rating % 1 >= 0.5 ? "½" : ""}
+    </span>
+  );
+}
+
 export default function ProductDetail() {
   const { id } = useParams();
   const product = products.find((p) => p.id === Number(id));
@@ -21,8 +29,12 @@ export default function ProductDetail() {
   const [selectedSize, setSelectedSize] = useState(product?.sizes[0] || "");
   const [selectedColor, setSelectedColor] = useState(product?.colors[0] || "");
   const [selectedImage, setSelectedImage] = useState(product?.image || "");
+  const [quantity, setQuantity] = useState(1);
   const [pincode, setPincode] = useState("");
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState<"details" | "shipping" | "care">("details");
 
   const currentVariant = useMemo(() => {
     if (!product?.variants) return null;
@@ -42,6 +54,32 @@ export default function ProductDetail() {
     const viewed = JSON.parse(localStorage.getItem("nabome-recently-viewed") || "[]") as number[];
     return viewed.map((viewedId) => products.find((item) => item.id === viewedId)).filter((item): item is Product => Boolean(item)).filter((item) => item.id !== product?.id);
   }, [product?.id]);
+
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
+  const goNext = useCallback(() => {
+    if (!product) return;
+    setLightboxIndex((prev) => (prev + 1) % product.images.length);
+  }, [product]);
+
+  const goPrev = useCallback(() => {
+    if (!product) return;
+    setLightboxIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+  }, [product]);
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxOpen(false);
+      if (e.key === "ArrowRight") goNext();
+      if (e.key === "ArrowLeft") goPrev();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [lightboxOpen, goNext, goPrev]);
 
   if (!product) {
     return (
@@ -67,8 +105,43 @@ export default function ProductDetail() {
 
   const addProduct = () => {
     const variantId = currentVariant?.id;
-    addToCart({ ...product, selectedSize, selectedColor, variantId });
+    addToCart({ ...product, selectedSize, selectedColor, variantId, quantity });
     showToast(`${product.name} added to bag`);
+  };
+
+  const tabStyle = (tab: string): React.CSSProperties => ({
+    padding: "10px 24px",
+    border: "none",
+    background: activeTab === tab ? "var(--gold)" : "transparent",
+    color: activeTab === tab ? "#050505" : "var(--muted)",
+    cursor: "pointer",
+    fontWeight: 600,
+    fontSize: ".9rem",
+    letterSpacing: "0.03em",
+    borderRadius: 0,
+  });
+
+  const lightboxOverlay: React.CSSProperties = {
+    position: "fixed",
+    inset: 0,
+    zIndex: 10000,
+    background: "rgba(0,0,0,0.95)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  };
+
+  const lightboxBtn: React.CSSProperties = {
+    position: "absolute",
+    top: "50%",
+    transform: "translateY(-50%)",
+    background: "rgba(255,255,255,0.1)",
+    border: "none",
+    color: "#fff",
+    fontSize: "2rem",
+    padding: "16px 20px",
+    cursor: "pointer",
+    zIndex: 1,
   };
 
   return (
@@ -91,19 +164,66 @@ export default function ProductDetail() {
         }}
       />
       <Navbar />
-      <main className="page">
+
+      {/* ── LIGHTBOX ── */}
+      {lightboxOpen && (
+        <div style={lightboxOverlay} onClick={() => setLightboxOpen(false)} role="presentation">
+          {product.images.length > 1 && (
+            <>
+              <button style={{ ...lightboxBtn, left: 16 }} onClick={(e) => { e.stopPropagation(); goPrev(); }} aria-label="Previous image">‹</button>
+              <button style={{ ...lightboxBtn, right: 16 }} onClick={(e) => { e.stopPropagation(); goNext(); }} aria-label="Next image">›</button>
+            </>
+          )}
+          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: "90vw", maxHeight: "90vh", display: "grid", placeItems: "center" }}>
+            <img
+              src={product.images[lightboxIndex] || product.image}
+              alt={`${product.name} — Image ${lightboxIndex + 1}`}
+              style={{ maxWidth: "100%", maxHeight: "90vh", objectFit: "contain" }}
+            />
+          </div>
+          <button
+            onClick={() => setLightboxOpen(false)}
+            style={{ position: "absolute", top: 16, right: 16, background: "rgba(255,255,255,0.1)", border: "none", color: "#fff", fontSize: "1.5rem", padding: "8px 16px", cursor: "pointer", zIndex: 1 }}
+            aria-label="Close lightbox"
+          >
+            ✕
+          </button>
+          <p style={{ position: "absolute", bottom: 24, color: "rgba(255,255,255,0.5)", fontSize: ".85rem" }}>
+            {lightboxIndex + 1} / {product.images.length}
+          </p>
+        </div>
+      )}
+
+      <main className="page" key={product.id}>
         <section className="container product-detail">
           <div className="gallery">
-            <div className="gallery-main skeleton">
+            <div
+              className="gallery-main skeleton"
+              onClick={() => {
+                const idx = product.images.indexOf(selectedImage || product.image);
+                openLightbox(idx >= 0 ? idx : 0);
+              }}
+              style={{ cursor: "zoom-in" }}
+            >
               <img src={selectedImage || product.image} alt={product.name} />
             </div>
-            <div className="gallery-thumbs">
-              {product.images.map((image) => (
-                <button key={image} onClick={() => setSelectedImage(image)} aria-label="Change product image" className={(selectedImage || product.image) === image ? "active" : ""}>
-                  <img src={image} alt="" loading="lazy" />
-                </button>
-              ))}
-            </div>
+            {product.images.length > 1 && (
+              <div className="gallery-thumbs">
+                {product.images.map((image, i) => (
+                  <button
+                    key={image}
+                    onClick={() => {
+                      setSelectedImage(image);
+                      openLightbox(i);
+                    }}
+                    aria-label={`View image ${i + 1}`}
+                    className={(selectedImage || product.image) === image ? "active" : ""}
+                  >
+                    <img src={image} alt="" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <aside className="product-buy glass">
@@ -113,11 +233,19 @@ export default function ProductDetail() {
               {getBadges(product).map((badge) => (
                 <span className="badge" key={badge}>{badge}</span>
               ))}
-              <span className="badge">{discount}% Off</span>
+              {discount > 0 && <span className="badge">{discount}% Off</span>}
             </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+              <StarRating rating={product.rating} size="1rem" />
+              <span style={{ color: "var(--muted)", fontSize: ".85rem" }}>
+                {product.rating} ({product.reviews} reviews)
+              </span>
+            </div>
+
             <div className="product-price detail-price">
               <strong>₹{product.price}</strong>
-              <span>₹{product.originalPrice}</span>
+              {product.originalPrice > product.price && <span>₹{product.originalPrice}</span>}
             </div>
             <p className="lede">{product.description}</p>
 
@@ -151,6 +279,28 @@ export default function ProductDetail() {
                 Stock: {currentVariant.stock} available
               </p>
             )}
+
+            {/* Quantity selector */}
+            <div className="selector-block">
+              <h3>Quantity</h3>
+              <div style={{ display: "flex", alignItems: "center", gap: 0, border: "1px solid var(--line)", width: "fit-content" }}>
+                <button
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  disabled={quantity <= 1}
+                  style={{ padding: "12px 18px", border: "none", borderRight: "1px solid var(--line)", background: "transparent", color: quantity <= 1 ? "var(--muted)" : "var(--text)", cursor: quantity <= 1 ? "not-allowed" : "pointer", fontSize: "1.1rem" }}
+                >
+                  −
+                </button>
+                <span style={{ padding: "12px 24px", fontWeight: 600, minWidth: 48, textAlign: "center" }}>{quantity}</span>
+                <button
+                  onClick={() => setQuantity((q) => Math.min(variantStock || product.stock || 10, q + 1))}
+                  disabled={quantity >= (variantStock || product.stock || 10)}
+                  style={{ padding: "12px 18px", border: "none", borderLeft: "1px solid var(--line)", background: "transparent", color: quantity >= (variantStock || product.stock || 10) ? "var(--muted)" : "var(--text)", cursor: quantity >= (variantStock || product.stock || 10) ? "not-allowed" : "pointer", fontSize: "1.1rem" }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
 
             <div className="sticky-actions">
               <button className="premium-button" onClick={addProduct} disabled={isOutOfStock} style={isOutOfStock ? { opacity: 0.5, cursor: "not-allowed" } : {}}>
@@ -194,6 +344,53 @@ export default function ProductDetail() {
               ))}
             </div>
           </aside>
+        </section>
+
+        {/* ── TABBED INFO SECTION ── */}
+        <section className="container" style={{ marginTop: 60 }}>
+          <div style={{ display: "flex", borderBottom: "1px solid var(--line)", marginBottom: 32 }}>
+            {(["details", "shipping", "care"] as const).map((tab) => (
+              <button key={tab} onClick={() => setActiveTab(tab)} style={tabStyle(tab)}>
+                {tab === "details" && "Product Details"}
+                {tab === "shipping" && "Shipping & Returns"}
+                {tab === "care" && "Care Instructions"}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ color: "var(--muted)", fontSize: ".95rem", lineHeight: 1.8, maxWidth: 720 }}>
+            {activeTab === "details" && (
+              <div>
+                <p>{product.description}</p>
+                <ul style={{ marginTop: 16, paddingLeft: 20, listStyle: "disc" }}>
+                  <li>{product.material}</li>
+                  <li>{product.fit}</li>
+                  <li>Premium garment construction</li>
+                  <li>Designed and crafted in Bengal</li>
+                </ul>
+              </div>
+            )}
+            {activeTab === "shipping" && (
+              <div>
+                <p><strong>Delivery Timeline</strong> — Orders are dispatched within 1-3 business days. Standard delivery takes 3-5 business days across India.</p>
+                <p style={{ marginTop: 12 }}><strong>Shipping Charges</strong> — Free shipping on orders above ₹999. A flat ₹99 applies below that.</p>
+                <p style={{ marginTop: 12 }}><strong>Returns & Exchanges</strong> — We accept returns and exchanges within 7 days of delivery. Items must be unworn, unwashed, with tags intact. Initiate a return by contacting our support team.</p>
+                <p style={{ marginTop: 12 }}><strong>Cancellation</strong> — Orders can be cancelled before dispatch. Once shipped, cancellation is not possible; you may initiate a return after delivery.</p>
+              </div>
+            )}
+            {activeTab === "care" && (
+              <div>
+                <p><strong>Wash Care Instructions</strong></p>
+                <ul style={{ marginTop: 12, paddingLeft: 20, listStyle: "disc" }}>
+                  <li>Cold wash inside out with similar colours</li>
+                  <li>Do not bleach or use harsh detergents</li>
+                  <li>Tumble dry on low or hang dry in shade</li>
+                  <li>Iron on medium temperature, avoid printing area</li>
+                  <li>Do not dry clean</li>
+                </ul>
+              </div>
+            )}
+          </div>
         </section>
 
         <section className="container">

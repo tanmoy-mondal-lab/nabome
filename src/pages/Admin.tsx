@@ -14,12 +14,14 @@ import {
   createSiteQuote,
   updateSiteQuote,
   deleteSiteQuote,
+  getCustomers,
+  getOrdersByCustomer,
   type SiteQuote,
 } from "../lib/db";
 import type { Product } from "../data/products";
 
 type FormMode = "add" | "edit";
-type Tab = "dashboard" | "products" | "orders" | "subscribers" | "quotes";
+type Tab = "dashboard" | "products" | "orders" | "subscribers" | "quotes" | "customers";
 
 const emptyForm = {
   name: "",
@@ -123,6 +125,17 @@ export default function Admin() {
   const [quotesLoading, setQuotesLoading] = useState(false);
   const [quoteEditingId, setQuoteEditingId] = useState<string | null>(null);
   const [quoteForm, setQuoteForm] = useState({ text: "", attribution: "", is_active: true });
+  const [customers, setCustomers] = useState<Record<string, unknown>[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<Record<string, unknown> | null>(null);
+  const [customerOrders, setCustomerOrders] = useState<Record<string, unknown>[]>([]);
+
+  const revenue = orders.reduce((sum, o) => sum + ((o.total as number) || 0), 0);
+  const pendingCount = orders.filter((o) => (o.order_status as string) === "pending").length;
+  const deliveredCount = orders.filter((o) => (o.order_status as string) === "delivered").length;
+  const cancelledCount = orders.filter((o) => (o.order_status as string) === "cancelled").length;
+  const aov = orders.length > 0 ? Math.round(revenue / orders.length) : 0;
 
   useEffect(() => {
     async function checkAuth() {
@@ -276,6 +289,19 @@ export default function Admin() {
     const data = await getAllSiteQuotes();
     setQuotes(data);
     setQuotesLoading(false);
+  }
+
+  async function loadCustomers() {
+    if (!supabase) return;
+    setCustomersLoading(true);
+    const data = await getCustomers();
+    setCustomers(data);
+    setCustomersLoading(false);
+  }
+
+  async function loadCustomerOrders(customerId: string) {
+    const data = await getOrdersByCustomer(customerId);
+    setCustomerOrders(data || []);
   }
 
   async function handleSaveQuote() {
@@ -448,17 +474,17 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
 
           {/* TABS */}
           <div style={{ display: "flex", gap: 4, marginTop: 30, flexWrap: "wrap" }}>
-            {(["dashboard", "products", "orders", "subscribers", "quotes"] as Tab[]).map((t) => (
-              <button key={t} onClick={() => { setTab(t); setMode(null); if (t === "subscribers") loadSubscribers(); if (t === "quotes") loadQuotes(); }} style={{
-                padding: "12px 28px",
-                border: "none",
+            {(["dashboard", "products", "orders", "customers", "subscribers", "quotes"] as Tab[]).map((t) => (
+
+              <button key={t} onClick={() => { setTab(t); setMode(null); if (t === "subscribers") loadSubscribers(); if (t === "quotes") loadQuotes(); if (t === "customers") loadCustomers(); }} style={{
+
+                padding: "12px 28px", border: "none",
                 background: tab === t ? "var(--gold)" : "var(--surface)",
                 color: tab === t ? "#050505" : "var(--muted)",
-                cursor: "pointer",
-                fontWeight: 600,
-                textTransform: "capitalize",
+                cursor: "pointer", fontWeight: 700, fontSize: ".85rem",
+                textTransform: "uppercase", letterSpacing: "0.08em",
               }}>
-                {t === "dashboard" ? "Overview" : t} {t !== "dashboard" && `(${t === "products" ? products.length : t === "orders" ? orders.length : t === "subscribers" ? subscribers.length : quotes.length})`}
+                {t === "dashboard" ? "Overview" : t === "customers" ? "Customers" : t.charAt(0).toUpperCase() + t.slice(1)} {t !== "dashboard" && `(${t === "products" ? products.length : t === "orders" ? orders.length : t === "subscribers" ? subscribers.length : t === "customers" ? customers.length : quotes.length})`}
               </button>
             ))}
           </div>
@@ -472,10 +498,12 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                 {[
                   ["Total Products", String(products.length), "var(--gold)"],
                   ["Total Orders", String(orders.length), "#3498db"],
-                  ["Revenue", `₹${orders.reduce((sum, o) => sum + ((o.total as number) || 0), 0).toLocaleString("en-IN")}`, "#2ecc71"],
-                  ["Pending Orders", String(orders.filter((o) => (o.order_status as string) === "pending").length), "#f39c12"],
-                  ["Delivered", String(orders.filter((o) => (o.order_status as string) === "delivered").length), "#27ae60"],
-                  ["Cancelled", String(orders.filter((o) => (o.order_status as string) === "cancelled").length), "#e74c3c"],
+                  ["Revenue", `₹${revenue.toLocaleString("en-IN")}`, "#2ecc71"],
+                  ["AOV", `₹${aov.toLocaleString("en-IN")}`, "#9b59b6"],
+                  ["Customers", String(customers.length), "#1abc9c"],
+                  ["Pending Orders", String(pendingCount), "#f39c12"],
+                  ["Delivered", String(deliveredCount), "#27ae60"],
+                  ["Cancelled", String(cancelledCount), "#e74c3c"],
                 ].map(([label, value, color]) => (
                   <div key={label} style={{ border: "1px solid var(--line)", padding: 28, background: "var(--surface)", textAlign: "center" }}>
                     <p style={{ color: "var(--muted)", fontSize: ".85rem", marginBottom: 12 }}>{label}</p>
@@ -738,6 +766,97 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* ─── CUSTOMERS TAB ─── */}
+          {tab === "customers" && (
+            <div>
+              <div style={{ marginBottom: 24, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+                <h2 style={{ marginRight: "auto" }}>Customers ({customers.length})</h2>
+                <input
+                  className="field"
+                  type="search"
+                  placeholder="Search by name, phone, email"
+                  value={customerSearch}
+                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  style={{ maxWidth: 320 }}
+                />
+              </div>
+
+              {selectedCustomer ? (
+                <div>
+                  <button onClick={() => { setSelectedCustomer(null); setCustomerOrders([]); }} style={{ padding: "10px 20px", border: "1px solid var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", marginBottom: 24 }}>
+                    ← Back to Customers
+                  </button>
+                  <div style={{ border: "1px solid var(--line)", padding: 24, background: "var(--surface)", marginBottom: 24 }}>
+                    <h3 style={{ marginBottom: 16 }}>{(selectedCustomer.name as string) || "Unknown"}</h3>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: ".9rem", color: "var(--muted)" }}>
+                      <span>Phone: <strong style={{ color: "var(--text)" }}>{selectedCustomer.phone as string}</strong></span>
+                      <span>Email: <strong style={{ color: "var(--text)" }}>{selectedCustomer.email as string || "—"}</strong></span>
+                      <span>Gender: <strong style={{ color: "var(--text)" }}>{selectedCustomer.gender as string || "—"}</strong></span>
+                      <span>Joined: <strong style={{ color: "var(--text)" }}>{selectedCustomer.created_at ? new Date(selectedCustomer.created_at as string).toLocaleDateString("en-IN") : "—"}</strong></span>
+                    </div>
+                  </div>
+
+                  <h3 style={{ marginBottom: 16 }}>Orders ({customerOrders.length})</h3>
+                  {customerOrders.length === 0 ? (
+                    <p style={{ color: "var(--muted)" }}>No orders found for this customer.</p>
+                  ) : (
+                    <div style={{ display: "grid", gap: 12 }}>
+                      {customerOrders.map((o) => (
+                        <div key={o.id as string} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", border: "1px solid var(--line)", background: "var(--surface)", flexWrap: "wrap", gap: 8 }}>
+                          <div>
+                            <span style={{ fontWeight: 600 }}>{(o.bill_no as string) || "—"}</span>
+                            <span style={{ color: "var(--muted)", fontSize: ".85rem", marginLeft: 12 }}>
+                              {new Date(o.created_at as string).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                            </span>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                            <span style={{ fontWeight: 700 }}>₹{((o.total as number) || 0).toLocaleString("en-IN")}</span>
+                            <span style={{ color: statusColor[o.order_status as string] || "var(--muted)", fontSize: ".85rem", fontWeight: 600, textTransform: "uppercase" }}>
+                              {o.order_status as string}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {customersLoading ? (
+                    <p style={{ color: "var(--muted)" }}>Loading customers...</p>
+                  ) : (
+                    <div style={{ display: "grid", gap: 8 }}>
+                      {customers
+                        .filter((c) => {
+                          if (!customerSearch) return true;
+                          const s = customerSearch.toLowerCase();
+                          return ((c.name as string) || "").toLowerCase().includes(s)
+                            || ((c.phone as string) || "").includes(s)
+                            || ((c.email as string) || "").toLowerCase().includes(s);
+                        })
+                        .map((c) => (
+                          <div key={c.id as string} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 20px", border: "1px solid var(--line)", background: "var(--surface)", cursor: "pointer", flexWrap: "wrap", gap: 8 }}
+                            onClick={() => { setSelectedCustomer(c); loadCustomerOrders(c.id as string); }}
+                            onMouseEnter={(e) => e.currentTarget.style.borderColor = "var(--gold)"}
+                            onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--line)"}
+                          >
+                            <div>
+                              <span style={{ fontWeight: 600 }}>{(c.name as string) || "Unknown"}</span>
+                              <span style={{ color: "var(--muted)", marginLeft: 12, fontSize: ".85rem" }}>{c.phone as string}</span>
+                              {c.email as string && <span style={{ color: "var(--muted)", marginLeft: 12, fontSize: ".85rem" }}>{c.email as string}</span>}
+                            </div>
+                            <span style={{ color: "var(--muted)", fontSize: ".82rem" }}>
+                              {c.created_at ? new Date(c.created_at as string).toLocaleDateString("en-IN") : ""}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 

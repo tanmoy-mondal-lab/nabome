@@ -22,6 +22,7 @@ export type CustomerData = {
   state: string;
   pincode: string;
   customerUpi?: string;
+  gender?: string;
 };
 
 export type OrderData = {
@@ -36,7 +37,18 @@ export type OrderData = {
   orderStatus: string;
   userEmail?: string;
   utr?: string;
+  customerId?: string;
   shippingAddressId?: string | null;
+  delivery?: {
+    name: string;
+    phone: string;
+    email?: string;
+    address: string;
+    district: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
 };
 
 // ─── PRODUCTS ──────────────────────────────────────────
@@ -229,39 +241,128 @@ export async function deleteVariant(id: string) {
 
 // ─── CUSTOMERS ─────────────────────────────────────────
 
-export async function createCustomer(data: CustomerData) {
+export async function lookupCustomer(identifier: string) {
+  if (!supabase) return null;
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier.trim());
+  let query = supabase.from("customers").select("id, name, phone, email, gender");
+  if (isEmail) {
+    query = query.eq("email", identifier.trim());
+  } else {
+    const digits = identifier.replace(/\D/g, "");
+    query = query.or(`phone.eq.${identifier.trim()},phone.eq.+91${digits},phone.eq.91${digits}`);
+  }
+  const { data } = await query.limit(1).maybeSingle();
+  return data;
+}
+
+export async function createCustomer(data: { name: string; phone: string; email?: string; gender?: string }) {
   if (!supabase) return null;
   const { data: customer, error } = await supabase
     .from("customers")
-    .insert({ name: data.name, phone: data.phone, email: data.email })
-    .select("id").single();
+    .insert({ name: data.name, phone: data.phone, email: data.email || null, gender: data.gender || null })
+    .select("id, name, phone, email, gender").single();
   if (error) { console.error("Failed to create customer:", error); return null; }
-  return customer.id;
+  return customer;
+}
+
+export async function updateCustomer(id: string, data: { name?: string; phone?: string; email?: string; gender?: string }) {
+  if (!supabase) return null;
+  const { error } = await supabase.from("customers").update(data).eq("id", id);
+  if (error) { console.error("Failed to update customer:", error); return null; }
+  return id;
+}
+
+export async function getCustomers(): Promise<Record<string, unknown>[]> {
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("customers")
+    .select("id, name, phone, email, gender, created_at")
+    .order("created_at", { ascending: false });
+  return data || [];
 }
 
 // ─── ADDRESSES ─────────────────────────────────────────
 
-export async function getAddresses(customerId: string) {
+export type Address = {
+  id: string;
+  customer_id: string;
+  label: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+  address: string;
+  district: string;
+  city: string;
+  state: string;
+  pincode: string;
+  is_default: boolean;
+};
+
+export async function getAddresses(customerId: string): Promise<Address[]> {
   if (!supabase) return [];
-  const { data } = await supabase.from("addresses").select("*").eq("customer_id", customerId).order("is_default", { ascending: false });
+  const { data } = await supabase
+    .from("addresses")
+    .select("*")
+    .eq("customer_id", customerId)
+    .order("is_default", { ascending: false });
   return data || [];
 }
 
-export async function saveAddress(data: Record<string, unknown>) {
+export async function createAddress(data: {
+  customer_id: string;
+  label: string;
+  name: string;
+  phone: string;
+  email?: string;
+  address: string;
+  district: string;
+  city: string;
+  state: string;
+  pincode: string;
+  is_default?: boolean;
+}) {
   if (!supabase) return null;
-  if (data.id) {
-    const { error } = await supabase.from("addresses").update(data).eq("id", data.id);
-    if (error) return null;
-    return data.id;
+  if (data.is_default) {
+    await supabase.from("addresses").update({ is_default: false }).eq("customer_id", data.customer_id);
   }
-  const { data: result, error } = await supabase.from("addresses").insert(data).select("id").single();
-  if (error) return null;
+  const { data: result, error } = await supabase.from("addresses").insert({
+    customer_id: data.customer_id,
+    label: data.label,
+    name: data.name,
+    phone: data.phone,
+    email: data.email || null,
+    address: data.address,
+    district: data.district,
+    city: data.city,
+    state: data.state,
+    pincode: data.pincode,
+    is_default: data.is_default ?? false,
+  }).select("id").single();
+  if (error) { console.error("Failed to create address:", error); return null; }
   return result.id;
+}
+
+export async function updateAddress(id: string, data: Partial<Address>) {
+  if (!supabase) return null;
+  if (data.is_default && data.customer_id) {
+    await supabase.from("addresses").update({ is_default: false }).eq("customer_id", data.customer_id).neq("id", id);
+  }
+  const { error } = await supabase.from("addresses").update(data).eq("id", id);
+  if (error) { console.error("Failed to update address:", error); return null; }
+  return id;
 }
 
 export async function deleteAddress(id: string) {
   if (!supabase) return null;
-  await supabase.from("addresses").delete().eq("id", id);
+  const { error } = await supabase.from("addresses").delete().eq("id", id);
+  if (error) { console.error("Failed to delete address:", error); return null; }
+  return id;
+}
+
+export async function setDefaultAddress(id: string, customerId: string) {
+  if (!supabase) return null;
+  await supabase.from("addresses").update({ is_default: false }).eq("customer_id", customerId);
+  await supabase.from("addresses").update({ is_default: true }).eq("id", id);
   return id;
 }
 
@@ -270,7 +371,7 @@ export async function deleteAddress(id: string) {
 export async function createOrder(data: OrderData) {
   if (!supabase) return null;
 
-  const customerId = await createCustomer(data.customer);
+  const customerId = data.customerId || await createCustomer(data.customer);
 
   const { error: orderError, data: order } = await supabase
     .from("orders")
@@ -280,6 +381,14 @@ export async function createOrder(data: OrderData) {
       customer_name: data.customer.name, customer_email: data.customer.email,
       customer_phone: data.customer.phone,
       shipping_address_id: data.shippingAddressId || null,
+      delivery_name: data.delivery?.name || null,
+      delivery_phone: data.delivery?.phone || null,
+      delivery_email: data.delivery?.email || null,
+      delivery_address: data.delivery?.address || null,
+      delivery_district: data.delivery?.district || null,
+      delivery_city: data.delivery?.city || null,
+      delivery_state: data.delivery?.state || null,
+      delivery_pincode: data.delivery?.pincode || null,
       subtotal: data.total - data.shipping, shipping_cost: data.shipping,
       total: data.total, payment_method: data.paymentMethod,
       payment_status: data.paymentStatus, order_status: data.orderStatus,
@@ -316,6 +425,13 @@ export async function createOrder(data: OrderData) {
 export async function getOrdersByEmail(email: string) {
   if (!supabase) return [];
   const { data, error } = await supabase.from("orders").select("*").eq("user_email", email).order("created_at", { ascending: false });
+  if (error) return [];
+  return data;
+}
+
+export async function getOrdersByCustomer(customerId: string) {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("orders").select("*").eq("customer_id", customerId).order("created_at", { ascending: false });
   if (error) return [];
   return data;
 }
