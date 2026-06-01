@@ -264,11 +264,7 @@ export async function sendOrderConfirmation(bill: BillData): Promise<SendEmailRe
 
 // ─── PASSWORD RESET ─────────────────────────────────────
 
-const RESET_BASE_URL = "https://www.nabome.online/profile";
-
-export type ResetResult = { emailSent: boolean; whatsappSent: boolean; phoneFound: boolean; error?: string };
-
-export async function sendPasswordResetViaBrevo(email: string, name?: string): Promise<SendEmailResult> {
+export async function sendNewPasswordEmail(email: string, password: string, name?: string): Promise<SendEmailResult> {
   if (!BREVO_API_KEY) {
     return { ok: false, error: "Email service not configured", skipped: true };
   }
@@ -279,7 +275,7 @@ export async function sendPasswordResetViaBrevo(email: string, name?: string): P
       body: JSON.stringify({
         sender: { name: SENDER_NAME, email: SENDER_EMAIL },
         to: [{ email, name: name || email }],
-        subject: "Password Reset — নবME",
+        subject: "Your New Password — নবME",
         htmlContent: `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
@@ -293,11 +289,13 @@ export async function sendPasswordResetViaBrevo(email: string, name?: string): P
         </td></tr>
         <tr><td style="padding:40px 40px 20px;text-align:center;">
           <div style="display:inline-block;padding:6px 14px;background:#d4af37;color:#050505;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;">Password Reset</div>
-          <h1 style="margin:0 0 12px;color:#fff;font-size:28px;font-weight:300;">Reset Your Password</h1>
-          <p style="margin:0;color:#888;font-size:14px;line-height:1.6;">Click the button below to reset your password. This link is valid for 1 hour.</p>
+          <h1 style="margin:0 0 12px;color:#fff;font-size:28px;font-weight:300;">Your New Password</h1>
+          <p style="margin:0;color:#888;font-size:14px;line-height:1.6;">Your নবME account password has been reset. Use the password below to log in.</p>
         </td></tr>
         <tr><td style="padding:0 40px 30px;text-align:center;">
-          <a href="${RESET_BASE_URL}" style="display:inline-block;padding:14px 36px;background:#d4af37;color:#050505;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Reset Password</a>
+          <div style="background:#1a1a1a;border:1px solid #d4af37;padding:16px 32px;display:inline-block;font-family:'Courier New',monospace;font-size:22px;font-weight:700;color:#d4af37;letter-spacing:3px;">${password}</div>
+          <p style="margin:16px 0 0;color:#888;font-size:13px;">Use this password to log in at <a href="https://www.nabome.online/login" style="color:#d4af37;">nabome.online/login</a></p>
+          <p style="margin:4px 0 0;color:#666;font-size:12px;">You can change it anytime from your profile after logging in.</p>
         </td></tr>
         <tr><td style="background:#050505;padding:30px 40px;text-align:center;border-top:1px solid #2a2a2a;">
           <p style="margin:0 0 8px;color:#d4af37;font-size:13px;font-weight:600;">নবME — Designed in Bengal, Built for Everywhere</p>
@@ -308,7 +306,7 @@ export async function sendPasswordResetViaBrevo(email: string, name?: string): P
   </table>
 </body>
 </html>`,
-        textContent: `নবME Password Reset\n\nClick this link to reset your password: ${RESET_BASE_URL}\n\nThis link is valid for 1 hour.\n\n© 2026 নবME. All rights reserved.`,
+        textContent: `নবME Password Reset\n\nYour new password is: ${password}\n\nUse this to log in at https://www.nabome.online/login\n\nYou can change it anytime from your profile after logging in.\n\n© 2026 নবME. All rights reserved.`,
         tags: ["password-reset"],
       }),
     });
@@ -322,7 +320,7 @@ export async function sendPasswordResetViaBrevo(email: string, name?: string): P
   }
 }
 
-export async function sendWhatsAppResetLink(phone: string, name?: string): Promise<boolean> {
+export async function sendWhatsAppPassword(phone: string, password: string, name?: string): Promise<boolean> {
   const apiKey = BREVO_API_KEY;
   if (!apiKey) return false;
   const WA_API_URL = "https://api.brevo.com/v3/whatsapp/sendMessage";
@@ -335,7 +333,7 @@ export async function sendWhatsAppResetLink(phone: string, name?: string): Promi
         senderNumber,
         contactNumber: phone.startsWith("+") ? phone : `+91${phone}`,
         content: {
-          text: `নবME Password Reset\n\nHey ${name || "there"}, your password reset link is ready.\n\nClick here: ${RESET_BASE_URL}\n\nThis link expires in 1 hour.\n\n— নবME`,
+          text: `নবME Password Reset\n\nHey ${name || "there"}, your new password is:\n\n${password}\n\nUse it to log in: https://www.nabome.online/login\n\nYou can change it anytime from your profile.\n\n— নবME`,
         },
       }),
     });
