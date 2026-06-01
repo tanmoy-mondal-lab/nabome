@@ -274,8 +274,7 @@ export default function Cart() {
                             onClick={() =>
                               decreaseQuantity(
                                 item.id,
-                                item.selectedSize,
-                                item.selectedColor
+                                item.variantId
                               )
                             }
                             style={{
@@ -312,8 +311,7 @@ export default function Cart() {
                             onClick={() =>
                               increaseQuantity(
                                 item.id,
-                                item.selectedSize,
-                                item.selectedColor
+                                item.variantId
                               )
                             }
                             style={{
@@ -378,8 +376,7 @@ export default function Cart() {
                             onClick={() =>
                               removeItem(
                                 item.id,
-                                item.selectedSize,
-                                item.selectedColor
+                                item.variantId
                               )
                             }
                             style={{

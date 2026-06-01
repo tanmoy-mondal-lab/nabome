@@ -23,6 +23,14 @@ export default function ProductDetail() {
   const [pincode, setPincode] = useState("");
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
 
+  const currentVariant = useMemo(() => {
+    if (!product?.variants) return null;
+    return product.variants.find((v) => v.size === selectedSize && v.color === selectedColor) || null;
+  }, [product, selectedSize, selectedColor]);
+
+  const variantStock = currentVariant?.stock ?? product?.stock ?? 0;
+  const isOutOfStock = variantStock === 0;
+
   useEffect(() => {
     if (!product) return;
     const viewed = JSON.parse(localStorage.getItem("nabome-recently-viewed") || "[]") as number[];
@@ -54,7 +62,8 @@ export default function ProductDetail() {
   const discount = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
 
   const addProduct = () => {
-    addToCart({ ...product, selectedSize, selectedColor });
+    const variantId = currentVariant?.id;
+    addToCart({ ...product, selectedSize, selectedColor, variantId });
     showToast(`${product.name} added to bag`);
   };
 
@@ -73,7 +82,7 @@ export default function ProductDetail() {
           image: product.images.map((image) => `https://www.nabome.online${image}`),
           description: product.description,
           brand: { "@type": "Brand", name: "নবME" },
-          offers: { "@type": "Offer", priceCurrency: "INR", price: product.price, availability: product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" },
+          offers: { "@type": "Offer", priceCurrency: "INR", price: product.price, availability: variantStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" },
           aggregateRating: { "@type": "AggregateRating", ratingValue: product.rating, reviewCount: product.reviews },
         }}
       />
@@ -98,9 +107,7 @@ export default function ProductDetail() {
             <h1 className="heading">{product.name}</h1>
             <div className="detail-badges">
               {getBadges(product).map((badge) => (
-                <span className="badge" key={badge}>
-                  {badge}
-                </span>
+                <span className="badge" key={badge}>{badge}</span>
               ))}
               <span className="badge">{discount}% Off</span>
             </div>
@@ -113,9 +120,7 @@ export default function ProductDetail() {
             <div className="selector-block">
               <div className="selector-head">
                 <h3>Size</h3>
-                <button className="text-button" onClick={() => setSizeGuideOpen(true)}>
-                  Size Guide
-                </button>
+                <button className="text-button" onClick={() => setSizeGuideOpen(true)}>Size Guide</button>
               </div>
               <div className="option-grid">
                 {product.sizes.map((size) => (
@@ -137,9 +142,15 @@ export default function ProductDetail() {
               </div>
             </div>
 
+            {currentVariant && (
+              <p style={{ color: "var(--muted)", fontSize: ".85rem", margin: "-8px 0 16px" }}>
+                Stock: {currentVariant.stock} available
+              </p>
+            )}
+
             <div className="sticky-actions">
-              <button className="premium-button" onClick={addProduct} disabled={product.stock === 0} style={product.stock === 0 ? { opacity: 0.5, cursor: "not-allowed" } : {}}>
-                {product.stock === 0 ? "Out of Stock" : "Add To Bag"}
+              <button className="premium-button" onClick={addProduct} disabled={isOutOfStock} style={isOutOfStock ? { opacity: 0.5, cursor: "not-allowed" } : {}}>
+                {isOutOfStock ? "Out of Stock" : "Add To Bag"}
               </button>
               <button
                 className="ghost-button"
@@ -168,7 +179,7 @@ export default function ProductDetail() {
               {[
                 ["Material", product.material],
                 ["Fit", product.fit],
-                ["Inventory", product.stock > 10 ? "In stock" : "Limited stock"],
+                ["Inventory", variantStock > 10 ? "In stock" : variantStock > 0 ? "Limited stock" : "Out of stock"],
                 ["Wash Care", "Cold wash, dry inside out"],
                 ["Origin", "Designed in Bengal"],
               ].map(([label, value]) => (

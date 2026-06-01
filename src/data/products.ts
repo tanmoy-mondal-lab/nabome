@@ -1,3 +1,14 @@
+export type Variant = {
+  id: string;
+  sku?: string;
+  size: string;
+  color: string;
+  price: number;
+  originalPrice?: number;
+  stock: number;
+  inStock: boolean;
+};
+
 export type Product = {
   id: number;
   name: string;
@@ -10,6 +21,7 @@ export type Product = {
   sizes: string[];
   colors: string[];
   stock: number;
+  variants?: Variant[];
   isNew?: boolean;
   isBestSeller?: boolean;
   isLimited?: boolean;
