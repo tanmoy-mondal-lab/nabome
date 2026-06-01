@@ -380,7 +380,7 @@ export default function Cart() {
                               <button
                                 onClick={() => {
                                   // Move to wishlist logic
-                                  wishlistRef.current?.addToWishlist({
+                                  wishlistRef.addToWishlist({
                                     id: item.id,
                                     name: item.name,
                                     price: item.price,

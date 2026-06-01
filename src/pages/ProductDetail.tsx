@@ -1,15 +1,16 @@
 import { Link, useParams } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
-import Navbar from "./components/Navbar";
-import ProductCard from "./components/ProductCard";
-import ProductReviews from "./components/ProductReviews";
-import SEO from "./components/SEO";
-import SizeGuideModal from "./components/SizeGuideModal";
-import TrustBadges from "./components/TrustBadges";
-import { useToast } from "./components/Toast";
-import { useCart } from "./context/CartContext";
-import { useWishlist } from "./context/WishlistContext";
-import { getBadges, products, type Product, type Variant } from "../data/products";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import ProductCard from "../components/ProductCard";
+import ProductReviews from "../components/ProductReviews";
+import SEO from "../components/SEO";
+import SizeGuideModal from "../components/SizeGuideModal";
+import TrustBadges from "../components/TrustBadges";
+import { useToast } from "../components/Toast";
+import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
+import { getBadges, products, type Product } from "../data/products";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -57,33 +58,6 @@ export default function ProductDetail() {
           </div>
         </main>
         <Footer />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <Navbar />
-        <main className="page" style={{ display: "grid", minHeight: "70vh", placeItems: "center" }}>
-          <div className="glass" style={{ padding: 38, textAlign: "center" }}>
-            <h1>Product not found</h1>
-            <Link className="premium-button" to="/category" style={{ display: "inline-flex", marginTop: 24, padding: "0 24px", alignItems: "center" }}>
-              Shop Collection
-            </Link>
-          </div>
-        </main>
-      </div>
-    </section>
-  );
-}
-        <main className="page" style={{ display: "grid", minHeight: "70vh", placeItems: "center" }}>
-          <div className="glass" style={{ padding: 38, textAlign: "center" }}>
-            <h1>Product not found</h1>
-            <Link className="premium-button" to="/category" style={{ display: "inline-flex", marginTop: 24, padding: "0 24px", alignItems: "center" }}>
-              Shop Collection
-            </Link>
-          </div>
-        </main>
       </>
     );
   }
