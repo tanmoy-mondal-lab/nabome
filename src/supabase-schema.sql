@@ -170,6 +170,16 @@ create table if not exists newsletter_subscribers (
   subscribed_at timestamptz default now()
 );
 
+-- ─── SITE QUOTES (editable Bengali/cultural quotes for the rotator) ───
+create table if not exists site_quotes (
+  id          uuid primary key default gen_random_uuid(),
+  text        text not null,
+  attribution text not null,
+  is_active   boolean default true,
+  sort_order  int default 0,
+  created_at  timestamptz default now()
+);
+
 -- ─── PROFILES (synced with auth.users) ─────
 create table if not exists profiles (
   id           uuid primary key references auth.users(id) on delete cascade,
@@ -229,6 +239,7 @@ do $$ begin
   execute 'alter table if exists reviews enable row level security';
   execute 'alter table if exists coupons enable row level security';
   execute 'alter table if exists newsletter_subscribers enable row level security';
+  execute 'alter table if exists site_quotes enable row level security';
   execute 'alter table if exists profiles enable row level security';
   execute 'alter table if exists wishlists enable row level security';
   execute 'alter table if exists carts enable row level security';
@@ -264,12 +275,17 @@ do $$ begin
   drop policy if exists "Inventory movements read" on inventory_movements;
   drop policy if exists "Inventory movements insert" on inventory_movements;
   drop policy if exists "Anyone can subscribe" on newsletter_subscribers;
+  drop policy if exists "Quotes read public" on site_quotes;
+  drop policy if exists "Quotes write authed" on site_quotes;
+  drop policy if exists "Quotes update authed" on site_quotes;
+  drop policy if exists "Quotes delete authed" on site_quotes;
   drop policy if exists "Users insert own profile" on profiles;
   drop policy if exists "Users update own profile" on profiles;
   drop policy if exists "Users read own profile" on profiles;
   drop policy if exists "Wishlists manage own" on wishlists;
   drop policy if exists "Carts manage own" on carts;
   drop policy if exists "Cart items manage own" on cart_items;
+  drop policy if exists "Coupons read public" on coupons;
 end $$;
 
 -- Recreate all policies
@@ -308,6 +324,12 @@ create policy "Inventory movements read" on inventory_movements for select using
 create policy "Inventory movements insert" on inventory_movements for insert with check (auth.role() = 'authenticated');
 
 create policy "Anyone can subscribe" on newsletter_subscribers for insert with check (true);
+
+-- SITE QUOTES: public read, admin write
+create policy "Quotes read public" on site_quotes for select using (is_active = true);
+create policy "Quotes write authed" on site_quotes for insert with check (auth.role() = 'authenticated');
+create policy "Quotes update authed" on site_quotes for update using (auth.role() = 'authenticated');
+create policy "Quotes delete authed" on site_quotes for delete using (auth.role() = 'authenticated');
 
 create policy "Users insert own profile" on profiles for insert with check (auth.uid() = id);
 create policy "Users update own profile" on profiles for update using (auth.uid() = id);

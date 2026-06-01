@@ -10,11 +10,16 @@ import {
   deleteProduct,
   getAllOrders,
   updateOrderStatus,
+  getAllSiteQuotes,
+  createSiteQuote,
+  updateSiteQuote,
+  deleteSiteQuote,
+  type SiteQuote,
 } from "../lib/db";
 import type { Product } from "../data/products";
 
 type FormMode = "add" | "edit";
-type Tab = "dashboard" | "products" | "orders" | "subscribers";
+type Tab = "dashboard" | "products" | "orders" | "subscribers" | "quotes";
 
 const emptyForm = {
   name: "",
@@ -114,6 +119,10 @@ export default function Admin() {
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
   const [subscribers, setSubscribers] = useState<Array<Record<string, unknown>>>([]);
   const [subscribersLoading, setSubscribersLoading] = useState(false);
+  const [quotes, setQuotes] = useState<SiteQuote[]>([]);
+  const [quotesLoading, setQuotesLoading] = useState(false);
+  const [quoteEditingId, setQuoteEditingId] = useState<string | null>(null);
+  const [quoteForm, setQuoteForm] = useState({ text: "", attribution: "", is_active: true });
 
   useEffect(() => {
     async function checkAuth() {
@@ -261,6 +270,55 @@ export default function Admin() {
     setSubscribersLoading(false);
   }
 
+  async function loadQuotes() {
+    if (!supabase) return;
+    setQuotesLoading(true);
+    const data = await getAllSiteQuotes();
+    setQuotes(data);
+    setQuotesLoading(false);
+  }
+
+  async function handleSaveQuote() {
+    if (!quoteForm.text || !quoteForm.attribution) {
+      setError("Quote text and attribution are required.");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    if (quoteEditingId) {
+      await updateSiteQuote(quoteEditingId, quoteForm);
+    } else {
+      await createSiteQuote({
+        text: quoteForm.text,
+        attribution: quoteForm.attribution,
+        is_active: quoteForm.is_active,
+        sort_order: quotes.length,
+      });
+    }
+    setQuoteForm({ text: "", attribution: "", is_active: true });
+    setQuoteEditingId(null);
+    await loadQuotes();
+    setSaving(false);
+  }
+
+  function startEditQuote(q: SiteQuote) {
+    setQuoteEditingId(q.id);
+    setQuoteForm({ text: q.text, attribution: q.attribution, is_active: q.is_active });
+    setError("");
+  }
+
+  function cancelQuoteForm() {
+    setQuoteEditingId(null);
+    setQuoteForm({ text: "", attribution: "", is_active: true });
+    setError("");
+  }
+
+  async function handleDeleteQuote(id: string) {
+    if (!window.confirm("Delete this quote?")) return;
+    await deleteSiteQuote(id);
+    await loadQuotes();
+  }
+
   function exportSubscribersCSV() {
     if (subscribers.length === 0) return;
     const header = "email,subscribed_at\n";
@@ -390,8 +448,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
 
           {/* TABS */}
           <div style={{ display: "flex", gap: 4, marginTop: 30, flexWrap: "wrap" }}>
-            {(["dashboard", "products", "orders", "subscribers"] as Tab[]).map((t) => (
-              <button key={t} onClick={() => { setTab(t); setMode(null); if (t === "subscribers") loadSubscribers(); }} style={{
+            {(["dashboard", "products", "orders", "subscribers", "quotes"] as Tab[]).map((t) => (
+              <button key={t} onClick={() => { setTab(t); setMode(null); if (t === "subscribers") loadSubscribers(); if (t === "quotes") loadQuotes(); }} style={{
                 padding: "12px 28px",
                 border: "none",
                 background: tab === t ? "var(--gold)" : "var(--surface)",
@@ -400,7 +458,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                 fontWeight: 600,
                 textTransform: "capitalize",
               }}>
-                {t === "dashboard" ? "Overview" : t} {t !== "dashboard" && `(${t === "products" ? products.length : t === "orders" ? orders.length : subscribers.length})`}
+                {t === "dashboard" ? "Overview" : t} {t !== "dashboard" && `(${t === "products" ? products.length : t === "orders" ? orders.length : t === "subscribers" ? subscribers.length : quotes.length})`}
               </button>
             ))}
           </div>
@@ -677,6 +735,90 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                     <span style={{ color: "var(--muted)", fontSize: ".85rem" }}>
                       {s.created_at ? new Date(s.created_at as string).toLocaleDateString("en-IN") : ""}
                     </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ─── QUOTES TAB ─── */}
+          {tab === "quotes" && (
+            <div>
+              <div style={{ border: "1px solid var(--gold)", padding: 32, background: "var(--surface)", marginBottom: 30 }}>
+                <h2 style={{ marginBottom: 20, color: "var(--gold)" }}>{quoteEditingId ? "Edit Quote" : "Add New Quote"}</h2>
+                <p style={{ color: "var(--muted)", marginBottom: 20, fontSize: ".9rem" }}>
+                  These Bengali/cultural quotes appear in the rotating quote banner on the homepage. Visitors see them every 5 seconds.
+                </p>
+                <div style={{ display: "grid", gap: 16 }}>
+                  <div>
+                    <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Quote Text (Bengali or English) *</label>
+                    <textarea
+                      rows={3}
+                      value={quoteForm.text}
+                      onChange={(e) => setQuoteForm((f) => ({ ...f, text: e.target.value }))}
+                      style={{ ...inputS, resize: "vertical", fontFamily: "inherit" }}
+                      placeholder="আমার সোনার বাংলা..."
+                    />
+                  </div>
+                  <div>
+                    <label style={{ color: "var(--muted)", fontSize: ".8rem", display: "block", marginBottom: 4 }}>Attribution *</label>
+                    <input
+                      value={quoteForm.attribution}
+                      onChange={(e) => setQuoteForm((f) => ({ ...f, attribution: e.target.value }))}
+                      style={inputS}
+                      placeholder="Rabindranath Tagore"
+                    />
+                  </div>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", color: "var(--text)" }}>
+                    <input
+                      type="checkbox"
+                      checked={quoteForm.is_active}
+                      onChange={(e) => setQuoteForm((f) => ({ ...f, is_active: e.target.checked }))}
+                    />
+                    <span style={{ fontSize: ".9rem" }}>Active (visible on site)</span>
+                  </label>
+                </div>
+                {error && <p style={{ color: "#e74c3c", marginTop: 12 }}>{error}</p>}
+                <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
+                  <button
+                    onClick={handleSaveQuote}
+                    disabled={saving}
+                    style={{ padding: "12px 24px", border: "none", background: saving ? "var(--surface-strong)" : "var(--gold)", color: saving ? "var(--muted)" : "#050505", cursor: saving ? "not-allowed" : "pointer", fontWeight: 600 }}
+                  >
+                    {saving ? "Saving..." : quoteEditingId ? "Update Quote" : "Add Quote"}
+                  </button>
+                  {quoteEditingId && (
+                    <button onClick={cancelQuoteForm} style={{ padding: "12px 24px", border: "1px solid var(--line)", background: "transparent", color: "var(--text)", cursor: "pointer", fontWeight: 600 }}>
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <h2 style={{ fontWeight: 400, marginBottom: 16 }}>{quotes.length} Quote{quotes.length !== 1 ? "s" : ""}</h2>
+              {quotesLoading && <p style={{ color: "var(--muted)" }}>Loading quotes...</p>}
+              {!quotesLoading && quotes.length === 0 && (
+                <p style={{ color: "var(--muted)" }}>No quotes yet. Add one above to get started.</p>
+              )}
+              <div style={{ display: "grid", gap: 12 }}>
+                {quotes.map((q) => (
+                  <div key={q.id} style={{ display: "flex", alignItems: "flex-start", gap: 16, border: `1px solid ${q.is_active ? "var(--line)" : "rgba(231,76,60,0.3)"}`, padding: "16px 20px", background: "var(--surface)", opacity: q.is_active ? 1 : 0.6 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: "1rem", lineHeight: 1.6, marginBottom: 8 }}>{q.text}</p>
+                      <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>
+                        — {q.attribution} {q.is_active ? "" : <span style={{ color: "#e74c3c", marginLeft: 8 }}>(HIDDEN)</span>}
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                      <button
+                        onClick={() => updateSiteQuote(q.id, { is_active: !q.is_active }).then(() => loadQuotes())}
+                        style={{ padding: "6px 12px", border: "1px solid var(--line)", background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: ".8rem" }}
+                      >
+                        {q.is_active ? "Hide" : "Show"}
+                      </button>
+                      <button onClick={() => startEditQuote(q)} style={{ padding: "6px 12px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontSize: ".8rem" }}>Edit</button>
+                      <button onClick={() => handleDeleteQuote(q.id)} style={{ padding: "6px 12px", border: "1px solid #e74c3c", background: "transparent", color: "#e74c3c", cursor: "pointer", fontSize: ".8rem" }}>Delete</button>
+                    </div>
                   </div>
                 ))}
               </div>

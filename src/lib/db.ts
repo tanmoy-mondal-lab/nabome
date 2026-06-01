@@ -472,6 +472,103 @@ export async function seedAdminRole(userId: string, email: string) {
   }
 }
 
+// ─── SITE QUOTES (editable Bengali/cultural quotes) ───
+
+export type SiteQuote = {
+  id: string;
+  text: string;
+  attribution: string;
+  is_active: boolean;
+  sort_order: number;
+  created_at?: string;
+};
+
+const DEFAULT_QUOTES: Omit<SiteQuote, "id" | "created_at">[] = [
+  { text: "আমার সোনার বাংলা, আমি তোমায় ভালোবাসি", attribution: "Rabindranath Tagore", is_active: true, sort_order: 0 },
+  { text: "বাঙ্গালীর সর্বস্ব তব, মা যে তোর নয়নামৃত ধারা", attribution: "Kazi Nazrul Islam", is_active: true, sort_order: 1 },
+  { text: "চলো যাই, চলো যাই, যেখানে আলোর উৎসব", attribution: "Jibanananda Das", is_active: true, sort_order: 2 },
+  { text: "আমি বাংলায় গান গাই, আমি বাংলার গান গাই", attribution: "বাংলা সংস্কৃতি", is_active: true, sort_order: 3 },
+  { text: "একটি শিল্পী কখনো তার সংস্কৃতি হারায় না", attribution: "নবME Philosophy", is_active: true, sort_order: 4 },
+];
+
+export async function getSiteQuotes(): Promise<SiteQuote[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("site_quotes")
+    .select("*")
+    .eq("is_active", true)
+    .order("sort_order", { ascending: true });
+  if (error || !data) return [];
+  return data as SiteQuote[];
+}
+
+export async function getAllSiteQuotes(): Promise<SiteQuote[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("site_quotes")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  if (error || !data) return [];
+  return data as SiteQuote[];
+}
+
+export async function createSiteQuote(data: { text: string; attribution: string; is_active?: boolean; sort_order?: number }) {
+  if (!supabase) return null;
+  const { data: row, error } = await supabase
+    .from("site_quotes")
+    .insert({
+      text: data.text,
+      attribution: data.attribution,
+      is_active: data.is_active ?? true,
+      sort_order: data.sort_order ?? 0,
+    })
+    .select()
+    .single();
+  if (error) {
+    console.error("Failed to create quote:", error);
+    return null;
+  }
+  return row as SiteQuote;
+}
+
+export async function updateSiteQuote(id: string, data: Partial<SiteQuote>) {
+  if (!supabase) return null;
+  const { data: row, error } = await supabase
+    .from("site_quotes")
+    .update(data)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) {
+    console.error("Failed to update quote:", error);
+    return null;
+  }
+  return row as SiteQuote;
+}
+
+export async function deleteSiteQuote(id: string) {
+  if (!supabase) return false;
+  const { error } = await supabase.from("site_quotes").delete().eq("id", id);
+  if (error) {
+    console.error("Failed to delete quote:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function seedDefaultQuotesIfEmpty() {
+  if (!supabase) return;
+  const { data, error } = await supabase
+    .from("site_quotes")
+    .select("id")
+    .limit(1);
+  if (error) return;
+  if (data && data.length > 0) return;
+  for (const q of DEFAULT_QUOTES) {
+    await supabase.from("site_quotes").insert(q);
+  }
+}
+
 // ─── NEWSLETTER ────────────────────────────────────────
 
 export async function subscribeNewsletter(email: string) {
