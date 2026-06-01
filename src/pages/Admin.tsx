@@ -14,7 +14,7 @@ import {
 import type { Product } from "../data/products";
 
 type FormMode = "add" | "edit";
-type Tab = "dashboard" | "products" | "orders";
+type Tab = "dashboard" | "products" | "orders" | "subscribers";
 
 const emptyForm = {
   name: "",
@@ -95,6 +95,7 @@ function productToForm(p: Product): typeof emptyForm {
 type OrderRow = Record<string, unknown>;
 
 const statusOptions = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"];
+const LOW_STOCK_THRESHOLD = 5;
 
 export default function Admin() {
   const [user, setUser] = useState<{ email?: string } | null>(null);
@@ -107,6 +108,12 @@ export default function Admin() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState<string>("all");
+  const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
+  const [subscribers, setSubscribers] = useState<Array<Record<string, unknown>>>([]);
+  const [subscribersLoading, setSubscribersLoading] = useState(false);
 
   useEffect(() => {
     async function checkAuth() {
@@ -241,6 +248,61 @@ export default function Admin() {
     setOrders(ords as OrderRow[]);
   }
 
+  async function loadSubscribers() {
+    if (!supabase) return;
+    setSubscribersLoading(true);
+    const { data, error } = await supabase
+      .from("newsletter_subscribers")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error && data) {
+      setSubscribers(data as Array<Record<string, unknown>>);
+    }
+    setSubscribersLoading(false);
+  }
+
+  function exportSubscribersCSV() {
+    if (subscribers.length === 0) return;
+    const header = "email,subscribed_at\n";
+    const rows = subscribers.map((s) => {
+      const email = (s.email as string) || "";
+      const date = s.created_at ? new Date(s.created_at as string).toISOString() : "";
+      return `${email},${date}`;
+    }).join("\n");
+    const blob = new Blob([header + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nabome-subscribers-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportOrdersCSV() {
+    if (orders.length === 0) return;
+    const header = "bill_no,date,customer,email,phone,total,status,utr\n";
+    const rows = orders.map((o) => {
+      const customer = o.customer_snapshot as Record<string, string> | undefined;
+      return [
+        o.bill_no,
+        o.created_at ? new Date(o.created_at as string).toISOString() : "",
+        customer?.name || "",
+        o.user_email || "",
+        customer?.phone || "",
+        o.total || 0,
+        o.order_status || "",
+        o.utr || "",
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
+    }).join("\n");
+    const blob = new Blob([header + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nabome-orders-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const statusColor: Record<string, string> = {
     pending: "#f39c12",
     confirmed: "#3498db",
@@ -327,9 +389,9 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           <h1 style={{ fontSize: "clamp(3rem,6vw,5rem)", fontWeight: 300, marginTop: 15 }}>Dashboard</h1>
 
           {/* TABS */}
-          <div style={{ display: "flex", gap: 4, marginTop: 30 }}>
-            {(["dashboard", "products", "orders"] as Tab[]).map((t) => (
-              <button key={t} onClick={() => { setTab(t); setMode(null); }} style={{
+          <div style={{ display: "flex", gap: 4, marginTop: 30, flexWrap: "wrap" }}>
+            {(["dashboard", "products", "orders", "subscribers"] as Tab[]).map((t) => (
+              <button key={t} onClick={() => { setTab(t); setMode(null); if (t === "subscribers") loadSubscribers(); }} style={{
                 padding: "12px 28px",
                 border: "none",
                 background: tab === t ? "var(--gold)" : "var(--surface)",
@@ -338,7 +400,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                 fontWeight: 600,
                 textTransform: "capitalize",
               }}>
-                {t === "dashboard" ? "Overview" : t} {t !== "dashboard" && `(${t === "products" ? products.length : orders.length})`}
+                {t === "dashboard" ? "Overview" : t} {t !== "dashboard" && `(${t === "products" ? products.length : t === "orders" ? orders.length : subscribers.length})`}
               </button>
             ))}
           </div>
@@ -363,11 +425,29 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                   </div>
                 ))}
               </div>
+
+              {/* LOW STOCK ALERTS */}
+              {products.filter((p) => (p.stock ?? 0) <= LOW_STOCK_THRESHOLD).length > 0 && (
+                <div style={{ border: "1px solid #e74c3c", padding: 28, background: "var(--surface)", marginBottom: 30 }}>
+                  <h3 style={{ fontWeight: 400, marginBottom: 16, color: "#e74c3c" }}>⚠ Low Stock Alert ({products.filter((p) => (p.stock ?? 0) <= LOW_STOCK_THRESHOLD).length})</h3>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {products.filter((p) => (p.stock ?? 0) <= LOW_STOCK_THRESHOLD).map((p) => (
+                      <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "rgba(231,76,60,0.08)", border: "1px solid rgba(231,76,60,0.2)" }}>
+                        <span style={{ fontSize: ".9rem" }}>{p.name}</span>
+                        <span style={{ color: (p.stock ?? 0) === 0 ? "#e74c3c" : "#f39c12", fontWeight: 600, fontSize: ".85rem" }}>
+                          {(p.stock ?? 0) === 0 ? "OUT OF STOCK" : `${p.stock} left`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div style={{ border: "1px solid var(--line)", padding: 28, background: "var(--surface)" }}>
                 <h3 style={{ fontWeight: 400, marginBottom: 16 }}>Recent Orders</h3>
                 {orders.slice(0, 5).length === 0 && <p style={{ color: "var(--muted)" }}>No orders yet.</p>}
                 {orders.slice(0, 5).map((o) => (
-                  <div key={o.id as string} style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
+                  <div key={o.id as string} onClick={() => setSelectedOrder(o)} style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid var(--line)", cursor: "pointer" }}>
                     <span style={{ color: "var(--gold)" }}>#{o.bill_no as string}</span>
                     <span style={{ color: "var(--muted)" }}>₹{(o.total as number) || 0}</span>
                     <span style={{ color: statusColor[o.order_status as string] || "#666" }}>{(o.order_status as string) || "pending"}</span>
@@ -381,9 +461,22 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           {tab === "products" && (
             <>
               {!mode && (
-                <button onClick={startAdd} style={{ padding: "16px 32px", border: "none", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 700, fontSize: "1rem", marginBottom: 40 }}>
-                  + Add New Product
-                </button>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 30 }}>
+                  <button onClick={startAdd} style={{ padding: "14px 28px", border: "none", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 700, fontSize: "1rem" }}>
+                    + Add New Product
+                  </button>
+                  <input
+                    type="search"
+                    placeholder="Search products by name, category, tags..."
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    style={{
+                      ...inputS,
+                      maxWidth: 360,
+                      background: "rgba(255,255,255,0.04)",
+                    }}
+                  />
+                </div>
               )}
 
               {mode && (
@@ -441,14 +534,33 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
               )}
 
               <div style={{ display: "grid", gap: 16 }}>
-                <h2 style={{ fontWeight: 400, marginBottom: 10 }}>{products.length} Product{products.length !== 1 ? "s" : ""}</h2>
-                {products.map((p) => (
+                <h2 style={{ fontWeight: 400, marginBottom: 10 }}>
+                  {products.filter((p) => {
+                    if (!productSearch) return true;
+                    const q = productSearch.toLowerCase();
+                    return p.name.toLowerCase().includes(q) ||
+                      p.category.toLowerCase().includes(q) ||
+                      (p.tags || []).some((t) => t.toLowerCase().includes(q));
+                  }).length} Product{products.length !== 1 ? "s" : ""}
+                </h2>
+                {products
+                  .filter((p) => {
+                    if (!productSearch) return true;
+                    const q = productSearch.toLowerCase();
+                    return p.name.toLowerCase().includes(q) ||
+                      p.category.toLowerCase().includes(q) ||
+                      (p.tags || []).some((t) => t.toLowerCase().includes(q));
+                  })
+                  .map((p) => (
                   <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 20, border: "1px solid var(--line)", padding: "16px 24px", background: "var(--surface)" }}>
                     {p.image && <img src={p.image} alt="" style={{ width: 60, height: 60, objectFit: "cover", background: "#111" }} />}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <h4 style={{ fontWeight: 600, marginBottom: 4 }}>{p.name}</h4>
                       <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>
-                        ₹{p.price}{p.originalPrice ? ` (was ₹${p.originalPrice})` : ""} · {p.category} · Stock: {p.stock}
+                        ₹{p.price}{p.originalPrice ? ` (was ₹${p.originalPrice})` : ""} · {p.category} ·{" "}
+                        <span style={{ color: (p.stock ?? 0) === 0 ? "#e74c3c" : (p.stock ?? 0) <= LOW_STOCK_THRESHOLD ? "#f39c12" : "var(--muted)" }}>
+                          Stock: {p.stock}
+                        </span>
                       </p>
                     </div>
                     <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
@@ -464,22 +576,53 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           {/* ─── ORDERS TAB ─── */}
           {tab === "orders" && (
             <div>
-              <h2 style={{ fontWeight: 400, marginBottom: 20 }}>{orders.length} Order{orders.length !== 1 ? "s" : ""}</h2>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
+                <h2 style={{ fontWeight: 400 }}>{orders.length} Order{orders.length !== 1 ? "s" : ""}</h2>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <select value={orderStatusFilter} onChange={(e) => setOrderStatusFilter(e.target.value)} style={{ ...inputS, maxWidth: 180 }}>
+                    <option value="all">All Statuses</option>
+                    {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <input
+                    type="search"
+                    placeholder="Search by bill no, name, email..."
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    style={{ ...inputS, maxWidth: 320 }}
+                  />
+                </div>
+              </div>
               {orders.length === 0 && <p style={{ color: "var(--muted)" }}>No orders yet.</p>}
 
-              {orders.map((o) => (
+              {orders
+                .filter((o) => {
+                  if (orderStatusFilter !== "all" && (o.order_status as string) !== orderStatusFilter) return false;
+                  if (!orderSearch) return true;
+                  const q = orderSearch.toLowerCase();
+                  const customer = o.customer_snapshot as Record<string, string> | undefined;
+                  return (o.bill_no as string)?.toLowerCase().includes(q) ||
+                    customer?.name?.toLowerCase().includes(q) ||
+                    (o.user_email as string)?.toLowerCase().includes(q) ||
+                    customer?.phone?.toLowerCase().includes(q);
+                })
+                .map((o) => {
+                  const customer = o.customer_snapshot as Record<string, string> | undefined;
+                  return (
                 <div key={o.id as string} style={{ border: "1px solid var(--line)", padding: 20, background: "var(--surface)", marginBottom: 16 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
                     <div>
                       <strong style={{ color: "var(--gold)" }}>#{o.bill_no as string}</strong>
                       <p style={{ color: "var(--muted)", fontSize: ".85rem", marginTop: 4 }}>
-                        {(o.customer_snapshot as Record<string, string>)?.name || "N/A"} · ₹{(o.total as number) || 0} · {o.payment_method as string}
+                        {customer?.name || "N/A"} · ₹{(o.total as number) || 0} · {o.payment_method as string}
                       </p>
                       <p style={{ color: "var(--muted)", fontSize: ".8rem" }}>
                         {new Date(o.created_at as string).toLocaleDateString("en-IN")} · {o.user_email as string || "guest"}
                       </p>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <button onClick={() => setSelectedOrder(o)} style={{ padding: "6px 14px", border: "1px solid var(--line)", background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: ".8rem" }}>
+                        Details
+                      </button>
                       <select
                         value={o.order_status as string}
                         onChange={(e) => handleStatusChange(o.bill_no as string, e.target.value)}
@@ -507,11 +650,121 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                   </div>
                   {(o.utr as string) && <p style={{ marginTop: 8, fontSize: ".8rem", color: "var(--muted)" }}>UTR: {o.utr as string}</p>}
                 </div>
-              ))}
+                  );
+                })}
+            </div>
+          )}
+
+          {/* ─── SUBSCRIBERS TAB ─── */}
+          {tab === "subscribers" && (
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
+                <h2 style={{ fontWeight: 400 }}>{subscribers.length} Subscriber{subscribers.length !== 1 ? "s" : ""}</h2>
+                {subscribers.length > 0 && (
+                  <button onClick={exportSubscribersCSV} style={{ padding: "12px 24px", border: "none", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 600, fontSize: ".9rem" }}>
+                    Export CSV
+                  </button>
+                )}
+              </div>
+              {subscribersLoading && <p style={{ color: "var(--muted)" }}>Loading subscribers...</p>}
+              {!subscribersLoading && subscribers.length === 0 && (
+                <p style={{ color: "var(--muted)" }}>No newsletter subscribers yet. Visitors can subscribe from the footer.</p>
+              )}
+              <div style={{ display: "grid", gap: 8 }}>
+                {subscribers.map((s) => (
+                  <div key={s.id as string} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid var(--line)", padding: "14px 20px", background: "var(--surface)" }}>
+                    <span style={{ fontSize: ".95rem" }}>{s.email as string}</span>
+                    <span style={{ color: "var(--muted)", fontSize: ".85rem" }}>
+                      {s.created_at ? new Date(s.created_at as string).toLocaleDateString("en-IN") : ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ─── ORDERS EXPORT BUTTON ─── */}
+          {tab === "orders" && orders.length > 0 && (
+            <div style={{ marginTop: 30, textAlign: "right" }}>
+              <button onClick={exportOrdersCSV} style={{ padding: "12px 24px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontWeight: 600, fontSize: ".9rem" }}>
+                Export Orders CSV
+              </button>
             </div>
           )}
         </section>
       </div>
+
+      {/* ─── ORDER DETAIL MODAL ─── */}
+      {selectedOrder && (
+        <div onClick={() => setSelectedOrder(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "grid", placeItems: "center", zIndex: 1000, padding: 20, overflowY: "auto" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--bg)", border: "1px solid var(--gold)", maxWidth: 640, width: "100%", maxHeight: "90vh", overflowY: "auto", padding: 40 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+              <div>
+                <p style={{ color: "var(--muted)", fontSize: ".85rem", textTransform: "uppercase", letterSpacing: 2 }}>Order</p>
+                <h2 style={{ color: "var(--gold)", fontSize: "1.6rem", fontWeight: 400, marginTop: 6 }}>#{selectedOrder.bill_no as string}</h2>
+              </div>
+              <button onClick={() => setSelectedOrder(null)} aria-label="Close" style={{ background: "transparent", border: "1px solid var(--line)", color: "var(--text)", width: 36, height: 36, cursor: "pointer", fontSize: "1.1rem" }}>×</button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
+              {[
+                ["Date", selectedOrder.created_at ? new Date(selectedOrder.created_at as string).toLocaleString("en-IN") : "—"],
+                ["Status", selectedOrder.order_status as string || "pending"],
+                ["Payment", selectedOrder.payment_method as string || "—"],
+                ["UTR", (selectedOrder.utr as string) || "—"],
+                ["Customer Email", (selectedOrder.user_email as string) || "guest"],
+                ["Total", `₹${(selectedOrder.total as number) || 0}`],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <p style={{ color: "var(--muted)", fontSize: ".75rem", textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>{label}</p>
+                  <p style={{ fontSize: ".95rem" }}>{value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 20, marginBottom: 20 }}>
+              <h3 style={{ fontWeight: 400, marginBottom: 12, color: "var(--gold)" }}>Customer Details</h3>
+              {(() => {
+                const c = selectedOrder.customer_snapshot as Record<string, string> | undefined;
+                if (!c) return <p style={{ color: "var(--muted)" }}>No customer info saved.</p>;
+                return (
+                  <div style={{ display: "grid", gap: 6, color: "var(--muted)", fontSize: ".9rem", lineHeight: 1.7 }}>
+                    <p><strong style={{ color: "var(--text)" }}>{c.name || "—"}</strong></p>
+                    {c.phone && <p>Phone: {c.phone}</p>}
+                    {c.email && <p>Email: {c.email}</p>}
+                    {c.address && <p>Address: {c.address}</p>}
+                    {c.city && <p>{c.city}{c.state ? `, ${c.state}` : ""} {c.pincode || ""}</p>}
+                    {c.customerUpi && <p>UPI: {c.customerUpi}</p>}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--line)", paddingTop: 20 }}>
+              <h3 style={{ fontWeight: 400, marginBottom: 12, color: "var(--gold)" }}>Items</h3>
+              {(selectedOrder.items as Array<Record<string, unknown>>)?.map((item, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--line)", fontSize: ".9rem" }}>
+                  <div>
+                    <p style={{ fontWeight: 600 }}>{item.name as string}</p>
+                    <p style={{ color: "var(--muted)", fontSize: ".8rem" }}>
+                      {item.selectedSize ? `Size: ${item.selectedSize as string}` : ""}
+                      {item.selectedColor ? ` · Color: ${item.selectedColor as string}` : ""}
+                    </p>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <p>× {item.quantity as number}</p>
+                    <p style={{ color: "var(--muted)" }}>₹{((item.price as number) * (item.quantity as number)).toLocaleString("en-IN")}</p>
+                  </div>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0 0", fontSize: "1rem", fontWeight: 600 }}>
+                <span>Total</span>
+                <span style={{ color: "var(--gold)" }}>₹{(selectedOrder.total as number || 0).toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
