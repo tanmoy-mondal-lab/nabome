@@ -105,6 +105,38 @@ export default function Profile() {
     );
   }
 
+  if (!user.email && !user.name) {
+    return (
+      <>
+        <SEO title="My Profile | নবME" description="Manage your নবME account profile." path="/profile" />
+        <Navbar />
+        <div style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
+          <section style={{ padding: "100px 6% 60px", borderBottom: "1px solid var(--line)" }}>
+            <p style={{ textTransform: "uppercase", letterSpacing: "4px", color: "var(--muted)", fontSize: ".85rem" }}>Account</p>
+            <h1 style={{ fontSize: "clamp(3rem,6vw,5rem)", fontWeight: 300, marginTop: "15px" }}>My Profile</h1>
+          </section>
+          <section style={{ padding: "80px 6%", display: "flex", justifyContent: "center" }}>
+            <div style={{ maxWidth: 480, width: "100%", border: "1px solid var(--line)", padding: 60, background: "var(--surface)", textAlign: "center" }}>
+              <h2 style={{ fontWeight: 400, marginBottom: 20 }}>Login Required</h2>
+              <p style={{ color: "var(--muted)", lineHeight: 1.8, marginBottom: 30 }}>
+                Sign in or create an account to view your profile, manage orders, and access member benefits.
+              </p>
+              <Link to="/login">
+                <button style={{ padding: "16px 40px", border: "none", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 600, fontSize: "1rem" }}>
+                  Login
+                </button>
+              </Link>
+              <p style={{ marginTop: 20, color: "var(--muted)" }}>
+                New here?{" "}
+                <Link to="/register" style={{ color: "var(--gold)", fontWeight: 600 }}>Create Account</Link>
+              </p>
+            </div>
+          </section>
+        </div>
+      </>
+    );
+  }
+
   const inputS = {
     width: "100%",
     padding: "14px",

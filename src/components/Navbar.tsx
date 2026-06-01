@@ -15,6 +15,7 @@ const links = [
 export default function Navbar() {
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isLoggedIn] = useState(() => !!localStorage.getItem("nabome-user"));
   const navigate = useNavigate();
   const { cart } = useCart();
   const { wishlist } = useWishlist();
@@ -69,8 +70,8 @@ export default function Navbar() {
                 Admin
               </Link>
             )}
-            <Link className="nav-link" to="/profile">
-              Account
+            <Link className="nav-link" to={isLoggedIn ? "/profile" : "/login"}>
+              {isLoggedIn ? "Account" : "Login"}
             </Link>
             <Link className="nav-link" to="/wishlist" aria-label={`Wishlist with ${wishlist.length} products`}>
               Wish {wishlist.length}
@@ -91,9 +92,14 @@ export default function Navbar() {
                   {link.label}
                 </Link>
               ))}
-              <Link className="nav-link" to="/profile" onClick={() => setMenuOpen(false)}>
-                Account
+              <Link className="nav-link" to={isLoggedIn ? "/profile" : "/login"} onClick={() => setMenuOpen(false)}>
+                {isLoggedIn ? "Account" : "Login"}
               </Link>
+              {!isLoggedIn && (
+                <Link className="nav-link" to="/register" onClick={() => setMenuOpen(false)}>
+                  Register
+                </Link>
+              )}
               {isAdmin && (
                 <Link className="nav-link" to="/admin" onClick={() => setMenuOpen(false)} style={{ color: "var(--gold)" }}>
                   Admin
