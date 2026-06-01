@@ -95,6 +95,7 @@ export default function Checkout() {
       state: form.state,
       pincode: form.pincode,
       customerUpi: form.customerUpi,
+      role: "customer",
     };
     saveProfileLocally(data);
     saveProfileToSupabase(data);

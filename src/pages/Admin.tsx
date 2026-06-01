@@ -14,7 +14,7 @@ import {
 import type { Product } from "../data/products";
 
 type FormMode = "add" | "edit";
-type Tab = "products" | "orders";
+type Tab = "dashboard" | "products" | "orders";
 
 const emptyForm = {
   name: "",
@@ -101,7 +101,7 @@ export default function Admin() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>("products");
+  const [tab, setTab] = useState<Tab>("dashboard");
   const [mode, setMode] = useState<FormMode | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
@@ -118,10 +118,25 @@ export default function Admin() {
       const email = data.session.user.email || "";
       const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
 
-      if (!adminEmail || email !== adminEmail) return false;
+      // Check profile role first
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.session.user.id)
+        .single();
 
-      setUser({ email });
-      return true;
+      if (profile?.role === "admin") {
+        setUser({ email });
+        return true;
+      }
+
+      // Fallback to env var check
+      if (adminEmail && email === adminEmail) {
+        setUser({ email });
+        return true;
+      }
+
+      return false;
     }
 
     async function init() {
@@ -313,7 +328,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
 
           {/* TABS */}
           <div style={{ display: "flex", gap: 4, marginTop: 30 }}>
-            {(["products", "orders"] as Tab[]).map((t) => (
+            {(["dashboard", "products", "orders"] as Tab[]).map((t) => (
               <button key={t} onClick={() => { setTab(t); setMode(null); }} style={{
                 padding: "12px 28px",
                 border: "none",
@@ -323,13 +338,45 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                 fontWeight: 600,
                 textTransform: "capitalize",
               }}>
-                {t} {t === "products" ? `(${products.length})` : `(${orders.length})`}
+                {t === "dashboard" ? "Overview" : t} {t !== "dashboard" && `(${t === "products" ? products.length : orders.length})`}
               </button>
             ))}
           </div>
         </section>
 
         <section style={{ padding: "60px 6%" }}>
+          {/* ─── DASHBOARD TAB ─── */}
+          {tab === "dashboard" && (
+            <div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, marginBottom: 40 }}>
+                {[
+                  ["Total Products", String(products.length), "var(--gold)"],
+                  ["Total Orders", String(orders.length), "#3498db"],
+                  ["Revenue", `₹${orders.reduce((sum, o) => sum + ((o.total as number) || 0), 0).toLocaleString("en-IN")}`, "#2ecc71"],
+                  ["Pending Orders", String(orders.filter((o) => (o.order_status as string) === "pending").length), "#f39c12"],
+                  ["Delivered", String(orders.filter((o) => (o.order_status as string) === "delivered").length), "#27ae60"],
+                  ["Cancelled", String(orders.filter((o) => (o.order_status as string) === "cancelled").length), "#e74c3c"],
+                ].map(([label, value, color]) => (
+                  <div key={label} style={{ border: "1px solid var(--line)", padding: 28, background: "var(--surface)", textAlign: "center" }}>
+                    <p style={{ color: "var(--muted)", fontSize: ".85rem", marginBottom: 12 }}>{label}</p>
+                    <p style={{ fontSize: "clamp(1.8rem,4vw,2.8rem)", fontWeight: 300, color }}>{value}</p>
+                  </div>
+                ))}
+              </div>
+              <div style={{ border: "1px solid var(--line)", padding: 28, background: "var(--surface)" }}>
+                <h3 style={{ fontWeight: 400, marginBottom: 16 }}>Recent Orders</h3>
+                {orders.slice(0, 5).length === 0 && <p style={{ color: "var(--muted)" }}>No orders yet.</p>}
+                {orders.slice(0, 5).map((o) => (
+                  <div key={o.id as string} style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
+                    <span style={{ color: "var(--gold)" }}>#{o.bill_no as string}</span>
+                    <span style={{ color: "var(--muted)" }}>₹{(o.total as number) || 0}</span>
+                    <span style={{ color: statusColor[o.order_status as string] || "#666" }}>{(o.order_status as string) || "pending"}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* ─── PRODUCTS TAB ─── */}
           {tab === "products" && (
             <>

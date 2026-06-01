@@ -81,8 +81,12 @@ create table if not exists profiles (
   state text,
   pincode text,
   customer_upi text,
+  role text default 'customer',
   updated_at timestamptz default now()
 );
+
+-- Add role column if upgrading from old schema
+alter table profiles add column if not exists role text default 'customer';
 
 -- =============================================
 -- ROW LEVEL SECURITY

@@ -10,16 +10,18 @@ import {
   loadProfileFromSupabase,
 } from "../lib/db";
 import type { ProfileData } from "../lib/db";
+import { getUserRole } from "../lib/db";
 
 export default function Profile() {
   const [user, setUser] = useState<{ name?: string; email?: string }>({});
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [userRole, setUserRole] = useState("customer");
   const [form, setForm] = useState<ProfileData>({
     name: "", phone: "", email: "",
     address: "", city: "", state: "", pincode: "",
-    customerUpi: "",
+    customerUpi: "", role: "customer",
   });
 
   useEffect(() => {
@@ -69,6 +71,7 @@ export default function Profile() {
     }
 
     init();
+    getUserRole().then(setUserRole);
   }, []);
 
   const update = (key: keyof ProfileData, value: string) =>
@@ -144,7 +147,12 @@ export default function Profile() {
                   {(form.name || "C").charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h2 style={{ fontWeight: 400, marginBottom: "8px" }}>{form.name || "Customer"}</h2>
+                  <h2 style={{ fontWeight: 400, marginBottom: "8px", display: "flex", alignItems: "center", gap: 12 }}>
+                    {form.name || "Customer"}
+                    {userRole === "admin" && (
+                      <span style={{ fontSize: ".7rem", background: "var(--gold)", color: "#050505", padding: "3px 10px", fontWeight: 700, letterSpacing: "0.08em", borderRadius: 3 }}>ADMIN</span>
+                    )}
+                  </h2>
                   <p style={{ color: "var(--muted)" }}>{user.email || "Not Provided"}</p>
                 </div>
               </div>
@@ -214,6 +222,15 @@ export default function Profile() {
                         Go to Checkout
                       </button>
                     </Link>
+                    {userRole === "admin" && (
+                      <Link to="/admin">
+                        <button style={{
+                          padding: "16px 30px", border: "1px solid var(--gold)", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 600,
+                        }}>
+                          Admin Panel
+                        </button>
+                      </Link>
+                    )}
                     <button onClick={logout} style={{
                       padding: "16px 30px", border: "1px solid var(--line)", background: "transparent", color: "var(--text)", cursor: "pointer", fontWeight: 600,
                     }}>

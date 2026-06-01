@@ -1,8 +1,9 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BrandWordmark from "./BrandWordmark";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
+import { getUserRole } from "../lib/db";
 
 const links = [
   { to: "/category", label: "Shop" },
@@ -17,18 +18,13 @@ export default function Navbar() {
   const navigate = useNavigate();
   const { cart } = useCart();
   const { wishlist } = useWishlist();
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const [isAdmin] = useState(() => {
-    const raw = localStorage.getItem("nabome-user");
-    if (!raw) return false;
-    try {
-      const user = JSON.parse(raw);
-      return user.email === import.meta.env.VITE_ADMIN_EMAIL;
-    } catch {
-      return false;
-    }
-  });
+
+  useEffect(() => {
+    getUserRole().then((role) => setIsAdmin(role === "admin"));
+  }, []);
 
   const submitSearch = () => {
     if (search.trim()) {

@@ -290,6 +290,7 @@ export type ProfileData = {
   state: string;
   pincode: string;
   customerUpi: string;
+  role: string;
 };
 
 export function loadProfile(): ProfileData {
@@ -304,7 +305,7 @@ export function loadProfile(): ProfileData {
   return {
     name: "", phone: "", email: "",
     address: "", city: "", state: "", pincode: "",
-    customerUpi: "",
+    customerUpi: "", role: "customer",
   };
 }
 
@@ -319,6 +320,9 @@ export async function saveProfileToSupabase(data: ProfileData) {
   const userId = session?.session?.user?.id;
   if (!userId) return;
 
+  const isAdmin = data.email === import.meta.env.VITE_ADMIN_EMAIL;
+  const role = isAdmin ? "admin" : (data.role || "customer");
+
   await supabase.from("profiles").upsert(
     {
       id: userId,
@@ -330,6 +334,7 @@ export async function saveProfileToSupabase(data: ProfileData) {
       state: data.state,
       pincode: data.pincode,
       customer_upi: data.customerUpi,
+      role,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "id" }
@@ -360,7 +365,57 @@ export async function loadProfileFromSupabase(): Promise<ProfileData | null> {
     state: data.state || "",
     pincode: data.pincode || "",
     customerUpi: data.customer_upi || "",
+    role: data.role || "customer",
   };
+}
+
+// ─── ROLE HELPERS ─────────────────────────────────────
+
+export async function getUserRole(): Promise<string> {
+  const local = JSON.parse(localStorage.getItem("nabome-user") || "{}");
+  if (!supabase) return local.email === import.meta.env.VITE_ADMIN_EMAIL ? "admin" : "customer";
+
+  const { data: session } = await supabase.auth.getSession();
+  const userId = session?.session?.user?.id;
+  if (!userId) return local.email === import.meta.env.VITE_ADMIN_EMAIL ? "admin" : "customer";
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+
+  if (data?.role === "admin") return "admin";
+
+  const email = session?.session?.user?.email || "";
+  if (email === import.meta.env.VITE_ADMIN_EMAIL) return "admin";
+
+  return "customer";
+}
+
+export async function seedAdminRole(userId: string, email: string) {
+  if (!supabase) return;
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+  if (!adminEmail || email !== adminEmail) return;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("id", userId)
+    .single();
+
+  if (data) {
+    await supabase
+      .from("profiles")
+      .update({ role: "admin", email })
+      .eq("id", userId);
+  } else {
+    await supabase.from("profiles").insert({
+      id: userId,
+      email,
+      role: "admin",
+    });
+  }
 }
 
 // ─── NEWSLETTER ────────────────────────────────────────

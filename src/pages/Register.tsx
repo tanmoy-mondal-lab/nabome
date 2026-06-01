@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
+import { seedAdminRole } from "../lib/db";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export default function Register() {
 
     try {
       if (supabase) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { name } },
@@ -39,12 +40,12 @@ export default function Register() {
           JSON.stringify({ name, email })
         );
 
-        alert(
-          supabase
-            ? "Account created! Check your email to confirm, then login."
-            : "Account created!"
-        );
-        navigate(supabase ? "/login" : "/profile");
+        if (data?.user?.id) {
+          await seedAdminRole(data.user.id, email);
+        }
+
+        alert("Account created! Check your email to confirm, then login.");
+        navigate("/login");
       } else {
         localStorage.setItem(
           "nabome-user",

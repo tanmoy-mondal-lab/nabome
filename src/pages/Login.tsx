@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
+import { getUserRole, seedAdminRole } from "../lib/db";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function Login() {
 
     try {
       if (supabase) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
@@ -37,7 +38,12 @@ export default function Login() {
           JSON.stringify({ email })
         );
 
-        navigate("/profile");
+        if (data?.session?.user?.id) {
+          await seedAdminRole(data.session.user.id, email);
+        }
+
+        const role = await getUserRole();
+        navigate(role === "admin" ? "/admin" : "/profile");
       } else {
         localStorage.setItem(
           "nabome-user",
