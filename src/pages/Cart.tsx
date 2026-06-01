@@ -1,7 +1,9 @@
 import SEO from "../components/SEO";
 import Navbar from "../components/Navbar";
 import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
 import { Link } from "react-router-dom";
+import { useToast } from "../components/Toast";
 
 export default function Cart() {
   const {
@@ -10,6 +12,8 @@ export default function Cart() {
     decreaseQuantity,
     removeItem,
   } = useCart();
+  const wishlistRef = useWishlist();
+  const { showToast } = useToast();
 
   const total = cart.reduce(
     (sum, item) =>
@@ -372,28 +376,51 @@ export default function Cart() {
                             </p>
                           </div>
 
-                          <button
-                            onClick={() =>
-                              removeItem(
-                                item.id,
-                                item.variantId
-                              )
-                            }
-                            style={{
-                              border:
-                                "1px solid var(--line)",
-                              background:
-                                "transparent",
-                              padding:
-                                "12px 18px",
-                              cursor:
-                                "pointer",
-                              color:
-                                "var(--muted)",
-                            }}
-                          >
-                            Remove
-                          </button>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                              <button
+                                onClick={() => {
+                                  // Move to wishlist logic
+                                  wishlistRef.current?.addToWishlist({
+                                    id: item.id,
+                                    name: item.name,
+                                    price: item.price,
+                                    image: item.image,
+                                    category: "Cart Item"
+                                  });
+                                  removeItem(item.id, item.variantId);
+                                  showToast("Moved to wishlist");
+                                }}
+                                style={{
+                                  width: "36px",
+                                  height: "36px",
+                                  border: "1px solid var(--line)",
+                                  background: "transparent",
+                                  color: "var(--text)",
+                                  cursor: "pointer",
+                                  fontSize: "1rem",
+                                  borderRadius: "4px",
+                                }}
+                              >
+                                ♥
+                              </button>
+                              <button
+                                onClick={() =>
+                                  removeItem(
+                                    item.id,
+                                    item.variantId
+                                  )
+                                }
+                                style={{
+                                  border: "1px solid var(--line)",
+                                  background: "transparent",
+                                  padding: "12px 18px",
+                                  cursor: "pointer",
+                                  color: "var(--muted)",
+                                }}
+                              >
+                                Remove
+                              </button>
+                            </div>
                         </div>
                       </div>
                     </div>
