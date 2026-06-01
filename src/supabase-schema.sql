@@ -214,32 +214,70 @@ create table if not exists cart_items (
 );
 
 -- =============================================
--- ROW LEVEL SECURITY
+-- ROW LEVEL SECURITY (all idempotent — safe to re-run)
 -- =============================================
-alter table products enable row level security;
-alter table product_variants enable row level security;
-alter table product_images enable row level security;
-alter table customers enable row level security;
-alter table addresses enable row level security;
-alter table orders enable row level security;
-alter table order_items enable row level security;
-alter table order_status_history enable row level security;
-alter table inventory_movements enable row level security;
-alter table reviews enable row level security;
-alter table coupons enable row level security;
-alter table newsletter_subscribers enable row level security;
-alter table profiles enable row level security;
-alter table wishlists enable row level security;
-alter table carts enable row level security;
-alter table cart_items enable row level security;
+do $$ begin
+  execute 'alter table if exists products enable row level security';
+  execute 'alter table if exists product_variants enable row level security';
+  execute 'alter table if exists product_images enable row level security';
+  execute 'alter table if exists customers enable row level security';
+  execute 'alter table if exists addresses enable row level security';
+  execute 'alter table if exists orders enable row level security';
+  execute 'alter table if exists order_items enable row level security';
+  execute 'alter table if exists order_status_history enable row level security';
+  execute 'alter table if exists inventory_movements enable row level security';
+  execute 'alter table if exists reviews enable row level security';
+  execute 'alter table if exists coupons enable row level security';
+  execute 'alter table if exists newsletter_subscribers enable row level security';
+  execute 'alter table if exists profiles enable row level security';
+  execute 'alter table if exists wishlists enable row level security';
+  execute 'alter table if exists carts enable row level security';
+  execute 'alter table if exists cart_items enable row level security';
+end $$;
 
--- PUBLIC READ
+-- Drop all existing policies first (idempotent)
+do $$ begin
+  drop policy if exists "Products public read" on products;
+  drop policy if exists "Product variants public read" on product_variants;
+  drop policy if exists "Product images public read" on product_images;
+  drop policy if exists "Reviews public read approved" on reviews;
+  drop policy if exists "Products write for authed" on products;
+  drop policy if exists "Products update for authed" on products;
+  drop policy if exists "Products delete for authed" on products;
+  drop policy if exists "Variants write for authed" on product_variants;
+  drop policy if exists "Variants update for authed" on product_variants;
+  drop policy if exists "Variants delete for authed" on product_variants;
+  drop policy if exists "Images write for authed" on product_images;
+  drop policy if exists "Customers insert anyone" on customers;
+  drop policy if exists "Customers read own" on customers;
+  drop policy if exists "Addresses insert anyone" on addresses;
+  drop policy if exists "Addresses read own" on addresses;
+  drop policy if exists "Addresses update own" on addresses;
+  drop policy if exists "Addresses delete own" on addresses;
+  drop policy if exists "Orders insert anyone" on orders;
+  drop policy if exists "Orders read own" on orders;
+  drop policy if exists "Orders update for authed" on orders;
+  drop policy if exists "Order items insert" on order_items;
+  drop policy if exists "Order items read" on order_items;
+  drop policy if exists "Status history insert" on order_status_history;
+  drop policy if exists "Status history read" on order_status_history;
+  drop policy if exists "Inventory movements read" on inventory_movements;
+  drop policy if exists "Inventory movements insert" on inventory_movements;
+  drop policy if exists "Anyone can subscribe" on newsletter_subscribers;
+  drop policy if exists "Users insert own profile" on profiles;
+  drop policy if exists "Users update own profile" on profiles;
+  drop policy if exists "Users read own profile" on profiles;
+  drop policy if exists "Wishlists manage own" on wishlists;
+  drop policy if exists "Carts manage own" on carts;
+  drop policy if exists "Cart items manage own" on cart_items;
+end $$;
+
+-- Recreate all policies
 create policy "Products public read" on products for select using (true);
 create policy "Product variants public read" on product_variants for select using (true);
 create policy "Product images public read" on product_images for select using (true);
 create policy "Reviews public read approved" on reviews for select using (is_approved = true or auth.role() = 'authenticated');
 
--- AUTHENTICATED WRITE (admin via dashboard)
 create policy "Products write for authed" on products for insert with check (auth.role() = 'authenticated');
 create policy "Products update for authed" on products for update using (auth.role() = 'authenticated');
 create policy "Products delete for authed" on products for delete using (auth.role() = 'authenticated');
@@ -248,45 +286,35 @@ create policy "Variants update for authed" on product_variants for update using 
 create policy "Variants delete for authed" on product_variants for delete using (auth.role() = 'authenticated');
 create policy "Images write for authed" on product_images for insert with check (auth.role() = 'authenticated');
 
--- CUSTOMERS
 create policy "Customers insert anyone" on customers for insert with check (true);
-create policy "Customers read own" on customers for select using (auth.role() = 'authenticated' or id::text = current_setting('request.jwt.claims', true)::json->>'sub');
+create policy "Customers read own" on customers for select using (auth.role() = 'authenticated');
 
--- ADDRESSES
 create policy "Addresses insert anyone" on addresses for insert with check (true);
 create policy "Addresses read own" on addresses for select using (auth.role() = 'authenticated');
 create policy "Addresses update own" on addresses for update using (auth.role() = 'authenticated');
 create policy "Addresses delete own" on addresses for delete using (auth.role() = 'authenticated');
 
--- ORDERS
 create policy "Orders insert anyone" on orders for insert with check (true);
 create policy "Orders read own" on orders for select using (auth.role() = 'authenticated' or user_email = current_setting('request.jwt.claims', true)::json->>'email');
 create policy "Orders update for authed" on orders for update using (auth.role() = 'authenticated');
 
--- ORDER ITEMS
 create policy "Order items insert" on order_items for insert with check (true);
 create policy "Order items read" on order_items for select using (true);
 
--- ORDER STATUS HISTORY
 create policy "Status history insert" on order_status_history for insert with check (true);
 create policy "Status history read" on order_status_history for select using (true);
 
--- INVENTORY
 create policy "Inventory movements read" on inventory_movements for select using (auth.role() = 'authenticated');
 create policy "Inventory movements insert" on inventory_movements for insert with check (auth.role() = 'authenticated');
 
--- NEWSLETTER
 create policy "Anyone can subscribe" on newsletter_subscribers for insert with check (true);
 
--- PROFILES
 create policy "Users insert own profile" on profiles for insert with check (auth.uid() = id);
 create policy "Users update own profile" on profiles for update using (auth.uid() = id);
 create policy "Users read own profile" on profiles for select using (auth.uid() = id);
 
--- WISHLISTS
 create policy "Wishlists manage own" on wishlists for all using (auth.role() = 'authenticated');
 
--- CARTS
 create policy "Carts manage own" on carts for all using (auth.role() = 'authenticated');
 create policy "Cart items manage own" on cart_items for all using (true);
 
