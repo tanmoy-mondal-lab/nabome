@@ -8,6 +8,8 @@ import { createOrder } from "../lib/db";
 import type { CustomerData } from "../lib/db";
 import { supabase } from "../lib/supabase";
 import { loadProfile, saveProfileLocally, saveProfileToSupabase } from "../lib/db";
+import { sendOrderConfirmation, sendAdminOrderNotification, type BillData } from "../lib/email";
+import { useToast } from "../components/Toast";
 
 const MERCHANT_UPI = "mondaltanmoy230@oksbi";
 const MERCHANT_NAME = "নবME";
@@ -33,6 +35,7 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { cart, clearCart } = useCart();
   const paidRef = useRef(false);
+  const { showToast } = useToast();
 
   const [form, setForm] = useState(() => {
     const saved = loadProfile();
@@ -115,7 +118,28 @@ export default function Checkout() {
       utr: utr || undefined,
     };
 
-    createOrder(billWithMeta);
+    const billNo = await createOrder(billWithMeta);
+
+    // Send order confirmation email (non-blocking — don't fail the order if email fails)
+    if (billNo && bill.customer.email) {
+      sendOrderConfirmation(bill as BillData)
+        .then((result) => {
+          if (result.ok) {
+            showToast(`Confirmation email sent to ${bill.customer.email}`);
+          } else if (!result.skipped) {
+            console.warn("Order confirmation email failed:", result.error);
+          }
+        })
+        .catch((err) => console.error("Email send error:", err));
+
+      // Notify admin of new order
+      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL as string | undefined;
+      if (adminEmail) {
+        sendAdminOrderNotification(bill as BillData, adminEmail).catch((err) =>
+          console.error("Admin notification error:", err)
+        );
+      }
+    }
 
     localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
     localStorage.removeItem("nabome-cart");
