@@ -75,7 +75,7 @@ export default function Footer() {
       <div className="container footer-bottom">
         <span>© 2026 নবME. All rights reserved.</span>
         <span className="bengali-footer-date">{bengaliDate}</span>
-        <span>Deployment ready for www.nabome.online</span>
+        <span>Premium Bengali streetwear for the modern everyday.</span>
       </div>
     </footer>
   );

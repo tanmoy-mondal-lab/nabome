@@ -37,7 +37,7 @@ export default function Home() {
       <Navbar />
       <main className="page">
         <section className="hero-premium">
-          <img src="/images/products/product1.jpeg" alt="নবME Bengali streetwear editorial" />
+          <img src="/images/hero/hero-banner.webp" alt="নবME Bengali streetwear editorial" />
           <div className="hero-overlay" />
           <div className="container hero-content">
             <p className="eyebrow">Spring Summer 2026</p>
