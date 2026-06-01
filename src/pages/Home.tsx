@@ -31,7 +31,7 @@ export default function Home() {
           "@type": "Organization",
           name: "নবME",
           url: "https://www.nabome.online",
-          sameAs: ["https://instagram.com/nabome.online"],
+          sameAs: ["https://instagram.com/nabome.online", "https://www.facebook.com/share/1DbpYKWoZ1/"],
         }}
       />
       <Navbar />

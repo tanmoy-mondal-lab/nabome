@@ -262,6 +262,89 @@ export async function sendOrderConfirmation(bill: BillData): Promise<SendEmailRe
   }
 }
 
+// ─── PASSWORD RESET ─────────────────────────────────────
+
+const RESET_BASE_URL = "https://www.nabome.online/profile";
+
+export type ResetResult = { emailSent: boolean; whatsappSent: boolean; phoneFound: boolean; error?: string };
+
+export async function sendPasswordResetViaBrevo(email: string, name?: string): Promise<SendEmailResult> {
+  if (!BREVO_API_KEY) {
+    return { ok: false, error: "Email service not configured", skipped: true };
+  }
+  try {
+    const response = await fetch(BREVO_API_URL, {
+      method: "POST",
+      headers: { "api-key": BREVO_API_KEY, "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+        to: [{ email, name: name || email }],
+        subject: "Password Reset — নবME",
+        htmlContent: `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#e8e8e8;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:32px 16px;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#121212;border:1px solid #2a2a2a;">
+        <tr><td style="background:#050505;padding:36px 40px;text-align:center;border-bottom:1px solid #d4af37;">
+          <div style="font-family:'Georgia',serif;font-size:36px;font-weight:700;letter-spacing:6px;color:#d4af37;margin-bottom:6px;">নবME</div>
+          <div style="color:#888;font-size:11px;letter-spacing:3px;text-transform:uppercase;">Premium Bengali Streetwear</div>
+        </td></tr>
+        <tr><td style="padding:40px 40px 20px;text-align:center;">
+          <div style="display:inline-block;padding:6px 14px;background:#d4af37;color:#050505;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;">Password Reset</div>
+          <h1 style="margin:0 0 12px;color:#fff;font-size:28px;font-weight:300;">Reset Your Password</h1>
+          <p style="margin:0;color:#888;font-size:14px;line-height:1.6;">Click the button below to reset your password. This link is valid for 1 hour.</p>
+        </td></tr>
+        <tr><td style="padding:0 40px 30px;text-align:center;">
+          <a href="${RESET_BASE_URL}" style="display:inline-block;padding:14px 36px;background:#d4af37;color:#050505;text-decoration:none;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Reset Password</a>
+        </td></tr>
+        <tr><td style="background:#050505;padding:30px 40px;text-align:center;border-top:1px solid #2a2a2a;">
+          <p style="margin:0 0 8px;color:#d4af37;font-size:13px;font-weight:600;">নবME — Designed in Bengal, Built for Everywhere</p>
+          <p style="margin:12px 0 0;color:#444;font-size:11px;">© 2026 নবME. All rights reserved.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
+        textContent: `নবME Password Reset\n\nClick this link to reset your password: ${RESET_BASE_URL}\n\nThis link is valid for 1 hour.\n\n© 2026 নবME. All rights reserved.`,
+        tags: ["password-reset"],
+      }),
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      return { ok: false, error: `Brevo API ${response.status}: ${errorText}` };
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+export async function sendWhatsAppResetLink(phone: string, name?: string): Promise<boolean> {
+  const apiKey = BREVO_API_KEY;
+  if (!apiKey) return false;
+  const WA_API_URL = "https://api.brevo.com/v3/whatsapp/sendMessage";
+  const senderNumber = import.meta.env.VITE_WHATSAPP_SENDER || "+919163854706";
+  try {
+    const response = await fetch(WA_API_URL, {
+      method: "POST",
+      headers: { "api-key": apiKey, "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        senderNumber,
+        contactNumber: phone.startsWith("+") ? phone : `+91${phone}`,
+        content: {
+          text: `নবME Password Reset\n\nHey ${name || "there"}, your password reset link is ready.\n\nClick here: ${RESET_BASE_URL}\n\nThis link expires in 1 hour.\n\n— নবME`,
+        },
+      }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function sendAdminOrderNotification(
   bill: BillData,
   adminEmail: string

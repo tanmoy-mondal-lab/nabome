@@ -25,4 +25,5 @@
   <url><loc>https://www.nabome.online/register</loc><priority>0.5</priority></url>
   <url><loc>https://www.nabome.online/admin</loc><priority>0.5</priority></url>
   <url><loc>https://www.nabome.online/profile</loc><priority>0.5</priority></url>
+  <url><loc>https://www.nabome.online/forgot-password</loc><priority>0.3</priority></url>
 </urlset>

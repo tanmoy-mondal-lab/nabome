@@ -64,6 +64,7 @@ export default function Footer() {
           <p className="lede">Premium Bengali streetwear crafted for modern everyday expression.</p>
           <div className="social-row">
             <a href="https://instagram.com/nabome.online" target="_blank" rel="noreferrer">Instagram</a>
+            <a href="https://www.facebook.com/share/1DbpYKWoZ1/" target="_blank" rel="noreferrer">Facebook</a>
             <a href="https://wa.me/919163854706" target="_blank" rel="noreferrer">WhatsApp</a>
           </div>
         </div>

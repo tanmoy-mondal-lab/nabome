@@ -169,6 +169,20 @@ export default function About() {
               }}>
                 Instagram
               </a>
+              <a href="https://www.facebook.com/share/1DbpYKWoZ1/" target="_blank" rel="noreferrer" style={{ 
+                display: "inline-flex", 
+                alignItems: "center", 
+                gap: 8, 
+                padding: "12px 24px", 
+                border: "1px solid var(--line)", 
+                background: "transparent", 
+                color: "var(--text)", 
+                fontWeight: 500,
+                fontSize: "0.95rem",
+                borderRadius: 4
+              }}>
+                Facebook
+              </a>
               <a href="https://wa.me/919163854706" target="_blank" rel="noreferrer" style={{ 
                 display: "inline-flex", 
                 alignItems: "center", 
