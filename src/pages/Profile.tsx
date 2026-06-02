@@ -9,7 +9,8 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 import { neon, isNeonConnected } from "../lib/neon";
 import { uploadImage } from "../lib/cloudinary";
-import { getAddresses, createAddress, updateAddress, deleteAddress, setDefaultAddress, getOrdersByCustomer, type Address } from "../lib/db";
+import { getOrdersByCustomer } from "../lib/db";
+import AddressManager from "../components/AddressManager";
 
 const STATE_LIST = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
@@ -69,15 +70,11 @@ export default function Profile() {
     avatar_url: "",
   });
   const [orders, setOrders] = useState<OrderRow[]>([]);
-  const [addresses, setAddresses] = useState<Address[]>([]);
-  const [addressForm, setAddressForm] = useState<Partial<Address> & { isEditing?: string }>({});
-  const [showAddressForm, setShowAddressForm] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!customer) return;
     getOrdersByCustomer(customer.id).then((data) => setOrders(data || [])).catch(() => {});
-    getAddresses(customer.id).then((data) => setAddresses(data || [])).catch(() => {});
   }, [customer]);
 
   useEffect(() => {
@@ -143,50 +140,6 @@ export default function Profile() {
     setSaving(false);
   };
 
-  const handleSaveAddress = async () => {
-    if (!customer || !supabase) return;
-    const a = addressForm;
-    if (!a.label || !a.name || !a.phone || !a.address || !a.city || !a.district || !a.state || !a.pincode) {
-      setError("All address fields except email are required");
-      return;
-    }
-    setSaving(true);
-    setError("");
-    if (a.isEditing) {
-      await updateAddress(a.isEditing, {
-        label: a.label, name: a.name, phone: a.phone, email: a.email,
-        address: a.address, city: a.city, district: a.district, state: a.state, pincode: a.pincode,
-        customer_id: customer.id,
-      });
-    } else {
-      await createAddress({
-        customer_id: customer.id, label: a.label || "Home", name: a.name, phone: a.phone,
-        email: a.email || undefined, address: a.address, city: a.city, district: a.district, state: a.state, pincode: a.pincode,
-      });
-    }
-    if (!customer) return;
-    const data = await getAddresses(customer.id);
-    setAddresses(data || []);
-    setShowAddressForm(false);
-    setAddressForm({});
-    setSaving(false);
-  };
-
-  const handleDeleteAddress = async (id: string) => {
-    if (!confirm("Delete this address?")) return;
-    await deleteAddress(id);
-    if (!customer) return;
-    const data = await getAddresses(customer.id);
-    setAddresses(data || []);
-  };
-
-  const handleSetDefault = async (id: string) => {
-    if (!customer) return;
-    await setDefaultAddress(id, customer.id);
-    const data = await getAddresses(customer.id);
-    setAddresses(data || []);
-  };
-
   const handleLogout = () => {
     authLogout();
     logout();
@@ -213,9 +166,7 @@ export default function Profile() {
     );
   }
 
-  const handleLogoutAll = () => {
-    handleLogout();
-  };
+
 
   const tabBtn = (t: Tab, label: string) => (
     <button
@@ -331,7 +282,7 @@ export default function Profile() {
                     <Link to="/change-password" style={{ padding: "12px 24px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontWeight: 500, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8, borderRadius: "var(--radius)", fontSize: ".85rem" }}>
                       <Lock size={16} /> Change Password
                     </Link>
-                    <button onClick={handleLogoutAll} style={{ padding: "12px 24px", border: "1px solid var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontWeight: 500, borderRadius: "var(--radius)", display: "inline-flex", alignItems: "center", gap: 8, fontSize: ".85rem" }}>
+                    <button onClick={handleLogout} style={{ padding: "12px 24px", border: "1px solid var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontWeight: 500, borderRadius: "var(--radius)", display: "inline-flex", alignItems: "center", gap: 8, fontSize: ".85rem" }}>
                       <LogOut size={16} /> Logout
                     </button>
                   </div>
@@ -503,95 +454,8 @@ export default function Profile() {
 
           {/* ══════════════════ ADDRESSES TAB ══════════════════ */}
           {tab === "addresses" && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ maxWidth: 640 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
-                <h3 style={{ fontWeight: 500 }}>Saved Addresses</h3>
-                <button
-                  onClick={() => { setShowAddressForm(true); setAddressForm({}); setError(""); }}
-                  className="premium-button" style={{ padding: "0 20px", fontSize: ".85rem" }}
-                >
-                  + Add New Address
-                </button>
-              </div>
-
-              {addresses.length === 0 && !showAddressForm && (
-                <div className="glass" style={{ padding: 48, textAlign: "center", borderRadius: "var(--radius-xl)" }}>
-                  <p style={{ color: "var(--muted)" }}>No saved addresses. Add one above.</p>
-                </div>
-              )}
-
-              <div style={{ display: "grid", gap: 16 }}>
-                {addresses.map((addr) => (
-                  <div key={addr.id} style={{ border: "1px solid var(--line)", padding: 20, background: "var(--surface)", borderRadius: "var(--radius)", position: "relative" }}>
-                    {addr.is_default && (
-                      <span style={{ position: "absolute", top: 12, right: 12, fontSize: ".7rem", color: "var(--gold)", fontWeight: 600, letterSpacing: "1px" }}>
-                        DEFAULT
-                      </span>
-                    )}
-                    <p style={{ fontWeight: 600, marginBottom: 6, fontSize: ".95rem" }}>
-                      {addr.label}
-                    </p>
-                    <p style={{ color: "var(--text)", fontSize: ".9rem", lineHeight: 1.6 }}>
-                      {addr.name}<br />
-                      {addr.address}<br />
-                      {addr.city}, {addr.district && `${addr.district}, `}{addr.state} — {addr.pincode}<br />
-                      {addr.phone}
-                    </p>
-                    <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
-                      <button onClick={() => {
-                        setAddressForm({ ...addr, isEditing: addr.id });
-                        setShowAddressForm(true);
-                        setError("");
-                      }} style={{ fontSize: ".85rem", color: "var(--gold)", cursor: "pointer", background: "none", border: "none", fontWeight: 500 }}>
-                        Edit
-                      </button>
-                      <button onClick={() => handleDeleteAddress(addr.id)} style={{ fontSize: ".85rem", color: "#e74c3c", cursor: "pointer", background: "none", border: "none", fontWeight: 500 }}>
-                        Delete
-                      </button>
-                      {!addr.is_default && (
-                        <button onClick={() => handleSetDefault(addr.id)} style={{ fontSize: ".85rem", color: "var(--muted)", cursor: "pointer", background: "none", border: "none", fontWeight: 500 }}>
-                          Set as Default
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {showAddressForm && (
-                <div style={{ border: "1px solid var(--line)", padding: 24, background: "var(--surface)", borderRadius: "var(--radius)", marginTop: 20 }}>
-                  <h4 style={{ fontWeight: 500, marginBottom: 18 }}>
-                    {addressForm.isEditing ? "Edit Address" : "New Address"}
-                  </h4>
-                  <div style={{ display: "grid", gap: 12 }}>
-                    <input placeholder="Label (e.g. Home, Office) *" value={addressForm.label || ""} onChange={(e) => setAddressForm((f) => ({ ...f, label: e.target.value }))} style={inputS} />
-                    <input placeholder="Receiver Name *" value={addressForm.name || ""} onChange={(e) => setAddressForm((f) => ({ ...f, name: e.target.value }))} style={inputS} />
-                    <input placeholder="Receiver Phone *" value={addressForm.phone || ""} onChange={(e) => setAddressForm((f) => ({ ...f, phone: e.target.value }))} style={inputS} />
-                    <input placeholder="Email (optional)" value={addressForm.email || ""} onChange={(e) => setAddressForm((f) => ({ ...f, email: e.target.value }))} style={inputS} />
-                    <textarea placeholder="Full Address *" value={addressForm.address || ""} onChange={(e) => setAddressForm((f) => ({ ...f, address: e.target.value }))} style={{ ...inputS, resize: "vertical", minHeight: 60 }} />
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                      <input placeholder="City *" value={addressForm.city || ""} onChange={(e) => setAddressForm((f) => ({ ...f, city: e.target.value }))} style={inputS} />
-                      <input placeholder="District *" value={addressForm.district || ""} onChange={(e) => setAddressForm((f) => ({ ...f, district: e.target.value }))} style={inputS} />
-                    </div>
-                    <select value={addressForm.state || ""} onChange={(e) => setAddressForm((f) => ({ ...f, state: e.target.value }))} style={selectS}>
-                      <option value="">Select State *</option>
-                      {STATE_LIST.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <input placeholder="Pincode *" value={addressForm.pincode || ""} onChange={(e) => setAddressForm((f) => ({ ...f, pincode: e.target.value }))} style={inputS} />
-                    {error && <p style={{ color: "#e74c3c", fontSize: ".9rem" }}>{error}</p>}
-                    <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
-                      <button onClick={handleSaveAddress} disabled={saving}
-                        style={{ padding: "14px 28px", border: "none", background: saving ? "var(--surface-strong)" : "var(--gold)", color: saving ? "var(--muted)" : "#050505", cursor: saving ? "not-allowed" : "pointer", fontWeight: 600, borderRadius: "var(--radius)" }}>
-                        {saving ? "Saving..." : "Save Address"}
-                      </button>
-                      <button onClick={() => { setShowAddressForm(false); setAddressForm({}); setError(""); }}
-                        style={{ padding: "14px 28px", border: "1px solid var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontWeight: 500, borderRadius: "var(--radius)" }}>
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass" style={{ padding: 28, borderRadius: "var(--radius-xl)", maxWidth: 640 }}>
+              <AddressManager mode="manage" />
             </motion.div>
           )}
         </section>

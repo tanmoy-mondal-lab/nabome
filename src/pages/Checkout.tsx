@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
-import { Store, Edit3, Trash2, Star } from "lucide-react";
+import { Store } from "lucide-react";
 import Navbar from "../components/Navbar";
 import SEO from "../components/SEO";
 import { useCart } from "../context/CartContext";
@@ -9,11 +9,11 @@ import { useCustomer } from "../context/CustomerContext";
 import { useDelivery } from "../context/DeliveryContext";
 import { useAnalytics } from "../context/AnalyticsContext";
 import type { CustomerData, Address } from "../lib/db";
-import { getAddresses, createAddress, updateAddress, deleteAddress } from "../lib/db";
 import { sendOrderConfirmation, sendAdminOrderNotification, type BillData } from "../lib/email";
 import { useToast } from "../components/Toast";
 import CouponInput from "../components/CouponInput";
 import type { CouponRedemption } from "../types/order";
+import AddressManager from "../components/AddressManager";
 
 const MERCHANT_UPI = "mondaltanmoy230@oksbi";
 const MERCHANT_NAME = "নবME";
@@ -65,11 +65,8 @@ export default function Checkout() {
   const paidRef = useRef(false);
   const { showToast } = useToast();
 
-  const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
   const [delivery, setDelivery] = useState(emptyDelivery);
-  const [saving, setSaving] = useState(false);
 
   const [paymentMethod, setPaymentMethod] = useState<"whatsapp" | "upi">("whatsapp");
   const [upiStep, setUpiStep] = useState<"idle" | "paying" | "confirming" | "done">("idle");
@@ -80,7 +77,6 @@ export default function Checkout() {
 
   const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
   const [coupon, setCoupon] = useState<CouponRedemption | null>(null);
-  const [editingAddress, setEditingAddress] = useState<string | null>(null);
 
   const vendorShops = ["নবME Originals", "Bengal Streetwear", "Kolkata Collective", "Urban Ethnik", "Heritage Threads"];
   const vendorNames = ["Rahul Sharma", "Ananya Das", "Arjun Roy", "Priya Banerjee", "Sayan Mukherjee"];
@@ -102,30 +98,23 @@ export default function Checkout() {
   const tax = Math.round((subtotal - couponDiscount) * 0.05);
   const grandTotal = subtotal - couponDiscount + shipping + tax;
 
-  const loadAddr = useCallback(async () => {
-    if (!customer) return;
-    const data = await getAddresses(customer.id);
-    setAddresses(data || []);
-    const def = (data || []).find((a) => a.is_default) || (data || [])[0];
-    if (def) {
-      setSelectedAddressId(def.id);
-      setDelivery({
-        name: def.name,
-        phone: def.phone,
-        email: def.email || "",
-        address: def.address,
-        district: def.district,
-        city: def.city,
-        state: def.state,
-        pincode: def.pincode,
-      });
-    }
-  }, [customer]);
-
   useEffect(() => {
-    loadAddr();
     trackBeginCheckout(total, cart.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })));
-  }, [loadAddr]);
+  }, []);
+
+  const handleAddressSelect = useCallback((addr: Address) => {
+    setSelectedAddressId(addr.id);
+    setDelivery({
+      name: addr.name,
+      phone: addr.phone,
+      email: addr.email || "",
+      address: addr.address,
+      district: addr.district,
+      city: addr.city,
+      state: addr.state,
+      pincode: addr.pincode,
+    });
+  }, []);
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -198,70 +187,6 @@ export default function Checkout() {
     localStorage.removeItem("nabome-cart");
     clearCart();
   }
-
-  const handleSelectAddress = (addr: Address) => {
-    setSelectedAddressId(addr.id);
-    setDelivery({
-      name: addr.name,
-      phone: addr.phone,
-      email: addr.email || "",
-      address: addr.address,
-      district: addr.district,
-      city: addr.city,
-      state: addr.state,
-      pincode: addr.pincode,
-    });
-    setShowAddForm(false);
-  };
-
-  const handleAddNewToggle = () => {
-    setShowAddForm(true);
-    setSelectedAddressId(null);
-    if (customer) {
-      setDelivery({
-        name: customer.name || "",
-        phone: customer.phone || "",
-        email: customer.email || "",
-        address: "",
-        district: "",
-        city: "",
-        state: "",
-        pincode: "",
-      });
-    }
-  };
-
-  const handleSaveNewAddress = async () => {
-    if (!customer || !validate()) return;
-    setSaving(true);
-    const result = await createAddress({
-      customer_id: customer.id,
-      label: "Home",
-      name: delivery.name,
-      phone: delivery.phone,
-      email: delivery.email || undefined,
-      address: delivery.address,
-      district: delivery.district,
-      city: delivery.city,
-      state: delivery.state,
-      pincode: delivery.pincode,
-    });
-    if (result) {
-      setShowAddForm(false);
-      const data = await getAddresses(customer.id);
-      setAddresses(data || []);
-      const fresh = (data || []).find((a) => a.id === result.id);
-      if (fresh) {
-        setSelectedAddressId(fresh.id);
-        setDelivery({
-          name: fresh.name, phone: fresh.phone, email: fresh.email || "",
-          address: fresh.address, district: fresh.district,
-          city: fresh.city, state: fresh.state, pincode: fresh.pincode,
-        });
-      }
-    }
-    setSaving(false);
-  };
 
   const updateDelivery = (key: keyof typeof emptyDelivery, val: string) =>
     setDelivery((d) => ({ ...d, [key]: val }));
@@ -407,171 +332,42 @@ TOTAL: ₹${grandTotal}
               {/* ── DELIVERY ADDRESS ── */}
               <h2 style={{ marginBottom: "24px", fontWeight: 500 }}>Delivery Address</h2>
 
-              {/* Saved addresses */}
-              {customer && addresses.length > 0 && (
-                <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
-                  {addresses.map((addr) => (
-                    <div
-                      key={addr.id}
-                      onClick={() => handleSelectAddress(addr)}
-                      style={{
-                        padding: 16,
-                        border: selectedAddressId === addr.id ? "2px solid var(--gold)" : "1px solid var(--line)",
-                        background: selectedAddressId === addr.id ? "var(--gold-soft)" : "var(--surface)",
-                        cursor: "pointer",
-                        borderRadius: 8,
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                        <strong style={{ color: "var(--gold)", fontSize: ".85rem", textTransform: "uppercase", letterSpacing: "1px" }}>
-                          {addr.label}
-                          {addr.is_default && <span style={{ color: "var(--muted)", marginLeft: 8, fontWeight: 400, letterSpacing: 0 }}>· Default</span>}
-                        </strong>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          {selectedAddressId === addr.id && (
-                            <span style={{ color: "var(--gold)", fontSize: "1.2rem" }}>✓</span>
-                          )}
-                          <button onClick={(e) => { e.stopPropagation(); setEditingAddress(editingAddress === addr.id ? null : addr.id); }} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", padding: 2 }}>
-                            <Edit3 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                      {editingAddress === addr.id && (
-                        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                          <button onClick={async (e) => { e.stopPropagation(); if (confirm("Delete this address?")) { await deleteAddress(addr.id); loadAddr(); } }} style={{ padding: "4px 10px", border: "1px solid #e74c3c", background: "transparent", color: "#e74c3c", cursor: "pointer", fontSize: ".75rem", borderRadius: 4 }}>
-                            <Trash2 size={12} style={{ marginRight: 4 }} />Delete
-                          </button>
-                          {!addr.is_default && (
-                            <button onClick={async (e) => { e.stopPropagation(); await updateAddress(addr.id, { is_default: true }); loadAddr(); }} style={{ padding: "4px 10px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontSize: ".75rem", borderRadius: 4 }}>
-                            <Star size={12} style={{ marginRight: 4 }} />Set Default
-                          </button>
-                          )}
-                          <button onClick={() => setEditingAddress(null)} style={{ padding: "4px 10px", border: "1px solid var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontSize: ".75rem", borderRadius: 4 }}>
-                            Cancel
-                          </button>
-                        </div>
-                      )}
-                      <p style={{ fontWeight: 600, fontSize: ".95rem" }}>{addr.name}</p>
-                      <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>{addr.phone}</p>
-                      <p style={{ color: "var(--muted)", fontSize: ".85rem", lineHeight: 1.5, marginTop: 4 }}>
-                        {addr.address}, {addr.district ? `${addr.district}, ` : ""}{addr.city}, {addr.state} — {addr.pincode}
-                      </p>
-                    </div>
-                  ))}
+              {customer ? (
+                <div style={{ marginBottom: 32 }}>
+                  <AddressManager mode="select" onSelect={handleAddressSelect} selectedId={selectedAddressId} />
                 </div>
-              )}
-
-              {/* Add new address button or form */}
-              {customer && !showAddForm && (
-                <button onClick={handleAddNewToggle} style={{ width: "100%", padding: "14px", border: "1px dashed var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontWeight: 500, fontSize: ".9rem", marginBottom: 24 }}>
-                  + Add New Address
-                </button>
-              )}
-
-              {/* Address form (shown when no saved addresses, when adding new, or when not logged in) */}
-              {(!customer || showAddForm || addresses.length === 0) && (
+              ) : (
                 <div style={{ display: "grid", gap: "18px", marginBottom: 24 }}>
                   <div>
-                    <input
-                      placeholder="Receiver Full Name"
-                      value={delivery.name}
-                      onChange={(e) => updateDelivery("name", e.target.value)}
-                      style={inputStyle}
-                    />
+                    <input placeholder="Receiver Full Name" value={delivery.name} onChange={(e) => updateDelivery("name", e.target.value)} style={inputStyle} />
                     {fieldMsg("name")}
                   </div>
                   <div>
-                    <input
-                      placeholder="Receiver Phone"
-                      value={delivery.phone}
-                      onChange={(e) => updateDelivery("phone", e.target.value)}
-                      style={inputStyle}
-                    />
+                    <input placeholder="Receiver Phone" value={delivery.phone} onChange={(e) => updateDelivery("phone", e.target.value)} style={inputStyle} />
                     {fieldMsg("phone")}
                   </div>
                   <div>
-                    <input
-                      placeholder="Receiver Email (Optional)"
-                      value={delivery.email}
-                      onChange={(e) => updateDelivery("email", e.target.value)}
-                      style={inputStyle}
-                    />
+                    <input placeholder="Receiver Email (Optional)" value={delivery.email} onChange={(e) => updateDelivery("email", e.target.value)} style={inputStyle} />
                     {fieldMsg("email")}
                   </div>
                   <div>
-                    <textarea
-                      rows={3}
-                      placeholder="Street / Area / Landmark"
-                      value={delivery.address}
-                      onChange={(e) => updateDelivery("address", e.target.value)}
-                      style={{ ...inputStyle, resize: "none" } as React.CSSProperties}
-                    />
+                    <textarea rows={3} placeholder="Street / Area / Landmark" value={delivery.address} onChange={(e) => updateDelivery("address", e.target.value)} style={{ ...inputStyle, resize: "none" } as React.CSSProperties} />
                     {fieldMsg("address")}
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                    <input placeholder="District" value={delivery.district} onChange={(e) => updateDelivery("district", e.target.value)} style={inputStyle} />
                     <div>
-                      <input
-                        placeholder="District"
-                        value={delivery.district}
-                        onChange={(e) => updateDelivery("district", e.target.value)}
-                        style={inputStyle}
-                      />
-                    </div>
-                    <div>
-                      <input
-                        placeholder="City"
-                        value={delivery.city}
-                        onChange={(e) => updateDelivery("city", e.target.value)}
-                        style={inputStyle}
-                      />
+                      <input placeholder="City" value={delivery.city} onChange={(e) => updateDelivery("city", e.target.value)} style={inputStyle} />
                       {fieldMsg("city")}
                     </div>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                    <input placeholder="State" value={delivery.state} onChange={(e) => updateDelivery("state", e.target.value)} style={inputStyle} />
                     <div>
-                      <input
-                        placeholder="State"
-                        value={delivery.state}
-                        onChange={(e) => updateDelivery("state", e.target.value)}
-                        style={inputStyle}
-                      />
-                      {fieldMsg("state")}
-                    </div>
-                    <div>
-                      <input
-                        placeholder="Pincode"
-                        value={delivery.pincode}
-                        onChange={(e) => updateDelivery("pincode", e.target.value)}
-                        style={inputStyle}
-                      />
+                      <input placeholder="Pincode" value={delivery.pincode} onChange={(e) => updateDelivery("pincode", e.target.value)} style={inputStyle} />
                       {fieldMsg("pincode")}
                     </div>
                   </div>
-
-                  {showAddForm && (
-                    <div style={{ display: "flex", gap: 12 }}>
-                      <button
-                        onClick={handleSaveNewAddress}
-                        disabled={saving}
-                        style={{
-                          padding: "14px 28px",
-                          border: "none",
-                          background: "var(--gold)",
-                          color: "#050505",
-                          cursor: "pointer",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {saving ? "Saving..." : "Save Address"}
-                      </button>
-                      <button
-                        onClick={() => { setShowAddForm(false); const def = addresses.find((a) => a.is_default) || addresses[0]; if (def) handleSelectAddress(def); else setDelivery(emptyDelivery); }}
-                        style={{ padding: "14px 28px", border: "1px solid var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontWeight: 500 }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
 
