@@ -1,162 +1,209 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import SEO from "../components/SEO";
+import { motion, AnimatePresence } from "framer-motion";
+import { Mail, ArrowLeft, Send, KeyRound, CheckCircle, AlertCircle, Loader2, Lock } from "lucide-react";
 import Navbar from "../components/Navbar";
-import { supabase } from "../lib/supabase";
-import { sendNewPasswordEmail, sendWhatsAppPassword } from "../lib/email";
+import SEO from "../components/SEO";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../components/Toast";
 
 export default function ForgotPassword() {
+  const { forgotPassword, resetPassword } = useAuth();
+  const { showToast } = useToast();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetDone, setResetDone] = useState(false);
   const [error, setError] = useState("");
-  const [emailStatus, setEmailStatus] = useState<"" | "sent" | "failed">("");
-  const [whatsappStatus, setWhatsappStatus] = useState<"" | "sent" | "not-found" | "failed">("");
 
-  const handleReset = async () => {
-    if (!email) {
-      alert("Enter your email address.");
-      return;
-    }
-    setLoading(true);
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError("");
 
-    try {
-      // 1. Call serverless API to generate and set new password
-      const origin = window.location.origin;
-      const res = await fetch(`${origin}/api/reset-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Failed to reset password");
-        setLoading(false);
-        return;
-      }
-
-      const password = data.password;
-      setNewPassword(password);
-
-      // 2. Send the new password via Brevo email
-      const emailResult = await sendNewPasswordEmail(email, password);
-      setEmailStatus(emailResult.ok ? "sent" : "failed");
-
-      // 3. Look up user's phone and send via WhatsApp
-      let phoneFound = false;
-      if (supabase) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("phone, name")
-          .eq("email", email)
-          .single();
-        if (profile?.phone) {
-          phoneFound = true;
-          const ok = await sendWhatsAppPassword(profile.phone, password, profile.name || undefined);
-          setWhatsappStatus(ok ? "sent" : "failed");
-        } else {
-          const { data: customer } = await supabase
-            .from("customers")
-            .select("phone, name")
-            .eq("email", email)
-            .single();
-          if (customer?.phone) {
-            phoneFound = true;
-            const ok = await sendWhatsAppPassword(customer.phone, password, customer.name || undefined);
-            setWhatsappStatus(ok ? "sent" : "failed");
-          }
-        }
-      }
-      if (!phoneFound) setWhatsappStatus("not-found");
-
-      setSent(true);
-    } catch {
-      setError("Connection error. Check your network and try again.");
+    if (!email.includes("@")) {
+      setError("Enter a valid email address.");
+      return;
     }
+
+    setLoading(true);
+    const ok = await forgotPassword(email);
     setLoading(false);
+
+    if (ok) {
+      setSent(true);
+      showToast("Reset code sent to your email (check mock console)");
+    } else {
+      setError("No account found with that email.");
+    }
   };
 
-  if (sent) {
-    return (
-      <>
-        <SEO title="Password Reset | নবME" description="New password sent." path="/forgot-password" />
-        <Navbar />
-        <main className="page" style={{ display: "grid", minHeight: "70vh", placeItems: "center" }}>
-          <div className="glass" style={{ padding: 48, textAlign: "center", maxWidth: 500 }}>
-            <h1 className="heading" style={{ marginBottom: 16 }}>Password Reset</h1>
-            <p className="lede" style={{ marginBottom: 20 }}>
-              Your new password has been sent to <strong>{email}</strong>.
-            </p>
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
 
-            <div style={{ background: "var(--surface)", border: "1px solid var(--gold)", padding: "20px", marginBottom: 20 }}>
-              <p style={{ color: "var(--muted)", fontSize: ".8rem", marginBottom: 8, letterSpacing: "1px", textTransform: "uppercase" }}>Your new password</p>
-              <p style={{ fontFamily: "'Courier New',monospace", fontSize: "1.4rem", fontWeight: 700, color: "var(--gold)", letterSpacing: "3px", wordBreak: "break-all" }}>{newPassword}</p>
-              <p style={{ color: "var(--muted)", fontSize: ".8rem", marginTop: 8 }}>Save this — it won't be shown again</p>
-            </div>
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
 
-            {emailStatus === "sent" && <p className="lede" style={{ color: "var(--gold)", marginBottom: 8 }}>✓ Password sent to your email</p>}
-            {emailStatus === "failed" && <p className="lede" style={{ color: "#e74c3c", marginBottom: 8 }}>✗ Email delivery unavailable — copy the password above</p>}
+    setLoading(true);
+    const ok = await resetPassword(token, newPassword);
+    setLoading(false);
 
-            {whatsappStatus === "sent" && <p className="lede" style={{ color: "var(--gold)", marginBottom: 8 }}>✓ Password also sent via WhatsApp</p>}
-            {whatsappStatus === "not-found" && (
-              <p className="lede" style={{ color: "var(--muted)", fontSize: ".9rem", marginBottom: 8 }}>
-                No phone number on file — add one in your profile for WhatsApp delivery
-              </p>
-            )}
-            {whatsappStatus === "failed" && <p className="lede" style={{ color: "var(--muted)", fontSize: ".9rem", marginBottom: 8 }}>WhatsApp unavailable — your password is in the email and above</p>}
+    if (ok) {
+      setResetDone(true);
+      showToast("Password reset successful!");
+    } else {
+      setError("Invalid or expired reset code. Try again.");
+    }
+  };
 
-            <Link to="/login" className="premium-button" style={{ display: "inline-flex", marginTop: 24, padding: "0 28px", alignItems: "center" }}>
-              Log In Now
-            </Link>
-          </div>
-        </main>
-      </>
-    );
-  }
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "14px 16px",
+    paddingLeft: 46,
+    border: error ? "1px solid var(--error)" : "1px solid var(--line)",
+    background: "var(--surface)",
+    color: "var(--text)",
+    fontSize: "1rem",
+    outline: "none",
+    borderRadius: "var(--radius)",
+    transition: "border-color var(--transition-fast)",
+  };
+
+  const iconStyle: React.CSSProperties = {
+    position: "absolute",
+    left: 14,
+    top: "50%",
+    transform: "translateY(-50%)",
+    color: "var(--muted)",
+    pointerEvents: "none",
+  };
 
   return (
     <>
-      <SEO title="Reset Password | নবME" description="Reset your নবME account password." path="/forgot-password" />
+      <SEO title="Forgot Password | নবME" description="Reset your নবME account password." />
       <Navbar />
-      <div style={{ background: "var(--bg)", minHeight: "100vh", color: "var(--text)" }}>
-        <section style={{ padding: "100px 6% 60px", textAlign: "center", borderBottom: "1px solid var(--line)" }}>
-          <p style={{ textTransform: "uppercase", letterSpacing: "4px", color: "var(--muted)", fontSize: ".85rem" }}>Account</p>
-          <h1 style={{ fontSize: "clamp(3rem,6vw,5rem)", fontWeight: 300, marginTop: 15 }}>Reset Password</h1>
-        </section>
-        <section style={{ padding: "80px 6%", display: "flex", justifyContent: "center" }}>
-          <div style={{ width: "100%", maxWidth: 500, border: "1px solid var(--line)", padding: 40, background: "var(--surface)" }}>
-            <h2 style={{ marginBottom: 30, fontWeight: 400 }}>Enter your email</h2>
-            <div style={{ display: "grid", gap: 18 }}>
-              <input
-                type="email"
-                placeholder="Email Address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{ width: "100%", padding: 16, border: "1px solid var(--line)", background: "rgba(255,255,255,0.06)", color: "var(--text)", outline: "none", fontSize: "1rem" }}
-              />
-              {error && <p style={{ color: "#e74c3c", fontSize: ".9rem" }}>{error}</p>}
-              <button
-                onClick={handleReset}
-                disabled={loading}
-                style={{ padding: 18, border: "none", background: loading ? "var(--surface-strong)" : "var(--gold)", color: loading ? "var(--muted)" : "#050505", cursor: loading ? "not-allowed" : "pointer", fontWeight: 600, fontSize: "1rem", marginTop: 10 }}
-              >
-                {loading ? "Generating & Sending..." : "Send New Password"}
-              </button>
-            </div>
-            <p style={{ marginTop: 12, color: "var(--muted)", textAlign: "center", fontSize: ".85rem", lineHeight: 1.6 }}>
-              A new password will be generated and sent to your email and WhatsApp.
-            </p>
-            <p style={{ marginTop: 25, color: "var(--muted)", textAlign: "center" }}>
-              Remember your password?{" "}
-              <Link to="/login" style={{ color: "var(--gold)", fontWeight: 600 }}>Login</Link>
-            </p>
-          </div>
-        </section>
-      </div>
+      <main className="page" style={{ minHeight: "80vh", display: "grid", placeItems: "center", padding: "120px 6%" }}>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+          style={{ width: "100%", maxWidth: 420 }}
+        >
+          <Link to="/login" style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--muted)", textDecoration: "none", fontSize: ".85rem", marginBottom: 24 }}>
+            <ArrowLeft size={16} /> Back to Login
+          </Link>
+
+          <AnimatePresence mode="wait">
+            {resetDone ? (
+              <motion.div key="done" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                <div className="glass" style={{ padding: 48, textAlign: "center", borderRadius: "var(--radius-xl)" }}>
+                  <CheckCircle size={48} style={{ color: "#2ecc71", marginBottom: 16 }} />
+                  <h1 style={{ fontSize: "1.6rem", fontWeight: 400, marginBottom: 12 }}>Password Reset</h1>
+                  <p className="lede" style={{ marginBottom: 24 }}>Your password has been updated successfully.</p>
+                  <Link to="/login" className="premium-button" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8, padding: "14px 32px" }}>
+                    <KeyRound size={16} /> Log In
+                  </Link>
+                </div>
+              </motion.div>
+            ) : sent ? (
+              <motion.div key="reset" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                <div className="glass" style={{ padding: 40, borderRadius: "var(--radius-xl)" }}>
+                  <h1 style={{ fontSize: "1.6rem", fontWeight: 400, marginBottom: 8 }}>Reset Code Sent</h1>
+                  <p className="lede" style={{ marginBottom: 28, color: "var(--muted)", fontSize: ".9rem" }}>
+                    A reset code has been sent to <strong style={{ color: "var(--gold)" }}>{email}</strong>. In mock mode, use code: <code style={{ background: "var(--surface-strong)", padding: "2px 8px", borderRadius: 4, color: "var(--gold)" }}>reset_{"<random>"}</code> (check console/localStorage).
+                  </p>
+                  <form onSubmit={handleReset} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div style={{ position: "relative" }}>
+                      <KeyRound size={18} style={iconStyle} />
+                      <input
+                        type="text"
+                        placeholder="Reset code"
+                        value={token}
+                        onChange={(e) => setToken(e.target.value)}
+                        style={inputStyle}
+                        required
+                      />
+                    </div>
+                    <div style={{ position: "relative" }}>
+                      <Lock size={18} style={iconStyle} />
+                      <input
+                        type="password"
+                        placeholder="New password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        style={inputStyle}
+                        required
+                      />
+                    </div>
+                    <div style={{ position: "relative" }}>
+                      <Lock size={18} style={iconStyle} />
+                      <input
+                        type="password"
+                        placeholder="Confirm new password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        style={inputStyle}
+                        required
+                      />
+                    </div>
+                    {error && (
+                      <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} style={{ color: "var(--error)", fontSize: ".85rem", display: "flex", alignItems: "center", gap: 6 }}>
+                        <AlertCircle size={14} /> {error}
+                      </motion.p>
+                    )}
+                    <button type="submit" className="premium-button" disabled={loading} style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: 8, minHeight: 48 }}>
+                      {loading ? <Loader2 size={18} className="spin" /> : <CheckCircle size={18} />}
+                      {loading ? "Resetting..." : "Reset Password"}
+                    </button>
+                  </form>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div key="email" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+                <div className="glass" style={{ padding: 40, borderRadius: "var(--radius-xl)" }}>
+                  <h1 style={{ fontSize: "1.6rem", fontWeight: 400, marginBottom: 8 }}>Forgot Password</h1>
+                  <p className="lede" style={{ marginBottom: 28, color: "var(--muted)", fontSize: ".9rem" }}>
+                    Enter your registered email and we'll send a reset code.
+                  </p>
+                  <form onSubmit={handleSend} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div style={{ position: "relative" }}>
+                      <Mail size={18} style={iconStyle} />
+                      <input
+                        type="email"
+                        placeholder="Email address"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        style={inputStyle}
+                        required
+                      />
+                    </div>
+                    {error && (
+                      <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} style={{ color: "var(--error)", fontSize: ".85rem", display: "flex", alignItems: "center", gap: 6 }}>
+                        <AlertCircle size={14} /> {error}
+                      </motion.p>
+                    )}
+                    <button type="submit" className="premium-button" disabled={loading} style={{ width: "100%", justifyContent: "center", display: "flex", alignItems: "center", gap: 8, minHeight: 48 }}>
+                      {loading ? <Loader2 size={18} className="spin" /> : <Send size={18} />}
+                      {loading ? "Sending..." : "Send Reset Code"}
+                    </button>
+                  </form>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </main>
     </>
   );
 }
+
+

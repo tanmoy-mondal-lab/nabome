@@ -9,6 +9,7 @@ import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import { CustomerProvider } from "./context/CustomerContext";
 import { DeliveryProvider } from "./context/DeliveryContext";
+import { AuthProvider } from "./context/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ToastProvider } from "./components/Toast";
 
@@ -19,13 +20,15 @@ ReactDOM.createRoot(
     <ErrorBoundary>
       <ToastProvider>
         <CustomerProvider>
-          <DeliveryProvider>
-            <CartProvider>
-              <WishlistProvider>
-                <App />
-              </WishlistProvider>
-            </CartProvider>
-          </DeliveryProvider>
+          <AuthProvider>
+            <DeliveryProvider>
+              <CartProvider>
+                <WishlistProvider>
+                  <App />
+                </WishlistProvider>
+              </CartProvider>
+            </DeliveryProvider>
+          </AuthProvider>
         </CustomerProvider>
       </ToastProvider>
     </ErrorBoundary>

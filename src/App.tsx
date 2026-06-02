@@ -4,6 +4,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Footer from "./components/Footer";
 import PageTransition from "./components/PageTransition";
 import ScrollManager from "./components/ScrollManager";
+import ProtectedRoute from "./components/ProtectedRoute";
+import RoleGuard from "./components/RoleGuard";
 import { seedProductsIfEmpty } from "./lib/db";
 
 const Home = lazy(() => import("./pages/Home"));
@@ -25,6 +27,11 @@ const Admin = lazy(() => import("./pages/Admin"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const FAQ = lazy(() => import("./pages/FAQ"));
+const VendorRegister = lazy(() => import("./pages/VendorRegister"));
+const VendorDashboard = lazy(() => import("./pages/VendorDashboard"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword"));
+const Unauthorized = lazy(() => import("./pages/Unauthorized"));
+const SessionExpired = lazy(() => import("./pages/SessionExpired"));
 
 function Loader() {
   return (
@@ -54,31 +61,58 @@ function App() {
           <PageTransition>
             <Suspense fallback={<Loader />}>
               <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/category" element={<Category />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/wishlist" element={<Wishlist />} />
-              <Route path="/order-success" element={<OrderSuccess />} />
-              <Route path="/order-tracking" element={<OrderTracking />} />
-              <Route path="/shipping-policy" element={<PolicyPage type="shipping" />} />
-              <Route path="/return-policy" element={<PolicyPage type="returns" />} />
-              <Route path="/refund-policy" element={<PolicyPage type="refund" />} />
-              <Route path="/cancellation-policy" element={<PolicyPage type="cancellation" />} />
-              <Route path="/privacy-policy" element={<PolicyPage type="privacy" />} />
-              <Route path="/terms" element={<PolicyPage type="terms" />} />
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/admin-login" element={<AdminLogin />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* Public routes */}
+                <Route path="/" element={<Home />} />
+                <Route path="/category" element={<Category />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/wishlist" element={<Wishlist />} />
+                <Route path="/order-success" element={<OrderSuccess />} />
+                <Route path="/order-tracking" element={<OrderTracking />} />
+                <Route path="/shipping-policy" element={<PolicyPage type="shipping" />} />
+                <Route path="/return-policy" element={<PolicyPage type="returns" />} />
+                <Route path="/refund-policy" element={<PolicyPage type="refund" />} />
+                <Route path="/cancellation-policy" element={<PolicyPage type="cancellation" />} />
+                <Route path="/privacy-policy" element={<PolicyPage type="privacy" />} />
+                <Route path="/terms" element={<PolicyPage type="terms" />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/unauthorized" element={<Unauthorized />} />
+                <Route path="/session-expired" element={<SessionExpired />} />
+
+                {/* Guest-only routes (redirect to profile if already authenticated) */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/vendor-register" element={<VendorRegister />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/admin-login" element={<AdminLogin />} />
+
+                {/* Customer-protected routes */}
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+
+                {/* Vendor-only routes */}
+                <Route path="/vendor" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={["vendor"]}>
+                      <VendorDashboard />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+
+                {/* Admin-only routes */}
+                <Route path="/admin" element={
+                  <ProtectedRoute>
+                    <RoleGuard allowedRoles={["admin"]}>
+                      <Admin />
+                    </RoleGuard>
+                  </ProtectedRoute>
+                } />
+
+                <Route path="*" element={<NotFound />} />
+              </Routes>
             </Suspense>
           </PageTransition>
         </div>

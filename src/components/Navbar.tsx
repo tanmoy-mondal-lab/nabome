@@ -3,16 +3,18 @@ import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useCustomer } from "../context/CustomerContext";
+import { useAuth } from "../context/AuthContext";
 import BrandWordmark from "./BrandWordmark";
 import {
   Search, ShoppingBag, Heart, User, Menu, X, LogOut,
-  Package, MapPin, Home, Grid3X3,
+  Package, MapPin, Home, Grid3X3, Store, Shield, Lock,
 } from "lucide-react";
 
 export default function Navbar() {
   const { cart } = useCart();
   const { wishlist } = useWishlist();
-  const { customer, logout } = useCustomer();
+  const { customer } = useCustomer();
+  const { role, logout: authLogout } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -20,6 +22,12 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const pathKey = useMemo(() => location.pathname + location.search, [location.pathname, location.search]);
+
+  const handleLogout = useCallback(() => {
+    authLogout();
+    setProfileOpen(false);
+    setMobileOpen(false);
+  }, [authLogout]);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const wishlistCount = wishlist.length;
@@ -197,8 +205,30 @@ export default function Navbar() {
                       >
                         <MapPin size={16} /> Addresses
                       </Link>
+                      {role === "vendor" && (
+                        <Link to="/vendor" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", textDecoration: "none", color: "var(--gold)", fontSize: ".85rem", borderRadius: 8, transition: "background var(--transition-fast)" }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-strong)"}
+                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                        >
+                          <Store size={16} /> Vendor Dashboard
+                        </Link>
+                      )}
+                      {role === "admin" && (
+                        <Link to="/admin" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", textDecoration: "none", color: "var(--gold)", fontSize: ".85rem", borderRadius: 8, transition: "background var(--transition-fast)" }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-strong)"}
+                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                        >
+                          <Shield size={16} /> Admin Panel
+                        </Link>
+                      )}
+                      <Link to="/change-password" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", textDecoration: "none", color: "var(--text)", fontSize: ".85rem", borderRadius: 8, transition: "background var(--transition-fast)" }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-strong)"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                      >
+                        <Lock size={16} /> Change Password
+                      </Link>
                       <div style={{ borderTop: "1px solid var(--line)", marginTop: 4, paddingTop: 4 }}>
-                        <button onClick={() => { logout(); setProfileOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", width: "100%", border: "none", background: "transparent", color: "var(--error)", fontSize: ".85rem", cursor: "pointer", borderRadius: 8, transition: "background var(--transition-fast)" }}
+                        <button onClick={handleLogout} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", width: "100%", border: "none", background: "transparent", color: "var(--error)", fontSize: ".85rem", cursor: "pointer", borderRadius: 8, transition: "background var(--transition-fast)" }}
                           onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-strong)"}
                           onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                         >
@@ -283,6 +313,8 @@ export default function Navbar() {
               ["About", "/about", <User size={18} key="a" />],
               ["Contact", "/contact", <MapPin size={18} key="co" />],
               ...(customer ? [["Profile", "/profile", <User size={18} key="p" />] as const] : [["Login", "/login", <User size={18} key="l" />] as const]),
+              ...(role === "vendor" ? [["Vendor Dashboard", "/vendor", <Store size={18} key="vd" />] as const] : []),
+              ...(role === "admin" ? [["Admin Panel", "/admin", <Shield size={18} key="ad" />] as const] : []),
             ].map(([label, path, icon]) => (
               <Link key={path as string} to={path as string} style={{
                 display: "flex",
@@ -304,7 +336,7 @@ export default function Navbar() {
               </Link>
             ))}
             {customer && (
-              <button onClick={() => { logout(); setMobileOpen(false); }} style={{
+              <button onClick={handleLogout} style={{
                 display: "flex",
                 alignItems: "center",
                 gap: 14,

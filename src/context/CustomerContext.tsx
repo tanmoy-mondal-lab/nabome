@@ -37,8 +37,20 @@ function clearSession() {
   localStorage.removeItem("nabome-customer");
 }
 
+let _setCustomer: ((c: Customer | null) => void) | null = null;
+
+export function syncCustomerFromAuth(c: Customer | null) {
+  if (_setCustomer) {
+    _setCustomer(c);
+    if (c) saveSession(c);
+    else clearSession();
+  }
+}
+
 export function CustomerProvider({ children }: { children: ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(loadSession);
+
+  _setCustomer = setCustomer;
   const [loading] = useState(false);
 
   const login = async (identifier: string): Promise<{ found: boolean; customer?: Customer }> => {

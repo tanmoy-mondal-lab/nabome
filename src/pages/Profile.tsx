@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import SEO from "../components/SEO";
 import Navbar from "../components/Navbar";
+import { Lock } from "lucide-react";
 import { useCustomer } from "../context/CustomerContext";
 import { supabase } from "../lib/supabase";
 import { getAddresses, createAddress, updateAddress, deleteAddress, setDefaultAddress, getOrdersByCustomer, type Address } from "../lib/db";
@@ -193,6 +194,9 @@ export default function Profile() {
                     <button onClick={startEditing} className="premium-button" style={{ padding: "0 24px" }}>
                       Edit Profile
                     </button>
+                    <Link to="/change-password" style={{ padding: "12px 24px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontWeight: 500, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      <Lock size={16} /> Change Password
+                    </Link>
                     <button onClick={logout} style={{ padding: "12px 24px", border: "1px solid var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontWeight: 500 }}>
                       Logout
                     </button>
