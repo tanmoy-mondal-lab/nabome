@@ -1,15 +1,18 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
+import { Store, Edit3, Trash2, Star } from "lucide-react";
 import Navbar from "../components/Navbar";
 import SEO from "../components/SEO";
 import { useCart } from "../context/CartContext";
 import { useCustomer } from "../context/CustomerContext";
 import { useDelivery } from "../context/DeliveryContext";
 import type { CustomerData, Address } from "../lib/db";
-import { getAddresses, createAddress } from "../lib/db";
+import { getAddresses, createAddress, updateAddress, deleteAddress } from "../lib/db";
 import { sendOrderConfirmation, sendAdminOrderNotification, type BillData } from "../lib/email";
 import { useToast } from "../components/Toast";
+import CouponInput from "../components/CouponInput";
+import type { CouponRedemption } from "../types/order";
 
 const MERCHANT_UPI = "mondaltanmoy230@oksbi";
 const MERCHANT_NAME = "নবME";
@@ -74,27 +77,50 @@ export default function Checkout() {
   const [placing, setPlacing] = useState(false);
 
   const total = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+  const [coupon, setCoupon] = useState<CouponRedemption | null>(null);
+  const [editingAddress, setEditingAddress] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!customer) return;
-    getAddresses(customer.id).then((data) => {
-      setAddresses(data || []);
-      const def = (data || []).find((a) => a.is_default) || (data || [])[0];
-      if (def) {
-        setSelectedAddressId(def.id);
-        setDelivery({
-          name: def.name,
-          phone: def.phone,
-          email: def.email || "",
-          address: def.address,
-          district: def.district,
-          city: def.city,
-          state: def.state,
-          pincode: def.pincode,
-        });
-      }
+  const vendorShops = ["নবME Originals", "Bengal Streetwear", "Kolkata Collective", "Urban Ethnik", "Heritage Threads"];
+  const vendorNames = ["Rahul Sharma", "Ananya Das", "Arjun Roy", "Priya Banerjee", "Sayan Mukherjee"];
+
+  const groupedByVendor = useMemo(() => {
+    const map = new Map<string, { vendorName: string; vendorShop: string; items: typeof cart }>();
+    cart.forEach((item, i) => {
+      const vi = i % vendorShops.length;
+      const key = vendorShops[vi];
+      if (!map.has(key)) map.set(key, { vendorName: vendorNames[vi], vendorShop: key, items: [] });
+      map.get(key)!.items.push(item);
     });
+    return Array.from(map.values());
+  }, [cart]);
+
+  const subtotal = total;
+  const couponDiscount = coupon?.discount || 0;
+  const shipping = subtotal > 999 ? 0 : 99;
+  const tax = Math.round((subtotal - couponDiscount) * 0.05);
+  const grandTotal = subtotal - couponDiscount + shipping + tax;
+
+  const loadAddr = useCallback(async () => {
+    if (!customer) return;
+    const data = await getAddresses(customer.id);
+    setAddresses(data || []);
+    const def = (data || []).find((a) => a.is_default) || (data || [])[0];
+    if (def) {
+      setSelectedAddressId(def.id);
+      setDelivery({
+        name: def.name,
+        phone: def.phone,
+        email: def.email || "",
+        address: def.address,
+        district: def.district,
+        city: def.city,
+        state: def.state,
+        pincode: def.pincode,
+      });
+    }
   }, [customer]);
+
+  useEffect(() => { loadAddr(); }, [loadAddr]);
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -319,7 +345,7 @@ ${productList}
 
 ━━━━━━━━━━━━━━
 
-TOTAL: ₹${total}
+TOTAL: ₹${grandTotal}
 `;
 
     window.open(
@@ -394,10 +420,30 @@ TOTAL: ₹${total}
                           {addr.label}
                           {addr.is_default && <span style={{ color: "var(--muted)", marginLeft: 8, fontWeight: 400, letterSpacing: 0 }}>· Default</span>}
                         </strong>
-                        {selectedAddressId === addr.id && (
-                          <span style={{ color: "var(--gold)", fontSize: "1.2rem" }}>✓</span>
-                        )}
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          {selectedAddressId === addr.id && (
+                            <span style={{ color: "var(--gold)", fontSize: "1.2rem" }}>✓</span>
+                          )}
+                          <button onClick={(e) => { e.stopPropagation(); setEditingAddress(editingAddress === addr.id ? null : addr.id); }} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer", padding: 2 }}>
+                            <Edit3 size={14} />
+                          </button>
+                        </div>
                       </div>
+                      {editingAddress === addr.id && (
+                        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                          <button onClick={async (e) => { e.stopPropagation(); if (confirm("Delete this address?")) { await deleteAddress(addr.id); loadAddr(); } }} style={{ padding: "4px 10px", border: "1px solid #e74c3c", background: "transparent", color: "#e74c3c", cursor: "pointer", fontSize: ".75rem", borderRadius: 4 }}>
+                            <Trash2 size={12} style={{ marginRight: 4 }} />Delete
+                          </button>
+                          {!addr.is_default && (
+                            <button onClick={async (e) => { e.stopPropagation(); await updateAddress(addr.id, { is_default: true }); loadAddr(); }} style={{ padding: "4px 10px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontSize: ".75rem", borderRadius: 4 }}>
+                            <Star size={12} style={{ marginRight: 4 }} />Set Default
+                          </button>
+                          )}
+                          <button onClick={() => setEditingAddress(null)} style={{ padding: "4px 10px", border: "1px solid var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontSize: ".75rem", borderRadius: 4 }}>
+                            Cancel
+                          </button>
+                        </div>
+                      )}
                       <p style={{ fontWeight: 600, fontSize: ".95rem" }}>{addr.name}</p>
                       <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>{addr.phone}</p>
                       <p style={{ color: "var(--muted)", fontSize: ".85rem", lineHeight: 1.5, marginTop: 4 }}>
@@ -535,7 +581,7 @@ TOTAL: ₹${total}
                         Pay to: <strong style={{ color: "var(--text)" }}>{MERCHANT_UPI}</strong>
                       </p>
                       <p style={{ color: "var(--muted)" }}>
-                        Amount: <strong style={{ color: "var(--text)" }}>₹{total}</strong>
+                        Amount: <strong style={{ color: "var(--text)" }}>₹{grandTotal}</strong>
                       </p>
                     </div>
                   </div>
@@ -547,26 +593,44 @@ TOTAL: ₹${total}
             <div className="checkout-sidebar">
               <h2 style={{ marginBottom: "30px", fontWeight: 500 }}>Order Summary</h2>
 
-              {cart.map((item) => (
-                <div key={`${item.id}-${item.selectedSize || ""}-${item.selectedColor || ""}`} style={{ paddingBottom: "20px", marginBottom: "20px", borderBottom: "1px solid var(--line)" }}>
-                  <h4 style={{ marginBottom: "10px", fontWeight: 600 }}>{item.name}</h4>
-                  <div style={{ color: "var(--muted)", fontSize: ".95rem", lineHeight: 1.8 }}>
-                    <p>Quantity: {item.quantity}</p>
-                    <p>Size: {item.selectedSize || "N/A"}</p>
-                    <p>Colour: {item.selectedColor || "N/A"}</p>
+              {groupedByVendor.map((group) => (
+                <div key={group.vendorShop} style={{ marginBottom: "24px", padding: "16px", border: "1px solid var(--line)", borderRadius: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <Store size={16} style={{ color: "var(--gold)" }} />
+                    <span style={{ fontWeight: 600, fontSize: ".9rem" }}>{group.vendorShop}</span>
                   </div>
-                  <p style={{ marginTop: "10px", fontWeight: 600 }}>₹{item.price * item.quantity}</p>
+                  {group.items.map((item) => (
+                    <div key={`${item.id}-${item.selectedSize || ""}-${item.selectedColor || ""}`} style={{ paddingBottom: "12px", marginBottom: "12px", borderBottom: "1px solid var(--line)" }}>
+                      <h4 style={{ marginBottom: "6px", fontWeight: 600, fontSize: ".9rem" }}>{item.name}</h4>
+                      <div style={{ color: "var(--muted)", fontSize: ".85rem", lineHeight: 1.8 }}>
+                        <p>Qty: {item.quantity} | Size: {item.selectedSize || "N/A"} | Colour: {item.selectedColor || "N/A"}</p>
+                      </div>
+                      <p style={{ marginTop: "6px", fontWeight: 600, fontSize: ".9rem" }}>₹{item.price * item.quantity}</p>
+                    </div>
+                  ))}
                 </div>
               ))}
 
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", color: "var(--muted)" }}>
-                <span>Shipping</span><span>Free</span>
+              <div style={{ padding: "16px", background: "var(--card)", borderRadius: 8, marginBottom: 20 }}>
+                <CouponInput subtotal={subtotal} onApply={(c) => setCoupon(c)} onRemove={() => setCoupon(null)} applied={coupon} />
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "25px", color: "var(--muted)" }}>
-                <span>Taxes</span><span>Included</span>
+
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", color: "var(--muted)", fontSize: ".9rem" }}>
+                <span>Subtotal</span><span>₹{subtotal}</span>
+              </div>
+              {coupon && (
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", color: "#22c55e", fontSize: ".9rem" }}>
+                  <span>Discount ({coupon.code})</span><span>-₹{couponDiscount}</span>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", color: "var(--muted)", fontSize: ".9rem" }}>
+                <span>Shipping</span><span>{shipping === 0 ? "Free" : `₹${shipping}`}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px", color: "var(--muted)", fontSize: ".9rem" }}>
+                <span>Tax (GST 5%)</span><span>₹{tax}</span>
               </div>
               <div style={{ borderTop: "1px solid var(--line)", paddingTop: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <strong>Total</strong><h2>₹{total}</h2>
+                <strong>Total</strong><h2>₹{grandTotal}</h2>
               </div>
 
               <div style={{ marginTop: "40px", paddingTop: "30px", borderTop: "1px solid var(--line)" }}>
@@ -590,7 +654,7 @@ TOTAL: ₹${total}
                 </div>
               </div>
 
-              {paymentMethod === "upi" && total > 0 && (
+              {paymentMethod === "upi" && grandTotal > 0 && (
                 <div style={{ marginTop: "30px" }}>
                   {upiStep === "idle" && !qrView && (
                     <div style={{ display: "grid", gap: 12 }}>
@@ -599,7 +663,7 @@ TOTAL: ₹${total}
                         <strong style={{ fontSize: "1.1rem", color: "var(--gold)" }}>{MERCHANT_UPI}</strong>
                       </div>
                       <button onClick={handlePayNow} disabled={Object.keys(errors).length > 0} style={{ width: "100%", padding: "20px", border: "none", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 800, fontSize: "1.1rem", letterSpacing: "0.05em" }}>
-                        Pay ₹{total} via UPI
+                        Pay ₹{grandTotal} via UPI
                       </button>
                       <button onClick={() => setQrView(true)} style={{ width: "100%", padding: "14px", border: "1px solid var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", fontWeight: 600, fontSize: ".9rem" }}>
                         Show QR Code to scan
@@ -622,7 +686,7 @@ TOTAL: ₹${total}
                         </p>
                         <div style={{ borderTop: "1px solid var(--line)", paddingTop: 16, width: "100%" }}>
                           <p style={{ fontSize: ".85rem", color: "var(--muted)", marginBottom: 6 }}>Amount</p>
-                          <strong style={{ fontSize: "1.5rem" }}>₹{total}</strong>
+                          <strong style={{ fontSize: "1.5rem" }}>₹{grandTotal}</strong>
                         </div>
                         <button onClick={handlePayNow} style={{ width: "100%", padding: "16px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontWeight: 700, fontSize: ".95rem" }}>
                           Open UPI App Instead

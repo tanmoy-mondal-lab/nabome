@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
+import { Package, ChevronRight } from "lucide-react";
 import type { CartItem } from "../context/CartContext";
 
 interface Bill {
@@ -268,6 +269,11 @@ export default function OrderSuccess() {
               Print / Save PDF
             </button>
           )}
+          <Link to="/order-tracking">
+            <button style={{ ...primaryButtonStyle, background: "transparent", border: "1px solid var(--gold)", color: "var(--gold)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Package size={16} />Track Order <ChevronRight size={14} />
+            </button>
+          </Link>
           <Link to="/">
             <button style={secondaryButtonStyle}>
               Continue Shopping

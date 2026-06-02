@@ -36,6 +36,7 @@ const SessionExpired = lazy(() => import("./pages/SessionExpired"));
 const Account = lazy(() => import("./pages/Account"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const ComparePage = lazy(() => import("./pages/ComparePage"));
+const SupportCenter = lazy(() => import("./pages/SupportCenter"));
 
 function Loader() {
   return (
@@ -86,6 +87,7 @@ function App() {
                 <Route path="/shop/:slug" element={<ShopPage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/compare" element={<ComparePage />} />
+                <Route path="/support" element={<SupportCenter />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
                 <Route path="/session-expired" element={<SessionExpired />} />
 
