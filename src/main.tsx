@@ -11,26 +11,29 @@ import { CustomerProvider } from "./context/CustomerContext";
 import { DeliveryProvider } from "./context/DeliveryContext";
 import { AuthProvider } from "./context/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
+import GlobalErrorBoundary from "./components/GlobalErrorBoundary";
 import { ToastProvider } from "./components/Toast";
 
 ReactDOM.createRoot(
   document.getElementById("root")!
 ).render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <ToastProvider>
-        <CustomerProvider>
-          <AuthProvider>
-            <DeliveryProvider>
-              <CartProvider>
-                <WishlistProvider>
-                  <App />
-                </WishlistProvider>
-              </CartProvider>
-            </DeliveryProvider>
-          </AuthProvider>
-        </CustomerProvider>
-      </ToastProvider>
-    </ErrorBoundary>
+    <GlobalErrorBoundary>
+      <ErrorBoundary>
+        <ToastProvider>
+          <CustomerProvider>
+            <AuthProvider>
+              <DeliveryProvider>
+                <CartProvider>
+                  <WishlistProvider>
+                    <App />
+                  </WishlistProvider>
+                </CartProvider>
+              </DeliveryProvider>
+            </AuthProvider>
+          </CustomerProvider>
+        </ToastProvider>
+      </ErrorBoundary>
+    </GlobalErrorBoundary>
   </React.StrictMode>
 );

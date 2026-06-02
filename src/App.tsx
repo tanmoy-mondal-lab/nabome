@@ -6,6 +6,10 @@ import PageTransition from "./components/PageTransition";
 import ScrollManager from "./components/ScrollManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleGuard from "./components/RoleGuard";
+import { AnalyticsProvider } from "./context/AnalyticsContext";
+import SkipToContent from "./components/SkipToContent";
+import { useKeyboardNavigation, commonShortcuts } from "./hooks/useKeyboardNavigation";
+import { registerServiceWorker } from "./lib/pwa";
 import { seedProductsIfEmpty } from "./lib/db";
 
 const Home = lazy(() => import("./pages/Home"));
@@ -47,14 +51,11 @@ function Loader() {
 }
 
 
-function App() {
-  useEffect(() => {
-    seedProductsIfEmpty();
-  }, []);
+function AppContent() {
+  useKeyboardNavigation(commonShortcuts);
 
   return (
-    <BrowserRouter>
-      <ScrollManager />
+    <AnalyticsProvider>
       <div
         style={{
           minHeight: "100vh",
@@ -129,6 +130,21 @@ function App() {
 
         <Footer />
       </div>
+    </AnalyticsProvider>
+  );
+}
+
+function App() {
+  useEffect(() => {
+    seedProductsIfEmpty();
+    registerServiceWorker();
+  }, []);
+
+  return (
+    <BrowserRouter>
+      <SkipToContent />
+      <ScrollManager />
+      <AppContent />
     </BrowserRouter>
   );
 }

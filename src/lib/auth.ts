@@ -40,7 +40,7 @@ export async function registerUser(params: {
   }
 
   const { data, error } = await supabase.auth.signUp({
-    email: params.email,
+    email: params.email!,
     password: params.password,
     options: {
       data: {
@@ -115,7 +115,7 @@ export function onAuthChange(callback: (user: AuthUser | null) => void) {
   }
 
   const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
-    callback(session?.user ? mapSupabaseUser(session.user) : null);
+    callback(session?.user ? await mapSupabaseUser(session.user) : null);
   });
   return () => data?.subscription.unsubscribe();
 }

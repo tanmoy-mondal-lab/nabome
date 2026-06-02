@@ -46,7 +46,7 @@ export async function uploadImages(files: File[], folder = "nabome"): Promise<Up
   return Promise.all(files.map((file) => uploadImage(file, folder)));
 }
 
-export async function deleteImage(publicId: string): Promise<void> {
+export async function deleteImage(_publicId: string): Promise<void> {
   if (!isConfigured()) return;
   // Note: Delete requires API key/secret - typically done server-side
   console.warn("Cloudinary delete should be done server-side for security");
