@@ -56,7 +56,7 @@ export default function AccountNotifications() {
 
   const clearAll = () => setNotifications([]);
 
-  const unread = notifications.filter((n) => !n.isRead).length;
+  const unread = unreadCount;
 
   if (loading) {
     return <div style={{ padding: 40, textAlign: "center" }}><Loader2 size={32} className="spin" style={{ color: "var(--gold)" }} /></div>;

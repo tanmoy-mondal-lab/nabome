@@ -31,7 +31,7 @@ export default function VendorHome({ onTab }: Props) {
     (async () => {
       const vendor = await getVendorByUserId(user.id);
       if (vendor) {
-        setShopName(vendor.shopName || vendor.shopSlug || "");
+        setShopName(vendor.shop_name || vendor.shop_slug || "");
         setRating(vendor.rating || 0);
         const s = await getVendorDashboardStats(vendor.id);
         if (s) setStats(s as unknown as Record<string, number>);

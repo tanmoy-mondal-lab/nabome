@@ -1,14 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { BarChart3, TrendingUp, IndianRupee, ShoppingBag, Package, Star } from "lucide-react";
+import { BarChart3, IndianRupee, ShoppingBag, Package } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { useAuth } from "../../context/AuthContext";
 import { getVendorByUserId } from "../../lib/api/vendors";
 import { getVendorDashboardStats } from "../../lib/api/vendor-analytics";
-
-const COLORS = ["#d4af37", "#3498db", "#2ecc71", "#9b59b6", "#e74c3c", "#f39c12", "#1abc9c", "#e67e22"];
 
 export default function VendorAnalytics() {
   const { user } = useAuth();

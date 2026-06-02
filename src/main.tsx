@@ -21,8 +21,8 @@ ReactDOM.createRoot(
     <GlobalErrorBoundary>
       <ErrorBoundary>
         <ToastProvider>
-          <CustomerProvider>
-            <AuthProvider>
+          <AuthProvider>
+            <CustomerProvider>
               <DeliveryProvider>
                 <CartProvider>
                   <WishlistProvider>
@@ -30,8 +30,8 @@ ReactDOM.createRoot(
                   </WishlistProvider>
                 </CartProvider>
               </DeliveryProvider>
-            </AuthProvider>
-          </CustomerProvider>
+            </CustomerProvider>
+          </AuthProvider>
         </ToastProvider>
       </ErrorBoundary>
     </GlobalErrorBoundary>

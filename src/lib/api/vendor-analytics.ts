@@ -17,9 +17,9 @@ export async function getVendorDashboardStats(vendorId: string): Promise<VendorD
 
   const [productCount, orderData, reviewData, customerCount, _pendingOrders, lowStock] = await Promise.all([
     neon.count("products", { vendor_id: vendorId }),
-    neon.raw(`SELECT COUNT(*) as total_orders, COALESCE(SUM(o.total), 0) as total_revenue, COUNT(*) FILTER (WHERE o.status = 'pending') as pending_orders, COUNT(*) FILTER (WHERE o.created_at >= date_trunc('month', NOW())) as this_month FROM orders o WHERE o.id IN (SELECT DISTINCT order_id FROM order_items WHERE vendor_id = $1)`, [vendorId]),
+    neon.raw(`SELECT COUNT(*) as total_orders, COALESCE(SUM(o.total), 0) as total_revenue, COUNT(*) FILTER (WHERE o.status = 'pending') as pending_orders, COUNT(*) FILTER (WHERE o.created_at >= date_trunc('month', NOW())) as this_month, COALESCE(SUM(o.total) FILTER (WHERE o.created_at >= date_trunc('month', NOW())), 0) as this_month_revenue FROM orders o WHERE o.id IN (SELECT DISTINCT order_id FROM order_items WHERE vendor_id = $1)`, [vendorId]),
     neon.raw(`SELECT COALESCE(AVG(r.rating), 0) as avg_rating FROM reviews r JOIN products p ON p.id = r.product_id WHERE p.vendor_id = $1 AND r.status = 'approved'`, [vendorId]),
-    neon.raw(`SELECT COUNT(DISTINCT o.user_id) as total FROM orders o WHERE o.id IN (SELECT DISTINCT order_id FROM order_items WHERE vendor_id = $1)`, [vendorId]),
+    neon.raw(`SELECT COUNT(DISTINCT o.user_id) as count FROM orders o WHERE o.id IN (SELECT DISTINCT order_id FROM order_items WHERE vendor_id = $1)`, [vendorId]),
     neon.count("products", { vendor_id: vendorId }),
     neon.count("products", { vendor_id: vendorId }),
   ]);
@@ -33,7 +33,7 @@ export async function getVendorDashboardStats(vendorId: string): Promise<VendorD
     totalOrders: Number(orderRow.total_orders || 0),
     totalRevenue: Number(orderRow.total_revenue || 0),
     averageRating: Number(reviewRow.avg_rating || 0),
-    totalCustomers: Number(customerRow.total || 0),
+    totalCustomers: Number(customerRow.count || 0),
     pendingOrders: Number(orderRow.pending_orders || 0),
     lowStockProducts: Number((lowStock as unknown as { count?: number })?.count || 0),
     recentOrders: Number(orderRow.this_month || 0),

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Star, Eye, EyeOff, Trash2, CheckCircle } from "lucide-react";
+import { Star, EyeOff, Trash2, CheckCircle } from "lucide-react";
 import { useToast } from "../../components/Toast";
 import { getAllReviews, updateReviewStatus, deleteReview, type Review } from "../../lib/api/reviews";
 

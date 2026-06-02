@@ -15,16 +15,6 @@ const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   customer_action: { icon: <User size={14} />, color: "#1abc9c" },
 };
 
-const logTypeMap: Record<string, string> = {
-  vendor_approval: "vendor_approval",
-  vendor_rejection: "vendor_rejection",
-  product_approval: "product_approval",
-  product_rejection: "product_rejection",
-  order_update: "order_update",
-  admin_action: "admin_action",
-  customer_action: "customer_action",
-};
-
 export default function AdminLogs() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [search, setSearch] = useState("");

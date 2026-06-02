@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { useAuth } from "./AuthContext";
 import { neon, isNeonConnected } from "../lib/neon";
+import type { AuthUser } from "../types/auth";
 
 export type Customer = {
   id: string;
@@ -17,8 +19,6 @@ export type Customer = {
 type CustomerContextType = {
   customer: Customer | null;
   loading: boolean;
-  login: (identifier: string) => Promise<{ found: boolean; customer?: Customer }>;
-  register: (data: { name: string; phone: string; email?: string; gender: string }) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
   refresh: () => Promise<void>;
 };
@@ -42,20 +42,24 @@ function clearSession() {
   localStorage.removeItem("nabome-customer");
 }
 
-let _setCustomer: ((c: Customer | null) => void) | null = null;
-
-export function syncCustomerFromAuth(c: Customer | null) {
-  if (_setCustomer) {
-    _setCustomer(c);
-    if (c) saveSession(c);
-    else clearSession();
-  }
+function customerFromAuthUser(user: AuthUser): Customer {
+  return {
+    id: user.id,
+    name: user.name,
+    phone: user.phone,
+    email: user.email || null,
+    gender: null,
+    state: null,
+    district: null,
+    city: null,
+    pincode: null,
+    avatar_url: null,
+  };
 }
 
 export function CustomerProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [customer, setCustomer] = useState<Customer | null>(loadSession);
-
-  _setCustomer = setCustomer;
   const [loading] = useState(false);
 
   const mapRow = (row: any): Customer => ({
@@ -71,63 +75,17 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     avatar_url: row.avatar_url || null,
   });
 
-  const login = async (identifier: string): Promise<{ found: boolean; customer?: Customer }> => {
-    const trimmed = identifier.trim();
-    if (!trimmed) return { found: false };
-
-    if (!await isNeonConnected()) return { found: false };
-
-    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
-
-    const { data: rows } = isEmail
-      ? await neon.select("users", { email: trimmed })
-      : await neon.raw(
-          `SELECT * FROM users WHERE phone IN ($1, $2, $3) LIMIT 1`,
-          [trimmed, `+91${trimmed.replace(/\D/g, "")}`, `91${trimmed.replace(/\D/g, "")}`]
-        );
-
-    const data = rows?.[0] || null;
-
-    if (data) {
-      const c = mapRow(data);
-      setCustomer(c);
-      saveSession(c);
-      return { found: true, customer: c };
+  useEffect(() => {
+    if (user) {
+      const authCustomer = customerFromAuthUser(user);
+      setCustomer(authCustomer);
+      saveSession(authCustomer);
+      return;
     }
 
-    return { found: false };
-  };
-
-  const register = async (data: {
-    name: string;
-    phone: string;
-    email?: string;
-    gender: string;
-  }): Promise<{ ok: boolean; error?: string }> => {
-    if (!await isNeonConnected()) return { ok: false, error: "Database not configured" };
-
-    const digits = data.phone.replace(/\D/g, "");
-    const cleanPhone = digits.startsWith("91") ? `+${digits}` : `+91${digits}`;
-
-    const { data: newRows, error } = await neon.insert("users", {
-      name: data.name,
-      phone: cleanPhone,
-      email: data.email?.trim() || null,
-      gender: data.gender,
-    });
-
-    if (error) {
-      return { ok: false, error: error.message };
-    }
-
-    const newCustomer = newRows?.[0];
-    if (!newCustomer) return { ok: false, error: "Failed to create customer" };
-
-    const c = mapRow(newCustomer);
-    setCustomer(c);
-    saveSession(c);
-    return { ok: true };
-  };
+    const stored = loadSession();
+    setCustomer(stored);
+  }, [user]);
 
   const logout = () => {
     setCustomer(null);
@@ -138,13 +96,14 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     if (!await isNeonConnected() || !customer) return;
     const { data } = await neon.select("users", { id: customer.id }, { single: true });
     if (data) {
-      setCustomer(mapRow(data));
-      saveSession(mapRow(data));
+      const refreshed = mapRow(data);
+      setCustomer(refreshed);
+      saveSession(refreshed);
     }
   };
 
   return (
-    <CustomerContext.Provider value={{ customer, loading, login, register, logout, refresh }}>
+    <CustomerContext.Provider value={{ customer, loading, logout, refresh }}>
       {children}
     </CustomerContext.Provider>
   );

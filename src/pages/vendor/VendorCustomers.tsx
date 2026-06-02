@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, Search, ChevronRight, User, ShoppingBag, IndianRupee, MapPin, Calendar } from "lucide-react";
+import { Users, Search, ChevronRight, User, ShoppingBag, IndianRupee, Calendar } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { getVendorByUserId } from "../../lib/api/vendors";
 import { getVendorCustomers, type Customer } from "../../lib/api/customers";

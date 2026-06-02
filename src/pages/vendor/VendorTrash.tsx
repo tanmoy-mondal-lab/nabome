@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Trash2, RefreshCw, Package, AlertCircle, Loader2 } from "lucide-react";
+import { Trash2, RefreshCw, Package, AlertCircle } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../components/Toast";
 import { getVendorByUserId } from "../../lib/api/vendors";

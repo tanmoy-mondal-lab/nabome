@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { useCustomer, syncCustomerFromAuth, type Customer } from "./CustomerContext";
 import { loginUser, registerUser, logoutUser, getSession, resetPassword, changePassword, updateProfile, onAuthChange } from "../lib/auth";
 import { neon, isNeonConnected } from "../lib/neon";
 import type { AuthUser, LoginCredentials, CustomerRegisterData, VendorRegisterData, Role, PasswordValidation } from "../types/auth";
@@ -24,32 +23,15 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-function customerFromAuthUser(u: AuthUser): Customer {
-  return {
-    id: u.id,
-    name: u.name,
-    phone: u.phone,
-    email: u.email || null,
-    gender: null,
-    state: null,
-    district: null,
-    city: null,
-    pincode: null,
-    avatar_url: null,
-  };
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const { customer } = useCustomer();
 
   useEffect(() => {
     (async () => {
       const session = await getSession();
       if (session) {
         setUser(session);
-        syncCustomerFromAuth(customerFromAuthUser(session));
       }
       setLoading(false);
     })();
@@ -57,28 +39,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const unsub = onAuthChange(async (authUser) => {
-      if (authUser) {
-        setUser(authUser);
-        syncCustomerFromAuth(customerFromAuthUser(authUser));
-      } else {
-        setUser(null);
-        syncCustomerFromAuth(null);
-      }
+      setUser(authUser);
     });
     return unsub;
   }, []);
-
-  useEffect(() => {
-    if (user && !customer) {
-      syncCustomerFromAuth(customerFromAuthUser(user));
-    }
-  }, [user, customer]);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     try {
       const authUser = await loginUser({ email: credentials.email!, password: credentials.password });
       setUser(authUser);
-      syncCustomerFromAuth(customerFromAuthUser(authUser));
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || "Login failed" };
@@ -138,7 +107,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     setUser(null);
-    syncCustomerFromAuth(null);
     logoutUser();
   }, []);
 
@@ -177,7 +145,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (updated) {
         const merged = { ...user, ...data };
         setUser(merged);
-        syncCustomerFromAuth(customerFromAuthUser(merged));
       }
       return true;
     } catch {
@@ -222,6 +189,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within CustomerProvider");
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
