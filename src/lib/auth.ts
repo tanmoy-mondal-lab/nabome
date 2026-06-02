@@ -7,6 +7,7 @@ export type AuthUser = {
   phone: string;
   name: string;
   role: "customer" | "vendor" | "admin";
+  vendorStatus?: "pending" | "approved" | "rejected" | "suspended";
   createdAt: string;
 };
 
@@ -97,12 +98,19 @@ async function mapSupabaseUser(supabaseUser: any): Promise<AuthUser> {
   const metadata = supabaseUser.user_metadata || {};
   let role = metadata.role || "customer";
   let name = metadata.full_name || metadata.name || supabaseUser.email?.split("@")[0] || "User";
+  let vendorStatus: AuthUser["vendorStatus"] = undefined;
 
   if (await isNeonConnected()) {
     const { data: dbUser } = await neon.select("users", { id: supabaseUser.id }, { single: true });
     if (dbUser) {
       role = dbUser.role || role;
       name = dbUser.name || name;
+    }
+    if (role === "vendor") {
+      const { data: vendor } = await neon.select("vendors", { user_id: supabaseUser.id }, { single: true });
+      if (vendor) {
+        vendorStatus = vendor.approval_status;
+      }
     }
   }
 
@@ -112,6 +120,7 @@ async function mapSupabaseUser(supabaseUser: any): Promise<AuthUser> {
     phone: supabaseUser.phone || metadata.phone || "",
     name,
     role,
+    vendorStatus,
     createdAt: supabaseUser.created_at || new Date().toISOString(),
   };
 }

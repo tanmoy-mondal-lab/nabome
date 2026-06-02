@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { useCustomer, syncCustomerFromAuth, type Customer } from "./CustomerContext";
 import { loginUser, registerUser, logoutUser, getSession, resetPassword, changePassword, updateProfile, onAuthChange } from "../lib/auth";
+import { neon, isNeonConnected } from "../lib/neon";
 import type { AuthUser, LoginCredentials, CustomerRegisterData, VendorRegisterData, Role, PasswordValidation } from "../types/auth";
 
 export type { AuthUser, Role, PasswordValidation };
@@ -101,13 +102,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerVendor = useCallback(async (data: VendorRegisterData) => {
     try {
-      await registerUser({
+      const supabaseUser = await registerUser({
         email: data.email,
         password: data.password,
         name: data.ownerName,
         phone: data.phone,
         role: "vendor",
       });
+      if (supabaseUser?.id && await isNeonConnected()) {
+        const slug = data.shopName
+          .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `shop-${Date.now()}`;
+        await neon.insert("users", {
+          id: supabaseUser.id,
+          email: data.email,
+          phone: data.phone,
+          name: data.ownerName,
+          role: "vendor",
+        });
+        await neon.insert("vendors", {
+          user_id: supabaseUser.id,
+          shop_name: data.shopName,
+          shop_slug: slug,
+          shop_description: data.shopCategory,
+          shop_email: data.email,
+          shop_phone: data.phone,
+          shop_address: data.businessAddress,
+          approval_status: "pending",
+        });
+      }
       return { success: true, needsEmailConfirm: true };
     } catch (err: any) {
       return { success: false, error: err.message || "Registration failed" };
