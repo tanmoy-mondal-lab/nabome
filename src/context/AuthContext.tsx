@@ -30,6 +30,11 @@ function customerFromAuthUser(u: AuthUser): Customer {
     phone: u.phone,
     email: u.email || null,
     gender: null,
+    state: null,
+    district: null,
+    city: null,
+    pincode: null,
+    avatar_url: null,
   };
 }
 

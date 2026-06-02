@@ -36,16 +36,6 @@ const WishlistContext =
     null
   );
 
-function getUserId(): string | null {
-  try {
-    const raw = localStorage.getItem("nabome-current-user");
-    if (raw) return JSON.parse(raw).id || null;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 export function WishlistProvider({
   children,
 }: {
@@ -62,6 +52,7 @@ export function WishlistProvider({
         ? JSON.parse(saved)
         : [];
     });
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem(
@@ -69,6 +60,16 @@ export function WishlistProvider({
       JSON.stringify(wishlist)
     );
   }, [wishlist]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUserId(data.session?.user?.id || null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+    return () => listener?.subscription.unsubscribe();
+  }, []);
 
   const addToWishlist = (
     product: WishlistItem
@@ -86,8 +87,7 @@ export function WishlistProvider({
     }
     analytics.addToWishlist(product.id, product.name);
 
-    const userId = getUserId();
-    if (userId && supabase) {
+    if (userId) {
       wishlistApi.addToWishlist(userId, String(product.id)).catch(() => {});
     }
   };
@@ -101,8 +101,7 @@ export function WishlistProvider({
       )
     );
 
-    const userId = getUserId();
-    if (userId && supabase) {
+    if (userId) {
       wishlistApi.removeFromWishlist(userId, String(id)).catch(() => {});
     }
   };

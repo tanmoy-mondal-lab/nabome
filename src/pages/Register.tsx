@@ -55,8 +55,13 @@ export default function Register() {
     setLoading(false);
 
     if (result.success) {
-      showToast("Account created successfully!");
-      navigate("/profile");
+      if (result.needsEmailConfirm) {
+        showToast("Check your email to confirm your account.");
+        navigate("/login");
+      } else {
+        showToast("Account created successfully!");
+        navigate("/profile");
+      }
     } else {
       setError(result.error || "Registration failed.");
     }

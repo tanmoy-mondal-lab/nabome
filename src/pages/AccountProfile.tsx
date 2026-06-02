@@ -1,13 +1,25 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { User, Camera, Lock, Mail, Phone, Venus, Mars, Loader2, AlertCircle, CheckCircle, Calendar } from "lucide-react";
+import { User, Camera, Lock, Mail, Phone, MapPin, MapPinned, Building2, Hash, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { useCustomer } from "../context/CustomerContext";
 import { useToast } from "../components/Toast";
 import { supabase } from "../lib/supabase";
 import { neon, isNeonConnected } from "../lib/neon";
+import { uploadImage } from "../lib/cloudinary";
 import { useNavigate } from "react-router-dom";
 
 const GENDERS = ["Male", "Female", "Other"];
+
+const STATE_LIST = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
+  "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur",
+  "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+  "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry",
+];
 
 export default function AccountProfile() {
   const { customer, refresh } = useCustomer();
@@ -16,15 +28,20 @@ export default function AccountProfile() {
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     name: customer?.name || "",
     phone: customer?.phone || "",
     email: customer?.email || "",
     gender: customer?.gender || "",
-    dob: "",
+    state: customer?.state || "",
+    district: customer?.district || "",
+    city: customer?.city || "",
+    pincode: customer?.pincode || "",
+    avatar_url: customer?.avatar_url || "",
   });
-  const [photo, setPhoto] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const startEditing = () => {
     setForm({
@@ -32,18 +49,28 @@ export default function AccountProfile() {
       phone: customer?.phone || "",
       email: customer?.email || "",
       gender: customer?.gender || "",
-      dob: "",
+      state: customer?.state || "",
+      district: customer?.district || "",
+      city: customer?.city || "",
+      pincode: customer?.pincode || "",
+      avatar_url: customer?.avatar_url || "",
     });
     setEditing(true);
     setError("");
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setPhoto(ev.target?.result as string);
-    reader.readAsDataURL(file);
+    if (!file || !customer) return;
+    setUploadingAvatar(true);
+    try {
+      const result = await uploadImage(file, "nabome/avatars");
+      setForm((f) => ({ ...f, avatar_url: result.secure_url }));
+    } catch {
+      setError("Failed to upload image");
+    }
+    setUploadingAvatar(false);
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const handleSave = async () => {
@@ -55,12 +82,19 @@ export default function AccountProfile() {
     if (!customer) return;
     setSaving(true);
 
-    const updates = { name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || null, gender: form.gender };
+    const updates: Record<string, any> = {
+      name: form.name.trim(), phone: form.phone.trim(),
+      email: form.email.trim() || null, gender: form.gender,
+      avatar_url: form.avatar_url || null,
+      state: form.state.trim() || null, district: form.district.trim() || null,
+      city: form.city.trim() || null, pincode: form.pincode.trim() || null,
+    };
     let saveErr: any = null;
     if (await isNeonConnected()) {
       const res = await neon.update("users", updates, { id: customer.id });
       saveErr = res.error;
     } else if (supabase) {
+      // @ts-ignore
       const res = await supabase.from("users").update(updates).eq("id", customer.id);
       saveErr = res.error;
     }
@@ -75,16 +109,17 @@ export default function AccountProfile() {
   };
 
   const fieldS: React.CSSProperties = {
-    width: "100%", padding: "14px 16px 14px 44px",
+    width: "100%", padding: "14px 16px",
     border: "1px solid var(--line)", background: "var(--surface)",
     color: "var(--text)", fontSize: ".95rem", outline: "none",
     borderRadius: "var(--radius)", transition: "border-color var(--transition-fast)",
   };
 
-  const iconWrap: React.CSSProperties = {
-    position: "absolute", left: 14, top: "50%",
-    transform: "translateY(-50%)", color: "var(--muted)",
-    pointerEvents: "none", display: "flex",
+  const selectS: React.CSSProperties = {
+    ...fieldS, cursor: "pointer", appearance: "none",
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+    backgroundRepeat: "no-repeat", backgroundPosition: "right 14px center",
+    paddingRight: 40,
   };
 
   return (
@@ -94,17 +129,21 @@ export default function AccountProfile() {
       {/* Photo card */}
       <div className="glass" style={{ padding: 28, borderRadius: "var(--radius-xl)", marginBottom: 24, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
         <div style={{ position: "relative", width: 80, height: 80, borderRadius: "50%", overflow: "hidden", border: "2px solid var(--gold)", flexShrink: 0 }}>
-          {photo ? (
-            <img src={photo} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          {form.avatar_url ? (
+            <img src={form.avatar_url} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
             <div style={{ width: "100%", height: "100%", background: "var(--surface-strong)", display: "grid", placeItems: "center" }}>
               <User size={32} style={{ color: "var(--muted)" }} />
             </div>
           )}
-          <label htmlFor="photo-upload" style={{ position: "absolute", bottom: 0, right: 0, background: "var(--gold)", color: "#050505", borderRadius: "50%", width: 28, height: 28, display: "grid", placeItems: "center", cursor: "pointer" }}>
-            <Camera size={14} />
-          </label>
-          <input id="photo-upload" type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: "none" }} />
+          {editing && (
+            <>
+              <label htmlFor="account-photo-upload" style={{ position: "absolute", bottom: 0, right: 0, background: "var(--gold)", color: "#050505", borderRadius: "50%", width: 28, height: 28, display: "grid", placeItems: "center", cursor: uploadingAvatar ? "not-allowed" : "pointer" }}>
+                {uploadingAvatar ? <Loader2 size={14} className="spin" /> : <Camera size={14} />}
+              </label>
+              <input ref={fileRef} id="account-photo-upload" type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: "none" }} />
+            </>
+          )}
         </div>
         <div>
           <p style={{ fontWeight: 600, fontSize: "1.1rem" }}>{customer?.name}</p>
@@ -122,43 +161,70 @@ export default function AccountProfile() {
       <div className="glass" style={{ padding: 28, borderRadius: "var(--radius-xl)" }}>
         {editing ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            <div style={{ position: "relative" }}>
-              <User size={16} style={iconWrap} />
-              <input type="text" placeholder="Full Name *" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} style={fieldS} />
-            </div>
-            <div>
-              <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 8, display: "block" }}>Gender *</label>
-              <div style={{ display: "flex", gap: 8 }}>
-                {GENDERS.map((g) => (
-                  <button key={g} type="button" onClick={() => setForm((f) => ({ ...f, gender: g }))}
-                    style={{
-                      flex: 1, padding: "12px 16px", border: `1px solid ${form.gender === g ? "var(--gold)" : "var(--line)"}`,
-                      background: form.gender === g ? "var(--gold-soft)" : "transparent",
-                      color: form.gender === g ? "var(--gold)" : "var(--muted)", cursor: "pointer",
-                      borderRadius: "var(--radius)", fontWeight: form.gender === g ? 600 : 400,
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: ".85rem",
-                    }}
-                  >
-                    {g === "Male" ? <Mars size={16} /> : g === "Female" ? <Venus size={16} /> : <User size={16} />} {g}
-                  </button>
-                ))}
+            {/* Row 1: Name + Gender */}
+            <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+              <div>
+                <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Full Name *</label>
+                <input type="text" placeholder="Full Name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} style={fieldS} />
+              </div>
+              <div>
+                <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Gender *</label>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {GENDERS.map((g) => (
+                    <button key={g} type="button" onClick={() => setForm((f) => ({ ...f, gender: g }))}
+                      style={{ flex: 1, padding: "12px 12px", border: `1px solid ${form.gender === g ? "var(--gold)" : "var(--line)"}`, background: form.gender === g ? "var(--gold-soft)" : "transparent", color: form.gender === g ? "var(--gold)" : "var(--muted)", cursor: "pointer", borderRadius: "var(--radius)", fontWeight: form.gender === g ? 600 : 400, fontSize: ".85rem", transition: "all .2s" }}
+                    >{g}</button>
+                  ))}
+                </div>
               </div>
             </div>
-            <div style={{ position: "relative" }}>
-              <Phone size={16} style={iconWrap} />
-              <input type="tel" placeholder="Phone *" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} style={fieldS} />
+
+            {/* Row 2: Phone + Email */}
+            <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+              <div>
+                <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Phone *</label>
+                <input type="tel" placeholder="Phone" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} style={fieldS} />
+              </div>
+              <div>
+                <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Email</label>
+                <input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} style={fieldS} />
+              </div>
             </div>
-            <div style={{ position: "relative" }}>
-              <Mail size={16} style={iconWrap} />
-              <input type="email" placeholder="Email (optional)" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} style={fieldS} />
+
+            {/* Row 3: State + District */}
+            <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+              <div>
+                <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>State</label>
+                <select value={form.state} onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))} style={selectS}>
+                  <option value="">Select State</option>
+                  {STATE_LIST.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>District</label>
+                <input type="text" placeholder="District" value={form.district} onChange={(e) => setForm((f) => ({ ...f, district: e.target.value }))} style={fieldS} />
+              </div>
             </div>
-            <div style={{ position: "relative" }}>
-              <Calendar size={16} style={iconWrap} />
-              <input type="date" placeholder="Date of Birth" value={form.dob} onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))} style={{
-                ...fieldS, colorScheme: "dark",
-              }} />
+
+            {/* Row 4: City + Pincode */}
+            <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+              <div>
+                <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>City</label>
+                <input type="text" placeholder="City" value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} style={fieldS} />
+              </div>
+              <div>
+                <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Pincode</label>
+                <input type="text" placeholder="Pincode" value={form.pincode} onChange={(e) => setForm((f) => ({ ...f, pincode: e.target.value }))} style={fieldS} />
+              </div>
             </div>
-            {error && <p style={{ color: "var(--error)", fontSize: ".85rem", display: "flex", alignItems: "center", gap: 6 }}><AlertCircle size={14} /> {error}</p>}
+
+            {error && (
+              <div style={{ padding: "12px 16px", background: "rgba(231,76,60,0.1)", borderRadius: "var(--radius)", display: "flex", alignItems: "center", gap: 8 }}>
+                <AlertCircle size={16} style={{ color: "#e74c3c", flexShrink: 0 }} />
+                <span style={{ color: "#e74c3c", fontSize: ".85rem" }}>{error}</span>
+              </div>
+            )}
+
             <div style={{ display: "flex", gap: 12 }}>
               <button onClick={handleSave} disabled={saving} className="premium-button" style={{ flex: 1, justifyContent: "center", display: "flex", alignItems: "center", gap: 8, minHeight: 46 }}>
                 {saving ? <Loader2 size={16} className="spin" /> : <CheckCircle size={16} />}
@@ -171,9 +237,13 @@ export default function AccountProfile() {
           <div>
             <div style={{ display: "grid", gap: 16 }}>
               <ProfileRow label="Name" value={customer?.name || ""} icon={<User size={15} />} />
-              <ProfileRow label="Gender" value={customer?.gender || "Not set"} icon={<Venus size={15} />} />
+              <ProfileRow label="Gender" value={customer?.gender || "Not set"} icon={<User size={15} />} />
               <ProfileRow label="Phone" value={customer?.phone || ""} icon={<Phone size={15} />} />
               <ProfileRow label="Email" value={customer?.email || "Not provided"} icon={<Mail size={15} />} />
+              <ProfileRow label="State" value={customer?.state || "Not set"} icon={<MapPin size={15} />} />
+              <ProfileRow label="District" value={customer?.district || "Not set"} icon={<Building2 size={15} />} />
+              <ProfileRow label="City" value={customer?.city || "Not set"} icon={<MapPinned size={15} />} />
+              <ProfileRow label="Pincode" value={customer?.pincode || "Not set"} icon={<Hash size={15} />} />
             </div>
             <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
               <button onClick={() => navigate("/change-password")} style={{ padding: "12px 24px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", borderRadius: "var(--radius)", fontWeight: 500, display: "flex", alignItems: "center", gap: 8, fontSize: ".85rem" }}>

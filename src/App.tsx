@@ -72,10 +72,10 @@ function AppContent() {
                 <Route path="/category" element={<Category />} />
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
-                <Route path="/checkout" element={<Checkout />} />
+                <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
                 <Route path="/about" element={<About />} />
                 <Route path="/contact" element={<Contact />} />
-                <Route path="/wishlist" element={<Wishlist />} />
+                <Route path="/wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
                 <Route path="/order-success" element={<OrderSuccess />} />
                 <Route path="/order-tracking" element={<OrderTracking />} />
                 <Route path="/shipping-policy" element={<PolicyPage type="shipping" />} />

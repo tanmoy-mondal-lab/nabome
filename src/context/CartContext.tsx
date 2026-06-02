@@ -37,25 +37,26 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | null>(null);
 
-function getUserId(): string | null {
-  try {
-    const raw = localStorage.getItem("nabome-current-user");
-    if (raw) return JSON.parse(raw).id || null;
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem("nabome-cart");
     return saved ? JSON.parse(saved) : [];
   });
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem("nabome-cart", JSON.stringify(cart));
   }, [cart]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUserId(data.session?.user?.id || null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+    return () => listener?.subscription.unsubscribe();
+  }, []);
 
   const addToCart = (product: Product | CartInput) => {
     const variantId = "variantId" in product ? product.variantId : undefined;
@@ -74,8 +75,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     analytics.addToCart(product.id, product.name, product.price, 1);
 
-    const userId = getUserId();
-    if (userId && supabase) {
+    if (userId) {
       cartApi.addToCart(userId, String(product.id), variantId || "", 1).catch(() => {});
     }
   };
@@ -87,12 +87,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     setCart(cart.filter((c) => !(c.id === id && (variantId ? c.variantId === variantId : true))));
 
-    const userId = getUserId();
-    if (userId && supabase) {
-      const cartItem = cart.find((i) => i.id === id);
-      if (cartItem) {
-        cartApi.removeFromCart(String(cartItem.id)).catch(() => {});
-      }
+    if (userId) {
+      cartApi.removeFromCart(String(id)).catch(() => {});
     }
   };
 
@@ -104,12 +100,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           : item
       )
     );
-    const userId = getUserId();
-    if (userId && supabase) {
-      const item = cart.find((i) => i.id === id);
-      if (item) {
-        cartApi.addToCart(userId, String(id), variantId || "", 1).catch(() => {});
-      }
+    if (userId) {
+      cartApi.addToCart(userId, String(id), variantId || "", 1).catch(() => {});
     }
   };
 
@@ -131,8 +123,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => {
     setCart([]);
-    const userId = getUserId();
-    if (userId && supabase) {
+    if (userId) {
       cartApi.clearCart(userId).catch(() => {});
     }
   };

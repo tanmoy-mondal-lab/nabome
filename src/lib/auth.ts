@@ -47,7 +47,6 @@ export async function loginUser(params: {
 }
 
 export async function logoutUser() {
-  localStorage.removeItem("nabome-current-user");
   try {
     await supabase.auth.signOut();
   } catch {

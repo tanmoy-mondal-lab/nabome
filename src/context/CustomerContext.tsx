@@ -7,6 +7,11 @@ export type Customer = {
   phone: string;
   email?: string | null;
   gender?: string | null;
+  state?: string | null;
+  district?: string | null;
+  city?: string | null;
+  pincode?: string | null;
+  avatar_url?: string | null;
 };
 
 type CustomerContextType = {
@@ -59,6 +64,11 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     phone: row.phone || "",
     email: row.email || null,
     gender: row.gender || null,
+    state: row.state || null,
+    district: row.district || null,
+    city: row.city || null,
+    pincode: row.pincode || null,
+    avatar_url: row.avatar_url || null,
   });
 
   const login = async (identifier: string): Promise<{ found: boolean; customer?: Customer }> => {
