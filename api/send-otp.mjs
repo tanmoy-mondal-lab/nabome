@@ -1,9 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const BREVO_API_KEY = process.env.VITE_BREVO_API_KEY;
-const SENDER_EMAIL = process.env.VITE_BREVO_SENDER_EMAIL || 'nabome.official@gmail.com';
+const SERVICE_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 const WHATSAPP_SENDER = process.env.VITE_WHATSAPP_SENDER || '+919163854706';
 
 function generateOTP() {

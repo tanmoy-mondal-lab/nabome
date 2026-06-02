@@ -73,4 +73,4 @@ ${urls.join("\n")}
 </urlset>`;
 
   return res.status(200).send(xml);
-}
+
