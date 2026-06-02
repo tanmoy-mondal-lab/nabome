@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { neon, isNeonConnected } from "./neon";
 
 export type AuditAction =
   | "user.login"
@@ -81,26 +82,34 @@ export async function logAudit(entry: AuditLogEntry) {
     },
   };
 
-  // Persist to Supabase if connected
+  const logPayload = {
+    action: fullEntry.action,
+    actor_id: fullEntry.actor_id || null,
+    actor_role: fullEntry.actor_role || null,
+    target_id: fullEntry.target_id || null,
+    target_type: fullEntry.target_type || null,
+    metadata: fullEntry.metadata || null,
+    ip_address: fullEntry.ip_address || null,
+    user_agent: fullEntry.user_agent || null,
+  };
+
+  // Persist to Neon if connected
+  if (await isNeonConnected()) {
+    try {
+      await neon.insert("system_logs", logPayload);
+      return;
+    } catch { /* fall through */ }
+  }
+
+  // Fallback to Supabase if connected
   if (supabase) {
     try {
-      await supabase.from("system_logs").insert({
-        action: fullEntry.action,
-        actor_id: fullEntry.actor_id || null,
-        actor_role: fullEntry.actor_role || null,
-        target_id: fullEntry.target_id || null,
-        target_type: fullEntry.target_type || null,
-        metadata: fullEntry.metadata || null,
-        ip_address: fullEntry.ip_address || null,
-        user_agent: fullEntry.user_agent || null,
-      });
-    } catch {
-      // Fallback to local storage
-      persistLocal(fullEntry);
-    }
-  } else {
-    persistLocal(fullEntry);
+      await supabase.from("system_logs").insert(logPayload);
+    } catch { /* fall through */ }
   }
+
+  // Last resort: localStorage
+  persistLocal(fullEntry);
 }
 
 function persistLocal(entry: AuditLogEntry) {

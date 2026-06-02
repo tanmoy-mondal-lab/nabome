@@ -4,6 +4,7 @@ import { User, Camera, Lock, Mail, Phone, Venus, Mars, Loader2, AlertCircle, Che
 import { useCustomer } from "../context/CustomerContext";
 import { useToast } from "../components/Toast";
 import { supabase } from "../lib/supabase";
+import { neon, isNeonConnected } from "../lib/neon";
 import { useNavigate } from "react-router-dom";
 
 const GENDERS = ["Male", "Female", "Other"];
@@ -54,14 +55,17 @@ export default function AccountProfile() {
     if (!customer) return;
     setSaving(true);
 
-    if (supabase) {
-      const { error: err } = await supabase.from("customers").update({
-        name: form.name.trim(),
-        phone: form.phone.trim(),
-        email: form.email.trim() || null,
-        gender: form.gender,
-      }).eq("id", customer.id);
-      if (err) { setError(err.message); setSaving(false); return; }
+    const updates = { name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || null, gender: form.gender };
+    let saveErr: any = null;
+    if (await isNeonConnected()) {
+      const res = await neon.update("users", updates, { id: customer.id });
+      saveErr = res.error;
+    } else if (supabase) {
+      const res = await supabase.from("users").update(updates).eq("id", customer.id);
+      saveErr = res.error;
+    }
+    if (saveErr) { setError(saveErr.message); setSaving(false); return; }
+    if (await isNeonConnected() || supabase) {
       await refresh();
     }
 

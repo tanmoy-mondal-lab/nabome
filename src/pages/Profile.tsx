@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import { Lock } from "lucide-react";
 import { useCustomer } from "../context/CustomerContext";
 import { supabase } from "../lib/supabase";
+import { neon, isNeonConnected } from "../lib/neon";
 import { getAddresses, createAddress, updateAddress, deleteAddress, setDefaultAddress, getOrdersByCustomer, type Address } from "../lib/db";
 
 const GENDERS = ["Male", "Female", "Other"];
@@ -62,16 +63,24 @@ export default function Profile() {
   };
 
   const handleSaveProfile = async () => {
-    if (!customer || !supabase) return;
+    if (!customer) return;
     if (!form.name.trim() || !form.gender || !form.phone.trim()) {
       setError("Name, gender, and phone are required");
       return;
     }
     setSaving(true);
     setError("");
-    const { error: err } = await supabase.from("customers").update({
-      name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || null, gender: form.gender,
-    }).eq("id", customer.id);
+    const updates = { name: form.name.trim(), phone: form.phone.trim(), email: form.email.trim() || null, gender: form.gender };
+    let err: any = null;
+    if (await isNeonConnected()) {
+      const res = await neon.update("users", updates, { id: customer.id });
+      err = res.error;
+    } else if (supabase) {
+      const res = await supabase.from("users").update(updates).eq("id", customer.id);
+      err = res.error;
+    } else {
+      err = new Error("Database not configured");
+    }
     if (err) { setError(err.message); setSaving(false); return; }
     await refresh();
     setEditing(false);

@@ -3,12 +3,13 @@ import { neon, isNeonConnected } from "./neon";
 
 export type AuthUser = {
   id: string;
-  email?: string;
-  phone?: string;
+  email: string;
+  phone: string;
   name: string;
   role: "customer" | "vendor" | "admin";
   status: "active" | "suspended" | "banned";
   avatar_url?: string;
+  createdAt: string;
 };
 
 // ─── REGISTRATION ───────────────────────────
@@ -26,12 +27,13 @@ export async function registerUser(params: {
     if (exists) throw new Error("User already exists");
     const newUser = {
       id: `mock_${Date.now()}`,
-      email: params.email,
-      phone: params.phone,
+      email: params.email || `${params.phone || "unknown"}@mock.nabome`,
+      phone: params.phone || "",
       name: params.name,
       password: params.password,
       role: params.role || "customer",
       status: "active",
+      createdAt: new Date().toISOString(),
     };
     users.push(newUser);
     localStorage.setItem("nabome-users", JSON.stringify(users));
@@ -215,10 +217,11 @@ async function mapSupabaseUser(supabaseUser: any): Promise<AuthUser> {
 
   return {
     id: supabaseUser.id,
-    email: supabaseUser.email,
-    phone: supabaseUser.phone || metadata.phone,
+    email: supabaseUser.email || "",
+    phone: supabaseUser.phone || metadata.phone || "",
     name,
     role,
     status: "active",
+    createdAt: supabaseUser.created_at || supabaseUser.metadata?.createdAt || metadata.created_at || new Date().toISOString(),
   };
 }

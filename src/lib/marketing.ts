@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { neon, isNeonConnected } from "./neon";
 
 export type CampaignType = "seasonal" | "promotional" | "referral" | "welcome" | "abandoned_cart" | "reorder";
 
@@ -34,6 +35,18 @@ const STORAGE_KEY = "nabome-marketing";
 // ── Newsletter ──
 
 export async function subscribeToNewsletter(email: string, name?: string, source?: string) {
+  if (await isNeonConnected()) {
+    try {
+      const existing = await neon.select("newsletter_subscribers", { email });
+      if (!existing.data || existing.data.length === 0) {
+        await neon.insert("newsletter_subscribers", { email, name: name || null, source: source || "website" });
+      }
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "Subscription failed" };
+    }
+  }
+
   if (supabase) {
     try {
       const { error } = await supabase.from("newsletter_subscribers").upsert(
@@ -76,6 +89,15 @@ export function getReferralLink(code: string): string {
 }
 
 export async function createReferral(referral: Omit<Referral, "id" | "createdAt" | "status">) {
+  if (await isNeonConnected()) {
+    try {
+      const result = await neon.insert("referrals", referral);
+      return result.data?.[0] || null;
+    } catch {
+      return null;
+    }
+  }
+
   if (supabase) {
     try {
       const { data, error } = await supabase.from("referrals").insert(referral).select().single();
