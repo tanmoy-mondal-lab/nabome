@@ -5,6 +5,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { analytics } from "../lib/analytics";
+import { supabase } from "../lib/supabase";
+import * as wishlistApi from "../lib/api/wishlist";
 
 export interface WishlistItem {
   id: number;
@@ -32,6 +35,16 @@ const WishlistContext =
   createContext<WishlistContextType | null>(
     null
   );
+
+function getUserId(): string | null {
+  try {
+    const raw = localStorage.getItem("nabome-current-user");
+    if (raw) return JSON.parse(raw).id || null;
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 export function WishlistProvider({
   children,
@@ -71,6 +84,12 @@ export function WishlistProvider({
         product,
       ]);
     }
+    analytics.addToWishlist(product.id, product.name);
+
+    const userId = getUserId();
+    if (userId && supabase) {
+      wishlistApi.addToWishlist(userId, String(product.id)).catch(() => {});
+    }
   };
 
   const removeFromWishlist = (
@@ -81,6 +100,11 @@ export function WishlistProvider({
         (item) => item.id !== id
       )
     );
+
+    const userId = getUserId();
+    if (userId && supabase) {
+      wishlistApi.removeFromWishlist(userId, String(id)).catch(() => {});
+    }
   };
 
   const isInWishlist = (

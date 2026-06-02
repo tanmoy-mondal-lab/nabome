@@ -7,6 +7,9 @@ import SEO from "../components/SEO";
 import { useToast } from "../components/Toast";
 import { useCart } from "../context/CartContext";
 import { products, type Product } from "../data/products";
+import { generateCategoryMetadata } from "../lib/seo";
+import { breadcrumbSchema, collectionSchema } from "../lib/structured-data";
+import { useAnalytics } from "../context/AnalyticsContext";
 
 const categories = ["All", "Men", "Women", "Unisex", "Accessories"];
 const sortOptions = ["Featured", "Price Low", "Price High", "Newest", "Best Rated"];
@@ -47,6 +50,7 @@ const activeFilterRow: React.CSSProperties = {
 export default function Category() {
   const { addToCart } = useCart();
   const { showToast } = useToast();
+  const { trackCategoryView } = useAnalytics();
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
@@ -101,6 +105,10 @@ export default function Category() {
     showToast(`${product.name} added to bag`);
   };
 
+  useEffect(() => {
+    trackCategoryView(selectedCategory);
+  }, [selectedCategory]);
+
   const hasActiveFilters = selectedCategory !== "All" || search !== "" || maxPrice !== priceRange.max || selectedMaterial !== "";
 
   const clearFilters = () => {
@@ -120,7 +128,20 @@ export default function Category() {
 
   return (
     <>
-      <SEO title="Shop নবME | Premium Bengali Streetwear" description="Browse নবME oversized tees, hoodies, accessories and limited Bengali streetwear drops." path="/category" />
+      <SEO
+        {...generateCategoryMetadata(selectedCategory === "All" ? "All" : selectedCategory, `Browse ${selectedCategory.toLowerCase()} collection on নবME. Premium Bengali streetwear.`, selectedCategory.toLowerCase())}
+        structuredData={{
+          ...collectionSchema({
+            name: `${selectedCategory === "All" ? "All" : selectedCategory} Collection`,
+            description: `Browse our ${selectedCategory.toLowerCase()} collection. Premium Bengali streetwear and fashion.`,
+            products: filteredProducts.slice(0, 20).map((p) => ({ name: p.name, url: `/product/${p.id}` })),
+          }),
+          ...breadcrumbSchema([
+            { label: "Home", href: "/" },
+            { label: selectedCategory === "All" ? "Shop All" : selectedCategory },
+          ]),
+        }}
+      />
       <Navbar />
       <main className="page">
         <section className="section">

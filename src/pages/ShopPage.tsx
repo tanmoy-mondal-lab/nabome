@@ -5,6 +5,8 @@ import { Star, MapPin, Package, ShoppingBag, Phone, Mail } from "lucide-react";
 import SEO from "../components/SEO";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import { generateShopMetadata } from "../lib/seo";
+import { organizationSchema } from "../lib/structured-data";
 import { getMockShop, generateMockProducts, generateMockReviews } from "../lib/mockVendorData";
 import type { VendorProduct } from "../types/vendor";
 
@@ -50,7 +52,12 @@ export default function ShopPage() {
 
   return (
     <>
-      <SEO title={`${shop.shopName} | নবME`} description={shop.shopDescription} path={`/shop/${slug}`} />
+      <SEO
+        {...generateShopMetadata(shop.shopName, shop.shopDescription, slug || "")}
+        structuredData={{
+          ...organizationSchema(),
+        }}
+      />
       <Navbar />
       <div style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh" }}>
         {/* Banner */}

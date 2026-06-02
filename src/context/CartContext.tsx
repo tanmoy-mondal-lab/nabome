@@ -1,5 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Product } from "../data/products";
+import { analytics } from "../lib/analytics";
+import { supabase } from "../lib/supabase";
+import * as cartApi from "../lib/api/cart";
 
 export interface CartItem {
   id: number;
@@ -34,6 +37,16 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | null>(null);
 
+function getUserId(): string | null {
+  try {
+    const raw = localStorage.getItem("nabome-current-user");
+    if (raw) return JSON.parse(raw).id || null;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem("nabome-cart");
@@ -58,10 +71,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } else {
       setCart([...cart, { ...product, variantId, selectedSize, selectedColor, quantity: 1 }]);
     }
+
+    analytics.addToCart(product.id, product.name, product.price, 1);
+
+    const userId = getUserId();
+    if (userId && supabase) {
+      cartApi.addToCart(userId, String(product.id), variantId || "", 1).catch(() => {});
+    }
   };
 
   const removeItem = (id: number, variantId?: string) => {
-    setCart(cart.filter((item) => !(item.id === id && (variantId ? item.variantId === variantId : true))));
+    const item = cart.find((i) => i.id === id && (variantId ? i.variantId === variantId : true));
+    if (item) {
+      analytics.removeFromCart(id, item.name, item.price);
+    }
+    setCart(cart.filter((c) => !(c.id === id && (variantId ? c.variantId === variantId : true))));
+
+    const userId = getUserId();
+    if (userId && supabase) {
+      const cartItem = cart.find((i) => i.id === id);
+      if (cartItem) {
+        cartApi.removeFromCart(String(cartItem.id)).catch(() => {});
+      }
+    }
   };
 
   const increaseQuantity = (id: number, variantId?: string) => {
@@ -72,9 +104,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
           : item
       )
     );
+    const userId = getUserId();
+    if (userId && supabase) {
+      const item = cart.find((i) => i.id === id);
+      if (item) {
+        cartApi.addToCart(userId, String(id), variantId || "", 1).catch(() => {});
+      }
+    }
   };
 
   const decreaseQuantity = (id: number, variantId?: string) => {
+    const item = cart.find((i) => i.id === id && (variantId ? i.variantId === variantId : true));
+    if (item && item.quantity <= 1) {
+      analytics.removeFromCart(id, item.name, item.price);
+    }
     setCart(
       cart
         .map((item) =>
@@ -86,7 +129,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    const userId = getUserId();
+    if (userId && supabase) {
+      cartApi.clearCart(userId).catch(() => {});
+    }
+  };
 
   return (
     <CartContext.Provider value={{ cart, addToCart, removeItem, increaseQuantity, decreaseQuantity, clearCart }}>

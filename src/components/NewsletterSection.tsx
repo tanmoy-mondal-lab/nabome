@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, Sparkles, CheckCircle } from "lucide-react";
 import { useToast } from "./Toast";
 import { staggerContainer, staggerItem, sectionProps } from "../lib/animations";
+import { subscribeToNewsletter } from "../lib/marketing";
 
 export default function NewsletterSection() {
   const [name, setName] = useState("");
@@ -15,10 +16,14 @@ export default function NewsletterSection() {
     e.preventDefault();
     if (!email.includes("@")) { showToast("Please enter a valid email"); return; }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setSubscribed(true);
+    const result = await subscribeToNewsletter(email, name || undefined, "homepage");
+    if (result.success) {
+      setSubscribed(true);
+      showToast("Welcome to the নবME family!");
+    } else {
+      showToast(result.error || "Something went wrong. Please try again.");
+    }
     setLoading(false);
-    showToast("Welcome to the নবME family!");
   };
 
   return (

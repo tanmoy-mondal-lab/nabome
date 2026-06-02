@@ -21,6 +21,9 @@ import { useToast } from "../components/Toast";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useAuth } from "../context/AuthContext";
+import { useAnalytics } from "../context/AnalyticsContext";
+import { generateProductMetadata } from "../lib/seo";
+import { productSchema, breadcrumbSchema } from "../lib/structured-data";
 import {
   generateAdvancedProducts, getBadgesForAdvanced, addToRecentlyViewed,
   getCompareList, getRelatedProducts,
@@ -35,6 +38,7 @@ export default function ProductDetail() {
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { user } = useAuth();
+  const { trackProductView, trackAddToCart, trackAddToWishlist } = useAnalytics();
 
   const [allProducts] = useState(() => generateAdvancedProducts(48));
   const [reviews, setReviews] = useState<ProductReview[]>([]);
@@ -51,6 +55,7 @@ export default function ProductDetail() {
     if (product) {
       addToRecentlyViewed(product.id);
       setReviews(generateMockReviews(product.id));
+      trackProductView(product.id, product.name, product.category, product.defaultPrice);
       const defaultVar = product.variants.find((v) => v.stock > 0) || product.variants[0];
       if (defaultVar) {
         if (!selectedSize) setSelectedSize(defaultVar.size);
@@ -91,6 +96,7 @@ export default function ProductDetail() {
       selectedColor,
       variantId: currentVariant?.id,
     });
+    trackAddToCart(product!.id, product!.name, currentVariant?.price || product!.defaultPrice, quantity);
     showToast(`${product!.name} added to bag`);
   };
 
@@ -101,6 +107,7 @@ export default function ProductDetail() {
       showToast("Removed from wishlist");
     } else {
       addToWishlist({ id: pid, name: product!.name, price: product!.defaultPrice, image: product!.images[0]?.url || "", category: product!.category });
+      trackAddToWishlist(product!.id, product!.name);
       showToast("Saved to wishlist");
     }
   };
@@ -173,25 +180,30 @@ export default function ProductDetail() {
   return (
     <>
       <SEO
-        title={`${product.name} | নবME`}
-        description={product.shortDescription}
-        path={`/product/${product.id}`}
-        image={product.images[0]?.url}
-        type="product"
+        {...generateProductMetadata(product.name, product.shortDescription, product.id, product.images[0]?.url, product.category)}
         structuredData={{
-          "@context": "https://schema.org",
-          "@type": "Product",
-          name: product.name,
-          image: product.images.map((img) => `https://www.nabome.online${img.url}`),
-          description: product.shortDescription,
-          brand: { "@type": "Brand", name: product.brand },
-          offers: {
-            "@type": "Offer", priceCurrency: "INR", price: product.defaultPrice,
-            availability: totalStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-          },
-          aggregateRating: product.reviewCount > 0 ? {
-            "@type": "AggregateRating", ratingValue: product.rating, reviewCount: product.reviewCount,
-          } : undefined,
+          ...productSchema({
+            name: product.name,
+            description: product.shortDescription,
+            image: `https://www.nabome.online${product.images[0]?.url || "/images/logo/logo.webp"}`,
+            sku: product.sku,
+            price: product.defaultPrice,
+            brand: product.brand,
+            aggregateRating: product.reviewCount > 0 ? {
+              ratingValue: product.rating, reviewCount: product.reviewCount,
+            } : undefined,
+            offers: {
+              price: product.defaultPrice,
+              priceCurrency: "INR",
+              availability: totalStock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+              url: `https://www.nabome.online/product/${product.id}`,
+            },
+          }),
+          ...breadcrumbSchema([
+            { label: "Home", href: "/" },
+            { label: product.category, href: `/category?type=${product.category.toLowerCase()}` },
+            { label: product.name },
+          ]),
         }}
       />
       <Navbar />

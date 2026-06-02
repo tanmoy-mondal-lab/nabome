@@ -7,6 +7,8 @@ import Footer from "../components/Footer";
 import SEO from "../components/SEO";
 import AdvancedProductCard from "../components/AdvancedProductCard";
 import FilterSidebar from "../components/FilterSidebar";
+import { useAnalytics } from "../context/AnalyticsContext";
+import { generateSearchMetadata } from "../lib/seo";
 import { generateAdvancedProducts, filterProducts, sortOptions } from "../lib/mockProductData";
 import type { ProductFilterState } from "../types/product";
 
@@ -30,6 +32,7 @@ const defaultFilters: ProductFilterState = {
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
   const q = searchParams.get("q") || "";
+  const { trackSearch } = useAnalytics();
 
   const [products] = useState(() => generateAdvancedProducts(48));
   const [filters, setFilters] = useState<ProductFilterState>({ ...defaultFilters, search: q });
@@ -38,6 +41,10 @@ export default function SearchPage() {
 
   useEffect(() => {
     setFilters((f) => ({ ...f, search: q }));
+  }, [q]);
+
+  useEffect(() => {
+    if (q) trackSearch(q, filtered.length);
   }, [q]);
 
   const categories = useMemo(() => [...new Set(products.map((p) => p.category))], [products]);
@@ -72,8 +79,7 @@ export default function SearchPage() {
 
   return (
     <>
-      <SEO title={q ? `Search: ${q} | নবME` : "Browse Products | নবME"}
-        description={`Browse our collection${q ? ` matching "${q}"` : ""}. Premium Bengali streetwear and fashion.`} />
+      <SEO {...generateSearchMetadata(q || "all products")} />
       <Navbar />
       <main className="page">
         <div className="container" style={{ paddingTop: 40 }}>

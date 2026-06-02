@@ -7,6 +7,7 @@ import SEO from "../components/SEO";
 import { useCart } from "../context/CartContext";
 import { useCustomer } from "../context/CustomerContext";
 import { useDelivery } from "../context/DeliveryContext";
+import { useAnalytics } from "../context/AnalyticsContext";
 import type { CustomerData, Address } from "../lib/db";
 import { getAddresses, createAddress, updateAddress, deleteAddress } from "../lib/db";
 import { sendOrderConfirmation, sendAdminOrderNotification, type BillData } from "../lib/email";
@@ -60,6 +61,7 @@ export default function Checkout() {
   const { cart, clearCart } = useCart();
   const { customer } = useCustomer();
   const { createDelivery } = useDelivery();
+  const { trackBeginCheckout, trackPurchase } = useAnalytics();
   const paidRef = useRef(false);
   const { showToast } = useToast();
 
@@ -120,7 +122,10 @@ export default function Checkout() {
     }
   }, [customer]);
 
-  useEffect(() => { loadAddr(); }, [loadAddr]);
+  useEffect(() => {
+    loadAddr();
+    trackBeginCheckout(total, cart.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })));
+  }, [loadAddr]);
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -186,6 +191,8 @@ export default function Checkout() {
         );
       }
     }
+
+    trackPurchase(billNo || bill.billNo, grandTotal, cart.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })));
 
     localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
     localStorage.removeItem("nabome-cart");

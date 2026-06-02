@@ -7,6 +7,8 @@ import { useToast } from "../components/Toast";
 import { useCart } from "../context/CartContext";
 import { Sparkles, BarChart3, MessageCircle, MapPin } from "lucide-react";
 import { products, type Product } from "../data/products";
+import { generateHomeMetadata } from "../lib/seo";
+import { organizationSchema, websiteSchema } from "../lib/structured-data";
 import HeroSection from "../components/HeroSection";
 import CategoryShowcase from "../components/CategoryShowcase";
 import ProductShowcase from "../components/ProductShowcase";
@@ -42,14 +44,10 @@ export default function Home() {
   return (
     <>
       <SEO
-        title="নবME | Premium Bengali Streetwear"
-        description="Shop নবME premium Bengali streetwear: oversized tees, hoodies, accessories and everyday luxury pieces crafted for modern India."
+        {...generateHomeMetadata()}
         structuredData={{
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          name: "নবME",
-          url: "https://www.nabome.online",
-          sameAs: ["https://instagram.com/nabome.online", "https://www.facebook.com/share/1DbpYKWoZ1/"],
+          ...organizationSchema(),
+          ...websiteSchema(),
         }}
       />
       <Navbar />
