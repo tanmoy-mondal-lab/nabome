@@ -2,45 +2,65 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Percent, Plus, Edit2, Trash2, Save } from "lucide-react";
 import { useToast } from "../../components/Toast";
-import { generateMockAdminCoupons } from "../../lib/mockAdminData";
-import type { AdminCoupon } from "../../types/admin";
+import { getCoupons, createCoupon, updateCoupon, deleteCoupon, type Coupon } from "../../lib/api/coupons";
 
 export default function AdminCoupons() {
   const { showToast } = useToast();
-  const [coupons, setCoupons] = useState<AdminCoupon[]>([]);
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ code: "", type: "percentage" as AdminCoupon["type"], value: 0, minOrder: 0, maxUses: 100, description: "", expiresAt: "" });
+  const [form, setForm] = useState({ code: "", type: "percentage" as Coupon["discountType"], value: 0, minOrderValue: 0, maxDiscount: 0, usageLimit: 100, description: "", expiresAt: "" });
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { setCoupons(generateMockAdminCoupons()); }, []);
+  useEffect(() => {
+    getCoupons().then((data) => { setCoupons(data); setLoading(false); });
+  }, []);
 
-  const handleSave = (id?: string) => {
+  const handleSave = async (id?: string) => {
     if (!form.code.trim()) { showToast("Coupon code is required."); return; }
     if (id) {
-      setCoupons((prev) => prev.map((c) => c.id === id ? { ...c, ...form, code: form.code.toUpperCase() } : c));
+      await updateCoupon(id, {
+        code: form.code.toUpperCase(),
+        discountType: form.type,
+        discountValue: form.value,
+        minOrderValue: form.minOrderValue,
+        maxDiscount: form.maxDiscount,
+        usageLimit: form.usageLimit,
+        description: form.description,
+      });
+      setCoupons((prev) => prev.map((c) => c.id === id ? { ...c, code: form.code.toUpperCase(), discountType: form.type, discountValue: form.value, minOrderValue: form.minOrderValue, maxDiscount: form.maxDiscount, usageLimit: form.usageLimit, description: form.description } : c));
       showToast("Coupon updated!");
       setEditing(null);
     } else {
-      const newC: AdminCoupon = { id: `cup_${Date.now()}`, code: form.code.toUpperCase(), type: form.type, value: form.value, minOrder: form.minOrder, maxUses: form.maxUses, usedCount: 0, expiresAt: form.expiresAt || "2026-12-31", isActive: true, description: form.description };
-      setCoupons((prev) => [newC, ...prev]);
+      await createCoupon({
+        code: form.code.toUpperCase(), discountType: form.type, discountValue: form.value,
+        minOrderValue: form.minOrderValue, maxDiscount: form.maxDiscount, usageLimit: form.usageLimit,
+        description: form.description || undefined, startsAt: undefined, expiresAt: form.expiresAt || undefined, isActive: true,
+      });
+      const updated = await getCoupons();
+      setCoupons(updated);
       showToast("Coupon created!");
       setCreating(false);
     }
-    setForm({ code: "", type: "percentage", value: 0, minOrder: 0, maxUses: 100, description: "", expiresAt: "" });
+    setForm({ code: "", type: "percentage", value: 0, minOrderValue: 0, maxDiscount: 0, usageLimit: 100, description: "", expiresAt: "" });
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this coupon?")) return;
+    await deleteCoupon(id);
     setCoupons((prev) => prev.filter((c) => c.id !== id));
     showToast("Coupon deleted.");
   };
 
-  const toggleActive = (id: string) => {
+  const toggleActive = async (id: string) => {
+    const c = coupons.find((c) => c.id === id);
+    if (!c) return;
+    await updateCoupon(id, { isActive: !c.isActive });
     setCoupons((prev) => prev.map((c) => c.id === id ? { ...c, isActive: !c.isActive } : c));
   };
 
-  const startEdit = (c: AdminCoupon) => {
-    setForm({ code: c.code, type: c.type, value: c.value, minOrder: c.minOrder, maxUses: c.maxUses, description: c.description, expiresAt: c.expiresAt });
+  const startEdit = (c: Coupon) => {
+    setForm({ code: c.code, type: c.discountType, value: c.discountValue, minOrderValue: c.minOrderValue || 0, maxDiscount: c.maxDiscount || 0, usageLimit: c.usageLimit || 100, description: c.description || "", expiresAt: c.expiresAt || "" });
     setEditing(c.id);
   };
 
@@ -52,16 +72,15 @@ export default function AdminCoupons() {
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <input type="text" placeholder="Coupon Code" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))} style={fieldS} />
-        <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as AdminCoupon["type"] }))} style={fieldS}>
+        <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as Coupon["discountType"] }))} style={fieldS}>
           <option value="percentage">Percentage Discount</option>
-          <option value="flat">Flat Discount</option>
-          <option value="free_shipping">Free Shipping</option>
+          <option value="fixed">Flat Discount</option>
         </select>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-        <input type="number" placeholder={form.type === "percentage" ? "Discount %" : form.type === "free_shipping" ? "0" : "Discount ₹"} value={form.value || ""} onChange={(e) => setForm((f) => ({ ...f, value: Number(e.target.value) }))} style={fieldS} disabled={form.type === "free_shipping"} />
-        <input type="number" placeholder="Min Order" value={form.minOrder || ""} onChange={(e) => setForm((f) => ({ ...f, minOrder: Number(e.target.value) }))} style={fieldS} />
-        <input type="number" placeholder="Max Uses" value={form.maxUses || ""} onChange={(e) => setForm((f) => ({ ...f, maxUses: Number(e.target.value) }))} style={fieldS} />
+        <input type="number" placeholder={form.type === "percentage" ? "Discount %" : "Discount ₹"} value={form.value || ""} onChange={(e) => setForm((f) => ({ ...f, value: Number(e.target.value) }))} style={fieldS} />
+        <input type="number" placeholder="Min Order" value={form.minOrderValue || ""} onChange={(e) => setForm((f) => ({ ...f, minOrderValue: Number(e.target.value) }))} style={fieldS} />
+        <input type="number" placeholder="Max Uses" value={form.usageLimit || ""} onChange={(e) => setForm((f) => ({ ...f, usageLimit: Number(e.target.value) }))} style={fieldS} />
       </div>
       <input type="text" placeholder="Description" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} style={fieldS} />
       <input type="date" value={form.expiresAt} onChange={(e) => setForm((f) => ({ ...f, expiresAt: e.target.value }))} style={{ ...fieldS, colorScheme: "dark" }} />
@@ -71,6 +90,8 @@ export default function AdminCoupons() {
       </div>
     </div>
   );
+
+  if (loading) return <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Loading...</div>;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
@@ -107,10 +128,11 @@ export default function AdminCoupons() {
                   <div>
                     <p style={{ fontWeight: 700, fontSize: "1rem", letterSpacing: "0.05em" }}>{coupon.code}</p>
                     <p style={{ color: "var(--muted)", fontSize: ".78rem" }}>
-                      {coupon.type === "percentage" ? `${coupon.value}% off` : coupon.type === "flat" ? `₹${coupon.value} off` : "Free Shipping"}
-                      · Min: ₹{coupon.minOrder.toLocaleString("en-IN")} · Used: {coupon.usedCount}/{coupon.maxUses}
+                      {coupon.discountType === "percentage" ? `${coupon.discountValue}% off` : `₹${coupon.discountValue} off`}
+                      · Min: ₹{(coupon.minOrderValue || 0).toLocaleString("en-IN")} · Used: {coupon.usedCount}/{coupon.usageLimit || "∞"}
                     </p>
-                    <p style={{ color: "var(--muted)", fontSize: ".72rem" }}>{coupon.description} · Expires {new Date(coupon.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+                    {coupon.description && <p style={{ color: "var(--muted)", fontSize: ".72rem" }}>{coupon.description}</p>}
+                    {coupon.expiresAt && <p style={{ color: "var(--muted)", fontSize: ".72rem" }}>Expires {new Date(coupon.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>

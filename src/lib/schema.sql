@@ -463,6 +463,20 @@ create index if not exists idx_logs_user on public.system_logs(user_id);
 create index if not exists idx_logs_action on public.system_logs(action);
 create index if not exists idx_logs_created on public.system_logs(created_at);
 
+-- ─── USER CART (JSONB for cross-device sync, no FK constraints) ─
+create table if not exists public.user_cart (
+  user_id       uuid primary key references public.users(id) on delete cascade,
+  items         jsonb not null default '[]'::jsonb,
+  updated_at    timestamptz default now()
+);
+
+-- ─── USER WISHLIST (JSONB for cross-device sync, no FK constraints) ─
+create table if not exists public.user_wishlist (
+  user_id       uuid primary key references public.users(id) on delete cascade,
+  items         jsonb not null default '[]'::jsonb,
+  updated_at    timestamptz default now()
+);
+
 -- ─── NEWSLETTER SUBSCRIBERS ─────────────────
 create table if not exists public.newsletter_subscribers (
   id            uuid primary key default gen_random_uuid(),

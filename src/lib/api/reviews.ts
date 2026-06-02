@@ -1,58 +1,79 @@
 import { neon, isNeonConnected } from "../neon";
 
-export async function getReviews(productId: string) {
-  if (!await isNeonConnected()) return [];
+export interface Review {
+  id: string;
+  productId: string;
+  userId: string;
+  userName?: string;
+  orderId?: string;
+  rating: number;
+  title?: string;
+  comment?: string;
+  images?: string[];
+  isVerified: boolean;
+  status: "pending" | "approved" | "rejected";
+  likesCount: number;
+  dislikesCount: number;
+  vendorReply?: string;
+  vendorRepliedAt?: string;
+  createdAt: string;
+}
+
+function mapRow(row: Record<string, unknown>): Review {
+  return {
+    id: row.id as string,
+    productId: row.product_id as string,
+    userId: row.user_id as string,
+    userName: (row.user_name as string) || undefined,
+    orderId: (row.order_id as string) || undefined,
+    rating: Number(row.rating),
+    title: (row.title as string) || undefined,
+    comment: (row.comment as string) || undefined,
+    images: row.images ? (typeof row.images === "string" ? JSON.parse(row.images as string) : row.images as string[]) : undefined,
+    isVerified: !!row.is_verified,
+    status: (row.status as Review["status"]) || "approved",
+    likesCount: Number(row.likes_count || 0),
+    dislikesCount: Number(row.dislikes_count || 0),
+    vendorReply: (row.vendor_reply as string) || undefined,
+    vendorRepliedAt: (row.vendor_replied_at as string) || undefined,
+    createdAt: row.created_at as string,
+  };
+}
+
+export async function getProductReviews(productId: string): Promise<Review[]> {
+  if (!(await isNeonConnected())) return [];
+  const { data } = await neon.select("reviews", { product_id: productId, status: "approved" }, { order: "created_at", ascending: false });
+  return ((data as Record<string, unknown>[]) || []).map(mapRow);
+}
+
+export async function getAllReviews(filter?: { status?: string }): Promise<Review[]> {
+  if (!(await isNeonConnected())) return [];
+  const where: Record<string, unknown> = {};
+  if (filter?.status) where.status = filter.status;
+  const { data } = await neon.select("reviews", where, { order: "created_at", ascending: false });
+  return ((data as Record<string, unknown>[]) || []).map(mapRow);
+}
+
+export async function getVendorReviews(vendorId: string): Promise<Review[]> {
+  if (!(await isNeonConnected())) return [];
   const { data } = await neon.raw(
-    `SELECT r.*, u.name, u.avatar_url FROM reviews r LEFT JOIN users u ON u.id = r.user_id WHERE r.product_id = $1 AND r.status = 'active' ORDER BY r.created_at DESC`,
-    [productId]
+    `SELECT r.*, p.name as product_name FROM reviews r JOIN products p ON p.id = r.product_id WHERE p.vendor_id = $1 ORDER BY r.created_at DESC`,
+    [vendorId],
   );
-  return data || [];
+  return ((data as Record<string, unknown>[]) || []).map(mapRow);
 }
 
-export async function createReview(review: any) {
-  if (!await isNeonConnected()) return { id: `mock_${Date.now()}`, ...review };
-  const { data, error } = await neon.insert("reviews", review);
-  if (error) throw error;
-  return data?.[0] || null;
+export async function updateReviewStatus(id: string, status: "approved" | "rejected"): Promise<void> {
+  if (!(await isNeonConnected())) return;
+  await neon.update("reviews", { status }, { id });
 }
 
-export async function updateReview(id: string, updates: any) {
-  if (!await isNeonConnected()) return { id, ...updates };
-  const { data, error } = await neon.update("reviews", updates, { id });
-  if (error) throw error;
-  return data?.[0] || null;
+export async function replyToReview(id: string, reply: string): Promise<void> {
+  if (!(await isNeonConnected())) return;
+  await neon.update("reviews", { vendor_reply: reply, vendor_replied_at: new Date().toISOString() }, { id });
 }
 
-export async function deleteReview(id: string) {
-  if (!await isNeonConnected()) return;
-  const { error } = await neon.delete("reviews", { id });
-  if (error) throw error;
-}
-
-export async function addVendorReply(reviewId: string, reply: string) {
-  if (!await isNeonConnected()) return;
-  const { error } = await neon.update("reviews", { vendor_reply: reply, vendor_replied_at: new Date().toISOString() }, { id: reviewId });
-  if (error) throw error;
-}
-
-export async function reactToReview(reviewId: string, userId: string, reaction: "like" | "dislike" | "report") {
-  if (!await isNeonConnected()) return;
-  const { error } = await neon.insert("review_reactions", { review_id: reviewId, user_id: userId, reaction });
-  if (error) {
-    // Upsert fallback: delete then insert
-    await neon.delete("review_reactions", { review_id: reviewId, user_id: userId, reaction });
-    const { error: retryErr } = await neon.insert("review_reactions", { review_id: reviewId, user_id: userId, reaction });
-    if (retryErr) throw retryErr;
-  }
-}
-
-export async function getReviewStats(productId: string) {
-  if (!await isNeonConnected()) return null;
-  const { data } = await neon.select("reviews", { product_id: productId, status: "active" }, { columns: "rating" });
-  if (!data || data.length === 0) return null;
-  const total = data.length;
-  const average = data.reduce((s: number, r: any) => s + r.rating, 0) / total;
-  const distribution = [0, 0, 0, 0, 0];
-  data.forEach((r: any) => { if (r.rating >= 1 && r.rating <= 5) distribution[r.rating - 1]++; });
-  return { average, total, distribution };
+export async function deleteReview(id: string): Promise<void> {
+  if (!(await isNeonConnected())) return;
+  await neon.delete("reviews", { id });
 }

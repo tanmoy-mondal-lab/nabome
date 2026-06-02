@@ -5,6 +5,8 @@ import { useToast } from "../../components/Toast";
 import { getAdminProducts, approveProduct, rejectProduct, restoreProduct, permanentDeleteProduct } from "../../lib/api/products";
 import { isNeonConnected } from "../../lib/neon";
 import type { AdminProductRow } from "../../lib/api/products";
+import { usePagination } from "../../hooks/usePagination";
+import Pagination from "../../components/Pagination";
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   draft: { label: "Draft", color: "#95a5a6", bg: "#95a5a618" },
@@ -70,6 +72,8 @@ export default function AdminProducts() {
     return true;
   });
 
+  const pag = usePagination(filtered, 12);
+
   const filters = ["all", "published", "pending_approval", "draft", "rejected", "archived"];
   const chipS = (active: boolean): React.CSSProperties => ({
     padding: "8px 16px", border: `1px solid ${active ? "var(--gold)" : "var(--line)"}`, background: active ? "var(--gold-soft)" : "transparent", color: active ? "var(--gold)" : "var(--muted)", cursor: "pointer", borderRadius: 20, fontSize: ".78rem", fontWeight: active ? 700 : 500, whiteSpace: "nowrap", transition: "all var(--transition-fast)",
@@ -82,9 +86,9 @@ export default function AdminProducts() {
         <div style={{ display: "grid", gap: 12 }}>
           {[1, 2, 3, 4].map((i) => <div key={i} className="skeleton" style={{ height: 52, borderRadius: "var(--radius)" }} />)}
         </div>
-      </motion.div>
-    );
-  }
+    </motion.div>
+  );
+}
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
@@ -135,7 +139,7 @@ export default function AdminProducts() {
             {filtered.length === 0 && (
               <tr><td colSpan={6} style={{ padding: 48, textAlign: "center", color: "var(--muted)" }}>No products found.</td></tr>
             )}
-            {filtered.map((p, i) => {
+            {pag.data.map((p, i) => {
               const config = statusConfig[p.status] || statusConfig.draft;
               return (
                 <motion.tr key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
@@ -194,6 +198,15 @@ export default function AdminProducts() {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        page={pag.page}
+        totalPages={pag.totalPages}
+        total={pag.total}
+        from={pag.from}
+        to={pag.to}
+        onPageChange={pag.goToPage}
+      />
     </motion.div>
   );
 }

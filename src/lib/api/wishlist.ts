@@ -1,45 +1,86 @@
 import { neon, isNeonConnected } from "../neon";
+import type { WishlistItem } from "../../context/WishlistContext";
 
-export async function getWishlist(userId: string) {
-  if (!await isNeonConnected()) return JSON.parse(localStorage.getItem("nabome-wishlist") || "[]");
-  const { data } = await neon.raw(
-    `SELECT w.*, p.* FROM wishlist w JOIN products p ON p.id = w.product_id WHERE w.user_id = $1`,
-    [userId]
-  );
-  return data || [];
+const TABLE = "user_wishlist";
+
+function getLocal(): WishlistItem[] {
+  try {
+    return JSON.parse(localStorage.getItem("nabome-wishlist") || "[]");
+  } catch {
+    return [];
+  }
 }
 
-export async function addToWishlist(userId: string, productId: string) {
-  if (!await isNeonConnected()) {
-    const wl = JSON.parse(localStorage.getItem("nabome-wishlist") || "[]");
-    if (!wl.find((i: any) => i.product_id === productId)) {
-      wl.push({ id: `mock_${Date.now()}`, product_id: productId });
-      localStorage.setItem("nabome-wishlist", JSON.stringify(wl));
+function setLocal(items: WishlistItem[]) {
+  localStorage.setItem("nabome-wishlist", JSON.stringify(items));
+}
+
+async function readDb(userId: string): Promise<WishlistItem[]> {
+  const { data } = await neon.select(TABLE, { user_id: userId }, { single: true });
+  if (data && typeof (data as Record<string, unknown>).items === "string") {
+    try { return JSON.parse((data as Record<string, unknown>).items as string); } catch { return []; }
+  }
+  return ((data as Record<string, unknown>)?.items as WishlistItem[]) || [];
+}
+
+async function writeDb(userId: string, items: WishlistItem[]) {
+  const { data: existing } = await neon.select(TABLE, { user_id: userId }, { single: true });
+  if (existing) {
+    await neon.update(TABLE, { items: JSON.stringify(items), updated_at: new Date().toISOString() }, { user_id: userId });
+  } else {
+    await neon.insert(TABLE, { user_id: userId, items: JSON.stringify(items) });
+  }
+}
+
+export async function getWishlist(userId?: string | null): Promise<WishlistItem[]> {
+  if (!userId || !(await isNeonConnected())) return getLocal();
+  return readDb(userId);
+}
+
+export async function addToWishlist(userId: string | null | undefined, item: WishlistItem) {
+  const local = getLocal();
+  if (!local.find((i) => i.id === item.id)) {
+    local.push(item);
+    setLocal(local);
+  }
+
+  if (userId && (await isNeonConnected())) {
+    const db = await readDb(userId);
+    if (!db.find((i) => i.id === item.id)) {
+      db.push(item);
+      await writeDb(userId, db);
     }
-    return;
-  }
-  const existing = await neon.select("wishlist", { user_id: userId, product_id: productId }, { single: true });
-  if (!existing.data) {
-    const { error } = await neon.insert("wishlist", { user_id: userId, product_id: productId });
-    if (error) throw error;
   }
 }
 
-export async function removeFromWishlist(userId: string, productId: string) {
-  if (!await isNeonConnected()) {
-    const wl = JSON.parse(localStorage.getItem("nabome-wishlist") || "[]").filter((i: any) => i.product_id !== productId);
-    localStorage.setItem("nabome-wishlist", JSON.stringify(wl));
-    return;
+export async function removeFromWishlist(userId: string | null | undefined, productId: number) {
+  setLocal(getLocal().filter((i) => i.id !== productId));
+
+  if (userId && (await isNeonConnected())) {
+    const db = await readDb(userId);
+    await writeDb(userId, db.filter((i) => i.id !== productId));
   }
-  const { error } = await neon.delete("wishlist", { user_id: userId, product_id: productId });
-  if (error) throw error;
 }
 
-export async function isInWishlist(userId: string, productId: string) {
-  if (!await isNeonConnected()) {
-    const wl = JSON.parse(localStorage.getItem("nabome-wishlist") || "[]");
-    return !!wl.find((i: any) => i.product_id === productId);
+export async function isInWishlist(userId: string | null | undefined, productId: number): Promise<boolean> {
+  if (userId && (await isNeonConnected())) {
+    const db = await readDb(userId);
+    return !!db.find((i) => i.id === productId);
   }
-  const { data } = await neon.select("wishlist", { user_id: userId, product_id: productId }, { single: true });
-  return !!data;
+  return !!getLocal().find((i) => i.id === productId);
+}
+
+export async function mergeWishlist(userId: string, localItems: WishlistItem[]) {
+  if (!(await isNeonConnected())) {
+    setLocal(localItems);
+    return;
+  }
+  const db = await readDb(userId);
+  for (const local of localItems) {
+    if (!db.find((i) => i.id === local.id)) {
+      db.push(local);
+    }
+  }
+  await writeDb(userId, db);
+  setLocal(db);
 }

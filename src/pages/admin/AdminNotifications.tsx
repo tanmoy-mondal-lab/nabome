@@ -2,36 +2,37 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Bell, Send, Loader2, AlertCircle, Megaphone, ShoppingBag, ShieldAlert } from "lucide-react";
 import { useToast } from "../../components/Toast";
-import { generateMockAdminNotifications } from "../../lib/mockAdminData";
-import type { AdminNotification } from "../../types/admin";
+import { getUserNotifications, type Notification } from "../../lib/api/notifications";
 
 const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   system: { icon: <ShieldAlert size={14} />, color: "#3498db" },
-  offer: { icon: <Megaphone size={14} />, color: "#f39c12" },
+  promotion: { icon: <Megaphone size={14} />, color: "#f39c12" },
   order: { icon: <ShoppingBag size={14} />, color: "#2ecc71" },
   alert: { icon: <AlertCircle size={14} />, color: "#e74c3c" },
 };
 
 export default function AdminNotifications() {
   const { showToast } = useToast();
-  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [sending, setSending] = useState(false);
-  const [form, setForm] = useState({ title: "", message: "", type: "system" as AdminNotification["type"], audience: "all_customers" as AdminNotification["audience"], recipientName: "" });
+  const [form, setForm] = useState({ title: "", message: "", type: "system" as Notification["type"], userId: "" });
 
-  useEffect(() => { setNotifications(generateMockAdminNotifications()); }, []);
+  useEffect(() => {
+    getUserNotifications("admin").then(setNotifications);
+  }, []);
 
   const handleSend = async () => {
     if (!form.title.trim() || !form.message.trim()) { showToast("Title and message are required."); return; }
-    if ((form.audience === "single_vendor" || form.audience === "single_customer") && !form.recipientName.trim()) { showToast("Recipient name is required."); return; }
     setSending(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    const newN: AdminNotification = {
-      id: `an_${Date.now()}`, title: form.title, message: form.message, type: form.type, audience: form.audience,
-      recipientName: form.recipientName || undefined, sentAt: new Date().toISOString(), readCount: 0,
-    };
-    setNotifications((prev) => [newN, ...prev]);
+    const { createLog } = await import("../../lib/api/logs");
+    await createLog({
+      action: "send_notification",
+      entityType: "notification",
+      entityId: undefined,
+      details: { title: form.title, message: form.message, type: form.type },
+    });
     showToast("Notification sent!");
-    setForm({ title: "", message: "", type: "system", audience: "all_customers", recipientName: "" });
+    setForm({ title: "", message: "", type: "system", userId: "" });
     setSending(false);
   };
 
@@ -47,7 +48,6 @@ export default function AdminNotifications() {
         </h1>
       </div>
 
-      {/* Send Form */}
       <div className="glass" style={{ padding: 28, borderRadius: "var(--radius-xl)", marginBottom: 28 }}>
         <h3 style={{ fontWeight: 600, fontSize: ".95rem", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
           <Send size={16} style={{ color: "var(--gold)" }} /> Send Notification
@@ -55,25 +55,14 @@ export default function AdminNotifications() {
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <input type="text" placeholder="Title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} style={fieldS} />
-            <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as AdminNotification["type"] }))} style={fieldS}>
+            <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as Notification["type"] }))} style={fieldS}>
               <option value="system">System</option>
-              <option value="offer">Offer</option>
+              <option value="promotion">Promotion</option>
               <option value="order">Order</option>
               <option value="alert">Alert</option>
             </select>
           </div>
           <textarea rows={3} placeholder="Message" value={form.message} onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))} style={{ ...fieldS, resize: "vertical" }} />
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
-            <select value={form.audience} onChange={(e) => setForm((f) => ({ ...f, audience: e.target.value as AdminNotification["audience"] }))} style={fieldS}>
-              <option value="all_customers">All Customers</option>
-              <option value="all_vendors">All Vendors</option>
-              <option value="single_vendor">Single Vendor</option>
-              <option value="single_customer">Single Customer</option>
-            </select>
-            {(form.audience === "single_vendor" || form.audience === "single_customer") && (
-              <input type="text" placeholder={form.audience === "single_vendor" ? "Vendor name" : "Customer name"} value={form.recipientName} onChange={(e) => setForm((f) => ({ ...f, recipientName: e.target.value }))} style={fieldS} />
-            )}
-          </div>
           <button onClick={handleSend} disabled={sending} className="premium-button" style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", minHeight: 46, alignSelf: "flex-start", padding: "0 32px" }}>
             {sending ? <Loader2 size={16} className="spin" /> : <Send size={16} />}
             {sending ? "Sending..." : "Send Notification"}
@@ -81,7 +70,6 @@ export default function AdminNotifications() {
         </div>
       </div>
 
-      {/* History */}
       <h3 style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 16 }}>Notification History</h3>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {notifications.map((n, i) => {
@@ -99,12 +87,8 @@ export default function AdminNotifications() {
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <p style={{ color: "var(--muted)", fontSize: ".72rem" }}>
-                    To: {n.audience === "all_customers" ? "All Customers" : n.audience === "all_vendors" ? "All Vendors" : n.recipientName}
-                  </p>
                   <p style={{ color: "var(--muted)", fontSize: ".72rem", marginTop: 2 }}>
-                    {new Date(n.sentAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                    · {n.readCount} read
+                    {new Date(n.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
               </div>

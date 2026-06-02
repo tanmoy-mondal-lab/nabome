@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import type { Product } from "../data/products";
 import { analytics } from "../lib/analytics";
 import { supabase } from "../lib/supabase";
@@ -37,96 +37,116 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | null>(null);
 
+function itemKey(a: CartItem, b: { id: number; variantId?: string; selectedSize?: string; selectedColor?: string }) {
+  return a.id === b.id && (b.variantId ? a.variantId === b.variantId : a.selectedSize === b.selectedSize && a.selectedColor === b.selectedColor);
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem("nabome-cart");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [cart, setCart] = useState<CartItem[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    localStorage.setItem("nabome-cart", JSON.stringify(cart));
-  }, [cart]);
+    return () => { isMounted.current = false; };
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      setUserId(data.session?.user?.id || null);
+      const uid = data.session?.user?.id || null;
+      setUserId(uid);
+      if (uid) {
+        cartApi.getCart(uid).then((items) => {
+          if (isMounted.current) setCart(items);
+        }).catch(() => {
+          if (isMounted.current) cartApi.getCart().then((items) => setCart(items));
+        });
+      } else {
+        cartApi.getCart().then((items) => {
+          if (isMounted.current) setCart(items);
+        });
+      }
     });
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id || null);
+      const uid = session?.user?.id || null;
+      const prev = userId;
+      if (uid && !prev) {
+        cartApi.getCart().then((local) => {
+          cartApi.mergeCart(uid, local).then(() => {
+            cartApi.getCart(uid).then((items) => {
+              if (isMounted.current) setCart(items);
+            });
+          });
+        });
+      } else if (!uid && prev) {
+        cartApi.getCart().then((items) => {
+          if (isMounted.current) setCart(items);
+        });
+      }
+      setUserId(uid);
     });
+
     return () => listener?.subscription.unsubscribe();
   }, []);
 
-  const addToCart = (product: Product | CartInput) => {
+  const addToCart = useCallback((product: Product | CartInput) => {
     const variantId = "variantId" in product ? product.variantId : undefined;
     const selectedSize = "selectedSize" in product ? product.selectedSize : undefined;
     const selectedColor = "selectedColor" in product ? product.selectedColor : undefined;
 
-    const existing = cart.find(
-      (item) => item.id === product.id && (variantId ? item.variantId === variantId : item.selectedSize === selectedSize && item.selectedColor === selectedColor)
-    );
-
-    if (existing) {
-      setCart(cart.map((item) => (item === existing ? { ...item, quantity: item.quantity + 1 } : item)));
-    } else {
-      setCart([...cart, { ...product, variantId, selectedSize, selectedColor, quantity: 1 }]);
-    }
+    setCart((prev) => {
+      const existing = prev.find((item) => itemKey(item, { id: product.id, variantId, selectedSize, selectedColor }));
+      let next: CartItem[];
+      if (existing) {
+        next = prev.map((item) => item === existing ? { ...item, quantity: item.quantity + 1 } : item);
+      } else {
+        next = [...prev, { ...product, variantId, selectedSize, selectedColor, quantity: 1 }];
+      }
+      cartApi.setCart(userId, next);
+      return next;
+    });
 
     analytics.addToCart(product.id, product.name, product.price, 1);
+  }, [userId]);
 
-    if (userId) {
-      cartApi.addToCart(userId, String(product.id), variantId || "", 1).catch(() => {});
-    }
-  };
+  const removeItem = useCallback((id: number, variantId?: string) => {
+    setCart((prev) => {
+      const next = prev.filter((c) => !(c.id === id && (variantId ? c.variantId === variantId : true)));
+      cartApi.removeFromCart(userId, id, variantId);
+      return next;
+    });
+  }, [userId]);
 
-  const removeItem = (id: number, variantId?: string) => {
-    const item = cart.find((i) => i.id === id && (variantId ? i.variantId === variantId : true));
-    if (item) {
-      analytics.removeFromCart(id, item.name, item.price);
-    }
-    setCart(cart.filter((c) => !(c.id === id && (variantId ? c.variantId === variantId : true))));
-
-    if (userId) {
-      cartApi.removeFromCart(String(id)).catch(() => {});
-    }
-  };
-
-  const increaseQuantity = (id: number, variantId?: string) => {
-    setCart(
-      cart.map((item) =>
+  const increaseQuantity = useCallback((id: number, variantId?: string) => {
+    setCart((prev) => {
+      const next = prev.map((item) =>
         item.id === id && (variantId ? item.variantId === variantId : true)
           ? { ...item, quantity: item.quantity + 1 }
           : item
-      )
-    );
-    if (userId) {
-      cartApi.addToCart(userId, String(id), variantId || "", 1).catch(() => {});
-    }
-  };
+      );
+      cartApi.setCart(userId, next);
+      return next;
+    });
+  }, [userId]);
 
-  const decreaseQuantity = (id: number, variantId?: string) => {
-    const item = cart.find((i) => i.id === id && (variantId ? i.variantId === variantId : true));
-    if (item && item.quantity <= 1) {
-      analytics.removeFromCart(id, item.name, item.price);
-    }
-    setCart(
-      cart
+  const decreaseQuantity = useCallback((id: number, variantId?: string) => {
+    setCart((prev) => {
+      const next = prev
         .map((item) =>
           item.id === id && (variantId ? item.variantId === variantId : true)
             ? { ...item, quantity: item.quantity - 1 }
             : item
         )
-        .filter((item) => item.quantity > 0)
-    );
-  };
+        .filter((item) => item.quantity > 0);
+      cartApi.setCart(userId, next);
+      return next;
+    });
+  }, [userId]);
 
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setCart([]);
-    if (userId) {
-      cartApi.clearCart(userId).catch(() => {});
-    }
-  };
+    cartApi.clearCart(userId);
+  }, [userId]);
 
   return (
     <CartContext.Provider value={{ cart, addToCart, removeItem, increaseQuantity, decreaseQuantity, clearCart }}>

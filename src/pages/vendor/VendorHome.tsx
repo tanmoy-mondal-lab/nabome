@@ -4,52 +4,63 @@ import {
   IndianRupee, ShoppingBag, Package, Clock, AlertTriangle, TrendingUp, ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { getMockShop, generateMockAnalytics } from "../../lib/mockVendorData";
-import type { AnalyticsData, VendorTab } from "../../types/vendor";
+import { getVendorDashboardStats } from "../../lib/api/vendor-analytics";
+import { getVendorByUserId } from "../../lib/api/vendors";
+import type { VendorTab } from "../../types/vendor";
 
 type Props = { onTab: (tab: VendorTab) => void };
 
 const statCards = [
-  { label: "Today's Revenue", key: "todayRevenue", icon: <IndianRupee size={20} />, color: "#2ecc71", prefix: "₹" },
-  { label: "Monthly Revenue", key: "monthlyRevenue", icon: <TrendingUp size={20} />, color: "#3498db", prefix: "₹" },
+  { label: "Total Revenue", key: "totalRevenue", icon: <IndianRupee size={20} />, color: "#2ecc71", prefix: "₹" },
+  { label: "Recent Orders", key: "recentOrders", icon: <TrendingUp size={20} />, color: "#3498db" },
   { label: "Total Orders", key: "totalOrders", icon: <ShoppingBag size={20} />, color: "#9b59b6" },
   { label: "Pending Orders", key: "pendingOrders", icon: <Clock size={20} />, color: "#f39c12" },
-  { label: "Products", key: "productsCount", icon: <Package size={20} />, color: "#1abc9c" },
-  { label: "Low Stock Alerts", key: "lowStockAlerts", icon: <AlertTriangle size={20} />, color: "#e74c3c" },
+  { label: "Products", key: "totalProducts", icon: <Package size={20} />, color: "#1abc9c" },
+  { label: "Low Stock", key: "lowStockProducts", icon: <AlertTriangle size={20} />, color: "#e74c3c" },
 ];
 
 export default function VendorHome({ onTab }: Props) {
   const { user } = useAuth();
-  const shop = getMockShop();
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [stats, setStats] = useState<Record<string, number>>({});
+  const [shopName, setShopName] = useState("");
+  const [rating, setRating] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setAnalytics(generateMockAnalytics());
-  }, []);
+    if (!user) return;
+    (async () => {
+      const vendor = await getVendorByUserId(user.id);
+      if (vendor) {
+        setShopName(vendor.shopName || vendor.shopSlug || "");
+        setRating(vendor.rating || 0);
+        const s = await getVendorDashboardStats(vendor.id);
+        if (s) setStats(s as unknown as Record<string, number>);
+      }
+      setLoading(false);
+    })();
+  }, [user]);
 
-  if (!analytics) return null;
+  if (loading) return null;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-      {/* Welcome */}
       <div className="glass" style={{ padding: 28, borderRadius: "var(--radius-xl)", marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
         <div>
-          <p style={{ color: "var(--muted)", fontSize: ".85rem", marginBottom: 4 }}>{shop.shopName}</p>
-          <h1 style={{ fontSize: "clamp(1.4rem,3vw,1.8rem)", fontWeight: 400 }}>Welcome, {user?.name || shop.ownerName}</h1>
-          <p style={{ color: "var(--muted)", fontSize: ".82rem", marginTop: 4 }}>
-            {shop.status === "approved" ? "Your shop is active and visible to customers" : "Shop status: " + shop.status}
-          </p>
+          <p style={{ color: "var(--muted)", fontSize: ".85rem", marginBottom: 4 }}>{shopName}</p>
+          <h1 style={{ fontSize: "clamp(1.4rem,3vw,1.8rem)", fontWeight: 400 }}>Welcome, {user?.name || user?.email}</h1>
+          <p style={{ color: "var(--muted)", fontSize: ".82rem", marginTop: 4 }}>Your shop is active and visible to customers</p>
         </div>
-        <div style={{ textAlign: "right" }}>
-          <p style={{ color: "var(--muted)", fontSize: ".78rem", marginBottom: 4 }}>Shop Rating</p>
-          <p style={{ fontSize: "1.8rem", fontWeight: 300, color: "var(--gold)" }}>{shop.rating} ★</p>
-        </div>
+        {rating > 0 && (
+          <div style={{ textAlign: "right" }}>
+            <p style={{ color: "var(--muted)", fontSize: ".78rem", marginBottom: 4 }}>Shop Rating</p>
+            <p style={{ fontSize: "1.8rem", fontWeight: 300, color: "var(--gold)" }}>{rating} ★</p>
+          </div>
+        )}
       </div>
 
-      {/* Stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16, marginBottom: 28 }}>
         {statCards.map(({ label, key, icon, color, prefix }, i) => {
-          const val = analytics[key as keyof AnalyticsData] as number;
+          const val = stats[key] ?? 0;
           return (
             <motion.div key={key} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
               className="glass" style={{ padding: 24, borderRadius: "var(--radius-lg)", textAlign: "center" }}
@@ -64,7 +75,6 @@ export default function VendorHome({ onTab }: Props) {
         })}
       </div>
 
-      {/* Quick actions */}
       <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-lg)", marginBottom: 28 }}>
         <h3 style={{ fontWeight: 600, fontSize: ".95rem", marginBottom: 16 }}>Quick Actions</h3>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
@@ -85,21 +95,16 @@ export default function VendorHome({ onTab }: Props) {
         </div>
       </div>
 
-      {/* Growth cards */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
         <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-lg)" }}>
-          <p style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 4 }}>Monthly Growth</p>
-          <p style={{ fontSize: "2rem", fontWeight: 300, color: analytics.monthlyGrowth >= 0 ? "#2ecc71" : "#e74c3c" }}>
-            {analytics.monthlyGrowth >= 0 ? "+" : ""}{analytics.monthlyGrowth}%
-          </p>
-          <p style={{ color: "var(--muted)", fontSize: ".78rem" }}>vs last month</p>
+          <p style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 4 }}>Total Customers</p>
+          <p style={{ fontSize: "2rem", fontWeight: 300 }}>{stats.totalCustomers || 0}</p>
+          <p style={{ color: "var(--muted)", fontSize: ".78rem" }}>unique customers</p>
         </div>
         <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-lg)" }}>
-          <p style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 4 }}>Customer Growth</p>
-          <p style={{ fontSize: "2rem", fontWeight: 300, color: "#2ecc71" }}>
-            +{analytics.customerGrowth}%
-          </p>
-          <p style={{ color: "var(--muted)", fontSize: ".78rem" }}>new customers this month</p>
+          <p style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 4 }}>Average Rating</p>
+          <p style={{ fontSize: "2rem", fontWeight: 300, color: "var(--gold)" }}>{(stats.averageRating || 0).toFixed(1)}</p>
+          <p style={{ color: "var(--muted)", fontSize: ".78rem" }}>across all products</p>
         </div>
       </div>
     </motion.div>

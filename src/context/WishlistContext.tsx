@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import { analytics } from "../lib/analytics";
 import { supabase } from "../lib/supabase";
 import * as wishlistApi from "../lib/api/wishlist";
@@ -20,123 +14,92 @@ export interface WishlistItem {
 
 interface WishlistContextType {
   wishlist: WishlistItem[];
-  addToWishlist: (
-    product: WishlistItem
-  ) => void;
-  removeFromWishlist: (
-    id: number
-  ) => void;
-  isInWishlist: (
-    id: number
-  ) => boolean;
+  addToWishlist: (product: WishlistItem) => void;
+  removeFromWishlist: (id: number) => void;
+  isInWishlist: (id: number) => boolean;
 }
 
-const WishlistContext =
-  createContext<WishlistContextType | null>(
-    null
-  );
+const WishlistContext = createContext<WishlistContextType | null>(null);
 
-export function WishlistProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  const [wishlist, setWishlist] =
-    useState<WishlistItem[]>(() => {
-      const saved =
-        localStorage.getItem(
-          "nabome-wishlist"
-        );
-
-      return saved
-        ? JSON.parse(saved)
-        : [];
-    });
+export function WishlistProvider({ children }: { children: ReactNode }) {
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    localStorage.setItem(
-      "nabome-wishlist",
-      JSON.stringify(wishlist)
-    );
-  }, [wishlist]);
+    return () => { isMounted.current = false; };
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      setUserId(data.session?.user?.id || null);
+      const uid = data.session?.user?.id || null;
+      setUserId(uid);
+      if (uid) {
+        wishlistApi.getWishlist(uid).then((items) => {
+          if (isMounted.current) setWishlist(items);
+        }).catch(() => {
+          if (isMounted.current) wishlistApi.getWishlist().then((items) => setWishlist(items));
+        });
+      } else {
+        wishlistApi.getWishlist().then((items) => {
+          if (isMounted.current) setWishlist(items);
+        });
+      }
     });
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserId(session?.user?.id || null);
+      const uid = session?.user?.id || null;
+      const prev = userId;
+      if (uid && !prev) {
+        wishlistApi.getWishlist().then((local) => {
+          wishlistApi.mergeWishlist(uid, local).then(() => {
+            wishlistApi.getWishlist(uid).then((items) => {
+              if (isMounted.current) setWishlist(items);
+            });
+          });
+        });
+      } else if (!uid && prev) {
+        wishlistApi.getWishlist().then((items) => {
+          if (isMounted.current) setWishlist(items);
+        });
+      }
+      setUserId(uid);
     });
+
     return () => listener?.subscription.unsubscribe();
   }, []);
 
-  const addToWishlist = (
-    product: WishlistItem
-  ) => {
-    if (
-      !wishlist.find(
-        (item) =>
-          item.id === product.id
-      )
-    ) {
-      setWishlist([
-        ...wishlist,
-        product,
-      ]);
-    }
+  const addToWishlist = useCallback((product: WishlistItem) => {
+    setWishlist((prev) => {
+      if (prev.find((item) => item.id === product.id)) return prev;
+      const next = [...prev, product];
+      wishlistApi.addToWishlist(userId, product);
+      return next;
+    });
     analytics.addToWishlist(product.id, product.name);
+  }, [userId]);
 
-    if (userId) {
-      wishlistApi.addToWishlist(userId, String(product.id)).catch(() => {});
-    }
-  };
+  const removeFromWishlist = useCallback((id: number) => {
+    setWishlist((prev) => {
+      const next = prev.filter((item) => item.id !== id);
+      wishlistApi.removeFromWishlist(userId, id);
+      return next;
+    });
+  }, [userId]);
 
-  const removeFromWishlist = (
-    id: number
-  ) => {
-    setWishlist(
-      wishlist.filter(
-        (item) => item.id !== id
-      )
-    );
-
-    if (userId) {
-      wishlistApi.removeFromWishlist(userId, String(id)).catch(() => {});
-    }
-  };
-
-  const isInWishlist = (
-    id: number
-  ) => {
-    return wishlist.some(
-      (item) => item.id === id
-    );
-  };
+  const isInWishlist = useCallback((id: number): boolean => {
+    return wishlist.some((item) => item.id === id);
+  }, [wishlist]);
 
   return (
-    <WishlistContext.Provider
-      value={{
-        wishlist,
-        addToWishlist,
-        removeFromWishlist,
-        isInWishlist,
-      }}
-    >
+    <WishlistContext.Provider value={{ wishlist, addToWishlist, removeFromWishlist, isInWishlist }}>
       {children}
     </WishlistContext.Provider>
   );
 }
 
 export function useWishlist() {
-  const context =
-    useContext(WishlistContext);
-
-  if (!context) {
-    throw new Error(
-      "useWishlist must be used inside WishlistProvider"
-    );
-  }
-
+  const context = useContext(WishlistContext);
+  if (!context) throw new Error("useWishlist must be used inside WishlistProvider");
   return context;
 }

@@ -7,6 +7,8 @@ import { getVendorProductsList, softDeleteVendorProduct, duplicateVendorProduct 
 import { isNeonConnected } from "../../lib/neon";
 import type { VendorProductListItem } from "../../lib/api/products";
 import type { VendorTab } from "../../types/vendor";
+import { usePagination } from "../../hooks/usePagination";
+import Pagination from "../../components/Pagination";
 
 type Props = { onTab: (tab: VendorTab) => void; onEditProduct: (id: string) => void };
 
@@ -53,6 +55,8 @@ export default function VendorProducts({ onTab, onEditProduct }: Props) {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const pag = usePagination(filtered, 12);
 
   const statusFilters: { key: string; label: string }[] = [
     { key: "all", label: "All" },
@@ -101,9 +105,9 @@ export default function VendorProducts({ onTab, onEditProduct }: Props) {
         <div style={{ display: "grid", gap: 12 }}>
           {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 60, borderRadius: "var(--radius)" }} />)}
         </div>
-      </motion.div>
-    );
-  }
+    </motion.div>
+  );
+}
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
@@ -148,7 +152,7 @@ export default function VendorProducts({ onTab, onEditProduct }: Props) {
                 <td colSpan={5} style={{ padding: 48, textAlign: "center", color: "var(--muted)" }}>No products found.</td>
               </tr>
             )}
-            {filtered.map((product, i) => (
+            {pag.data.map((product, i) => (
               <motion.tr key={product.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
                 style={{ borderBottom: "1px solid var(--line)", verticalAlign: "middle" }}
               >
@@ -207,6 +211,15 @@ export default function VendorProducts({ onTab, onEditProduct }: Props) {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        page={pag.page}
+        totalPages={pag.totalPages}
+        total={pag.total}
+        from={pag.from}
+        to={pag.to}
+        onPageChange={pag.goToPage}
+      />
     </motion.div>
   );
 }

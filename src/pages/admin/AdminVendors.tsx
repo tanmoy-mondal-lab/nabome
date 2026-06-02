@@ -4,6 +4,8 @@ import { Store, Search, CheckCircle, XCircle, AlertTriangle, RefreshCw, Trash2, 
 import { useToast } from "../../components/Toast";
 import { getVendors, updateVendor } from "../../lib/api/vendors";
 import { neon, isNeonConnected } from "../../lib/neon";
+import { usePagination } from "../../hooks/usePagination";
+import Pagination from "../../components/Pagination";
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: "Pending", color: "#f39c12", bg: "#f39c1218" },
@@ -102,6 +104,8 @@ export default function AdminVendors() {
     if (search && !v.shop_name.toLowerCase().includes(search.toLowerCase()) && !v.owner_name.toLowerCase().includes(search.toLowerCase()) && !v.shop_email.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const pag = usePagination(filtered, 12);
 
   const filters = ["all", "pending", "approved", "rejected", "suspended"];
 
@@ -233,7 +237,7 @@ export default function AdminVendors() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((v, i) => {
+                {pag.data.map((v, i) => {
                   const config = statusConfig[v.approval_status] || statusConfig.pending;
                   return (
                     <motion.tr key={v.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}
@@ -267,6 +271,15 @@ export default function AdminVendors() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            page={pag.page}
+            totalPages={pag.totalPages}
+            total={pag.total}
+            from={pag.from}
+            to={pag.to}
+            onPageChange={pag.goToPage}
+          />
         </>
       )}
     </motion.div>

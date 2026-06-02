@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ClipboardList, Search, Shield, CheckCircle, XCircle, Package, ShoppingBag, User } from "lucide-react";
-import { generateMockAdminLogs } from "../../lib/mockAdminData";
-import type { AdminLog } from "../../types/admin";
+import { getLogs, type LogEntry } from "../../lib/api/logs";
+import { usePagination } from "../../hooks/usePagination";
+import Pagination from "../../components/Pagination";
 
 const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   vendor_approval: { icon: <CheckCircle size={14} />, color: "#2ecc71" },
@@ -14,24 +15,50 @@ const typeConfig: Record<string, { icon: React.ReactNode; color: string }> = {
   customer_action: { icon: <User size={14} />, color: "#1abc9c" },
 };
 
+const logTypeMap: Record<string, string> = {
+  vendor_approval: "vendor_approval",
+  vendor_rejection: "vendor_rejection",
+  product_approval: "product_approval",
+  product_rejection: "product_rejection",
+  order_update: "order_update",
+  admin_action: "admin_action",
+  customer_action: "customer_action",
+};
+
 export default function AdminLogs() {
-  const [logs, setLogs] = useState<AdminLog[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => { setLogs(generateMockAdminLogs()); }, []);
+  useEffect(() => {
+    getLogs({ limit: 100 }).then((data) => { setLogs(data); setLoading(false); });
+  }, []);
+
+  const entityToType = (entityType: string): string => {
+    if (entityType === "vendor" || entityType === "vendor_approval") return "vendor_approval";
+    if (entityType === "product") return "product_approval";
+    if (entityType === "order") return "order_update";
+    if (entityType === "user") return "customer_action";
+    return "admin_action";
+  };
 
   const filtered = logs.filter((l) => {
-    if (filter !== "all" && l.type !== filter) return false;
-    if (search && !l.action.toLowerCase().includes(search.toLowerCase()) && !l.targetName.toLowerCase().includes(search.toLowerCase()) && !l.performedBy.toLowerCase().includes(search.toLowerCase())) return false;
+    const type = entityToType(l.entityType);
+    if (filter !== "all" && type !== filter) return false;
+    if (search && !l.action.toLowerCase().includes(search.toLowerCase()) && !l.entityType.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
+
+  const pag = usePagination(filtered, 12);
 
   const types = ["all", "vendor_approval", "vendor_rejection", "product_approval", "product_rejection", "order_update", "admin_action", "customer_action"];
 
   const chipS = (active: boolean): React.CSSProperties => ({
     padding: "6px 14px", border: `1px solid ${active ? "var(--gold)" : "var(--line)"}`, background: active ? "var(--gold-soft)" : "transparent", color: active ? "var(--gold)" : "var(--muted)", cursor: "pointer", borderRadius: 16, fontSize: ".72rem", fontWeight: active ? 700 : 500, whiteSpace: "nowrap", transition: "all var(--transition-fast)",
   });
+
+  if (loading) return <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>Loading...</div>;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
@@ -57,8 +84,9 @@ export default function AdminLogs() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {filtered.map((log, i) => {
-          const config = typeConfig[log.type] || typeConfig.admin_action;
+        {pag.data.map((log, i) => {
+          const type = entityToType(log.entityType);
+          const config = typeConfig[type] || typeConfig.admin_action;
           return (
             <motion.div key={log.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.02 }}
               className="glass" style={{ padding: 16, borderRadius: "var(--radius-lg)" }}
@@ -70,15 +98,15 @@ export default function AdminLogs() {
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <p style={{ fontWeight: 600, fontSize: ".85rem" }}>{log.action}</p>
-                    <span style={{ color: "var(--muted)", fontSize: ".75rem" }}>— {log.targetName}</span>
-                    <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: ".65rem", fontWeight: 600, background: `${config.color}18`, color: config.color }}>
-                      {log.type.split("_").join(" ")}
-                    </span>
+                    <span style={{ color: "var(--muted)", fontSize: ".75rem" }}>— {log.entityType}</span>
+                    {log.entityId && <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: ".65rem", fontWeight: 600, background: `${config.color}18`, color: config.color }}>#{log.entityId.slice(0, 8)}</span>}
                   </div>
-                  <p style={{ color: "var(--muted)", fontSize: ".78rem", marginTop: 2 }}>{log.details}</p>
+                  {log.details && (
+                    <p style={{ color: "var(--muted)", fontSize: ".78rem", marginTop: 2 }}>{JSON.stringify(log.details).slice(0, 100)}</p>
+                  )}
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <p style={{ color: "var(--muted)", fontSize: ".72rem" }}>by {log.performedBy}</p>
+                  {log.userId && <p style={{ color: "var(--muted)", fontSize: ".72rem" }}>user: {log.userId.slice(0, 8)}</p>}
                   <p style={{ color: "var(--muted)", fontSize: ".72rem" }}>{new Date(log.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
                 </div>
               </div>
@@ -92,6 +120,7 @@ export default function AdminLogs() {
           </div>
         )}
       </div>
+      <Pagination page={pag.page} totalPages={pag.totalPages} total={pag.total} from={pag.from} to={pag.to} onPageChange={pag.goToPage} />
     </motion.div>
   );
 }
