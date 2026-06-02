@@ -38,9 +38,12 @@ export default async function handler(req, res) {
 
   const urls = [...STATIC_ROUTES.map((r) => xmlUrl(r))];
 
-  if (DATABASE_URL) {
-    const sql = neon(DATABASE_URL);
-    try {
+  if (!DATABASE_URL) {
+    return res.status(503).json({ error: "Neon database not configured. Set VITE_NEON_DATABASE_URL in your server environment." });
+  }
+
+  const sql = neon(DATABASE_URL);
+  try {
       const products = await sql`SELECT slug, updated_at FROM products WHERE status = 'published' ORDER BY updated_at DESC`;
       for (const p of products) {
         const lastmod = p.updated_at ? new Date(p.updated_at).toISOString().split("T")[0] : "";

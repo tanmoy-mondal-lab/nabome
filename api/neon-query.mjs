@@ -40,7 +40,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
   if (!DATABASE_URL) {
-    return res.status(503).json({ error: "Neon database not configured" });
+    return res.status(503).json({ error: "Neon database not configured. Set VITE_NEON_DATABASE_URL in your server environment." });
   }
 
   const sql = neon(DATABASE_URL);
