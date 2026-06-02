@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { neon, isNeonConnected } from "./neon";
 
 export type AuthUser = {
   id: string;
@@ -20,7 +21,6 @@ export async function registerUser(params: {
   role?: "customer" | "vendor";
 }) {
   if (!supabase) {
-    // Fallback to mock
     const users = JSON.parse(localStorage.getItem("nabome-users") || "[]");
     const exists = users.find((u: any) => u.email === params.email || u.phone === params.phone);
     if (exists) throw new Error("User already exists");
@@ -137,7 +137,10 @@ export async function updateProfile(data: Partial<AuthUser>) {
   });
   if (error) throw error;
 
-  if (supabase) {
+  if (await isNeonConnected()) {
+    const { error: neonErr } = await neon.update("users", { name: data.name, avatar_url: data.avatar_url }, { id: data.id });
+    if (neonErr) console.error("Neon profile sync error:", neonErr);
+  } else if (supabase) {
     await supabase.from("users").upsert({
       id: data.id,
       name: data.name,
@@ -190,8 +193,14 @@ async function mapSupabaseUser(supabaseUser: any): Promise<AuthUser> {
   let role = metadata.role || "customer";
   let name = metadata.name || supabaseUser.email?.split("@")[0] || "User";
 
-  // Fetch from users table for more complete data
-  if (supabase) {
+  // Fetch from Neon users table for more complete data
+  if (await isNeonConnected()) {
+    const { data: dbUser } = await neon.select("users", { id: supabaseUser.id }, { single: true });
+    if (dbUser) {
+      role = dbUser.role || role;
+      name = dbUser.name || name;
+    }
+  } else if (supabase) {
     const { data: dbUser } = await supabase
       .from("users")
       .select("*")

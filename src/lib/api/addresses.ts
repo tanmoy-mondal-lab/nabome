@@ -1,35 +1,33 @@
-import { supabase } from "../supabase";
-
-function isConnected() { return !!supabase; }
+import { neon, isNeonConnected } from "../neon";
 
 export async function getAddresses(userId: string) {
-  if (!isConnected()) return [];
-  const { data } = await supabase!.from("addresses").select("*").eq("user_id", userId).order("is_default", { ascending: false });
+  if (!await isNeonConnected()) return [];
+  const { data } = await neon.select("addresses", { user_id: userId }, { order: "is_default", ascending: false });
   return data || [];
 }
 
 export async function createAddress(address: any) {
-  if (!isConnected()) return { id: `mock_${Date.now()}`, ...address };
-  const { data, error } = await supabase!.from("addresses").insert(address).select().single();
+  if (!await isNeonConnected()) return { id: `mock_${Date.now()}`, ...address };
+  const { data, error } = await neon.insert("addresses", address);
   if (error) throw error;
-  return data;
+  return data?.[0] || null;
 }
 
 export async function updateAddress(id: string, updates: any) {
-  if (!isConnected()) return { id, ...updates };
-  const { data, error } = await supabase!.from("addresses").update(updates).eq("id", id).select().single();
+  if (!await isNeonConnected()) return { id, ...updates };
+  const { data, error } = await neon.update("addresses", updates, { id });
   if (error) throw error;
-  return data;
+  return data?.[0] || null;
 }
 
 export async function deleteAddress(id: string) {
-  if (!isConnected()) return;
-  const { error } = await supabase!.from("addresses").delete().eq("id", id);
+  if (!await isNeonConnected()) return;
+  const { error } = await neon.delete("addresses", { id });
   if (error) throw error;
 }
 
 export async function setDefaultAddress(userId: string, id: string) {
-  if (!isConnected()) return;
-  await supabase!.from("addresses").update({ is_default: false }).eq("user_id", userId).neq("id", id);
-  await supabase!.from("addresses").update({ is_default: true }).eq("id", id);
+  if (!await isNeonConnected()) return;
+  await neon.update("addresses", { is_default: false }, { user_id: userId, id__neq: id });
+  await neon.update("addresses", { is_default: true }, { id });
 }

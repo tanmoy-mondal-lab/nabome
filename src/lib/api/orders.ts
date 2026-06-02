@@ -1,68 +1,66 @@
-import { supabase } from "../supabase";
+import { neon, isNeonConnected } from "../neon";
 import { generateMockOrders } from "../mockOrderData";
 
-function isConnected() { return !!supabase; }
-
 export async function getOrders(userId?: string, vendorId?: string) {
-  if (!isConnected()) return generateMockOrders(5);
-  let query = supabase!.from("orders").select("*").order("created_at", { ascending: false });
-  if (userId) query = query.eq("user_id", userId);
-  if (vendorId) query = query.eq("vendor_id", vendorId);
-  const { data } = await query;
+  if (!await isNeonConnected()) return generateMockOrders(5);
+  const filters: Record<string, unknown> = {};
+  if (userId) filters.user_id = userId;
+  if (vendorId) filters.vendor_id = vendorId;
+  const { data } = await neon.select("orders", Object.keys(filters).length ? filters : undefined, { order: "created_at", ascending: false });
   return (data || []).length > 0 ? data : generateMockOrders(5);
 }
 
 export async function getOrderById(id: string) {
-  if (!isConnected()) return null;
-  const { data } = await supabase!.from("orders").select("*").eq("id", id).single();
+  if (!await isNeonConnected()) return null;
+  const { data } = await neon.select("orders", { id }, { single: true });
   return data || null;
 }
 
 export async function createOrder(order: any) {
-  if (!isConnected()) {
+  if (!await isNeonConnected()) {
     const orders = JSON.parse(localStorage.getItem("nabome-orders") || "[]");
     const newOrder = { ...order, id: `mock_${Date.now()}`, created_at: new Date().toISOString() };
     orders.push(newOrder);
     localStorage.setItem("nabome-orders", JSON.stringify(orders));
     return newOrder;
   }
-  const { data, error } = await supabase!.from("orders").insert(order).select().single();
+  const { data, error } = await neon.insert("orders", order);
   if (error) throw error;
-  return data;
+  return data?.[0] || null;
 }
 
 export async function updateOrderStatus(id: string, status: string, trackingNumber?: string) {
-  if (!isConnected()) return { id, status };
-  const updates: any = { order_status: status };
+  if (!await isNeonConnected()) return { id, status };
+  const updates: Record<string, unknown> = { order_status: status };
   if (trackingNumber) updates.tracking_number = trackingNumber;
-  const { data, error } = await supabase!.from("orders").update(updates).eq("id", id).select().single();
+  const { data, error } = await neon.update("orders", updates, { id });
   if (error) throw error;
-  return data;
+  return data?.[0] || null;
 }
 
 export async function getOrderTimeline(orderId: string) {
-  if (!isConnected()) return [];
-  const { data } = await supabase!.from("order_timeline").select("*").eq("order_id", orderId).order("created_at");
+  if (!await isNeonConnected()) return [];
+  const { data } = await neon.select("order_timeline", { order_id: orderId }, { order: "created_at", ascending: true });
   return data || [];
 }
 
 export async function addTimelineEntry(orderId: string, status: string, label: string, note?: string) {
-  if (!isConnected()) return;
-  await supabase!.from("order_timeline").insert({ order_id: orderId, status, label, note });
+  if (!await isNeonConnected()) return;
+  await neon.insert("order_timeline", { order_id: orderId, status, label, note });
 }
 
 export async function getOrderAnalytics(vendorId?: string) {
-  if (!isConnected()) return null;
-  let query = supabase!.from("orders").select("grand_total, order_status, created_at");
-  if (vendorId) query = query.eq("vendor_id", vendorId);
-  const { data } = await query;
+  if (!await isNeonConnected()) return null;
+  const filters: Record<string, unknown> = {};
+  if (vendorId) filters.vendor_id = vendorId;
+  const { data } = await neon.select("orders", Object.keys(filters).length ? filters : undefined, { columns: "grand_total, order_status, created_at" });
   if (!data) return null;
 
-  const total = data.reduce((s, o) => s + (o.grand_total || 0), 0);
-  const statusBreakdown = data.reduce((acc: any, o) => {
+  const total = data.reduce((s: number, o: any) => s + (o.grand_total || 0), 0);
+  const statusBreakdown = data.reduce((acc: Record<string, number>, o: any) => {
     acc[o.order_status] = (acc[o.order_status] || 0) + 1;
     return acc;
-  }, {});
+  }, {} as Record<string, number>);
 
   return { totalRevenue: total, orderCount: data.length, statusBreakdown };
 }

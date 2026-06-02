@@ -1,16 +1,17 @@
 -- =============================================
--- নবME Complete Production Schema
--- Run in Neon PostgreSQL or Supabase SQL Editor
+-- নবME Production Schema for Neon PostgreSQL
+-- Run in Neon SQL Editor
 -- =============================================
 
 -- ─── EXTENSIONS ─────────────────────────────
 create extension if not exists "pgcrypto";
 
--- ─── USERS (extends Supabase auth.users) ────
+-- ─── USERS (mirrors Supabase Auth users) ────
+-- id matches auth.uid() from Supabase
 create table if not exists public.users (
-  id            uuid primary key references auth.users(id) on delete cascade,
-  email         text unique,
-  phone         text unique,
+  id            uuid primary key,
+  email         text,
+  phone         text,
   name          text not null default '',
   role          text not null default 'customer' check (role in ('customer','vendor','admin')),
   status        text not null default 'active' check (status in ('active','suspended','banned')),
@@ -26,7 +27,7 @@ create index if not exists idx_users_phone on public.users(phone);
 create index if not exists idx_users_role on public.users(role);
 create index if not exists idx_users_status on public.users(status);
 
--- ─── VENDORS (extends users) ────────────────
+-- ─── VENDORS ────────────────────────────────
 create table if not exists public.vendors (
   id                uuid primary key default gen_random_uuid(),
   user_id           uuid not null references public.users(id) on delete cascade unique,
@@ -480,96 +481,12 @@ create table if not exists public.recently_viewed (
   unique(user_id, product_id)
 );
 
--- ─── ROW LEVEL SECURITY ─────────────────────
+-- ─── VIEW: customers (backward compat) ──────
+create or replace view public.customers as
+  select id, email, phone, name, name as customer_name, gender, created_at
+  from public.users;
 
--- Users can read/update own profile
-alter table public.users enable row level security;
-drop policy if exists "users_select_own" on public.users;
-create policy "users_select_own" on public.users for select using (auth.uid() = id or auth.role() = 'service_role');
-drop policy if exists "users_update_own" on public.users;
-create policy "users_update_own" on public.users for update using (auth.uid() = id);
-
--- Products: published visible to all, vendors see own, admins see all
-alter table public.products enable row level security;
-drop policy if exists "products_select" on public.products;
-create policy "products_select" on public.products for select using (
-  status = 'published'
-  or auth.uid() in (select user_id from public.vendors where id = vendor_id)
-  or auth.role() = 'service_role'
-  or (select role from public.users where id = auth.uid()) = 'admin'
-);
-
--- Vendors: public can view approved
-alter table public.vendors enable row level security;
-drop policy if exists "vendors_select" on public.vendors;
-create policy "vendors_select" on public.vendors for select using (
-  approval_status = 'approved'
-  or user_id = auth.uid()
-  or auth.role() = 'service_role'
-  or (select role from public.users where id = auth.uid()) = 'admin'
-);
-
--- Orders: customers see own, vendors see assigned, admins see all
-alter table public.orders enable row level security;
-drop policy if exists "orders_select" on public.orders;
-create policy "orders_select" on public.orders for select using (
-  user_id = auth.uid()
-  or vendor_id in (select id from public.vendors where user_id = auth.uid())
-  or auth.role() = 'service_role'
-  or (select role from public.users where id = auth.uid()) = 'admin'
-);
-
--- Reviews: all can read active
-alter table public.reviews enable row level security;
-drop policy if exists "reviews_select" on public.reviews;
-create policy "reviews_select" on public.reviews for select using (status = 'active' or user_id = auth.uid() or auth.role() = 'service_role');
-
--- Cart: users manage own
-alter table public.cart enable row level security;
-drop policy if exists "cart_select" on public.cart;
-create policy "cart_select" on public.cart for select using (user_id = auth.uid() or auth.role() = 'service_role');
-drop policy if exists "cart_insert" on public.cart;
-create policy "cart_insert" on public.cart for insert with check (user_id = auth.uid());
-drop policy if exists "cart_update" on public.cart;
-create policy "cart_update" on public.cart for update using (user_id = auth.uid());
-drop policy if exists "cart_delete" on public.cart;
-create policy "cart_delete" on public.cart for delete using (user_id = auth.uid());
-
--- Addresses: users manage own
-alter table public.addresses enable row level security;
-drop policy if exists "addresses_select" on public.addresses;
-create policy "addresses_select" on public.addresses for select using (user_id = auth.uid() or auth.role() = 'service_role');
-drop policy if exists "addresses_insert" on public.addresses;
-create policy "addresses_insert" on public.addresses for insert with check (user_id = auth.uid());
-drop policy if exists "addresses_update" on public.addresses;
-create policy "addresses_update" on public.addresses for update using (user_id = auth.uid());
-drop policy if exists "addresses_delete" on public.addresses;
-create policy "addresses_delete" on public.addresses for delete using (user_id = auth.uid());
-
--- ─── FUNCTIONS ──────────────────────────────
-
--- Auto-create users record on auth.users insert
-create or replace function public.handle_new_user()
-returns trigger as $$
-begin
-  insert into public.users (id, email, phone, name, role)
-  values (
-    new.id,
-    new.email,
-    new.raw_user_meta_data->>'phone',
-    coalesce(new.raw_user_meta_data->>'name', new.email, 'User'),
-    coalesce(new.raw_user_meta_data->>'role', 'customer')
-  );
-  return new;
-end;
-$$ language plpgsql security definer;
-
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
-
--- Auto-update updated_at
+-- ─── AUTO-UPDATE UPDATED_AT ─────────────────
 create or replace function public.update_updated_at()
 returns trigger as $$
 begin
@@ -588,8 +505,6 @@ create trigger if not exists orders_updated_at
   before update on public.orders for each row execute function public.update_updated_at();
 
 -- ─── SEED DATA ──────────────────────────────
-
--- Seed categories
 insert into public.categories (name, slug, description, sort_order) values
   ('Men', 'men', 'Premium streetwear & essentials for men', 1),
   ('Women', 'women', 'Contemporary fashion & style for women', 2),
@@ -600,6 +515,3 @@ insert into public.categories (name, slug, description, sort_order) values
   ('Sportswear', 'sportswear', 'Activewear & athleisure', 7),
   ('Ethnic Wear', 'ethnic-wear', 'Festive & cultural attire', 8)
 on conflict (slug) do nothing;
-
--- Seed admin user (run after creating admin in Supabase Auth)
--- insert into public.users (id, email, name, role) values ('ADMIN_USER_ID', 'nabome@admin.com', 'Admin', 'admin') on conflict (id) do nothing;

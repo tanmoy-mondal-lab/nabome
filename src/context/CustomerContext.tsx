@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { supabase } from "../lib/supabase";
+import { neon, isNeonConnected } from "../lib/neon";
 
 export type Customer = {
   id: string;
@@ -53,33 +53,33 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   _setCustomer = setCustomer;
   const [loading] = useState(false);
 
+  const mapRow = (row: any): Customer => ({
+    id: row.id,
+    name: row.name || "",
+    phone: row.phone || "",
+    email: row.email || null,
+    gender: row.gender || null,
+  });
+
   const login = async (identifier: string): Promise<{ found: boolean; customer?: Customer }> => {
     const trimmed = identifier.trim();
     if (!trimmed) return { found: false };
 
-    if (!supabase) return { found: false };
+    if (!await isNeonConnected()) return { found: false };
 
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
 
-    let query = supabase.from("customers").select("*");
-    if (isEmail) {
-      query = query.eq("email", trimmed);
-    } else {
-      const digits = trimmed.replace(/\D/g, "");
-      query = query.or(`phone.eq.${trimmed},phone.eq.+91${digits},phone.eq.91${digits}`);
-    }
+    const { data: rows } = isEmail
+      ? await neon.select("users", { email: trimmed })
+      : await neon.raw(
+          `SELECT * FROM users WHERE phone IN ($1, $2, $3) LIMIT 1`,
+          [trimmed, `+91${trimmed.replace(/\D/g, "")}`, `91${trimmed.replace(/\D/g, "")}`]
+        );
 
-    const { data: rows } = await query.limit(1);
     const data = rows?.[0] || null;
 
     if (data) {
-      const c: Customer = {
-        id: data.id,
-        name: data.name || "",
-        phone: data.phone || "",
-        email: data.email || null,
-        gender: data.gender || null,
-      };
+      const c = mapRow(data);
       setCustomer(c);
       saveSession(c);
       return { found: true, customer: c };
@@ -94,33 +94,26 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     email?: string;
     gender: string;
   }): Promise<{ ok: boolean; error?: string }> => {
-    if (!supabase) return { ok: false, error: "Database not configured" };
+    if (!await isNeonConnected()) return { ok: false, error: "Database not configured" };
 
     const digits = data.phone.replace(/\D/g, "");
     const cleanPhone = digits.startsWith("91") ? `+${digits}` : `+91${digits}`;
 
-    const { data: newCustomer, error } = await supabase
-      .from("customers")
-      .insert({
-        name: data.name,
-        phone: cleanPhone,
-        email: data.email?.trim() || null,
-        gender: data.gender,
-      })
-      .select("id, name, phone, email, gender")
-      .single();
+    const { data: newRows, error } = await neon.insert("users", {
+      name: data.name,
+      phone: cleanPhone,
+      email: data.email?.trim() || null,
+      gender: data.gender,
+    });
 
     if (error) {
       return { ok: false, error: error.message };
     }
 
-    const c: Customer = {
-      id: newCustomer.id,
-      name: newCustomer.name,
-      phone: newCustomer.phone,
-      email: newCustomer.email,
-      gender: newCustomer.gender,
-    };
+    const newCustomer = newRows?.[0];
+    if (!newCustomer) return { ok: false, error: "Failed to create customer" };
+
+    const c = mapRow(newCustomer);
     setCustomer(c);
     saveSession(c);
     return { ok: true };
@@ -132,18 +125,11 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   };
 
   const refresh = async () => {
-    if (!supabase || !customer) return;
-    const { data } = await supabase.from("customers").select("*").eq("id", customer.id).single();
+    if (!await isNeonConnected() || !customer) return;
+    const { data } = await neon.select("users", { id: customer.id }, { single: true });
     if (data) {
-      const c: Customer = {
-        id: data.id,
-        name: data.name || "",
-        phone: data.phone || "",
-        email: data.email || null,
-        gender: data.gender || null,
-      };
-      setCustomer(c);
-      saveSession(c);
+      setCustomer(mapRow(data));
+      saveSession(mapRow(data));
     }
   };
 

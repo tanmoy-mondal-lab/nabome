@@ -1,39 +1,41 @@
-import { supabase } from "../supabase";
-
-function isConnected() { return !!supabase; }
+import { neon, isNeonConnected } from "../neon";
 
 export async function getNotifications(userId?: string, vendorId?: string) {
-  if (!isConnected()) return [];
-  let query = supabase!.from("notifications").select("*").order("created_at", { ascending: false }).limit(50);
-  if (userId) query = query.eq("user_id", userId);
-  if (vendorId) query = query.eq("vendor_id", vendorId);
-  const { data } = await query;
+  if (!await isNeonConnected()) return [];
+  const filters: Record<string, unknown> = {};
+  if (userId) filters.user_id = userId;
+  if (vendorId) filters.vendor_id = vendorId;
+  const { data } = await neon.select(
+    "notifications",
+    Object.keys(filters).length ? filters : undefined,
+    { order: "created_at", ascending: false, limit: 50 }
+  );
   return data || [];
 }
 
 export async function markAsRead(id: string) {
-  if (!isConnected()) return;
-  await supabase!.from("notifications").update({ is_read: true }).eq("id", id);
+  if (!await isNeonConnected()) return;
+  await neon.update("notifications", { is_read: true }, { id });
 }
 
 export async function markAllAsRead(userId?: string, vendorId?: string) {
-  if (!isConnected()) return;
-  let query = supabase!.from("notifications").update({ is_read: true });
-  if (userId) query = query.eq("user_id", userId);
-  if (vendorId) query = query.eq("vendor_id", vendorId);
-  await query;
+  if (!await isNeonConnected()) return;
+  const filters: Record<string, unknown> = {};
+  if (userId) filters.user_id = userId;
+  if (vendorId) filters.vendor_id = vendorId;
+  await neon.update("notifications", { is_read: true }, Object.keys(filters).length ? filters : undefined);
 }
 
 export async function createNotification(notification: any) {
-  if (!isConnected()) return;
-  await supabase!.from("notifications").insert(notification);
+  if (!await isNeonConnected()) return;
+  await neon.insert("notifications", notification);
 }
 
 export async function getUnreadCount(userId?: string, vendorId?: string) {
-  if (!isConnected()) return 0;
-  let query = supabase!.from("notifications").select("id", { count: "exact", head: true }).eq("is_read", false);
-  if (userId) query = query.eq("user_id", userId);
-  if (vendorId) query = query.eq("vendor_id", vendorId);
-  const { count } = await query;
-  return count || 0;
+  if (!await isNeonConnected()) return 0;
+  const filters: Record<string, unknown> = { is_read: false };
+  if (userId) filters.user_id = userId;
+  if (vendorId) filters.vendor_id = vendorId;
+  const res = await neon.count("notifications", Object.keys(filters).length ? filters : undefined);
+  return res.count || 0;
 }

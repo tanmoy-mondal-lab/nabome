@@ -1,11 +1,9 @@
-import { supabase } from "../supabase";
+import { neon, isNeonConnected } from "../neon";
 import { products as localProducts } from "../../data/products";
 
 export type ProductRow = Record<string, unknown>;
 
 const FALLBACK_PRODUCTS = localProducts;
-
-function isConnected() { return !!supabase; }
 
 function mapProduct(row: any) {
   return {
@@ -32,53 +30,56 @@ function mapProduct(row: any) {
 }
 
 export async function getProducts() {
-  if (!isConnected()) return FALLBACK_PRODUCTS;
-  const { data } = await supabase!.from("products").select("*").order("created_at", { ascending: false });
+  if (!await isNeonConnected()) return FALLBACK_PRODUCTS;
+  const { data } = await neon.select("products", {}, { order: "created_at", ascending: false });
   if (!data || data.length === 0) return FALLBACK_PRODUCTS;
   return data.map(mapProduct);
 }
 
 export async function getProductById(id: string | number) {
-  if (!isConnected()) return FALLBACK_PRODUCTS.find((p) => p.id === Number(id)) || null;
-  const { data } = await supabase!.from("products").select("*").eq("id", id).single();
+  if (!await isNeonConnected()) return FALLBACK_PRODUCTS.find((p) => p.id === Number(id)) || null;
+  const { data } = await neon.select("products", { id }, { single: true });
   if (!data) return FALLBACK_PRODUCTS.find((p) => p.id === Number(id)) || null;
   return mapProduct(data);
 }
 
 export async function getProductsByVendor(vendorId: string) {
-  if (!isConnected()) return FALLBACK_PRODUCTS;
-  const { data } = await supabase!.from("products").select("*").eq("vendor_id", vendorId);
+  if (!await isNeonConnected()) return FALLBACK_PRODUCTS;
+  const { data } = await neon.select("products", { vendor_id: vendorId });
   return (data || []).map(mapProduct);
 }
 
 export async function getProductsByCategory(categorySlug: string) {
-  if (!isConnected()) return FALLBACK_PRODUCTS.filter((p) => p.category.toLowerCase() === categorySlug.toLowerCase());
-  const { data } = await supabase!.from("products").select("*, categories!inner(slug)").eq("categories.slug", categorySlug);
+  if (!await isNeonConnected()) return FALLBACK_PRODUCTS.filter((p) => p.category.toLowerCase() === categorySlug.toLowerCase());
+  const { data } = await neon.raw(
+    `SELECT p.* FROM products p JOIN categories c ON c.id = p.category_id WHERE c.slug = $1`,
+    [categorySlug]
+  );
   return (data || []).map(mapProduct);
 }
 
 export async function getCategories() {
-  if (!isConnected()) return [];
-  const { data } = await supabase!.from("categories").select("*").order("sort_order");
+  if (!await isNeonConnected()) return [];
+  const { data } = await neon.select("categories", {}, { order: "sort_order", ascending: true });
   return data || [];
 }
 
 export async function createProduct(product: any) {
-  if (!isConnected()) throw new Error("Database not connected");
-  const { data, error } = await supabase!.from("products").insert(product).select().single();
+  if (!await isNeonConnected()) throw new Error("Database not connected");
+  const { data, error } = await neon.insert("products", product);
   if (error) throw error;
-  return data;
+  return data?.[0] || null;
 }
 
 export async function updateProduct(id: string, updates: any) {
-  if (!isConnected()) throw new Error("Database not connected");
-  const { data, error } = await supabase!.from("products").update(updates).eq("id", id).select().single();
+  if (!await isNeonConnected()) throw new Error("Database not connected");
+  const { data, error } = await neon.update("products", updates, { id });
   if (error) throw error;
-  return data;
+  return data?.[0] || null;
 }
 
 export async function deleteProduct(id: string) {
-  if (!isConnected()) throw new Error("Database not connected");
-  const { error } = await supabase!.from("products").update({ status: "archived" }).eq("id", id);
+  if (!await isNeonConnected()) throw new Error("Database not connected");
+  const { error } = await neon.update("products", { status: "archived" }, { id });
   if (error) throw error;
 }
