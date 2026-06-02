@@ -1,17 +1,23 @@
 import { neon, isNeonConnected } from "../neon";
 
-type Vendor = {
+export type Vendor = {
   id: string;
   user_id: string;
   shop_name: string;
   shop_slug: string;
   shop_description?: string;
+  shop_category?: string;
   shop_logo?: string;
   shop_banner?: string;
+  shop_email?: string;
+  shop_phone?: string;
+  shop_address?: string;
   rating: number;
   reviews_count: number;
   total_products: number;
+  total_orders: number;
   approval_status: string;
+  created_at?: string;
 };
 
 export async function getVendors(approvedOnly = true) {

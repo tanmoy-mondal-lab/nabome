@@ -34,6 +34,7 @@ create table if not exists public.vendors (
   shop_name         text not null,
   shop_slug         text not null unique,
   shop_description  text default '',
+  shop_category     text default '',
   shop_logo         text,
   shop_banner       text,
   shop_email        text,
@@ -59,6 +60,15 @@ create table if not exists public.vendors (
 create index if not exists idx_vendors_slug on public.vendors(shop_slug);
 create index if not exists idx_vendors_status on public.vendors(approval_status);
 create index if not exists idx_vendors_user on public.vendors(user_id);
+
+-- Migration: add shop_category if missing (safe to run repeatedly)
+do $$ begin
+  if not exists (select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'vendors' and column_name = 'shop_category')
+  then
+    alter table public.vendors add column shop_category text default '';
+  end if;
+end $$;
 
 -- ─── CATEGORIES ─────────────────────────────
 create table if not exists public.categories (
