@@ -1,10 +1,11 @@
 import { Link, useLocation } from "react-router-dom";
-import { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useCustomer } from "../context/CustomerContext";
 import { useAuth } from "../context/AuthContext";
 import BrandWordmark from "./BrandWordmark";
+import AdvancedSearch from "./AdvancedSearch";
 import {
   Search, ShoppingBag, Heart, User, Menu, X, LogOut,
   Package, MapPin, Home, Grid3X3, Store, Shield, Lock,
@@ -18,9 +19,7 @@ export default function Navbar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
   const pathKey = useMemo(() => location.pathname + location.search, [location.pathname, location.search]);
 
   const handleLogout = useCallback(() => {
@@ -31,17 +30,6 @@ export default function Navbar() {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const wishlistCount = wishlist.length;
-
-  useEffect(() => {
-    if (searchOpen && searchRef.current) searchRef.current.focus();
-  }, [searchOpen]);
-
-  const handleSearch = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      window.location.href = `/category?search=${encodeURIComponent(searchQuery.trim())}`;
-    }
-  }, [searchQuery]);
 
   const linkStyle = (path: string): React.CSSProperties => ({
     color: location.pathname === path ? "var(--gold)" : "var(--muted)",
@@ -247,34 +235,8 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Search bar */}
-        {searchOpen && (
-          <div style={{ borderTop: "1px solid var(--line)", padding: "12px 6%" }}>
-            <form onSubmit={handleSearch} style={{ display: "flex", gap: 12 }}>
-              <input
-                ref={searchRef}
-                type="search"
-                placeholder="Search products, categories, tags..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: "14px 18px",
-                  border: "1px solid var(--line)",
-                  background: "var(--surface)",
-                  color: "var(--text)",
-                  fontSize: "1rem",
-                  outline: "none",
-                  borderRadius: "var(--radius)",
-                }}
-                aria-label="Search products"
-              />
-              <button type="submit" className="premium-button" style={{ minHeight: 48, padding: "0 24px" }}>
-                <Search size={18} /> Search
-              </button>
-            </form>
-          </div>
-        )}
+        {/* Advanced Search Modal */}
+        <AdvancedSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
       </nav>
 
       {/* Mobile slide-out menu */}

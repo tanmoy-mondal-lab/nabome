@@ -34,6 +34,8 @@ const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const Unauthorized = lazy(() => import("./pages/Unauthorized"));
 const SessionExpired = lazy(() => import("./pages/SessionExpired"));
 const Account = lazy(() => import("./pages/Account"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
+const ComparePage = lazy(() => import("./pages/ComparePage"));
 
 function Loader() {
   return (
@@ -82,6 +84,8 @@ function App() {
                 <Route path="/terms" element={<PolicyPage type="terms" />} />
                 <Route path="/faq" element={<FAQ />} />
                 <Route path="/shop/:slug" element={<ShopPage />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/compare" element={<ComparePage />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
                 <Route path="/session-expired" element={<SessionExpired />} />
 
