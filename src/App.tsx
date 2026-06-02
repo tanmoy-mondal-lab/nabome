@@ -32,6 +32,7 @@ const VendorDashboard = lazy(() => import("./pages/VendorDashboard"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const Unauthorized = lazy(() => import("./pages/Unauthorized"));
 const SessionExpired = lazy(() => import("./pages/SessionExpired"));
+const Account = lazy(() => import("./pages/Account"));
 
 function Loader() {
   return (
@@ -82,7 +83,7 @@ function App() {
                 <Route path="/unauthorized" element={<Unauthorized />} />
                 <Route path="/session-expired" element={<SessionExpired />} />
 
-                {/* Guest-only routes (redirect to profile if already authenticated) */}
+                {/* Guest-only routes */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/vendor-register" element={<VendorRegister />} />
@@ -90,6 +91,7 @@ function App() {
                 <Route path="/admin-login" element={<AdminLogin />} />
 
                 {/* Customer-protected routes */}
+                <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
 
