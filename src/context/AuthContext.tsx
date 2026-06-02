@@ -1,8 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
 import { useCustomer, syncCustomerFromAuth, type Customer } from "./CustomerContext";
-import { loginMock, registerCustomerMock, registerVendorMock, logoutMock, getSession as mockGetSession, forgotPasswordMock, resetPasswordMock, changePasswordMock, updateProfileMock, validatePassword } from "../lib/mockAuth";
-import { loginUser, registerUser, logoutUser, getSession as realGetSession, resetPassword, changePassword, updateProfile, onAuthChange } from "../lib/auth";
-import { supabase } from "../lib/supabase";
+import { loginUser, registerUser, logoutUser, getSession, resetPassword, changePassword, updateProfile, onAuthChange } from "../lib/auth";
 import type { AuthUser, LoginCredentials, CustomerRegisterData, VendorRegisterData, Role, PasswordValidation } from "../types/auth";
 
 export type { AuthUser, Role, PasswordValidation };
@@ -13,8 +11,8 @@ type AuthContextType = {
   isAuthenticated: boolean;
   role: Role | null;
   login: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
-  registerCustomer: (data: CustomerRegisterData) => Promise<{ success: boolean; error?: string }>;
-  registerVendor: (data: VendorRegisterData) => Promise<{ success: boolean; error?: string }>;
+  registerCustomer: (data: CustomerRegisterData) => Promise<{ success: boolean; error?: string; needsEmailConfirm?: boolean }>;
+  registerVendor: (data: VendorRegisterData) => Promise<{ success: boolean; error?: string; needsEmailConfirm?: boolean }>;
   logout: () => void;
   forgotPassword: (email: string) => Promise<boolean>;
   resetPassword: (token: string, newPassword: string) => Promise<boolean>;
@@ -42,26 +40,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      if (supabase) {
-        const realSession = await realGetSession();
-        if (realSession) {
-          setUser(realSession);
-          syncCustomerFromAuth(customerFromAuthUser(realSession));
-          setLoading(false);
-          return;
-        }
-      }
-      const mockSession = mockGetSession();
-      if (mockSession) {
-        setUser(mockSession);
-        syncCustomerFromAuth(customerFromAuthUser(mockSession));
+      const session = await getSession();
+      if (session) {
+        setUser(session);
+        syncCustomerFromAuth(customerFromAuthUser(session));
       }
       setLoading(false);
     })();
   }, []);
 
   useEffect(() => {
-    if (!supabase) return;
     const unsub = onAuthChange(async (authUser) => {
       if (authUser) {
         setUser(authUser);
@@ -81,154 +69,106 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, customer]);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
-    if (supabase) {
-      try {
-        const authUser = await loginUser({ email: credentials.email, password: credentials.password });
-        setUser(authUser);
-        syncCustomerFromAuth(customerFromAuthUser(authUser));
-        return { success: true };
-      } catch (err: any) {
-        return { success: false, error: err.message || "Login failed" };
-      }
+    try {
+      const authUser = await loginUser({ email: credentials.email!, password: credentials.password });
+      setUser(authUser);
+      syncCustomerFromAuth(customerFromAuthUser(authUser));
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Login failed" };
     }
-    const result = loginMock(credentials);
-    if (result.success && result.user) {
-      setUser(result.user);
-      syncCustomerFromAuth(customerFromAuthUser(result.user));
-    }
-    return { success: result.success, error: result.error };
   }, []);
 
   const registerCustomer = useCallback(async (data: CustomerRegisterData) => {
-    if (supabase) {
-      try {
-        const authUser = await registerUser({
-          email: data.email,
-          phone: data.phone,
-          password: data.password,
-          name: data.name,
-          role: "customer",
-        });
-        const mapped: AuthUser = {
-          id: (authUser as any).id,
-          email: (authUser as any).email || data.email,
-          phone: data.phone,
-          name: data.name,
-          role: "customer",
-          createdAt: new Date().toISOString(),
-        };
-        setUser(mapped);
-        syncCustomerFromAuth(customerFromAuthUser(mapped));
-        return { success: true };
-      } catch (err: any) {
-        return { success: false, error: err.message || "Registration failed" };
-      }
+    try {
+      await registerUser({
+        email: data.email!,
+        password: data.password,
+        name: data.name,
+        phone: data.phone,
+        role: "customer",
+      });
+      return { success: true, needsEmailConfirm: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Registration failed" };
     }
-    const result = registerCustomerMock(data);
-    if (result.success && result.user) {
-      setUser(result.user);
-      syncCustomerFromAuth(customerFromAuthUser(result.user));
-    }
-    return { success: result.success, error: result.error };
   }, []);
 
   const registerVendor = useCallback(async (data: VendorRegisterData) => {
-    if (supabase) {
-      try {
-        const authUser = await registerUser({
-          email: data.email,
-          phone: data.phone,
-          password: data.password,
-          name: data.ownerName,
-          role: "vendor",
-        });
-        const mapped: AuthUser = {
-          id: (authUser as any).id,
-          email: data.email,
-          phone: data.phone,
-          name: data.ownerName,
-          role: "vendor",
-          createdAt: new Date().toISOString(),
-        };
-        setUser(mapped);
-        return { success: true };
-      } catch (err: any) {
-        return { success: false, error: err.message || "Registration failed" };
-      }
+    try {
+      await registerUser({
+        email: data.email,
+        password: data.password,
+        name: data.ownerName,
+        phone: data.phone,
+        role: "vendor",
+      });
+      return { success: true, needsEmailConfirm: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Registration failed" };
     }
-    const result = registerVendorMock(data);
-    if (result.success && result.user) {
-      setUser(result.user);
-    }
-    return { success: result.success, error: result.error };
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
     syncCustomerFromAuth(null);
     logoutUser();
-    logoutMock();
   }, []);
 
   const forgotPassword = useCallback(async (email: string) => {
-    if (supabase) {
-      try {
-        await resetPassword(email);
-        return true;
-      } catch {
-        return false;
-      }
+    try {
+      await resetPassword(email);
+      return true;
+    } catch {
+      return false;
     }
-    return forgotPasswordMock(email);
   }, []);
 
-  const resetPw = useCallback(async (token: string, newPassword: string) => {
-    if (supabase) {
-      try {
-        await changePassword(newPassword);
-        return true;
-      } catch {
-        return false;
-      }
+  const resetPw = useCallback(async (_token: string, newPassword: string) => {
+    try {
+      await changePassword(newPassword);
+      return true;
+    } catch {
+      return false;
     }
-    return resetPasswordMock(token, newPassword);
   }, []);
 
-  const changePw = useCallback(async (oldPassword: string, newPassword: string) => {
+  const changePw = useCallback(async (_oldPassword: string, newPassword: string) => {
     if (!user) return false;
-    if (supabase) {
-      try {
-        await changePassword(newPassword);
-        return true;
-      } catch {
-        return false;
-      }
+    try {
+      await changePassword(newPassword);
+      return true;
+    } catch {
+      return false;
     }
-    return changePasswordMock(user.id, oldPassword, newPassword);
   }, [user]);
 
   const updateProfileCb = useCallback(async (data: Partial<Pick<AuthUser, "name" | "phone">>) => {
     if (!user) return false;
-    if (supabase) {
-      try {
-        const updated = await updateProfile({ ...user, ...data });
-        if (updated) {
-          const merged = { ...user, ...data };
-          setUser(merged);
-          syncCustomerFromAuth(customerFromAuthUser(merged));
-        }
-        return true;
-      } catch {
-        return false;
+    try {
+      const updated = await updateProfile({ ...user, ...data });
+      if (updated) {
+        const merged = { ...user, ...data };
+        setUser(merged);
+        syncCustomerFromAuth(customerFromAuthUser(merged));
       }
+      return true;
+    } catch {
+      return false;
     }
-    const ok = updateProfileMock(user.id, data);
-    if (ok) {
-      const session = mockGetSession();
-      if (session) setUser(session);
-    }
-    return ok;
   }, [user]);
+
+  function validatePassword(password: string): PasswordValidation {
+    const errors: string[] = [];
+    if (password.length < 8) errors.push("At least 8 characters.");
+    if (!/[A-Z]/.test(password)) errors.push("One uppercase letter.");
+    if (!/[a-z]/.test(password)) errors.push("One lowercase letter.");
+    if (!/[0-9]/.test(password)) errors.push("One number.");
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) errors.push("One special character.");
+    const score = [password.length >= 8, password.length >= 12, /[A-Z]/.test(password), /[a-z]/.test(password), /[0-9]/.test(password), /[^A-Za-z0-9]/.test(password)].filter(Boolean).length;
+    const strength: "weak" | "medium" | "strong" | "very-strong" = score <= 2 ? "weak" : score <= 3 ? "medium" : score <= 5 ? "strong" : "very-strong";
+    return { valid: errors.length === 0, errors, strength };
+  }
 
   const value: AuthContextType = {
     user,
