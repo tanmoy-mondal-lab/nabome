@@ -1,37 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Save, ArrowLeft, X, AlertCircle, Loader2, Upload } from "lucide-react";
 import { useToast } from "../../components/Toast";
-import { generateMockProducts } from "../../lib/mockVendorData";
-import type { VendorProduct, VendorTab } from "../../types/vendor";
+import { uploadImage } from "../../lib/cloudinary";
+import { saveVendorProduct, getVendorProductForEdit } from "../../lib/api/products";
+import { isNeonConnected } from "../../lib/neon";
+import type { VendorTab } from "../../types/vendor";
 
 type Props = {
   productId: string | null;
   vendorId: string;
   onBack: () => void;
-  onSave: (product: VendorProduct) => void;
+  onSave: () => void;
   onTab?: (tab: VendorTab) => void;
 };
 
-const categories = [
+const categoryNames = [
   "Men's Fashion", "Women's Fashion", "Kids Fashion", "Footwear",
   "Accessories", "Jewelry", "Ethnic Wear", "Western Wear",
   "Sportswear", "Winter Wear", "Other",
 ];
-
-const subcategories: Record<string, string[]> = {
-  "Men's Fashion": ["T-Shirts", "Shirts", "Hoodies", "Jackets", "Pants", "Jeans", "Blazers", "Suits", "Shorts", "Ethnic"],
-  "Women's Fashion": ["Dresses", "Tops", "Kurtis", "Jeans", "Shrugs", "Skirts", "Trousers", "Co-ords"],
-  "Kids Fashion": ["T-Shirts", "Shorts", "Dresses", "Rompers", "Jeans", "Shirts", "Ethnic", "Winter"],
-  Footwear: ["Sports Shoes", "Casual Shoes", "Formal Shoes", "Sandals", "Slippers", "Boots", "Traditional"],
-  Accessories: ["Caps", "Belts", "Watches", "Sunglasses", "Wallets", "Bags", "Scarves", "Socks"],
-  Jewelry: ["Necklaces", "Earrings", "Bracelets", "Rings", "Anklets", "Chains", "Pendants"],
-  "Ethnic Wear": ["Sarees", "Kurtis", "Lehengas", "Sherwanis", "Dhotis", "Salwar Suits", "Kurta Pajama"],
-  "Western Wear": ["Dresses", "Tops", "Jeans", "Skirts", "Trousers", "Blazers", "Jumpsuits"],
-  Sportswear: ["Active Tees", "Track Pants", "Shorts", "Sports Shoes", "Tracksuits", "Hoodies"],
-  "Winter Wear": ["Jackets", "Sweaters", "Hoodies", "Beanies", "Gloves", "Scarves", "Puffer Jackets"],
-  Other: ["Other"],
-};
 
 const genders = ["Male", "Female", "Unisex"];
 const sizes = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
@@ -41,40 +29,72 @@ export default function VendorProductForm({ productId, vendorId, onBack, onSave 
   const { showToast } = useToast();
   const isEditing = !!productId;
 
-  const existingProducts = generateMockProducts(vendorId);
-  const existing = productId ? existingProducts.find((p) => p.id === productId) : null;
-
-  const [form, setForm] = useState({
-    name: existing?.name || "",
-    shortDescription: existing?.shortDescription || "",
-    fullDescription: existing?.fullDescription || "",
-    category: existing?.category || "Men's Fashion",
-    subcategory: existing?.subcategory || "",
-    brand: existing?.brand || "নবME Originals",
-    price: existing?.price || 0,
-    discountPrice: existing?.discountPrice || 0,
-    stockQuantity: existing?.stockQuantity || 0,
-    sku: existing?.sku || "",
-    tags: existing?.tags?.join(", ") || "",
-    gender: existing?.gender || "Unisex",
-    material: existing?.material || "Cotton",
-  });
-
-  const [selectedSizes, setSelectedSizes] = useState<string[]>(existing?.sizes || ["M", "L", "XL"]);
-  const [selectedColors, setSelectedColors] = useState<string[]>(existing?.colors || ["Black", "White"]);
-  const [images, setImages] = useState<string[]>(existing?.images || []);
-  const [mainImageIndex, setMainImageIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
-  const addImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    category_name: "Men's Fashion",
+    brand: "নবME Originals",
+    price: 0,
+    discount_price: 0,
+    stock: 0,
+    tags: "",
+    gender: "Unisex",
+    material: "Cotton",
+  });
+
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(["M", "L", "XL"]);
+  const [selectedColors, setSelectedColors] = useState<string[]>(["Black", "White"]);
+  const [images, setImages] = useState<string[]>([]);
+  const [mainImageIndex, setMainImageIndex] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    init();
+  }, [productId, vendorId]);
+
+  const init = async () => {
+    setLoading(true);
+    if (productId && vendorId) {
+      const existing = await getVendorProductForEdit(productId, vendorId);
+      if (existing) {
+        setForm({
+          name: existing.name,
+          description: existing.description,
+          category_name: existing.category_name || "Men's Fashion",
+          brand: existing.brand || "নবME Originals",
+          price: existing.price,
+          discount_price: existing.discount_price,
+          stock: existing.stock,
+          tags: existing.tags,
+          gender: existing.gender || "Unisex",
+          material: existing.material || "Cotton",
+        });
+        setSelectedSizes(existing.sizes.length > 0 ? existing.sizes : ["M", "L", "XL"]);
+        setSelectedColors(existing.colors.length > 0 ? existing.colors : ["Black", "White"]);
+        setImages(existing.images || []);
+        setMainImageIndex(0);
+      }
+    }
+    setLoading(false);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setImages((prev) => [...prev, ev.target?.result as string]);
-    };
-    reader.readAsDataURL(file);
+    setUploading(true);
+    try {
+      const result = await uploadImage(file, "nabome/products");
+      setImages((prev) => [...prev, result.secure_url]);
+    } catch {
+      setError("Failed to upload image");
+    }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = "";
   };
 
   const removeImage = (idx: number) => {
@@ -88,39 +108,36 @@ export default function VendorProductForm({ productId, vendorId, onBack, onSave 
     if (!form.price || form.price <= 0) { setError("Price must be greater than 0."); return; }
     if (images.length === 0) { setError("At least one product image is required."); return; }
 
+    if (!await isNeonConnected()) { setError("Database not connected. Cannot save product."); return; }
+
     setSaving(true);
     setError("");
 
-    const product: VendorProduct = {
-      id: productId || `vp_new_${Date.now()}`,
-      vendorId,
-      name: form.name.trim(),
-      shortDescription: form.shortDescription.trim(),
-      fullDescription: form.fullDescription.trim(),
-      category: form.category,
-      subcategory: form.subcategory,
-      brand: form.brand,
-      price: Number(form.price),
-      discountPrice: Number(form.discountPrice) || 0,
-      stockQuantity: Number(form.stockQuantity),
-      sku: form.sku || `NB-${String(Date.now()).slice(-4)}`,
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-      gender: form.gender,
-      material: form.material,
-      sizes: selectedSizes,
-      colors: selectedColors,
-      images,
-      mainImage: images[mainImageIndex] || images[0] || "",
-      status: existing?.status === "rejected" ? "draft" : (existing?.status || "draft"),
-      createdAt: existing?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      await saveVendorProduct({
+        vendor_id: vendorId,
+        name: form.name.trim(),
+        description: form.description.trim(),
+        category_name: form.category_name,
+        price: Number(form.price),
+        discount_price: Number(form.discount_price) || 0,
+        stock: Number(form.stock),
+        sizes: selectedSizes,
+        colors: selectedColors,
+        images,
+        gender: form.gender,
+        material: form.material,
+        brand: form.brand,
+        tags: form.tags,
+        status: productId ? undefined : "draft",
+      }, productId || undefined);
 
-    // TODO: persist to DB
-    await new Promise((r) => setTimeout(r, 800));
-    onSave(product);
-    showToast(isEditing ? "Product updated!" : "Product created as draft!");
-    onBack();
+      showToast(isEditing ? "Product updated!" : "Product saved as draft!");
+      onSave();
+      onBack();
+    } catch (err: any) {
+      setError(err.message || "Failed to save product");
+    }
     setSaving(false);
   };
 
@@ -133,6 +150,15 @@ export default function VendorProductForm({ productId, vendorId, onBack, onSave 
   const toggleItem = (arr: string[], item: string, set: (v: string[]) => void) => {
     set(arr.includes(item) ? arr.filter((s) => s !== item) : [...arr, item]);
   };
+
+  if (loading) {
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        <div className="skeleton" style={{ height: 60, borderRadius: "var(--radius)", marginBottom: 20 }} />
+        <div className="skeleton" style={{ height: 500, borderRadius: "var(--radius-xl)" }} />
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
@@ -151,7 +177,6 @@ export default function VendorProductForm({ productId, vendorId, onBack, onSave 
         {/* Left: Images */}
         <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-xl)" }}>
           <h3 style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 16 }}>Product Images</h3>
-          {/* Main image */}
           <div style={{ aspectRatio: "4/3", borderRadius: "var(--radius-lg)", overflow: "hidden", background: "var(--surface-strong)", marginBottom: 12, position: "relative" }}>
             {images.length > 0 ? (
               <img src={images[mainImageIndex]} alt="Main" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -161,7 +186,6 @@ export default function VendorProductForm({ productId, vendorId, onBack, onSave 
               </div>
             )}
           </div>
-          {/* Thumbnails */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
             {images.map((img, idx) => (
               <div key={idx} style={{ position: "relative", width: 64, height: 64, borderRadius: "var(--radius)", overflow: "hidden", cursor: "pointer", border: mainImageIndex === idx ? "2px solid var(--gold)" : "2px solid transparent" }}
@@ -174,12 +198,12 @@ export default function VendorProductForm({ productId, vendorId, onBack, onSave 
                 </button>
               </div>
             ))}
-            <label htmlFor="product-image-upload" style={{ width: 64, height: 64, border: "1px dashed var(--line)", borderRadius: "var(--radius)", display: "grid", placeItems: "center", cursor: "pointer", color: "var(--muted)" }}>
-              <Upload size={18} />
+            <label htmlFor="product-image-upload" style={{ width: 64, height: 64, border: "1px dashed var(--line)", borderRadius: "var(--radius)", display: "grid", placeItems: "center", cursor: "pointer", color: "var(--muted)", position: "relative" }}>
+              {uploading ? <Loader2 size={18} className="spin" /> : <Upload size={18} />}
             </label>
-            <input id="product-image-upload" type="file" accept="image/*" onChange={addImage} style={{ display: "none" }} />
+            <input ref={fileRef} id="product-image-upload" type="file" accept="image/*" onChange={handleImageUpload} style={{ display: "none" }} />
           </div>
-          <p style={{ color: "var(--muted)", fontSize: ".78rem" }}>Upload up to 5 images. Click a thumbnail to set as main image. Future: Cloudinary integration.</p>
+          <p style={{ color: "var(--muted)", fontSize: ".78rem" }}>Images are uploaded to Cloudinary. Click a thumbnail to set as main image.</p>
         </div>
 
         {/* Right: Fields */}
@@ -190,36 +214,19 @@ export default function VendorProductForm({ productId, vendorId, onBack, onSave 
               <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} style={fieldS} placeholder="e.g. Premium Cotton T-Shirt" />
             </div>
             <div>
-              <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Short Description</label>
-              <textarea rows={2} value={form.shortDescription} onChange={(e) => setForm((f) => ({ ...f, shortDescription: e.target.value }))} style={{ ...fieldS, resize: "vertical" }} placeholder="Brief product description" />
-            </div>
-            <div>
-              <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Full Description</label>
-              <textarea rows={4} value={form.fullDescription} onChange={(e) => setForm((f) => ({ ...f, fullDescription: e.target.value }))} style={{ ...fieldS, resize: "vertical" }} placeholder="Detailed product description" />
+              <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Description</label>
+              <textarea rows={4} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} style={{ ...fieldS, resize: "vertical", fontFamily: "inherit" }} placeholder="Detailed product description" />
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Category *</label>
-                <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value, subcategory: "" }))} style={fieldS}>
-                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                <select value={form.category_name} onChange={(e) => setForm((f) => ({ ...f, category_name: e.target.value }))} style={fieldS}>
+                  {categoryNames.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              <div>
-                <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Subcategory</label>
-                <select value={form.subcategory} onChange={(e) => setForm((f) => ({ ...f, subcategory: e.target.value }))} style={fieldS}>
-                  <option value="">Select subcategory</option>
-                  {(subcategories[form.category] || []).map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
-              </div>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Brand</label>
                 <input type="text" value={form.brand} onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))} style={fieldS} />
-              </div>
-              <div>
-                <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>SKU</label>
-                <input type="text" value={form.sku} onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))} style={fieldS} placeholder="Auto-generated if empty" />
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
@@ -229,11 +236,11 @@ export default function VendorProductForm({ productId, vendorId, onBack, onSave 
               </div>
               <div>
                 <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Discount Price</label>
-                <input type="number" min={0} value={form.discountPrice || ""} onChange={(e) => setForm((f) => ({ ...f, discountPrice: Number(e.target.value) }))} style={fieldS} />
+                <input type="number" min={0} value={form.discount_price || ""} onChange={(e) => setForm((f) => ({ ...f, discount_price: Number(e.target.value) }))} style={fieldS} />
               </div>
               <div>
-                <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Stock Quantity *</label>
-                <input type="number" min={0} value={form.stockQuantity || ""} onChange={(e) => setForm((f) => ({ ...f, stockQuantity: Number(e.target.value) }))} style={fieldS} />
+                <label style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 6, display: "block" }}>Stock *</label>
+                <input type="number" min={0} value={form.stock || ""} onChange={(e) => setForm((f) => ({ ...f, stock: Number(e.target.value) }))} style={fieldS} />
               </div>
             </div>
             <div>

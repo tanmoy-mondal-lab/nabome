@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ShoppingBag, Package, ChevronRight, Search } from "lucide-react";
-import { generateMockOrders, type AccountOrder } from "../lib/mockAccountData";
-import { useCustomer } from "../context/CustomerContext";
+import { useAuth } from "../context/AuthContext";
+import { getOrdersByUser } from "../lib/api/orders";
+import type { OrderWithItems } from "../lib/api/orders";
 
 type Props = { onViewOrder: (orderId: string) => void };
 
@@ -12,23 +13,28 @@ const statusColor: Record<string, string> = {
 };
 
 export default function AccountOrders({ onViewOrder }: Props) {
-  const { customer } = useCustomer();
-  const [orders, setOrders] = useState<AccountOrder[]>([]);
+  const { user } = useAuth();
+  const [orders, setOrders] = useState<OrderWithItems[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
-    // TODO: fetch from DB via getOrdersByCustomer(customer.id)
-    setOrders(generateMockOrders());
-  }, [customer]);
+    if (!user?.id) return;
+    setLoading(true);
+    getOrdersByUser(user.id).then((data) => {
+      setOrders(data);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [user]);
 
   const filtered = orders.filter((o) => {
-    if (filter !== "all" && o.status !== filter) return false;
-    if (search && !o.billNo.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filter !== "all" && o.orderStatus !== filter) return false;
+    if (search && !o.orderNumber.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  const statusFilters = ["all", "pending", "confirmed", "packed", "shipped", "delivered", "cancelled"];
+  const statusFilters = ["all", "pending", "confirmed", "processing", "packed", "shipped", "out_for_delivery", "delivered", "cancelled"];
 
   const chipS = (active: boolean): React.CSSProperties => ({
     padding: "8px 16px", border: `1px solid ${active ? "var(--gold)" : "var(--line)"}`,
@@ -38,6 +44,15 @@ export default function AccountOrders({ onViewOrder }: Props) {
     textTransform: "capitalize", transition: "all var(--transition-fast)", whiteSpace: "nowrap",
   });
 
+  if (loading) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: 40, textAlign: "center" }}>
+        <div className="skeleton" style={{ width: 48, height: 48, borderRadius: "50%", margin: "0 auto 16px" }} />
+        <p style={{ color: "var(--muted)" }}>Loading orders...</p>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
@@ -46,14 +61,12 @@ export default function AccountOrders({ onViewOrder }: Props) {
         </h1>
       </div>
 
-      {/* Filters */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap", overflowX: "auto" }}>
         {statusFilters.map((s) => (
-          <button key={s} onClick={() => setFilter(s)} style={chipS(filter === s)}>{s === "all" ? "All" : s}</button>
+          <button key={s} onClick={() => setFilter(s)} style={chipS(filter === s)}>{s === "all" ? "All" : s.replace(/_/g, " ")}</button>
         ))}
       </div>
 
-      {/* Search */}
       <div style={{ position: "relative", marginBottom: 24, maxWidth: 400 }}>
         <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--muted)", pointerEvents: "none" }} />
         <input type="search" placeholder="Search by order number..." value={search} onChange={(e) => setSearch(e.target.value)}
@@ -77,34 +90,33 @@ export default function AccountOrders({ onViewOrder }: Props) {
             onMouseLeave={(e) => e.currentTarget.style.borderColor = "var(--line)"}
           >
             <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-              {/* First item image */}
               <div style={{ width: 80, height: 80, borderRadius: "var(--radius)", overflow: "hidden", flexShrink: 0, background: "var(--surface-strong)" }}>
-                <img src={order.items[0]?.image} alt={order.items[0]?.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src={order.items[0]?.productImage || ""} alt={order.items[0]?.productName || "Product"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                   <div>
-                    <p style={{ fontWeight: 600, marginBottom: 2 }}>{order.billNo}</p>
+                    <p style={{ fontWeight: 600, marginBottom: 2 }}>{order.orderNumber}</p>
                     <p style={{ color: "var(--muted)", fontSize: ".82rem" }}>
-                      {new Date(order.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                      {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                     </p>
                   </div>
                   <span className="status-chip"
                     style={{
-                      background: `${statusColor[order.status]}18`,
-                      color: statusColor[order.status],
-                      border: `1px solid ${statusColor[order.status]}40`,
+                      background: `${statusColor[order.orderStatus] || "#999"}18`,
+                      color: statusColor[order.orderStatus] || "#999",
+                      border: `1px solid ${statusColor[order.orderStatus] || "#999"}40`,
                     }}
                   >
-                    {order.status.toUpperCase()}
+                    {order.orderStatus.toUpperCase().replace(/_/g, " ")}
                   </span>
                 </div>
                 <p style={{ color: "var(--muted)", fontSize: ".82rem", marginTop: 6 }}>
-                  {order.items.length} item{order.items.length > 1 ? "s" : ""} · {order.paymentMethod}
+                  {order.items.length} item{order.items.length > 1 ? "s" : ""} · {order.paymentMethod === "upi" ? "UPI" : order.paymentMethod === "whatsapp" ? "WhatsApp" : order.paymentMethod}
                 </p>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
                   <span style={{ fontWeight: 700, color: "var(--gold)", fontSize: "1.1rem" }}>
-                    ₹{order.total.toLocaleString("en-IN")}
+                    ₹{order.grandTotal.toLocaleString("en-IN")}
                   </span>
                   <span style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--muted)", fontSize: ".82rem" }}>
                     View Details <ChevronRight size={14} />

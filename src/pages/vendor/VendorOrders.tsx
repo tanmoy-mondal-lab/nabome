@@ -3,11 +3,14 @@ import { motion } from "framer-motion";
 import { ShoppingBag, Search, ChevronRight, Package, CheckCircle, XCircle, Truck, Loader2 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../components/Toast";
-import { generateMockOrders } from "../../lib/mockVendorData";
-import type { VendorOrder, VendorOrderStatus } from "../../types/vendor";
+import { getVendorByUserId } from "../../lib/api/vendors";
+import { getVendorOrders, updateOrderStatus } from "../../lib/api/orders";
+import type { OrderWithItems } from "../../lib/api/orders";
+import type { OrderStatus } from "../../types/order";
 
-const statusConfig: Record<VendorOrderStatus, { label: string; color: string; bg: string }> = {
-  new: { label: "New", color: "#3498db", bg: "#3498db18" },
+const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
+  pending: { label: "New", color: "#3498db", bg: "#3498db18" },
+  confirmed: { label: "Confirmed", color: "#2ecc71", bg: "#2ecc7118" },
   processing: { label: "Processing", color: "#f39c12", bg: "#f39c1218" },
   packed: { label: "Packed", color: "#9b59b6", bg: "#9b59b618" },
   shipped: { label: "Shipped", color: "#2ecc71", bg: "#2ecc7118" },
@@ -15,54 +18,91 @@ const statusConfig: Record<VendorOrderStatus, { label: string; color: string; bg
   cancelled: { label: "Cancelled", color: "#e74c3c", bg: "#e74c3c18" },
 };
 
-const statusActions: Record<VendorOrderStatus, { label: string; next: VendorOrderStatus; icon: React.ReactNode }[]> = {
-  new: [{ label: "Accept", next: "processing", icon: <CheckCircle size={14} /> }],
+const statusActions: Record<string, { label: string; next: OrderStatus; icon: React.ReactNode }[]> = {
+  pending: [{ label: "Accept", next: "confirmed", icon: <CheckCircle size={14} /> }],
+  confirmed: [{ label: "Process", next: "processing", icon: <Package size={14} /> }],
   processing: [{ label: "Mark Packed", next: "packed", icon: <Package size={14} /> }],
   packed: [{ label: "Mark Shipped", next: "shipped", icon: <Truck size={14} /> }],
   shipped: [{ label: "Mark Delivered", next: "delivered", icon: <CheckCircle size={14} /> }],
   delivered: [],
   cancelled: [],
+  out_for_delivery: [],
+  returned: [],
+  refunded: [],
 };
 
 export default function VendorOrders() {
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [orders, setOrders] = useState<VendorOrder[]>([]);
+  const [orders, setOrders] = useState<OrderWithItems[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<VendorOrderStatus | "all">("all");
-  const [selectedOrder, setSelectedOrder] = useState<VendorOrder | null>(null);
+  const [filter, setFilter] = useState<string>("all");
+  const [selectedOrder, setSelectedOrder] = useState<OrderWithItems | null>(null);
   const [trackingInput, setTrackingInput] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) setOrders(generateMockOrders(user.id));
+    if (!user?.id) return;
+    (async () => {
+      const vendor = await getVendorByUserId(user.id);
+      if (vendor?.id) {
+        const data = await getVendorOrders(vendor.id);
+        setOrders(data);
+      }
+      setLoading(false);
+    })();
   }, [user]);
 
-  const handleAction = (orderId: string, newStatus: VendorOrderStatus) => {
+  const handleAction = async (orderId: string, newStatus: OrderStatus) => {
     setActionLoading(orderId);
-    setTimeout(() => {
-      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, status: newStatus } : o));
-      showToast(`Order ${orderId} updated to ${statusConfig[newStatus].label}`);
-      setActionLoading(null);
-    }, 500);
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, orderStatus: newStatus } : o));
+      showToast(`Order updated to ${statusConfig[newStatus]?.label || newStatus}`);
+    } catch {
+      showToast("Failed to update order status");
+    }
+    setActionLoading(null);
   };
 
-  const handleAddTracking = (orderId: string) => {
+  const handleReject = async (orderId: string) => {
+    setActionLoading(orderId);
+    try {
+      await updateOrderStatus(orderId, "cancelled", "Rejected by vendor");
+      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, orderStatus: "cancelled" } : o));
+      showToast("Order rejected");
+    } catch {
+      showToast("Failed to reject order");
+    }
+    setActionLoading(null);
+  };
+
+  const handleAddTracking = async (orderId: string) => {
     if (!trackingInput.trim()) return;
-    setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, trackingNumber: trackingInput.trim() } : o));
-    showToast("Tracking number added!");
-    setTrackingInput("");
+    setActionLoading(orderId);
+    try {
+      await updateOrderStatus(orderId, selectedOrder?.orderStatus || "processing", undefined, trackingInput.trim());
+      setOrders((prev) => prev.map((o) => o.id === orderId ? { ...o, trackingNumber: trackingInput.trim() } : o));
+      if (selectedOrder?.id === orderId) setSelectedOrder({ ...selectedOrder, trackingNumber: trackingInput.trim() });
+      showToast("Tracking number added!");
+      setTrackingInput("");
+    } catch {
+      showToast("Failed to add tracking number");
+    }
+    setActionLoading(null);
   };
 
   const filtered = orders.filter((o) => {
-    if (filter !== "all" && o.status !== filter) return false;
-    if (search && !o.orderId.toLowerCase().includes(search.toLowerCase()) && !o.customerName.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filter !== "all" && o.orderStatus !== filter) return false;
+    if (search && !o.orderNumber.toLowerCase().includes(search.toLowerCase()) && !o.customerName.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  const statusFilters: { key: VendorOrderStatus | "all"; label: string }[] = [
+  const statusFilters = [
     { key: "all", label: "All" },
-    { key: "new", label: "New" },
+    { key: "pending", label: "New" },
+    { key: "confirmed", label: "Confirmed" },
     { key: "processing", label: "Processing" },
     { key: "packed", label: "Packed" },
     { key: "shipped", label: "Shipped" },
@@ -78,9 +118,18 @@ export default function VendorOrders() {
     transition: "all var(--transition-fast)",
   });
 
+  if (loading) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ padding: 40, textAlign: "center" }}>
+        <div className="skeleton" style={{ width: 48, height: 48, borderRadius: "50%", margin: "0 auto 16px" }} />
+        <p style={{ color: "var(--muted)" }}>Loading orders...</p>
+      </motion.div>
+    );
+  }
+
   if (selectedOrder) {
     const order = selectedOrder;
-    const config = statusConfig[order.status];
+    const config = statusConfig[order.orderStatus] || { label: order.orderStatus, color: "var(--muted)", bg: "transparent" };
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <button onClick={() => setSelectedOrder(null)}
@@ -91,7 +140,7 @@ export default function VendorOrders() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
             <div>
               <p style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 4 }}>Order ID</p>
-              <h2 style={{ fontSize: "1.4rem", fontWeight: 600 }}>{order.orderId}</h2>
+              <h2 style={{ fontSize: "1.4rem", fontWeight: 600 }}>{order.orderNumber}</h2>
               <p style={{ color: "var(--muted)", fontSize: ".82rem", marginTop: 4 }}>
                 {new Date(order.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })}
               </p>
@@ -102,14 +151,12 @@ export default function VendorOrders() {
           </div>
         </div>
 
-        {/* Customer */}
         <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-lg)", marginBottom: 20 }}>
           <h3 style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 12 }}>Customer</h3>
           <p style={{ fontSize: ".9rem", marginBottom: 4 }}>{order.customerName}</p>
           <p style={{ color: "var(--muted)", fontSize: ".82rem" }}>{order.customerPhone} · {order.customerEmail}</p>
         </div>
 
-        {/* Shipping */}
         <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-lg)", marginBottom: 20 }}>
           <h3 style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 12 }}>Shipping Address</h3>
           <p style={{ fontSize: ".9rem", marginBottom: 2 }}>{order.shippingAddress.name}</p>
@@ -117,11 +164,10 @@ export default function VendorOrders() {
           <p style={{ color: "var(--muted)", fontSize: ".82rem" }}>{order.shippingAddress.address}, {order.shippingAddress.city}, {order.shippingAddress.state} — {order.shippingAddress.pincode}</p>
         </div>
 
-        {/* Items */}
         <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-lg)", marginBottom: 20 }}>
           <h3 style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 16 }}>Items ({order.items.length})</h3>
           {order.items.map((item, i) => (
-            <div key={i} style={{ display: "flex", gap: 12, alignItems: "center", padding: "8px 0", borderBottom: i < order.items.length - 1 ? "1px solid var(--line)" : "none" }}>
+            <div key={item.id || i} style={{ display: "flex", gap: 12, alignItems: "center", padding: "8px 0", borderBottom: i < order.items.length - 1 ? "1px solid var(--line)" : "none" }}>
               <div style={{ width: 48, height: 48, borderRadius: "var(--radius)", overflow: "hidden", flexShrink: 0, background: "var(--surface-strong)" }}>
                 <img src={item.productImage} alt={item.productName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </div>
@@ -134,39 +180,38 @@ export default function VendorOrders() {
           ))}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 16, borderTop: "1px solid var(--line)", marginTop: 8 }}>
             <span style={{ fontWeight: 600 }}>Total</span>
-            <span style={{ fontWeight: 700, fontSize: "1.1rem", color: "var(--gold)" }}>₹{order.total.toLocaleString("en-IN")}</span>
+            <span style={{ fontWeight: 700, fontSize: "1.1rem", color: "var(--gold)" }}>₹{order.grandTotal.toLocaleString("en-IN")}</span>
           </div>
         </div>
 
-        {/* Tracking */}
-        {order.status === "shipped" || order.status === "delivered" ? (
+        {(order.orderStatus === "shipped" || order.orderStatus === "delivered") && (
           <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-lg)", marginBottom: 20 }}>
             <h3 style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 8 }}>Tracking Number</h3>
             <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>{order.trackingNumber || "Not set"}</p>
           </div>
-        ) : order.status === "processing" || order.status === "packed" ? (
+        )}
+        {(order.orderStatus === "confirmed" || order.orderStatus === "processing" || order.orderStatus === "packed") && (
           <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-lg)", marginBottom: 20 }}>
             <h3 style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 12 }}>Add Tracking Number</h3>
             <div style={{ display: "flex", gap: 8 }}>
               <input type="text" value={trackingInput} onChange={(e) => setTrackingInput(e.target.value)} placeholder="Enter tracking number..."
                 style={{ flex: 1, padding: "12px 16px", border: "1px solid var(--line)", background: "var(--surface)", color: "var(--text)", borderRadius: "var(--radius)", fontSize: ".9rem", outline: "none" }} />
-              <button onClick={() => handleAddTracking(order.id)} className="premium-button" style={{ padding: "0 20px", fontSize: ".82rem" }}>Save</button>
+              <button onClick={() => handleAddTracking(order.id)} disabled={actionLoading === order.id} className="premium-button" style={{ padding: "0 20px", fontSize: ".82rem" }}>{actionLoading === order.id ? <Loader2 size={14} className="spin" /> : "Save"}</button>
             </div>
           </div>
-        ) : null}
+        )}
 
-        {/* Actions */}
-        {statusActions[order.status]?.length > 0 && (
+        {statusActions[order.orderStatus]?.length > 0 && (
           <div style={{ display: "flex", gap: 12 }}>
-            {statusActions[order.status].map((action) => (
+            {statusActions[order.orderStatus].map((action) => (
               <button key={action.next} onClick={() => handleAction(order.id, action.next)} disabled={actionLoading === order.id}
                 className="premium-button" style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 24px", fontSize: ".85rem" }}>
                 {actionLoading === order.id ? <Loader2 size={14} className="spin" /> : action.icon}
                 {action.label}
               </button>
             ))}
-            {order.status === "new" && (
-              <button onClick={() => handleAction(order.id, "cancelled")} disabled={actionLoading === order.id}
+            {order.orderStatus === "pending" && (
+              <button onClick={() => handleReject(order.id)} disabled={actionLoading === order.id}
                 style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 24px", border: "1px solid #e74c3c", background: "transparent", color: "#e74c3c", cursor: "pointer", borderRadius: "var(--radius)", fontSize: ".85rem", fontWeight: 500 }}>
                 <XCircle size={14} /> Reject
               </button>
@@ -174,10 +219,10 @@ export default function VendorOrders() {
           </div>
         )}
 
-        {order.note && (
+        {order.notes && (
           <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-lg)", marginTop: 20 }}>
             <h3 style={{ fontWeight: 600, fontSize: ".9rem", marginBottom: 8 }}>Customer Note</h3>
-            <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>{order.note}</p>
+            <p style={{ color: "var(--muted)", fontSize: ".85rem" }}>{order.notes}</p>
           </div>
         )}
       </motion.div>
@@ -213,7 +258,7 @@ export default function VendorOrders() {
           </div>
         )}
         {filtered.map((order, i) => {
-          const config = statusConfig[order.status];
+          const config = statusConfig[order.orderStatus] || { label: order.orderStatus, color: "var(--muted)", bg: "transparent" };
           return (
             <motion.div key={order.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
               className="glass" style={{ padding: 20, borderRadius: "var(--radius-lg)", cursor: "pointer" }}
@@ -223,15 +268,15 @@ export default function VendorOrders() {
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
                 <div>
-                  <p style={{ fontWeight: 600, marginBottom: 2 }}>{order.orderId}</p>
+                  <p style={{ fontWeight: 600, marginBottom: 2 }}>{order.orderNumber}</p>
                   <p style={{ color: "var(--muted)", fontSize: ".82rem", marginBottom: 4 }}>{order.customerName} · {order.customerPhone}</p>
-                  <p style={{ color: "var(--muted)", fontSize: ".78rem" }}>{order.items.length} item(s) · {order.paymentMethod}</p>
+                  <p style={{ color: "var(--muted)", fontSize: ".78rem" }}>{order.items.length} item(s) · {order.paymentMethod === "upi" ? "UPI" : order.paymentMethod}</p>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <span style={{ padding: "4px 12px", borderRadius: 12, fontSize: ".75rem", fontWeight: 600, background: config.bg, color: config.color, border: `1px solid ${config.bg}` }}>
                     {config.label}
                   </span>
-                  <p style={{ fontWeight: 700, fontSize: "1rem", color: "var(--gold)", marginTop: 8 }}>₹{order.total.toLocaleString("en-IN")}</p>
+                  <p style={{ fontWeight: 700, fontSize: "1rem", color: "var(--gold)", marginTop: 8 }}>₹{order.grandTotal.toLocaleString("en-IN")}</p>
                 </div>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>

@@ -6,11 +6,12 @@ import Navbar from "../components/Navbar";
 import SEO from "../components/SEO";
 import { useCart } from "../context/CartContext";
 import { useCustomer } from "../context/CustomerContext";
-import { useDelivery } from "../context/DeliveryContext";
+import { useAuth } from "../context/AuthContext";
 import { useAnalytics } from "../context/AnalyticsContext";
-import type { CustomerData, Address } from "../lib/db";
-import { sendOrderConfirmation, sendAdminOrderNotification, type BillData } from "../lib/email";
 import { useToast } from "../components/Toast";
+import { placeOrder } from "../lib/api/orders";
+import type { CustomerData } from "../lib/db";
+import { sendOrderConfirmation, sendAdminOrderNotification, type BillData } from "../lib/email";
 import CouponInput from "../components/CouponInput";
 import type { CouponRedemption } from "../types/order";
 import AddressManager from "../components/AddressManager";
@@ -22,10 +23,7 @@ const PHONE = 919163854706;
 function buildBill(customer: CustomerData, items: import("../lib/db").CartItem[], total: number, paymentMethod: string) {
   return {
     billNo: `NAB-${Date.now()}`,
-    date: new Date().toLocaleString("en-IN", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }),
+    date: new Date().toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }),
     customer,
     items,
     shipping: 0,
@@ -60,14 +58,13 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { cart, clearCart } = useCart();
   const { customer } = useCustomer();
-  const { createDelivery } = useDelivery();
+  const { user } = useAuth();
   const { trackBeginCheckout, trackPurchase } = useAnalytics();
   const paidRef = useRef(false);
   const { showToast } = useToast();
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [delivery, setDelivery] = useState(emptyDelivery);
-
   const [paymentMethod, setPaymentMethod] = useState<"whatsapp" | "upi">("whatsapp");
   const [upiStep, setUpiStep] = useState<"idle" | "paying" | "confirming" | "done">("idle");
   const [qrView, setQrView] = useState(false);
@@ -102,7 +99,7 @@ export default function Checkout() {
     trackBeginCheckout(total, cart.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })));
   }, []);
 
-  const handleAddressSelect = useCallback((addr: Address) => {
+  const handleAddressSelect = useCallback((addr: import("../lib/db").Address) => {
     setSelectedAddressId(addr.id);
     setDelivery({
       name: addr.name,
@@ -142,15 +139,9 @@ export default function Checkout() {
       gender: customer?.gender || undefined,
     };
 
-    const bill = buildBill(customerData, cart, total, method === "upi" ? "UPI / QR" : "WhatsApp");
-
-    const billWithMeta = {
-      ...bill,
-      paymentStatus: "paid" as const,
-      orderStatus: "confirmed" as const,
-      customerId: customer?.id,
-      shippingAddressId: selectedAddressId,
-      delivery: {
+    const result = await placeOrder({
+      userId: user?.id || customer?.id,
+      shipping: {
         name: delivery.name,
         phone: delivery.phone,
         email: delivery.email || undefined,
@@ -160,16 +151,32 @@ export default function Checkout() {
         state: delivery.state,
         pincode: delivery.pincode,
       },
+      items: cart.map(item => ({
+        productId: String(item.id),
+        name: item.name,
+        image: item.image,
+        price: item.price,
+        quantity: item.quantity,
+        selectedSize: item.selectedSize,
+        selectedColor: item.selectedColor,
+        variantId: item.variantId,
+      })),
+      paymentMethod: method === "upi" ? "upi" : "whatsapp",
+      paymentStatus: method === "upi" ? "paid" : "pending",
       utr: method === "upi" ? (utr || undefined) : undefined,
-    };
+      couponCode: coupon?.code,
+      couponDiscount: coupon?.discount,
+      shippingCost: shipping,
+      taxAmount: tax,
+    });
 
-    const billNo = await createDelivery(billWithMeta);
+    const bill = buildBill(customerData, cart, total, method === "upi" ? "UPI / QR" : "WhatsApp");
 
-    if (billNo && customerData.email) {
+    if (result && customerData.email) {
       sendOrderConfirmation(bill as BillData)
-        .then((result) => {
-          if (result.ok) showToast(`Confirmation email sent to ${customerData.email}`);
-          else if (!result.skipped) console.warn("Email failed:", result.error);
+        .then((res) => {
+          if (res.ok) showToast(`Confirmation email sent to ${customerData.email}`);
+          else if (!res.skipped) console.warn("Email failed:", res.error);
         })
         .catch((err) => console.error("Email error:", err));
 
@@ -181,11 +188,10 @@ export default function Checkout() {
       }
     }
 
-    trackPurchase(billNo || bill.billNo, grandTotal, cart.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })));
+    trackPurchase(result?.orderNumber || bill.billNo, grandTotal, cart.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })));
 
-    localStorage.setItem("nabome-last-bill", JSON.stringify(bill));
-    localStorage.removeItem("nabome-cart");
     clearCart();
+    return result?.orderNumber;
   }
 
   const updateDelivery = (key: keyof typeof emptyDelivery, val: string) =>
@@ -202,27 +208,26 @@ export default function Checkout() {
 
   useEffect(() => {
     if (upiStep !== "paying") return;
-    const onFocus = () => {
+    const onFocus = async () => {
       if (!paidRef.current) {
         paidRef.current = true;
         setUpiStep("confirming");
-        saveOrder("upi");
+        const orderNumber = await saveOrder("upi");
         setTimeout(() => {
           setUpiStep("done");
-          navigate("/order-success");
+          navigate(orderNumber ? `/order-success?order=${orderNumber}` : "/order-success");
         }, 1000);
       }
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [upiStep]);
 
   const sendToWhatsapp = async () => {
     if (!validate()) return;
     setPlacing(true);
 
-    await saveOrder("whatsapp");
+    const orderNumber = await saveOrder("whatsapp");
 
     const productList = cart
       .map((item) => `
@@ -280,13 +285,10 @@ ${productList}
 TOTAL: ₹${grandTotal}
 `;
 
-    window.open(
-      `https://wa.me/${PHONE}?text=${encodeURIComponent(message)}`,
-      "_blank"
-    );
+    window.open(`https://wa.me/${PHONE}?text=${encodeURIComponent(message)}`, "_blank");
 
     setTimeout(() => {
-      navigate("/order-success");
+      navigate(orderNumber ? `/order-success?order=${orderNumber}` : "/order-success");
     }, 1500);
   };
 
@@ -329,7 +331,7 @@ TOTAL: ₹${grandTotal}
           <div className="checkout-grid">
             {/* LEFT COLUMN */}
             <div>
-              {/* ── DELIVERY ADDRESS ── */}
+              {/* DELIVERY ADDRESS */}
               <h2 style={{ marginBottom: "24px", fontWeight: 500 }}>Delivery Address</h2>
 
               {customer ? (
@@ -371,7 +373,7 @@ TOTAL: ₹${grandTotal}
                 </div>
               )}
 
-              {/* ════════ UPI DETAILS ════════ */}
+              {/* UPI DETAILS */}
               {paymentMethod === "upi" && (
                 <>
                   <h2 style={{ marginTop: "40px", marginBottom: "24px", fontWeight: 500 }}>UPI Payment Details</h2>

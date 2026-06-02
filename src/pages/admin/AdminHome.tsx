@@ -4,7 +4,8 @@ import {
   Users, Store, Package, ShoppingBag, IndianRupee, Activity, TrendingUp, UserCheck,
 } from "lucide-react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { generateAdminDashboardStats } from "../../lib/mockAdminData";
+import { getAdminDashboardStats } from "../../lib/api/admin";
+import type { AdminDashboardStats } from "../../types/admin";
 
 const COLORS = ["#d4af37", "#3498db", "#2ecc71", "#9b59b6", "#e74c3c", "#f39c12", "#1abc9c", "#e67e22"];
 
@@ -20,22 +21,51 @@ const statCards = [
 ];
 
 export default function AdminHome() {
-  const [stats, setStats] = useState<ReturnType<typeof generateAdminDashboardStats> | null>(null);
+  const [stats, setStats] = useState<AdminDashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setStats(generateAdminDashboardStats());
+    (async () => {
+      const data = await getAdminDashboardStats();
+      if (data) setStats(data);
+      setLoading(false);
+    })();
   }, []);
 
-  if (!stats) return null;
+  if (loading) {
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        <h1 style={{ fontSize: "1.4rem", fontWeight: 400, marginBottom: 24 }}>Marketplace Overview</h1>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))", gap: 14, marginBottom: 28 }}>
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => <div key={i} className="skeleton" style={{ height: 110, borderRadius: "var(--radius-lg)" }} />)}
+        </div>
+        <div className="skeleton" style={{ height: 300, borderRadius: "var(--radius-xl)", marginBottom: 24 }} />
+      </motion.div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} style={{ textAlign: "center", padding: 60 }}>
+        <p style={{ color: "var(--muted)" }}>Dashboard data unavailable. Check database connection.</p>
+      </motion.div>
+    );
+  }
+
+  const Grid3X3 = ({ size }: { size?: number }) => (
+    <svg width={size || 16} height={size || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+    </svg>
+  );
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
       <h1 style={{ fontSize: "1.4rem", fontWeight: 400, marginBottom: 24 }}>Marketplace Overview</h1>
 
-      {/* Stat Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))", gap: 14, marginBottom: 28 }}>
         {statCards.map(({ label, key, icon, color, prefix, suffix }, i) => {
-          const val = stats[key as keyof typeof stats] as number;
+          const val = stats[key as keyof AdminDashboardStats] as number;
           return (
             <motion.div key={key} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
               className="glass" style={{ padding: 20, borderRadius: "var(--radius-lg)", textAlign: "center" }}
@@ -50,7 +80,6 @@ export default function AdminHome() {
         })}
       </div>
 
-      {/* Growth metrics */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 14, marginBottom: 28 }}>
         {[
           { label: "Customer Growth", value: stats.customerGrowth, color: "#3498db" },
@@ -65,7 +94,6 @@ export default function AdminHome() {
         ))}
       </div>
 
-      {/* Revenue Chart */}
       <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-xl)", marginBottom: 24 }}>
         <h3 style={{ fontWeight: 600, fontSize: ".95rem", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
           <TrendingUp size={16} style={{ color: "var(--gold)" }} /> Revenue Trend
@@ -82,7 +110,6 @@ export default function AdminHome() {
         </ResponsiveContainer>
       </div>
 
-      {/* Order Chart + Category Distribution */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>
         <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-xl)" }}>
           <h3 style={{ fontWeight: 600, fontSize: ".95rem", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
@@ -101,7 +128,7 @@ export default function AdminHome() {
 
         <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-xl)" }}>
           <h3 style={{ fontWeight: 600, fontSize: ".95rem", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-            <Grid3X3 size={16} style={{ color: "var(--gold)" }} /> Category Distribution
+            <Grid3X3 size={16} /> Category Distribution
           </h3>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
@@ -114,10 +141,12 @@ export default function AdminHome() {
         </div>
       </div>
 
-      {/* Recent Activity */}
       <div className="glass" style={{ padding: 24, borderRadius: "var(--radius-xl)" }}>
         <h3 style={{ fontWeight: 600, fontSize: ".95rem", marginBottom: 16 }}>Recent Activity</h3>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {stats.recentActivities.length === 0 && (
+            <p style={{ color: "var(--muted)", fontSize: ".85rem", textAlign: "center", padding: 20 }}>No recent activity.</p>
+          )}
           {stats.recentActivities.map((act, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: i < stats.recentActivities.length - 1 ? "1px solid var(--line)" : "none", flexWrap: "wrap", gap: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -134,11 +163,4 @@ export default function AdminHome() {
       </div>
     </motion.div>
   );
-}
-
-function Grid3X3({ size, style: _style }: { size?: number; style?: React.CSSProperties }) {
-  return <Grid3X3Icon size={size} style={_style} />;
-}
-function Grid3X3Icon({ size, style }: { size?: number; style?: React.CSSProperties }) {
-  return <svg width={size || 16} height={size || 16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={style}><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></svg>;
 }
