@@ -19,7 +19,7 @@ export default function AccountOrders({ onViewOrder }: Props) {
 
   useEffect(() => {
     // TODO: fetch from DB via getOrdersByCustomer(customer.id)
-    setOrders(generateMockOrders(5));
+    setOrders(generateMockOrders());
   }, [customer]);
 
   const filtered = orders.filter((o) => {

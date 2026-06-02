@@ -30,7 +30,7 @@ export default function AccountOrderDetail({ orderId, onBack }: Props) {
   useEffect(() => {
     if (!orderId) return;
     // TODO: fetch from DB
-    const orders = generateMockOrders(5);
+    const orders = generateMockOrders();
     const found = orders.find((o) => o.id === orderId);
     setOrder(found || null);
   }, [orderId]);

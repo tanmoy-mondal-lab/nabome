@@ -28,7 +28,8 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const FAQ = lazy(() => import("./pages/FAQ"));
 const VendorRegister = lazy(() => import("./pages/VendorRegister"));
-const VendorDashboard = lazy(() => import("./pages/VendorDashboard"));
+const VendorDashboard = lazy(() => import("./pages/vendor/VendorDashboard"));
+const ShopPage = lazy(() => import("./pages/ShopPage"));
 const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const Unauthorized = lazy(() => import("./pages/Unauthorized"));
 const SessionExpired = lazy(() => import("./pages/SessionExpired"));
@@ -80,6 +81,7 @@ function App() {
                 <Route path="/privacy-policy" element={<PolicyPage type="privacy" />} />
                 <Route path="/terms" element={<PolicyPage type="terms" />} />
                 <Route path="/faq" element={<FAQ />} />
+                <Route path="/shop/:slug" element={<ShopPage />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
                 <Route path="/session-expired" element={<SessionExpired />} />
 
