@@ -1466,6 +1466,143 @@ main {
   background: linear-gradient(90deg, transparent, var(--gold), transparent);
 }
 
+/* ── Premium UI Additions ── */
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.product-hover-actions {
+  pointer-events: none;
+}
+.product-hover-actions button,
+.product-hover-actions a {
+  pointer-events: auto;
+}
+
+@media (hover: hover) {
+  .product-card-hover:hover .product-hover-actions {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+  }
+}
+
+.premium-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.2;
+  margin: 0 auto;
+  max-width: 600px;
+}
+
+.glow-gold {
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.15), 0 0 60px rgba(212, 175, 55, 0.05);
+}
+
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+.card-shine::after {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  content: "";
+  background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.03) 50%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.5s;
+  pointer-events: none;
+}
+.card-shine:hover::after {
+  opacity: 1;
+}
+
+.mega-menu-column {
+  display: grid;
+  gap: 8px;
+}
+.mega-menu-column h4 {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+.mega-menu-column a {
+  color: var(--muted);
+  font-size: .85rem;
+  text-decoration: none;
+  padding: 4px 0;
+  transition: color var(--transition-fast);
+}
+.mega-menu-column a:hover {
+  color: var(--text);
+}
+
+/* Animated counter */
+.animated-count {
+  display: inline-block;
+}
+
+/* Scroll indicator */
+.scroll-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: .7rem;
+  font-weight: 600;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+
+/* Mobile bottom nav enhancement */
+.mobile-bottom-nav {
+  padding-top: 4px;
+  padding-bottom: calc(4px + env(safe-area-inset-bottom));
+}
+.mobile-bottom-nav a {
+  position: relative;
+}
+.mobile-bottom-nav .nav-icon-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--gold);
+  color: #050505;
+  font-size: .6rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+@media (hover: none) {
+  .product-hover-actions {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+  }
+}
+
+@keyframes gold-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.gold-shimmer-text {
+  background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gold-shimmer 3s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

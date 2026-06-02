@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { MessageCircle, Send, ShoppingBag, Heart, User, HelpCircle, Truck, RefreshCw, RotateCcw, XCircle, FileText, Shield, Sparkles, MapPin, Package, Camera, ExternalLink } from "lucide-react";
+import { MessageCircle, Send, ShoppingBag, Heart, User, HelpCircle, Truck, RefreshCw, RotateCcw, XCircle, FileText, Shield, Sparkles, MapPin, Package, Camera, ExternalLink, CreditCard, BadgeCheck } from "lucide-react";
 import BrandWordmark from "./BrandWordmark";
 import { useToast } from "./Toast";
 import { subscribeNewsletter } from "../lib/db";
@@ -63,30 +64,60 @@ export default function Footer() {
   };
 
   return (
-    <footer className="footer">
+    <motion.footer
+      className="footer"
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+    >
+      {/* Premium border accent */}
+      <div style={{ height: 2, background: "linear-gradient(90deg, transparent, var(--gold), var(--gold), transparent)", opacity: 0.5 }} />
+
       <section className="container footer-newsletter">
-        <p className="eyebrow">Newsletter</p>
-        <h2 className="heading">First access to drops.</h2>
-        <div className="newsletter-form">
+        <motion.p className="eyebrow" initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>Stay in the Loop</motion.p>
+        <motion.h2 className="heading" initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.05 }}>
+          First access to drops.
+        </motion.h2>
+        <motion.div className="newsletter-form" initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}>
           <input className="field" type="email" placeholder="Email address" value={email} onChange={(event) => setEmail(event.target.value)} />
-          <button className="premium-button" onClick={subscribe} style={{ gap: 8 }}>
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="premium-button" onClick={subscribe} style={{ gap: 8 }}>
             <Send size={16} /> Subscribe
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
       </section>
 
       <div className="container footer-grid">
-        <div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+        >
           <h2>
             <BrandWordmark size="footer" />
           </h2>
-          <p className="lede">Premium Bengali streetwear crafted for modern everyday expression.</p>
-          <div className="social-row">
-            <a href="https://instagram.com/nabome.online" target="_blank" rel="noreferrer" aria-label="Instagram"><Camera size={18} /></a>
-            <a href="https://www.facebook.com/share/1DbpYKWoZ1/" target="_blank" rel="noreferrer" aria-label="Facebook"><ExternalLink size={18} /></a>
-            <a href="https://wa.me/919163854706" target="_blank" rel="noreferrer" aria-label="WhatsApp"><MessageCircle size={18} /></a>
+          <p className="lede" style={{ marginTop: 12, lineHeight: 1.7 }}>Premium Bengali streetwear crafted for modern everyday expression. Heavyweight fabrics, controlled silhouettes, gold-on-black restraint.</p>
+
+          {/* Trust badges */}
+          <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--muted)", fontSize: ".75rem" }}>
+              <BadgeCheck size={14} style={{ color: "var(--gold)" }} /> Verified
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--muted)", fontSize: ".75rem" }}>
+              <CreditCard size={14} style={{ color: "var(--gold)" }} /> Secure
+            </span>
+            <span style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--muted)", fontSize: ".75rem" }}>
+              <Truck size={14} style={{ color: "var(--gold)" }} /> Free shipping
+            </span>
           </div>
-        </div>
+
+          <div className="social-row">
+            <motion.a whileHover={{ y: -2, color: "var(--gold)" }} href="https://instagram.com/nabome.online" target="_blank" rel="noreferrer" aria-label="Instagram"><Camera size={18} /></motion.a>
+            <motion.a whileHover={{ y: -2, color: "var(--gold)" }} href="https://www.facebook.com/share/1DbpYKWoZ1/" target="_blank" rel="noreferrer" aria-label="Facebook"><ExternalLink size={18} /></motion.a>
+            <motion.a whileHover={{ y: -2, color: "var(--gold)" }} href="https://wa.me/919163854706" target="_blank" rel="noreferrer" aria-label="WhatsApp"><MessageCircle size={18} /></motion.a>
+          </div>
+        </motion.div>
         <FooterColumn title="Shop" links={[["All Products", "/category"], ["New Arrivals", "/category?badge=new"], ["Wishlist", "/wishlist"], ["Cart", "/cart"]]} />
         <FooterColumn title="Company" links={[["About", "/about"], ["Contact", "/contact"], ["Track Order", "/order-tracking"], ["Profile", "/profile"]]} />
         <FooterColumn title="Help" links={[["FAQ", "/faq"], ["Shipping Policy", "/shipping-policy"], ["Return Policy", "/return-policy"], ["Refund Policy", "/refund-policy"], ["Cancellation Policy", "/cancellation-policy"]]} />
@@ -98,7 +129,7 @@ export default function Footer() {
         <span className="bengali-footer-date">{bengaliDate}</span>
         <span>Premium Bengali streetwear for the modern everyday.</span>
       </div>
-    </footer>
+    </motion.footer>
   );
 }
 

@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useCustomer } from "../context/CustomerContext";
@@ -20,7 +21,14 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const pathKey = useMemo(() => location.pathname + location.search, [location.pathname, location.search]);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleLogout = useCallback(() => {
     authLogout();
@@ -96,14 +104,47 @@ export default function Navbar() {
 
   return (
     <div key={pathKey}>
-      <nav style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 9997,
-        background: "rgba(5,5,5,0.92)",
-        borderBottom: "1px solid var(--line)",
-        backdropFilter: "blur(24px)",
-      }}>
+      {/* Announcement bar */}
+      <motion.div
+        initial={{ height: 40 }}
+        animate={{ height: scrolled ? 0 : 40 }}
+        style={{
+          overflow: "hidden",
+          background: "linear-gradient(90deg, #050505, rgba(212,175,55,0.08), #050505)",
+          borderBottom: "1px solid rgba(212,175,55,0.2)",
+          position: "relative",
+          zIndex: 9998,
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 1 }}
+          animate={{ opacity: scrolled ? 0 : 1 }}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            height: 40, fontSize: ".72rem", fontWeight: 700, letterSpacing: "0.15em",
+            textTransform: "uppercase", color: "var(--gold)",
+          }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gold)", display: "inline-block" }} />
+          Free Shipping Above ₹999 · New Arrivals Dropping Weekly
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gold)", display: "inline-block" }} />
+        </motion.div>
+      </motion.div>
+
+      <motion.nav
+        initial={{ y: -80 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 9997,
+          background: scrolled ? "rgba(5,5,5,0.95)" : "rgba(5,5,5,0.85)",
+          borderBottom: scrolled ? "1px solid rgba(212,175,55,0.15)" : "1px solid var(--line)",
+          backdropFilter: "blur(24px)",
+          transition: "background 0.3s, border-color 0.3s",
+          boxShadow: scrolled ? "0 4px 30px rgba(0,0,0,0.3)" : "none",
+        }}>
         <div className="container" style={{
           display: "flex",
           alignItems: "center",
@@ -237,7 +278,7 @@ export default function Navbar() {
 
         {/* Advanced Search Modal */}
         <AdvancedSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
-      </nav>
+      </motion.nav>
 
       {/* Mobile slide-out menu */}
       {mobileOpen && (
