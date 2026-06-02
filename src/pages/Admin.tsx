@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Package, ShoppingBag, IndianRupee, TrendingUp, Users, Clock, CheckCircle, XCircle, Search, Plus, Download, ChevronLeft, Edit2, Trash2, Eye, EyeOff, X, ExternalLink } from "lucide-react";
 import Navbar from "../components/Navbar";
 import SEO from "../components/SEO";
 import { supabase } from "../lib/supabase";
@@ -495,17 +496,21 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           {tab === "dashboard" && (
             <div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20, marginBottom: 40 }}>
-                {[
-                  ["Total Products", String(products.length), "var(--gold)"],
-                  ["Total Orders", String(orders.length), "#3498db"],
-                  ["Revenue", `₹${revenue.toLocaleString("en-IN")}`, "#2ecc71"],
-                  ["AOV", `₹${aov.toLocaleString("en-IN")}`, "#9b59b6"],
-                  ["Customers", String(customers.length), "#1abc9c"],
-                  ["Pending Orders", String(pendingCount), "#f39c12"],
-                  ["Delivered", String(deliveredCount), "#27ae60"],
-                  ["Cancelled", String(cancelledCount), "#e74c3c"],
-                ].map(([label, value, color]) => (
-                  <div key={label} style={{ border: "1px solid var(--line)", padding: 28, background: "var(--surface)", textAlign: "center" }}>
+                {([
+                  ["Total Products", String(products.length), "var(--gold)", <ShoppingBag size={20} key="sp" />] as const,
+                  ["Total Orders", String(orders.length), "#3498db", <Package size={20} key="pkg" />] as const,
+                  ["Revenue", `₹${revenue.toLocaleString("en-IN")}`, "#2ecc71", <IndianRupee size={20} key="inr" />] as const,
+                  ["AOV", `₹${aov.toLocaleString("en-IN")}`, "#9b59b6", <TrendingUp size={20} key="tr" />] as const,
+                  ["Customers", String(customers.length), "#1abc9c", <Users size={20} key="us" />] as const,
+                  ["Pending Orders", String(pendingCount), "#f39c12", <Clock size={20} key="cl" />] as const,
+                  ["Delivered", String(deliveredCount), "#27ae60", <CheckCircle size={20} key="ch" />] as const,
+                  ["Cancelled", String(cancelledCount), "#e74c3c", <XCircle size={20} key="xc" />] as const,
+                ]).map(([label, value, color, icon]) => (
+                  <div key={label} className="premium-card" style={{ border: "1px solid var(--line)", padding: 28, background: "var(--surface)", textAlign: "center", cursor: "default" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = color; e.currentTarget.style.transform = "translateY(-4px)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.transform = "translateY(0)"; }}
+                  >
+                    <div style={{ color, marginBottom: 8, display: "flex", justifyContent: "center" }}>{icon}</div>
                     <p style={{ color: "var(--muted)", fontSize: ".85rem", marginBottom: 12 }}>{label}</p>
                     <p style={{ fontSize: "clamp(1.8rem,4vw,2.8rem)", fontWeight: 300, color }}>{value}</p>
                   </div>
@@ -548,20 +553,24 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
             <>
               {!mode && (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 30 }}>
-                  <button onClick={startAdd} style={{ padding: "14px 28px", border: "none", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 700, fontSize: "1rem" }}>
-                    + Add New Product
+                  <button onClick={startAdd} style={{ padding: "14px 28px", border: "none", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 700, fontSize: "1rem", display: "flex", alignItems: "center", gap: 8 }}>
+                    <Plus size={18} /> Add New Product
                   </button>
-                  <input
-                    type="search"
-                    placeholder="Search products by name, category, tags..."
-                    value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
-                    style={{
-                      ...inputS,
-                      maxWidth: 360,
-                      background: "rgba(255,255,255,0.04)",
-                    }}
-                  />
+                  <div style={{ position: "relative", maxWidth: 360 }}>
+                    <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--muted)", pointerEvents: "none" }} />
+                    <input
+                      type="search"
+                      placeholder="Search products by name, category, tags..."
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      style={{
+                        ...inputS,
+                        maxWidth: 360,
+                        paddingLeft: 40,
+                        background: "rgba(255,255,255,0.04)",
+                      }}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -650,8 +659,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                       </p>
                     </div>
                     <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                      <button onClick={() => startEdit(p)} style={{ padding: "8px 18px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontWeight: 600, fontSize: ".85rem" }}>Edit</button>
-                      <button onClick={() => handleDelete(String(p.id))} style={{ padding: "8px 18px", border: "1px solid #e74c3c", background: "transparent", color: "#e74c3c", cursor: "pointer", fontWeight: 600, fontSize: ".85rem" }}>Delete</button>
+                      <button onClick={() => startEdit(p)} style={{ padding: "8px 18px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontWeight: 600, fontSize: ".85rem", display: "flex", alignItems: "center", gap: 6 }}><Edit2 size={14} /> Edit</button>
+                      <button onClick={() => handleDelete(String(p.id))} style={{ padding: "8px 18px", border: "1px solid #e74c3c", background: "transparent", color: "#e74c3c", cursor: "pointer", fontWeight: 600, fontSize: ".85rem", display: "flex", alignItems: "center", gap: 6 }}><Trash2 size={14} /> Delete</button>
                     </div>
                   </div>
                 ))}
@@ -669,13 +678,16 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                     <option value="all">All Statuses</option>
                     {statusOptions.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
-                  <input
-                    type="search"
-                    placeholder="Search by bill no, name, email..."
-                    value={orderSearch}
-                    onChange={(e) => setOrderSearch(e.target.value)}
-                    style={{ ...inputS, maxWidth: 320 }}
-                  />
+                   <div style={{ position: "relative", maxWidth: 320 }}>
+                      <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--muted)", pointerEvents: "none" }} />
+                      <input
+                        type="search"
+                        placeholder="Search by bill no, name, email..."
+                        value={orderSearch}
+                        onChange={(e) => setOrderSearch(e.target.value)}
+                        style={{ ...inputS, maxWidth: 320, paddingLeft: 38 }}
+                      />
+                    </div>
                 </div>
               </div>
               {orders.length === 0 && <p style={{ color: "var(--muted)" }}>No orders yet.</p>}
@@ -706,8 +718,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                       </p>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <button onClick={() => setSelectedOrder(o)} style={{ padding: "6px 14px", border: "1px solid var(--line)", background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: ".8rem" }}>
-                        Details
+                      <button onClick={() => setSelectedOrder(o)} style={{ padding: "6px 14px", border: "1px solid var(--line)", background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: ".8rem", display: "flex", alignItems: "center", gap: 6 }}>
+                        <ExternalLink size={13} /> Details
                       </button>
                       <select
                         value={o.order_status as string}
@@ -746,11 +758,11 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
             <div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16, marginBottom: 24 }}>
                 <h2 style={{ fontWeight: 400 }}>{subscribers.length} Subscriber{subscribers.length !== 1 ? "s" : ""}</h2>
-                {subscribers.length > 0 && (
-                  <button onClick={exportSubscribersCSV} style={{ padding: "12px 24px", border: "none", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 600, fontSize: ".9rem" }}>
-                    Export CSV
-                  </button>
-                )}
+                  {subscribers.length > 0 && (
+                    <button onClick={exportSubscribersCSV} style={{ padding: "12px 24px", border: "none", background: "var(--gold)", color: "#050505", cursor: "pointer", fontWeight: 600, fontSize: ".9rem", display: "flex", alignItems: "center", gap: 8 }}>
+                      <Download size={16} /> Export CSV
+                    </button>
+                  )}
               </div>
               {subscribersLoading && <p style={{ color: "var(--muted)" }}>Loading subscribers...</p>}
               {!subscribersLoading && subscribers.length === 0 && (
@@ -774,20 +786,23 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
             <div>
               <div style={{ marginBottom: 24, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
                 <h2 style={{ marginRight: "auto" }}>Customers ({customers.length})</h2>
-                <input
-                  className="field"
-                  type="search"
-                  placeholder="Search by name, phone, email"
-                  value={customerSearch}
-                  onChange={(e) => setCustomerSearch(e.target.value)}
-                  style={{ maxWidth: 320 }}
-                />
+                <div style={{ position: "relative", maxWidth: 320 }}>
+                  <Search size={16} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--muted)", pointerEvents: "none" }} />
+                  <input
+                    className="field"
+                    type="search"
+                    placeholder="Search by name, phone, email"
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    style={{ maxWidth: 320, paddingLeft: 40 }}
+                  />
+                </div>
               </div>
 
               {selectedCustomer ? (
                 <div>
-                  <button onClick={() => { setSelectedCustomer(null); setCustomerOrders([]); }} style={{ padding: "10px 20px", border: "1px solid var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", marginBottom: 24 }}>
-                    ← Back to Customers
+                  <button onClick={() => { setSelectedCustomer(null); setCustomerOrders([]); }} style={{ padding: "10px 20px", border: "1px solid var(--line)", background: "transparent", color: "var(--muted)", cursor: "pointer", marginBottom: 24, display: "flex", alignItems: "center", gap: 8 }}>
+                    <ChevronLeft size={16} /> Back to Customers
                   </button>
                   <div style={{ border: "1px solid var(--line)", padding: 24, background: "var(--surface)", marginBottom: 24 }}>
                     <h3 style={{ marginBottom: 16 }}>{(selectedCustomer.name as string) || "Unknown"}</h3>
@@ -931,12 +946,12 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                     <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
                       <button
                         onClick={() => updateSiteQuote(q.id, { is_active: !q.is_active }).then(() => loadQuotes())}
-                        style={{ padding: "6px 12px", border: "1px solid var(--line)", background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: ".8rem" }}
+                        style={{ padding: "6px 12px", border: "1px solid var(--line)", background: "transparent", color: "var(--text)", cursor: "pointer", fontSize: ".8rem", display: "flex", alignItems: "center", gap: 6 }}
                       >
-                        {q.is_active ? "Hide" : "Show"}
+                        {q.is_active ? <EyeOff size={13} /> : <Eye size={13} />} {q.is_active ? "Hide" : "Show"}
                       </button>
-                      <button onClick={() => startEditQuote(q)} style={{ padding: "6px 12px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontSize: ".8rem" }}>Edit</button>
-                      <button onClick={() => handleDeleteQuote(q.id)} style={{ padding: "6px 12px", border: "1px solid #e74c3c", background: "transparent", color: "#e74c3c", cursor: "pointer", fontSize: ".8rem" }}>Delete</button>
+                      <button onClick={() => startEditQuote(q)} style={{ padding: "6px 12px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontSize: ".8rem", display: "flex", alignItems: "center", gap: 6 }}><Edit2 size={13} /> Edit</button>
+                      <button onClick={() => handleDeleteQuote(q.id)} style={{ padding: "6px 12px", border: "1px solid #e74c3c", background: "transparent", color: "#e74c3c", cursor: "pointer", fontSize: ".8rem", display: "flex", alignItems: "center", gap: 6 }}><Trash2 size={13} /> Delete</button>
                     </div>
                   </div>
                 ))}
@@ -947,8 +962,8 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
           {/* ─── ORDERS EXPORT BUTTON ─── */}
           {tab === "orders" && orders.length > 0 && (
             <div style={{ marginTop: 30, textAlign: "right" }}>
-              <button onClick={exportOrdersCSV} style={{ padding: "12px 24px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontWeight: 600, fontSize: ".9rem" }}>
-                Export Orders CSV
+              <button onClick={exportOrdersCSV} style={{ padding: "12px 24px", border: "1px solid var(--gold)", background: "transparent", color: "var(--gold)", cursor: "pointer", fontWeight: 600, fontSize: ".9rem", display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+                <Download size={16} /> Export Orders CSV
               </button>
             </div>
           )}
@@ -964,7 +979,7 @@ VITE_SUPABASE_ANON_KEY=your-anon-key`}
                 <p style={{ color: "var(--muted)", fontSize: ".85rem", textTransform: "uppercase", letterSpacing: 2 }}>Order</p>
                 <h2 style={{ color: "var(--gold)", fontSize: "1.6rem", fontWeight: 400, marginTop: 6 }}>#{selectedOrder.bill_no as string}</h2>
               </div>
-              <button onClick={() => setSelectedOrder(null)} aria-label="Close" style={{ background: "transparent", border: "1px solid var(--line)", color: "var(--text)", width: 36, height: 36, cursor: "pointer", fontSize: "1.1rem" }}>×</button>
+              <button onClick={() => setSelectedOrder(null)} aria-label="Close" style={{ background: "transparent", border: "1px solid var(--line)", color: "var(--text)", width: 36, height: 36, cursor: "pointer", display: "grid", placeItems: "center", borderRadius: "50%" }}><X size={18} /></button>
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}>

@@ -1,8 +1,27 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { MessageCircle, Send, ShoppingBag, Heart, User, HelpCircle, Truck, RefreshCw, RotateCcw, XCircle, FileText, Shield, Sparkles, MapPin, Package, Camera, ExternalLink } from "lucide-react";
 import BrandWordmark from "./BrandWordmark";
 import { useToast } from "./Toast";
 import { subscribeNewsletter } from "../lib/db";
+
+const iconMap: Record<string, React.ReactNode> = {
+  "All Products": <ShoppingBag size={14} />,
+  "New Arrivals": <Sparkles size={14} />,
+  Wishlist: <Heart size={14} />,
+  Cart: <ShoppingBag size={14} />,
+  About: <User size={14} />,
+  Contact: <MapPin size={14} />,
+  "Track Order": <Package size={14} />,
+  Profile: <User size={14} />,
+  FAQ: <HelpCircle size={14} />,
+  "Shipping Policy": <Truck size={14} />,
+  "Return Policy": <RefreshCw size={14} />,
+  "Refund Policy": <RotateCcw size={14} />,
+  "Cancellation Policy": <XCircle size={14} />,
+  "Privacy Policy": <Shield size={14} />,
+  "Terms & Conditions": <FileText size={14} />,
+};
 
 function getBengaliDate(): string {
   const now = new Date();
@@ -50,8 +69,8 @@ export default function Footer() {
         <h2 className="heading">First access to drops.</h2>
         <div className="newsletter-form">
           <input className="field" type="email" placeholder="Email address" value={email} onChange={(event) => setEmail(event.target.value)} />
-          <button className="premium-button" onClick={subscribe}>
-            Subscribe
+          <button className="premium-button" onClick={subscribe} style={{ gap: 8 }}>
+            <Send size={16} /> Subscribe
           </button>
         </div>
       </section>
@@ -63,9 +82,9 @@ export default function Footer() {
           </h2>
           <p className="lede">Premium Bengali streetwear crafted for modern everyday expression.</p>
           <div className="social-row">
-            <a href="https://instagram.com/nabome.online" target="_blank" rel="noreferrer">Instagram</a>
-            <a href="https://www.facebook.com/share/1DbpYKWoZ1/" target="_blank" rel="noreferrer">Facebook</a>
-            <a href="https://wa.me/919163854706" target="_blank" rel="noreferrer">WhatsApp</a>
+            <a href="https://instagram.com/nabome.online" target="_blank" rel="noreferrer" aria-label="Instagram"><Camera size={18} /></a>
+            <a href="https://www.facebook.com/share/1DbpYKWoZ1/" target="_blank" rel="noreferrer" aria-label="Facebook"><ExternalLink size={18} /></a>
+            <a href="https://wa.me/919163854706" target="_blank" rel="noreferrer" aria-label="WhatsApp"><MessageCircle size={18} /></a>
           </div>
         </div>
         <FooterColumn title="Shop" links={[["All Products", "/category"], ["New Arrivals", "/category?badge=new"], ["Wishlist", "/wishlist"], ["Cart", "/cart"]]} />
@@ -88,7 +107,8 @@ function FooterColumn({ title, links }: { title: string; links: [string, string]
     <div className="footer-column">
       <h3>{title}</h3>
       {links.map(([label, to]) => (
-        <Link key={label} to={to}>
+        <Link key={label} to={to} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {iconMap[label] || null}
           {label}
         </Link>
       ))}

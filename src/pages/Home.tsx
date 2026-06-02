@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import BrandWordmark from "../components/BrandWordmark";
 import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
@@ -7,6 +8,7 @@ import SEO from "../components/SEO";
 import BengaliQuoteRotator from "../components/BengaliQuoteRotator";
 import { useToast } from "../components/Toast";
 import { useCart } from "../context/CartContext";
+import { ShoppingBag, Sparkles, BarChart3, Eye, MessageCircle, MapPin } from "lucide-react";
 import { products, type Product } from "../data/products";
 import { useState } from "react";
 
@@ -17,11 +19,34 @@ const categoryEmoji: Record<string, string> = {
   Accessories: "👜",
 };
 
-const perkIcon: Record<string, string> = {
-  "Premium GSM": "🧵",
-  "WhatsApp Checkout": "📱",
-  "Bengal Story": "🌾",
-  "Open Roadmap": "📋",
+const perkIcon: Record<string, React.ReactNode> = {
+  "Premium GSM": <Sparkles size={24} />,
+  "WhatsApp Checkout": <MessageCircle size={24} />,
+  "Bengal Story": <MapPin size={24} />,
+  "Open Roadmap": <BarChart3 size={24} />,
+};
+
+const easeOut = [0.4, 0, 0.2, 1] as const;
+
+const fadeUp = {
+  initial: { opacity: 0, y: 30 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-60px" },
+  transition: { duration: 0.6, ease: easeOut },
+};
+
+const stagger = {
+  initial: { opacity: 0 },
+  whileInView: { opacity: 1 },
+  viewport: { once: true, margin: "-40px" },
+  transition: { staggerChildren: 0.08 },
+};
+
+const staggerItem = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true },
+  transition: { duration: 0.5, ease: easeOut },
 };
 
 export default function Home() {
@@ -50,7 +75,8 @@ export default function Home() {
     border: "1px solid var(--line)",
     background: "var(--surface)",
     cursor: "pointer",
-    transition: "border-color 0.3s, background 0.3s",
+    borderRadius: "var(--radius-lg)",
+    transition: "border-color 0.3s, background 0.3s, transform 0.3s",
   };
 
   return (
@@ -73,26 +99,46 @@ export default function Home() {
           <img src="/images/hero/hero-banner.webp" alt="নবME Bengali streetwear editorial" />
           <div className="hero-overlay" />
           <div className="container hero-content">
-            <p className="eyebrow">Spring Summer 2026</p>
-            <h1 className="display brand-hero-heading">
+            <motion.p
+              className="eyebrow"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.6 }}
+            >Spring Summer 2026</motion.p>
+            <motion.h1
+              className="display brand-hero-heading"
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.7, ease: easeOut }}
+            >
               <BrandWordmark size="hero" />
-            </h1>
-            <p className="lede" style={{ maxWidth: 560 }}>
+            </motion.h1>
+            <motion.p
+              className="lede" style={{ maxWidth: 560 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35, duration: 0.6 }}
+            >
               Bengali streetwear shaped by culture, quiet confidence and premium everyday craft.
-            </p>
-            <div className="hero-actions">
-              <Link className="premium-button" to="/category">
-                Shop Collection
+            </motion.p>
+            <motion.div
+              className="hero-actions"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+            >
+              <Link className="premium-button" to="/category" style={{ gap: 8 }}>
+                <ShoppingBag size={16} /> Shop Collection
               </Link>
-              <Link className="ghost-button" to="/about">
-                Brand Journey
+              <Link className="ghost-button" to="/about" style={{ gap: 8 }}>
+                <Eye size={16} /> Brand Journey
               </Link>
-            </div>
+            </motion.div>
           </div>
         </section>
 
         {/* ── NEW ARRIVALS ── */}
-        <section className="section" style={sectionStyle}>
+        <motion.section className="section" style={sectionStyle} {...fadeUp}>
           <div className="container split-intro">
             <div>
               <p className="eyebrow">New Arrivals</p>
@@ -102,104 +148,126 @@ export default function Home() {
               Premium cotton, controlled silhouettes and gold-on-black restraint give নবME the feel of a luxury label without losing its Bengali pulse.
             </p>
           </div>
-          <div className="container product-grid">
-            {newArrivals.map((product) => (
-              <ProductCard key={product.id} product={product} onQuickView={setQuickView} onQuickAdd={quickAdd} />
+          <motion.div className="container product-grid" {...stagger}>
+            {newArrivals.map((product, i) => (
+              <motion.div key={product.id} {...staggerItem} transition={{ ...staggerItem.transition, delay: i * 0.05 }}>
+                <ProductCard product={product} onQuickView={setQuickView} onQuickAdd={quickAdd} />
+              </motion.div>
             ))}
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
         {/* ── BEST SELLERS ── */}
         {bestSellers.length > 0 && (
-          <section className="section" style={{ ...sectionStyle, paddingTop: 0 }}>
+          <motion.section className="section" style={{ ...sectionStyle, paddingTop: 0 }} {...fadeUp}>
             <div className="container split-intro">
               <div>
                 <p className="eyebrow">Best Sellers</p>
                 <h2 className="heading">Crowd favourites that define the নবME wardrobe.</h2>
               </div>
-              <Link className="ghost-button" to="/category">View All →</Link>
+              <Link className="ghost-button" to="/category" style={{ gap: 8 }}>
+                View All <Eye size={14} />
+              </Link>
             </div>
-            <div className="container product-grid">
-              {bestSellers.map((product) => (
-                <ProductCard key={product.id} product={product} onQuickView={setQuickView} onQuickAdd={quickAdd} />
+            <motion.div className="container product-grid" {...stagger}>
+              {bestSellers.map((product, i) => (
+                <motion.div key={product.id} {...staggerItem} transition={{ ...staggerItem.transition, delay: i * 0.05 }}>
+                  <ProductCard product={product} onQuickView={setQuickView} onQuickAdd={quickAdd} />
+                </motion.div>
               ))}
-            </div>
-          </section>
+            </motion.div>
+          </motion.section>
         )}
 
         {/* ── SHOP BY CATEGORY ── */}
-        <section className="section" style={{ ...sectionStyle, paddingTop: 0 }}>
+        <motion.section className="section" style={{ ...sectionStyle, paddingTop: 0 }} {...fadeUp}>
           <div className="container split-intro">
             <div>
               <p className="eyebrow">Categories</p>
               <h2 className="heading">Shop by collection.</h2>
             </div>
           </div>
-          <div className="container" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
-            {categories.map((cat) => (
-              <Link key={cat} to={`/category?category=${cat}`} style={categoryCard}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--gold)"; e.currentTarget.style.background = "var(--gold-soft)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.background = "var(--surface)"; }}
-              >
-                <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>{categoryEmoji[cat] || "✦"}</div>
-                <h3 style={{ fontWeight: 600 }}>{cat}</h3>
-              </Link>
+          <motion.div className="container" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }} {...stagger}>
+            {categories.map((cat, i) => (
+              <motion.div key={cat} {...staggerItem} transition={{ ...staggerItem.transition, delay: i * 0.06 }}>
+                <Link to={`/category?category=${cat}`} style={categoryCard}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--gold)"; e.currentTarget.style.background = "var(--gold-soft)"; e.currentTarget.style.transform = "translateY(-4px)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--line)"; e.currentTarget.style.background = "var(--surface)"; e.currentTarget.style.transform = "translateY(0)"; }}
+                >
+                  <div style={{ fontSize: "2.5rem", marginBottom: 12 }}>{categoryEmoji[cat] || "✦"}</div>
+                  <h3 style={{ fontWeight: 600 }}>{cat}</h3>
+                </Link>
+              </motion.div>
             ))}
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
         {/* ── EDITORIAL ── */}
-        <section className="section editorial-band" style={sectionStyle}>
+        <motion.section className="section editorial-band" style={sectionStyle} {...fadeUp}>
           <div className="container editorial-grid">
-            <div className="glass editorial-copy">
+            <motion.div className="glass editorial-copy"
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, ease: easeOut }}
+            >
               <p className="eyebrow">Bengali Culture</p>
               <h2 className="heading">A wardrobe built from memory and movement.</h2>
               <p className="lede">
                 From hand-pulled typography to relaxed silhouettes, নবME translates Bengal's creative energy into refined streetwear that travels everywhere.
               </p>
-            </div>
-            <img src="/images/community/community.jpeg" alt="নবME community showcase" loading="lazy" />
+            </motion.div>
+            <motion.img src="/images/community/community.jpeg" alt="নবME community showcase" loading="lazy"
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, ease: easeOut }}
+            />
           </div>
-        </section>
+        </motion.section>
 
         {/* ── CULTURAL QUOTE ROTATOR ── */}
-        <section className="section" style={{ padding: "60px 0" }}>
+        <motion.section className="section" style={{ padding: "60px 0" }} {...fadeUp}>
           <div className="container" style={{ textAlign: "center", maxWidth: 900 }}>
             <p className="eyebrow">বাংলা সংস্কৃতি</p>
             <div className="cultural-ornament">◈</div>
             <BengaliQuoteRotator />
           </div>
-        </section>
+        </motion.section>
 
         {/* ── VALUE PROPOSITION ── */}
-        <section className="section" style={sectionStyle}>
-          <div className="container card-grid">
+        <motion.section className="section" style={sectionStyle} {...fadeUp}>
+          <motion.div className="container card-grid" {...stagger}>
             {[
               ["Premium GSM", "Heavyweight fabrics selected for structure, comfort and long wear."],
               ["WhatsApp Checkout", "Fast assisted ordering with product, size and color details pre-filled."],
               ["Bengal Story", "Culture-led graphics, restrained branding and community-first drops."],
               ["Open Roadmap", "Ready for inventory, coupons, admin dashboards and payment gateways."],
-            ].map(([title, text]) => (
-              <article className="glass" key={title} style={{ padding: 28 }}>
-                <div style={{ fontSize: "1.8rem", marginBottom: 12 }}>{perkIcon[title] || "✦"}</div>
+            ].map(([title, text], i) => (
+              <motion.article className="glass premium-card-hover" key={title}
+                {...staggerItem}
+                transition={{ ...staggerItem.transition, delay: i * 0.08 }}
+                style={{ padding: 28, borderRadius: "var(--radius-lg)" }}
+              >
+                <div style={{ color: "var(--gold)", marginBottom: 12 }}>{perkIcon[title] || "✦"}</div>
                 <h3>{title}</h3>
                 <p className="lede" style={{ marginTop: 12, fontSize: ".98rem" }}>
                   {text}
                 </p>
-              </article>
+              </motion.article>
             ))}
-          </div>
-        </section>
+          </motion.div>
+        </motion.section>
 
         {/* ── COMMUNITY / INSTAGRAM ── */}
-        <section className="section instagram-strip" style={sectionStyle}>
+        <motion.section className="section instagram-strip" style={sectionStyle} {...fadeUp}>
           <div className="container split-intro">
             <div>
               <p className="eyebrow">Community</p>
               <h2 className="heading">Styled by the নবME circle.</h2>
             </div>
-            <a className="ghost-button" href="https://instagram.com/nabome.online" target="_blank" rel="noreferrer">
-              Instagram
+            <a className="ghost-button" href="https://instagram.com/nabome.online" target="_blank" rel="noreferrer" style={{ gap: 8 }}>
+              <MessageCircle size={16} /> Instagram
             </a>
           </div>
           <div className="container instagram-grid" aria-label="Instagram preview">
@@ -207,7 +275,7 @@ export default function Home() {
               <img key={product.id} src={product.image} alt={`${product.name} social preview`} loading="lazy" />
             ))}
           </div>
-        </section>
+        </motion.section>
       </main>
       <QuickViewModal product={quickView} onClose={() => setQuickView(null)} onAdd={quickAdd} />
     </>

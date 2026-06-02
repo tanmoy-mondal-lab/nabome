@@ -8,16 +8,28 @@
   --line: rgba(255, 255, 255, 0.13);
   --line-strong: rgba(212, 175, 55, 0.42);
   --gold: #d4af37;
+  --gold-light: #f1d982;
   --gold-soft: rgba(212, 175, 55, 0.14);
   --text: #f7f4eb;
   --muted: #aaa59a;
   --black: #050505;
-  --radius: 8px;
-  --shadow: 0 26px 90px rgba(0, 0, 0, 0.38);
+  --white: #ffffff;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+  --shadow: 0 12px 48px rgba(0,0,0,0.35);
+  --shadow-lg: 0 26px 90px rgba(0,0,0,0.45);
+  --shadow-gold: 0 8px 32px rgba(212,175,55,0.2);
+  --transition: 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-fast: 160ms cubic-bezier(0.22, 1, 0.36, 1);
   --terracotta: #c76b4a;
   --terracotta-soft: rgba(199, 107, 74, 0.15);
   --sindoor: #d43f3f;
   --bengali-green: #1a6b3c;
+  --success: #2ecc71;
+  --warning: #f39c12;
+  --error: #e74c3c;
   font-family: "Manrope", system-ui, sans-serif;
   color: var(--text);
   background: var(--bg);
@@ -199,28 +211,53 @@ main {
 
 .glass {
   border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035));
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
   box-shadow: var(--shadow);
-  backdrop-filter: blur(20px);
+  backdrop-filter: blur(24px);
+}
+
+.premium-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  transition: all var(--transition);
+}
+.premium-card:hover {
+  border-color: var(--gold);
+  box-shadow: var(--shadow-gold);
+  transform: translateY(-2px);
 }
 
 .premium-button,
 .ghost-button,
 .text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 48px;
-  border-radius: 0;
+  border-radius: 8px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, color 180ms ease;
+  transition: all var(--transition);
+  cursor: pointer;
+  font-size: 0.82rem;
 }
 
 .premium-button {
   border: 1px solid var(--gold);
-  background: linear-gradient(135deg, var(--gold), #f1d982);
+  background: linear-gradient(135deg, var(--gold), var(--gold-light));
   color: #090909;
-  box-shadow: 0 14px 45px rgba(212, 175, 55, 0.24);
+  box-shadow: 0 8px 28px rgba(212, 175, 55, 0.24);
+}
+.premium-button:hover {
+  box-shadow: 0 12px 40px rgba(212, 175, 55, 0.35);
+  transform: translateY(-2px);
+}
+.premium-button:active {
+  transform: translateY(0);
 }
 
 .ghost-button {
@@ -228,17 +265,19 @@ main {
   background: rgba(255, 255, 255, 0.035);
   color: var(--text);
 }
+.ghost-button:hover {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+  transform: translateY(-2px);
+}
 
 .text-button {
   border: 0;
   background: transparent;
   color: var(--gold);
 }
-
-.premium-button:hover,
-.ghost-button:hover,
 .text-button:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .field {
@@ -269,13 +308,31 @@ main {
   border: 1px solid rgba(212, 175, 55, 0.42);
   background: rgba(5, 5, 5, 0.66);
   color: var(--gold);
-  padding: 6px 10px;
+  padding: 4px 12px;
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.11em;
   text-transform: uppercase;
   backdrop-filter: blur(12px);
+  border-radius: 4px;
 }
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.status-chip.confirmed { background: rgba(46,204,113,0.12); color: #2ecc71; border: 1px solid rgba(46,204,113,0.3); }
+.status-chip.pending { background: rgba(243,156,18,0.12); color: #f39c12; border: 1px solid rgba(243,156,18,0.3); }
+.status-chip.shipped { background: rgba(52,152,219,0.12); color: #3498db; border: 1px solid rgba(52,152,219,0.3); }
+.status-chip.delivered { background: rgba(46,204,113,0.12); color: #2ecc71; border: 1px solid rgba(46,204,113,0.3); }
+.status-chip.cancelled { background: rgba(231,76,60,0.12); color: #e74c3c; border: 1px solid rgba(231,76,60,0.3); }
 
 .skeleton {
   overflow: hidden;
@@ -580,7 +637,18 @@ main {
   display: grid;
   place-items: center;
   padding: 18px;
-  background: rgba(0, 0, 0, 0.68);
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  position: relative;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-height: 90vh;
+  overflow: auto;
 }
 
 .quick-view {

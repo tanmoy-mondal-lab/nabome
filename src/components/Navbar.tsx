@@ -1,200 +1,338 @@
-import { Link, NavLink, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import BrandWordmark from "./BrandWordmark";
+import { Link, useLocation } from "react-router-dom";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useCustomer } from "../context/CustomerContext";
-import { getUserRole } from "../lib/db";
-
-const links = [
-  { to: "/category", label: "Shop" },
-  { to: "/category?badge=new", label: "New" },
-  { to: "/about", label: "Story" },
-  { to: "/contact", label: "Contact" },
-];
+import BrandWordmark from "./BrandWordmark";
+import {
+  Search, ShoppingBag, Heart, User, Menu, X, LogOut,
+  Package, MapPin, Home, Grid3X3,
+} from "lucide-react";
 
 export default function Navbar() {
-  const [search, setSearch] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const navigate = useNavigate();
   const { cart } = useCart();
   const { wishlist } = useWishlist();
   const { customer, logout } = useCustomer();
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [profileOpen, setProfileOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const pathKey = useMemo(() => location.pathname + location.search, [location.pathname, location.search]);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const wishlistCount = wishlist.length;
 
   useEffect(() => {
-    getUserRole().then((role) => setIsAdmin(role === "admin"));
-  }, []);
+    if (searchOpen && searchRef.current) searchRef.current.focus();
+  }, [searchOpen]);
 
-  const submitSearch = () => {
-    if (search.trim()) {
-      navigate(`/category?search=${encodeURIComponent(search.trim())}`);
-      setMenuOpen(false);
+  const handleSearch = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      window.location.href = `/category?search=${encodeURIComponent(searchQuery.trim())}`;
     }
+  }, [searchQuery]);
+
+  const linkStyle = (path: string): React.CSSProperties => ({
+    color: location.pathname === path ? "var(--gold)" : "var(--muted)",
+    textDecoration: "none",
+    fontSize: ".78rem",
+    fontWeight: 700,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    transition: "color var(--transition-fast)",
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+  });
+
+  const navBtn: React.CSSProperties = {
+    position: "relative",
+    background: "none",
+    border: "none",
+    color: "var(--text)",
+    cursor: "pointer",
+    padding: 8,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    transition: "background var(--transition-fast), color var(--transition-fast)",
   };
 
-  const userMenuItems = customer
-    ? [
-        { to: "/profile", label: "Profile" },
-        { to: "/profile?tab=orders", label: "Orders" },
-        { to: "/profile?tab=addresses", label: "Addresses" },
-      ]
-    : [];
+  const bottomNav: React.CSSProperties = {
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 9998,
+    background: "rgba(5,5,5,0.95)",
+    borderTop: "1px solid var(--line)",
+    backdropFilter: "blur(20px)",
+    display: "flex",
+    justifyContent: "space-around",
+    alignItems: "center",
+    padding: "6px 0",
+    paddingBottom: "calc(6px + env(safe-area-inset-bottom))",
+  };
+
+  const bottomLink = (path: string, icon: React.ReactNode, label: string) => (
+    <Link to={path} style={{
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 2,
+      textDecoration: "none",
+      color: location.pathname === path ? "var(--gold)" : "var(--muted)",
+      fontSize: ".6rem",
+      fontWeight: 700,
+      letterSpacing: "0.04em",
+      textTransform: "uppercase",
+      padding: "4px 12px",
+      transition: "color var(--transition-fast)",
+    }}>
+      {icon}
+      <span>{label}</span>
+    </Link>
+  );
 
   return (
-    <>
-      <div className="top-bar">Free shipping above ₹999 · WhatsApp checkout · Made for Bengal</div>
-      <header className="nav-shell">
-        <nav className="container nav-inner" aria-label="Primary navigation">
-          <div className="desktop-nav nav-links">
-            {links.map((link) => (
-              <NavLink className="nav-link" key={link.label} to={link.to}>
-                {link.label}
-              </NavLink>
-            ))}
-            {customer && (
-              <NavLink className="nav-link" to="/profile">
-                Profile
-              </NavLink>
-            )}
-          </div>
+    <div key={pathKey}>
+      <nav style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 9997,
+        background: "rgba(5,5,5,0.92)",
+        borderBottom: "1px solid var(--line)",
+        backdropFilter: "blur(24px)",
+      }}>
+        <div className="container" style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          height: 64,
+          gap: 24,
+        }}>
+          {/* Mobile menu toggle */}
+          <button onClick={() => setMobileOpen(!mobileOpen)} style={{ ...navBtn, display: "none" }} className="mobile-menu-toggle" aria-label="Toggle menu">
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
 
-          <Link className="brand-lockup" to="/" aria-label="নবME home">
-            <span className="brand-emblem" aria-hidden="true">ন</span>
+          {/* Logo */}
+          <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
             <BrandWordmark size="nav" />
           </Link>
 
-          <div className="desktop-nav nav-actions">
-            <input
-              className="nav-search"
-              type="search"
-              placeholder="Search drops"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") submitSearch();
-              }}
-            />
-            {isAdmin && (
-              <Link className="nav-link" to="/admin" style={{ color: "var(--gold)" }}>
-                Admin
-              </Link>
-            )}
-            {customer ? (
-              <div className="nav-user-menu" style={{ position: "relative", display: "inline-block" }}>
-                <Link
-                  className="nav-icon-link"
-                  to="/profile"
-                  aria-label="My account"
-                  title={customer.name}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                </Link>
-              </div>
-            ) : (
-              <Link className="nav-link" to="/login" style={{ fontWeight: 600 }}>
-                Login
-              </Link>
-            )}
-            <Link
-              className="nav-icon-link"
-              to="/wishlist"
-              aria-label={`Wishlist with ${wishlist.length} products`}
-              title={`Wishlist (${wishlist.length})`}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-              </svg>
-              {wishlist.length > 0 && <span className="nav-icon-badge">{wishlist.length}</span>}
-            </Link>
-            <Link
-              className="nav-icon-link"
-              to="/cart"
-              aria-label={`Cart with ${cartCount} items`}
-              title={`Bag (${cartCount})`}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <path d="M16 10a4 4 0 0 1-8 0" />
-              </svg>
-              {cartCount > 0 && <span className="nav-icon-badge">{cartCount}</span>}
-            </Link>
+          {/* Desktop nav links */}
+          <div style={{ display: "flex", alignItems: "center", gap: 20, flex: 1, justifyContent: "center" }} className="nav-links">
+            <Link to="/" style={linkStyle("/")}>Home</Link>
+            <Link to="/category" style={linkStyle("/category")}>Shop</Link>
+            <Link to="/category?badge=new" style={linkStyle("/category?badge=new")}>New</Link>
+            <Link to="/about" style={linkStyle("/about")}>About</Link>
+            <Link to="/contact" style={linkStyle("/contact")}>Contact</Link>
           </div>
 
-          <button className="menu-button" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-label="Toggle menu">
-            {menuOpen ? "x" : "☰"}
-          </button>
+          {/* Actions */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {/* Search */}
+            <button onClick={() => setSearchOpen(!searchOpen)} style={navBtn} aria-label="Search">
+              <Search size={20} />
+            </button>
 
-          {menuOpen && (
-            <div className="mobile-menu" style={{ gridColumn: "1 / -1" }}>
-              {links.map((link) => (
-                <Link className="nav-link" key={link.label} to={link.to} onClick={() => setMenuOpen(false)}>
-                  {link.label}
-                </Link>
-              ))}
-              {customer && userMenuItems.map((item) => (
-                <Link key={item.label} className="nav-link" to={item.to} onClick={() => setMenuOpen(false)}>
-                  {item.label}
-                </Link>
-              ))}
-              {customer ? (
-                <button onClick={() => { logout(); setMenuOpen(false); navigate("/"); }}
-                  style={{ background: "none", border: "none", cursor: "pointer", textAlign: "left", fontSize: "1rem", color: "var(--muted)", padding: "12px 0", width: "100%" }}>
-                  Logout
+            {/* Wishlist */}
+            <Link to="/wishlist" style={{ ...navBtn, textDecoration: "none" }} aria-label="Wishlist">
+              <Heart size={20} />
+              {wishlistCount > 0 && <span className="nav-icon-badge">{wishlistCount}</span>}
+            </Link>
+
+            {/* Cart */}
+            <Link to="/cart" style={{ ...navBtn, textDecoration: "none" }} aria-label="Cart">
+              <ShoppingBag size={20} />
+              {cartCount > 0 && <span className="nav-icon-badge">{cartCount}</span>}
+            </Link>
+
+            {/* Profile / Login */}
+            {customer ? (
+              <div style={{ position: "relative" }}>
+                <button onClick={() => setProfileOpen(!profileOpen)} style={navBtn} aria-label="Profile">
+                  <User size={20} />
                 </button>
-              ) : (
-                <Link className="nav-link" to="/login" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  Login
-                </Link>
-              )}
-              {!customer && (
-                <Link className="nav-link" to="/register" onClick={() => setMenuOpen(false)}>
-                  Register
-                </Link>
-              )}
-              {isAdmin && (
-                <Link className="nav-link" to="/admin" onClick={() => setMenuOpen(false)} style={{ color: "var(--gold)" }}>
-                  Admin
-                </Link>
-              )}
-              <Link className="nav-link" to="/wishlist" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
-                Wishlist {wishlist.length > 0 ? `(${wishlist.length})` : ""}
+                {profileOpen && (
+                  <>
+                    <div onClick={() => setProfileOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 1 }} />
+                    <div style={{
+                      position: "absolute",
+                      right: 0,
+                      top: "100%",
+                      marginTop: 8,
+                      background: "var(--bg-elevated)",
+                      border: "1px solid var(--line)",
+                      borderRadius: "var(--radius-lg)",
+                      boxShadow: "var(--shadow-lg)",
+                      minWidth: 200,
+                      padding: 8,
+                      zIndex: 2,
+                    }}>
+                      <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--line)", marginBottom: 4 }}>
+                        <p style={{ fontWeight: 700, fontSize: ".9rem" }}>{customer.name}</p>
+                        <p style={{ color: "var(--muted)", fontSize: ".78rem" }}>{customer.phone}</p>
+                      </div>
+                      <Link to="/profile" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", textDecoration: "none", color: "var(--text)", fontSize: ".85rem", borderRadius: 8, transition: "background var(--transition-fast)" }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-strong)"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                      >
+                        <User size={16} /> Profile
+                      </Link>
+                      <Link to="/profile?tab=orders" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", textDecoration: "none", color: "var(--text)", fontSize: ".85rem", borderRadius: 8, transition: "background var(--transition-fast)" }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-strong)"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                      >
+                        <Package size={16} /> Orders
+                      </Link>
+                      <Link to="/profile?tab=addresses" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", textDecoration: "none", color: "var(--text)", fontSize: ".85rem", borderRadius: 8, transition: "background var(--transition-fast)" }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-strong)"}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                      >
+                        <MapPin size={16} /> Addresses
+                      </Link>
+                      <div style={{ borderTop: "1px solid var(--line)", marginTop: 4, paddingTop: 4 }}>
+                        <button onClick={() => { logout(); setProfileOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", width: "100%", border: "none", background: "transparent", color: "var(--error)", fontSize: ".85rem", cursor: "pointer", borderRadius: 8, transition: "background var(--transition-fast)" }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-strong)"}
+                          onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                        >
+                          <LogOut size={16} /> Log out
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <Link to="/login" style={{ ...navBtn, textDecoration: "none" }} aria-label="Login">
+                <User size={20} />
               </Link>
-              <Link className="nav-link" to="/cart" onClick={() => setMenuOpen(false)} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
-                  <line x1="3" y1="6" x2="21" y2="6" />
-                  <path d="M16 10a4 4 0 0 1-8 0" />
-                </svg>
-                Bag {cartCount > 0 ? `(${cartCount})` : ""}
-              </Link>
+            )}
+          </div>
+        </div>
+
+        {/* Search bar */}
+        {searchOpen && (
+          <div style={{ borderTop: "1px solid var(--line)", padding: "12px 6%" }}>
+            <form onSubmit={handleSearch} style={{ display: "flex", gap: 12 }}>
               <input
-                className="field"
+                ref={searchRef}
                 type="search"
-                placeholder="Search নবME"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") submitSearch();
+                placeholder="Search products, categories, tags..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "14px 18px",
+                  border: "1px solid var(--line)",
+                  background: "var(--surface)",
+                  color: "var(--text)",
+                  fontSize: "1rem",
+                  outline: "none",
+                  borderRadius: "var(--radius)",
                 }}
+                aria-label="Search products"
               />
+              <button type="submit" className="premium-button" style={{ minHeight: 48, padding: "0 24px" }}>
+                <Search size={18} /> Search
+              </button>
+            </form>
+          </div>
+        )}
+      </nav>
+
+      {/* Mobile slide-out menu */}
+      {mobileOpen && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 9996,
+          background: "rgba(0,0,0,0.6)",
+        }} onClick={() => setMobileOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            bottom: 0,
+            width: "min(320px, 80vw)",
+            background: "var(--bg-elevated)",
+            borderRight: "1px solid var(--line)",
+            padding: "24px 20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <BrandWordmark size="nav" />
+              <button onClick={() => setMobileOpen(false)} style={{ ...navBtn }} aria-label="Close menu">
+                <X size={22} />
+              </button>
             </div>
-          )}
-        </nav>
-      </header>
-    </>
+            {[
+              ["Home", "/", <Home size={18} key="h" />],
+              ["Shop All", "/category", <Grid3X3 size={18} key="s" />],
+              ["New Arrivals", "/category?badge=new", <Package size={18} key="n" />],
+              ["Cart", "/cart", <ShoppingBag size={18} key="c" />],
+              ["Wishlist", "/wishlist", <Heart size={18} key="w" />],
+              ["About", "/about", <User size={18} key="a" />],
+              ["Contact", "/contact", <MapPin size={18} key="co" />],
+              ...(customer ? [["Profile", "/profile", <User size={18} key="p" />] as const] : [["Login", "/login", <User size={18} key="l" />] as const]),
+            ].map(([label, path, icon]) => (
+              <Link key={path as string} to={path as string} style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                padding: "14px 16px",
+                textDecoration: "none",
+                color: location.pathname === path ? "var(--gold)" : "var(--text)",
+                fontSize: ".9rem",
+                fontWeight: 600,
+                borderRadius: "var(--radius)",
+                transition: "background var(--transition-fast)",
+              }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-strong)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+              >
+                {icon}
+                {label as string}
+              </Link>
+            ))}
+            {customer && (
+              <button onClick={() => { logout(); setMobileOpen(false); }} style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                padding: "14px 16px",
+                border: "none",
+                background: "transparent",
+                color: "var(--error)",
+                fontSize: ".9rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                borderRadius: "var(--radius)",
+                marginTop: "auto",
+              }}>
+                <LogOut size={18} /> Log out
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile bottom navigation */}
+      <div style={bottomNav} className="mobile-bottom-nav">
+        {bottomLink("/", <Home size={20} />, "Home")}
+        {bottomLink("/category", <Grid3X3 size={20} />, "Shop")}
+        {bottomLink("/cart", <><ShoppingBag size={20} />{cartCount > 0 && <span className="nav-icon-badge" style={{ top: -2, right: -8 }}>{cartCount}</span>}</>, "Cart")}
+        {bottomLink("/wishlist", <><Heart size={20} />{wishlistCount > 0 && <span className="nav-icon-badge" style={{ top: -2, right: -8 }}>{wishlistCount}</span>}</>, "Wishlist")}
+        {bottomLink(customer ? "/profile" : "/login", <User size={20} />, customer ? "Profile" : "Login")}
+      </div>
+    </div>
   );
 }
