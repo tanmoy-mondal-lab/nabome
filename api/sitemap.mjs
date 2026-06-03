@@ -4,7 +4,7 @@
 import { neon } from "@neondatabase/serverless";
 
 const DATABASE_URL = process.env.NEON_DATABASE_URL;
-const SITE_URL = process.env.SITE_URL || "https://nabome.online";
+const SITE_URL = process.env.VITE_SITE_URL || "https://nabome.online";
 
 const STATIC_ROUTES = [
   { loc: "/", priority: "1.0", changefreq: "daily" },
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   const urls = [...STATIC_ROUTES.map((r) => xmlUrl(r))];
 
   if (!DATABASE_URL) {
-    return res.status(503).json({ error: "Neon database not configured. Set VITE_NEON_DATABASE_URL in your server environment." });
+    return res.status(503).json({ error: "Neon database not configured. Set NEON_DATABASE_URL in your server environment." });
   }
 
   const sql = neon(DATABASE_URL);
@@ -65,7 +65,6 @@ export default async function handler(req, res) {
         urls.push(xmlUrl({ loc: `/shop/${v.shop_slug}`, priority: "0.6", changefreq: "weekly", lastmod }));
       }
     } catch { /* skip vendors */ }
-  }
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -73,4 +72,5 @@ ${urls.join("\n")}
 </urlset>`;
 
   return res.status(200).send(xml);
+}
 

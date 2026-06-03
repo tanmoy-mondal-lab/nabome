@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SERVICE_KEY = process.env.SUPABASE_ANON_KEY;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function generatePassword() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$';
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       .select('*')
       .eq('identifier', identifier)
       .eq('otp', otp)
-      .eq('used', false)
+      .eq('is_used', false)
       .gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false })
       .limit(1);
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     }
 
     // Mark OTP as used
-    await supabase.from('login_otps').update({ used: true }).eq('id', otpRows[0].id);
+    await supabase.from('login_otps').update({ is_used: true }).eq('id', otpRows[0].id);
 
     // Look up user in profiles by email or phone
     const cleanId = identifier.trim();

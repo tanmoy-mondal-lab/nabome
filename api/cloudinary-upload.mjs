@@ -33,7 +33,6 @@ export default async function handler(req, res) {
       folder,
       resource_type: resourceType,
       timestamp,
-      upload_preset: undefined, // Not using unsigned preset anymore
     };
 
     const signature = generateSignature(params, timestamp);
