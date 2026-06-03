@@ -60,13 +60,9 @@ vercel --prod
 | `VITE_SUPABASE_URL` | Yes | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Yes | Supabase anon key |
 | `VITE_CLOUDINARY_CLOUD_NAME` | Yes | Cloudinary cloud name |
-| `VITE_CLOUDINARY_UPLOAD_PRESET` | Yes | Cloudinary upload preset |
 | `VITE_ADMIN_EMAIL` | Yes | Admin login email |
 | `VITE_NEON_DATABASE_URL` | Yes | Neon PostgreSQL connection string for server-side API routes; keep secret and configure in Vercel |
 | `VITE_GA_ID` | No | Google Analytics 4 ID |
-| `VITE_BREVO_API_KEY` | No | Brevo transactional email API key |
-| `VITE_BREVO_SENDER_EMAIL` | No | Email sender address |
-| `VITE_WHATSAPP_SENDER` | No | WhatsApp Business number |
 
 ### Custom Domain
 1. Add domain in Vercel: `nabome.online` + `www.nabome.online`
@@ -84,9 +80,10 @@ vercel --prod
 ### Serverless API Routes
 The following Vercel serverless functions are available at `/api/*`:
 - `register-user.mjs` — Supabase user registration
-- `reset-password.mjs` — Password reset via Brevo email
-- `send-otp.mjs` — OTP sending
+- `reset-password.mjs` — Password reset
+- `send-otp.mjs` — OTP generation and storage
 - `verify-otp.mjs` — OTP verification
+- `cloudinary-upload.mjs` — Cloudinary signed upload parameters
 
 ## Monitoring
 

@@ -8,10 +8,8 @@ import { useCart } from "../context/CartContext";
 import { useCustomer } from "../context/CustomerContext";
 import { useAuth } from "../context/AuthContext";
 import { useAnalytics } from "../context/AnalyticsContext";
-import { useToast } from "../components/Toast";
 import { placeOrder } from "../lib/api/orders";
 import type { CustomerData } from "../lib/db";
-import { sendOrderConfirmation, type BillData } from "../lib/email";
 import CouponInput from "../components/CouponInput";
 import type { CouponRedemption } from "../types/order";
 import AddressManager from "../components/AddressManager";
@@ -61,7 +59,6 @@ export default function Checkout() {
   const { user } = useAuth();
   const { trackBeginCheckout, trackPurchase } = useAnalytics();
   const paidRef = useRef(false);
-  const { showToast } = useToast();
 
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [delivery, setDelivery] = useState(emptyDelivery);
@@ -172,18 +169,8 @@ export default function Checkout() {
 
     const bill = buildBill(customerData, cart, total, method === "upi" ? "UPI / QR" : "WhatsApp");
 
-    if (result && customerData.email) {
-      sendOrderConfirmation(bill as BillData)
-        .then((res) => {
-          if (res.ok) showToast(`Confirmation email sent to ${customerData.email}`);
-          else console.warn("Email failed:", res.error);
-        })
-        .catch((err) => console.error("Email error:", err));
-
-      // Admin notifications should be sent server-side
-      // This is disabled for security - admin email should not be in frontend
-      console.warn("[checkout] Admin notification disabled - should be server-side");
-    }
+    // Email notifications not configured - Brevo removed
+    console.log("[checkout] Order placed - email notifications disabled");
 
     trackPurchase(result?.orderNumber || bill.billNo, grandTotal, cart.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })));
 

@@ -214,92 +214,18 @@ function buildOrderConfirmationText(bill: BillData): string {
 
 export type SendEmailResult = { ok: true } | { ok: false; error: string; skipped?: boolean };
 
-export async function sendOrderConfirmation(bill: BillData): Promise<SendEmailResult> {
-  if (!bill.customer.email) {
-    return { ok: false, error: "No customer email" };
-  }
-
-  try {
-    const response = await fetch("/api/send-email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        to: bill.customer.email,
-        subject: `Order Confirmed — ${bill.billNo} | নবME`,
-        htmlContent: buildOrderConfirmationHtml(bill),
-        textContent: buildOrderConfirmationText(bill),
-        tags: ["order-confirmation"],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("[email] API error:", response.status, errorText);
-      return { ok: false, error: `API ${response.status}: ${errorText}` };
-    }
-
-    return { ok: true };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[email] Failed to send order confirmation:", message);
-    return { ok: false, error: message };
-  }
+export async function sendOrderConfirmation(_bill: BillData): Promise<SendEmailResult> {
+  // Email service not configured - Brevo removed
+  console.warn("[email] Email service not implemented - Brevo removed");
+  return { ok: false, error: "Email service not configured", skipped: true };
 }
 
 // ─── PASSWORD RESET ─────────────────────────────────────
 
-export async function sendNewPasswordEmail(email: string, password: string, _name?: string): Promise<SendEmailResult> {
-  try {
-    const response = await fetch("/api/send-email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        to: email,
-        subject: "Your New Password — নবME",
-        htmlContent: `<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
-<body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#e8e8e8;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:32px 16px;">
-    <tr><td align="center">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#121212;border:1px solid #2a2a2a;">
-        <tr><td style="background:#050505;padding:36px 40px;text-align:center;border-bottom:1px solid #d4af37;">
-          <div style="font-family:'Georgia',serif;font-size:36px;font-weight:700;letter-spacing:6px;color:#d4af37;margin-bottom:6px;">নবME</div>
-          <div style="color:#888;font-size:11px;letter-spacing:3px;text-transform:uppercase;">Premium Bengali Streetwear</div>
-        </td></tr>
-        <tr><td style="padding:40px 40px 20px;text-align:center;">
-          <div style="display:inline-block;padding:6px 14px;background:#d4af37;color:#050505;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:16px;">Password Reset</div>
-          <h1 style="margin:0 0 12px;color:#fff;font-size:28px;font-weight:300;">Your New Password</h1>
-          <p style="margin:0;color:#888;font-size:14px;line-height:1.6;">Your নবME account password has been reset. Use the password below to log in.</p>
-        </td></tr>
-        <tr><td style="padding:0 40px 30px;text-align:center;">
-          <div style="background:#1a1a1a;border:1px solid #d4af37;padding:16px 32px;display:inline-block;font-family:'Courier New',monospace;font-size:22px;font-weight:700;color:#d4af37;letter-spacing:3px;">${password}</div>
-          <p style="margin:16px 0 0;color:#888;font-size:13px;">Use this password to log in at <a href="https://www.nabome.online/login" style="color:#d4af37;">nabome.online/login</a></p>
-          <p style="margin:4px 0 0;color:#666;font-size:12px;">You can change it anytime from your profile after logging in.</p>
-        </td></tr>
-        <tr><td style="background:#050505;padding:30px 40px;text-align:center;border-top:1px solid #2a2a2a;">
-          <p style="margin:0 0 8px;color:#d4af37;font-size:13px;font-weight:600;">নবME — Designed in Bengal, Built for Everywhere</p>
-          <p style="margin:12px 0 0;color:#444;font-size:11px;">© 2026 নবME. All rights reserved.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`,
-        textContent: `নবME Password Reset\n\nYour new password is: ${password}\n\nUse this to log in at https://www.nabome.online/login\n\nYou can change it anytime from your profile after logging in.\n\n© 2026 নবME. All rights reserved.`,
-        tags: ["password-reset"],
-      }),
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      return { ok: false, error: `API ${response.status}: ${errorText}` };
-    }
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Unknown error" };
-  }
+export async function sendNewPasswordEmail(_email: string, _password: string, _name?: string): Promise<SendEmailResult> {
+  // Email service not configured - Brevo removed
+  console.warn("[email] Email service not implemented - Brevo removed");
+  return { ok: false, error: "Email service not configured", skipped: true };
 }
 
 export async function sendWhatsAppPassword(_phone: string, _password: string, _name?: string): Promise<boolean> {
@@ -310,31 +236,10 @@ export async function sendWhatsAppPassword(_phone: string, _password: string, _n
 }
 
 export async function sendAdminOrderNotification(
-  bill: BillData,
-  adminEmail: string
+  _bill: BillData,
+  _adminEmail: string
 ): Promise<SendEmailResult> {
-  try {
-    const response = await fetch("/api/send-email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        to: adminEmail,
-        subject: `🔔 New Order — ${bill.billNo} · ${fmtINR(bill.total)}`,
-        htmlContent: `<p>New order from <strong>${escapeHtml(bill.customer.name)}</strong> (${escapeHtml(bill.customer.phone)}) for <strong style="color:#d4af37;">${fmtINR(bill.total)}</strong> via ${escapeHtml(bill.paymentMethod)}.</p><p>View in admin: <a href="https://www.nabome.online/admin">nabome.online/admin</a></p>`,
-        tags: ["admin-notification"],
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return { ok: false, error: `API ${response.status}: ${errorText}` };
-    }
-
-    return { ok: true };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return { ok: false, error: message };
-  }
+  // Email service not configured - Brevo removed
+  console.warn("[email] Email service not implemented - Brevo removed");
+  return { ok: false, error: "Email service not configured", skipped: true };
 }
