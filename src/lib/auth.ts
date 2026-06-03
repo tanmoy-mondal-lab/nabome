@@ -6,7 +6,7 @@ export type AuthUser = {
   email: string;
   phone: string;
   name: string;
-  role: "customer" | "vendor" | "admin";
+  role: "customer" | "vendor" | "admin" | "super_admin";
   vendorStatus?: "pending" | "approved" | "rejected" | "suspended";
   createdAt: string;
 };

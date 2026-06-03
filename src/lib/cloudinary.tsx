@@ -28,7 +28,7 @@ export async function uploadImage(file: File, folder = "nabome"): Promise<Upload
     formData.append("timestamp", timestamp.toString());
     formData.append("signature", signature);
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined) formData.append(key, value.toString());
+      if (value !== undefined && value !== null) formData.append(key, String(value));
     });
 
     const uploadResponse = await fetch(uploadUrl, { method: "POST", body: formData });

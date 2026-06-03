@@ -1,4 +1,4 @@
-export type Role = "customer" | "vendor" | "admin";
+export type Role = "customer" | "vendor" | "admin" | "super_admin";
 
 export type VendorStatus = "pending" | "approved" | "rejected" | "suspended";
 

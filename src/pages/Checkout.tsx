@@ -11,7 +11,7 @@ import { useAnalytics } from "../context/AnalyticsContext";
 import { useToast } from "../components/Toast";
 import { placeOrder } from "../lib/api/orders";
 import type { CustomerData } from "../lib/db";
-import { sendOrderConfirmation, sendAdminOrderNotification, type BillData } from "../lib/email";
+import { sendOrderConfirmation, type BillData } from "../lib/email";
 import CouponInput from "../components/CouponInput";
 import type { CouponRedemption } from "../types/order";
 import AddressManager from "../components/AddressManager";

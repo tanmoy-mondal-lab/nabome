@@ -790,7 +790,6 @@ export async function loadProfileFromSupabase(): Promise<ProfileData | null> {
 // ─── ROLE HELPERS ─────────────────────────────────────
 
 export async function getUserRole(): Promise<string> {
-  const local = JSON.parse(localStorage.getItem("nabome-user") || "{}");
   if (await isNeonConnected()) {
     const { data: session } = await supabase!.auth.getSession();
     const userId = session?.session?.user?.id;
