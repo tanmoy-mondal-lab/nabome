@@ -8,7 +8,6 @@ import "./styles/global.css";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
 import { CustomerProvider } from "./context/CustomerContext";
-import { DeliveryProvider } from "./context/DeliveryContext";
 import { AuthProvider } from "./context/AuthContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import GlobalErrorBoundary from "./components/GlobalErrorBoundary";
@@ -23,13 +22,11 @@ ReactDOM.createRoot(
         <ToastProvider>
           <AuthProvider>
             <CustomerProvider>
-              <DeliveryProvider>
-                <CartProvider>
-                  <WishlistProvider>
-                    <App />
-                  </WishlistProvider>
-                </CartProvider>
-              </DeliveryProvider>
+              <CartProvider>
+                <WishlistProvider>
+                  <App />
+                </WishlistProvider>
+              </CartProvider>
             </CustomerProvider>
           </AuthProvider>
         </ToastProvider>

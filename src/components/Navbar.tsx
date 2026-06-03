@@ -216,7 +216,7 @@ export default function Navbar() {
                         <p style={{ fontWeight: 700, fontSize: ".9rem" }}>{customer.name}</p>
                         <p style={{ color: "var(--muted)", fontSize: ".78rem" }}>{customer.phone}</p>
                       </div>
-                      <Link to="/profile" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", textDecoration: "none", color: "var(--text)", fontSize: ".85rem", borderRadius: 8, transition: "background var(--transition-fast)" }}
+                      <Link to="/account?tab=profile" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", textDecoration: "none", color: "var(--text)", fontSize: ".85rem", borderRadius: 8, transition: "background var(--transition-fast)" }}
                         onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-strong)"}
                         onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                       >
@@ -315,7 +315,7 @@ export default function Navbar() {
               ["Wishlist", "/wishlist", <Heart size={18} key="w" />],
               ["About", "/about", <User size={18} key="a" />],
               ["Contact", "/contact", <MapPin size={18} key="co" />],
-              ...(customer ? [["Profile", "/profile", <User size={18} key="p" />] as const] : [["Login", "/login", <User size={18} key="l" />] as const]),
+              ...(customer ? [["Profile", "/account?tab=profile", <User size={18} key="p" />] as const] : [["Login", "/login", <User size={18} key="l" />] as const]),
               ...(role === "vendor" ? [["Vendor Dashboard", "/vendor", <Store size={18} key="vd" />] as const] : []),
               ...(role === "admin" ? [["Admin Panel", "/admin", <Shield size={18} key="ad" />] as const] : []),
             ].map(([label, path, icon]) => (
@@ -366,7 +366,7 @@ export default function Navbar() {
         {bottomLink("/category", <Grid3X3 size={20} />, "Shop")}
         {bottomLink("/cart", <><ShoppingBag size={20} />{cartCount > 0 && <span className="nav-icon-badge" style={{ top: -2, right: -8 }}>{cartCount}</span>}</>, "Cart")}
         {bottomLink("/wishlist", <><Heart size={20} />{wishlistCount > 0 && <span className="nav-icon-badge" style={{ top: -2, right: -8 }}>{wishlistCount}</span>}</>, "Wishlist")}
-        {bottomLink(customer ? "/profile" : "/login", <User size={20} />, customer ? "Profile" : "Login")}
+        {bottomLink(customer ? "/account?tab=profile" : "/login", <User size={20} />, customer ? "Profile" : "Login")}
       </div>
     </div>
   );

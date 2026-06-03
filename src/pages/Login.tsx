@@ -10,7 +10,7 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: string })?.from || "/profile";
+  const from = (location.state as { from?: string })?.from || "/account?tab=profile";
 
   const [mode, setMode] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState("");

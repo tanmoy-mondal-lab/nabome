@@ -60,7 +60,7 @@ export default function Register() {
         navigate("/login");
       } else {
         showToast("Account created successfully!");
-        navigate("/profile");
+        navigate("/account?tab=profile");
       }
     } else {
       setError(result.error || "Registration failed.");

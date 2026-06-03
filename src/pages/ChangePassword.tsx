@@ -51,7 +51,7 @@ export default function ChangePassword() {
     if (ok) {
       setSuccess(true);
       showToast("Password changed successfully!");
-      setTimeout(() => navigate("/profile"), 2000);
+      setTimeout(() => navigate("/account?tab=profile"), 2000);
     } else {
       setError("Current password is incorrect.");
     }
@@ -100,7 +100,7 @@ export default function ChangePassword() {
           transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
           style={{ width: "100%", maxWidth: 420 }}
         >
-          <button onClick={() => navigate("/profile")} style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--muted)", background: "none", border: "none", cursor: "pointer", fontSize: ".85rem", marginBottom: 24 }}>
+          <button onClick={() => navigate("/account?tab=profile")} style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--muted)", background: "none", border: "none", cursor: "pointer", fontSize: ".85rem", marginBottom: 24 }}>
             <ArrowLeft size={16} /> Back to Profile
           </button>
 

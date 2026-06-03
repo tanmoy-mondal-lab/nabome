@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Footer from "./components/Footer";
 import PageTransition from "./components/PageTransition";
@@ -24,7 +24,6 @@ const OrderSuccess = lazy(() => import("./pages/OrderSuccess"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
-const Profile = lazy(() => import("./pages/Profile"));
 const PolicyPage = lazy(() => import("./pages/PolicyPage"));
 const OrderTracking = lazy(() => import("./pages/OrderTracking"));
 const Admin = lazy(() => import("./pages/Admin"));
@@ -101,7 +100,7 @@ function AppContent() {
 
                 {/* Customer-protected routes */}
                 <Route path="/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
-                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/profile" element={<Navigate to="/account?tab=profile" replace />} />
                 <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
 
                 {/* Vendor-only routes */}

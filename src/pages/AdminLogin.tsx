@@ -32,7 +32,7 @@ export default function AdminLogin() {
           await seedAdminRole(data.session.user.id, email);
         }
         const role = await getUserRole();
-        navigate(role === "admin" ? "/admin" : "/profile");
+        navigate(role === "admin" ? "/admin" : "/account?tab=profile");
       } else {
         setError("Supabase not configured");
       }

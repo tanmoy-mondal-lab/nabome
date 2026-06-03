@@ -29,7 +29,7 @@ export default function Unauthorized() {
             <Link to="/" className="premium-button" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
               <Home size={16} /> Go Home
             </Link>
-            <Link to="/profile" className="ghost-button" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+            <Link to="/account?tab=profile" className="ghost-button" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
               <ArrowLeft size={16} /> My Profile
             </Link>
           </div>

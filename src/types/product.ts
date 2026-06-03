@@ -66,13 +66,6 @@ export interface RatingDistribution {
   percentage: number;
 }
 
-export interface ProductBadge {
-  type: "new_arrival" | "trending" | "best_seller" | "limited_stock" | "out_of_stock" | "featured" | "discount";
-  label: string;
-  color: string;
-  bg: string;
-}
-
 export interface InventoryAlert {
   id: string;
   productId: string;

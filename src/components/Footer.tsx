@@ -119,7 +119,7 @@ export default function Footer() {
           </div>
         </motion.div>
         <FooterColumn title="Shop" links={[["All Products", "/category"], ["New Arrivals", "/category?badge=new"], ["Wishlist", "/wishlist"], ["Cart", "/cart"]]} />
-        <FooterColumn title="Company" links={[["About", "/about"], ["Contact", "/contact"], ["Track Order", "/order-tracking"], ["Profile", "/profile"]]} />
+        <FooterColumn title="Company" links={[["About", "/about"], ["Contact", "/contact"], ["Track Order", "/order-tracking"], ["Profile", "/account?tab=profile"]]} />
         <FooterColumn title="Help" links={[["FAQ", "/faq"], ["Shipping Policy", "/shipping-policy"], ["Return Policy", "/return-policy"], ["Refund Policy", "/refund-policy"], ["Cancellation Policy", "/cancellation-policy"]]} />
         <FooterColumn title="Legal" links={[["Privacy Policy", "/privacy-policy"], ["Terms & Conditions", "/terms"]]} />
       </div>

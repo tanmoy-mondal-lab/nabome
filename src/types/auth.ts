@@ -37,12 +37,6 @@ export type VendorRegisterData = {
   businessAddress: string;
 };
 
-export type AuthResult = {
-  success: boolean;
-  user?: AuthUser;
-  error?: string;
-};
-
 export type PasswordValidation = {
   valid: boolean;
   errors: string[];
