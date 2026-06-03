@@ -1,12 +1,6 @@
 import type { CartItem } from "../context/CartContext";
 import type { CustomerData } from "./db";
 
-const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
-const SENDER_NAME = "নবME";
-const SENDER_EMAIL =
-  import.meta.env.VITE_BREVO_SENDER_EMAIL || "nabome.official@gmail.com";
-const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY as string | undefined;
-
 export type BillData = {
   billNo: string;
   date: string;
@@ -221,26 +215,18 @@ function buildOrderConfirmationText(bill: BillData): string {
 export type SendEmailResult = { ok: true } | { ok: false; error: string; skipped?: boolean };
 
 export async function sendOrderConfirmation(bill: BillData): Promise<SendEmailResult> {
-  if (!BREVO_API_KEY) {
-    console.warn("[email] VITE_BREVO_API_KEY not set — skipping email send");
-    return { ok: false, error: "Email service not configured", skipped: true };
-  }
-
   if (!bill.customer.email) {
     return { ok: false, error: "No customer email" };
   }
 
   try {
-    const response = await fetch(BREVO_API_URL, {
+    const response = await fetch("/api/send-email", {
       method: "POST",
       headers: {
-        "api-key": BREVO_API_KEY,
         "Content-Type": "application/json",
-        Accept: "application/json",
       },
       body: JSON.stringify({
-        sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-        to: [{ email: bill.customer.email, name: bill.customer.name }],
+        to: bill.customer.email,
         subject: `Order Confirmed — ${bill.billNo} | নবME`,
         htmlContent: buildOrderConfirmationHtml(bill),
         textContent: buildOrderConfirmationText(bill),
@@ -250,8 +236,8 @@ export async function sendOrderConfirmation(bill: BillData): Promise<SendEmailRe
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[email] Brevo API error:", response.status, errorText);
-      return { ok: false, error: `Brevo API ${response.status}: ${errorText}` };
+      console.error("[email] API error:", response.status, errorText);
+      return { ok: false, error: `API ${response.status}: ${errorText}` };
     }
 
     return { ok: true };
@@ -264,17 +250,13 @@ export async function sendOrderConfirmation(bill: BillData): Promise<SendEmailRe
 
 // ─── PASSWORD RESET ─────────────────────────────────────
 
-export async function sendNewPasswordEmail(email: string, password: string, name?: string): Promise<SendEmailResult> {
-  if (!BREVO_API_KEY) {
-    return { ok: false, error: "Email service not configured", skipped: true };
-  }
+export async function sendNewPasswordEmail(email: string, password: string, _name?: string): Promise<SendEmailResult> {
   try {
-    const response = await fetch(BREVO_API_URL, {
+    const response = await fetch("/api/send-email", {
       method: "POST",
-      headers: { "api-key": BREVO_API_KEY, "Content-Type": "application/json", Accept: "application/json" },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-        to: [{ email, name: name || email }],
+        to: email,
         subject: "Your New Password — নবME",
         htmlContent: `<!DOCTYPE html>
 <html lang="en">
@@ -312,7 +294,7 @@ export async function sendNewPasswordEmail(email: string, password: string, name
     });
     if (!response.ok) {
       const errorText = await response.text();
-      return { ok: false, error: `Brevo API ${response.status}: ${errorText}` };
+      return { ok: false, error: `API ${response.status}: ${errorText}` };
     }
     return { ok: true };
   } catch (err) {
@@ -320,48 +302,25 @@ export async function sendNewPasswordEmail(email: string, password: string, name
   }
 }
 
-export async function sendWhatsAppPassword(phone: string, password: string, name?: string): Promise<boolean> {
-  const apiKey = BREVO_API_KEY;
-  if (!apiKey) return false;
-  const WA_API_URL = "https://api.brevo.com/v3/whatsapp/sendMessage";
-  const senderNumber = import.meta.env.VITE_WHATSAPP_SENDER || "+919163854706";
-  try {
-    const response = await fetch(WA_API_URL, {
-      method: "POST",
-      headers: { "api-key": apiKey, "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        senderNumber,
-        contactNumber: phone.startsWith("+") ? phone : `+91${phone}`,
-        content: {
-          text: `নবME Password Reset\n\nHey ${name || "there"}, your new password is:\n\n${password}\n\nUse it to log in: https://www.nabome.online/login\n\nYou can change it anytime from your profile.\n\n— নবME`,
-        },
-      }),
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
+export async function sendWhatsAppPassword(_phone: string, _password: string, _name?: string): Promise<boolean> {
+  // WhatsApp sending requires server-side implementation
+  // For now, this function returns false as WhatsApp is not implemented
+  console.warn("[email] WhatsApp sending not implemented - use server-side API");
+  return false;
 }
 
 export async function sendAdminOrderNotification(
   bill: BillData,
   adminEmail: string
 ): Promise<SendEmailResult> {
-  if (!BREVO_API_KEY) {
-    return { ok: false, error: "Email service not configured", skipped: true };
-  }
-
   try {
-    const response = await fetch(BREVO_API_URL, {
+    const response = await fetch("/api/send-email", {
       method: "POST",
       headers: {
-        "api-key": BREVO_API_KEY,
         "Content-Type": "application/json",
-        Accept: "application/json",
       },
       body: JSON.stringify({
-        sender: { name: SENDER_NAME, email: SENDER_EMAIL },
-        to: [{ email: adminEmail, name: "Admin" }],
+        to: adminEmail,
         subject: `🔔 New Order — ${bill.billNo} · ${fmtINR(bill.total)}`,
         htmlContent: `<p>New order from <strong>${escapeHtml(bill.customer.name)}</strong> (${escapeHtml(bill.customer.phone)}) for <strong style="color:#d4af37;">${fmtINR(bill.total)}</strong> via ${escapeHtml(bill.paymentMethod)}.</p><p>View in admin: <a href="https://www.nabome.online/admin">nabome.online/admin</a></p>`,
         tags: ["admin-notification"],
@@ -370,7 +329,7 @@ export async function sendAdminOrderNotification(
 
     if (!response.ok) {
       const errorText = await response.text();
-      return { ok: false, error: `Brevo API ${response.status}: ${errorText}` };
+      return { ok: false, error: `API ${response.status}: ${errorText}` };
     }
 
     return { ok: true };

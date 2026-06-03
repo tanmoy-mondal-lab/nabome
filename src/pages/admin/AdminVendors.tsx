@@ -48,7 +48,7 @@ export default function AdminVendors() {
       const rows = await getVendors(false) as any[];
       const enriched = await Promise.all((rows || []).map(async (v: any) => {
         let owner_name = v.shop_name;
-        let category = v.shop_description || "";
+        const category = v.shop_description || "";
         const { data: user } = await neon.select("users", { id: v.user_id }, { single: true });
         if (user) owner_name = user.name || v.shop_name;
         return {

@@ -39,10 +39,6 @@ export default function VendorShopProfile() {
   const logoRef = useRef<HTMLInputElement>(null);
   const bannerRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    loadVendor();
-  }, [user]);
-
   const loadVendor = async () => {
     if (!user || !await isNeonConnected()) { setLoading(false); return; }
     try {
@@ -63,6 +59,10 @@ export default function VendorShopProfile() {
     } catch { /* ignore */ }
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadVendor();
+  }, [user]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -114,8 +114,8 @@ export default function VendorShopProfile() {
       await loadVendor();
       showToast("Shop profile updated!");
       setEditing(false);
-    } catch (err: any) {
-      setError(err.message || "Failed to save");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to save");
     }
     setSaving(false);
   };

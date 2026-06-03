@@ -740,8 +740,8 @@ export function saveProfileLocally(data: ProfileData) {
 }
 
 export async function saveProfileToSupabase(data: ProfileData) {
-  const isAdmin = data.email === import.meta.env.VITE_ADMIN_EMAIL;
-  const role = isAdmin ? "admin" : (data.role || "customer");
+  // Admin role is determined by database, not frontend
+  const role = data.role || "customer";
   if (await isNeonConnected()) {
     const { data: session } = await supabase!.auth.getSession();
     const userId = session?.session?.user?.id;
@@ -795,42 +795,24 @@ export async function getUserRole(): Promise<string> {
     const { data: session } = await supabase!.auth.getSession();
     const userId = session?.session?.user?.id;
     if (!userId) return "customer";
-    const { data } = await neon.select("users", { id: userId }, { single: true, columns: "role, email" });
+    const { data } = await neon.select("users", { id: userId }, { single: true, columns: "role" });
     if (data?.role === "admin") return "admin";
-    const email = data?.email || session?.session?.user?.email || "";
-    if (email === import.meta.env.VITE_ADMIN_EMAIL) return "admin";
     return "customer";
   }
-  if (!supabase) return local.email === import.meta.env.VITE_ADMIN_EMAIL ? "admin" : "customer";
+  if (!supabase) return "customer";
   const { data: session } = await supabase.auth.getSession();
   const userId = session?.session?.user?.id;
-  if (!userId) return local.email === import.meta.env.VITE_ADMIN_EMAIL ? "admin" : "customer";
+  if (!userId) return "customer";
   const { data } = await supabase.from("profiles").select("role").eq("id", userId).single();
   if (data?.role === "admin") return "admin";
-  const email = session?.session?.user?.email || "";
-  if (email === import.meta.env.VITE_ADMIN_EMAIL) return "admin";
   return "customer";
 }
 
-export async function seedAdminRole(userId: string, email: string) {
-  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-  if (!adminEmail || email !== adminEmail) return;
-  if (await isNeonConnected()) {
-    const { data } = await neon.select("users", { id: userId }, { single: true, columns: "id" });
-    if (data) {
-      await neon.update("users", { role: "admin", email }, { id: userId });
-    } else {
-      await neon.insert("users", { id: userId, email, role: "admin" });
-    }
-    return;
-  }
-  if (!supabase) return;
-  const { data } = await supabase.from("profiles").select("id").eq("id", userId).single();
-  if (data) {
-    await supabase.from("profiles").update({ role: "admin", email }).eq("id", userId);
-  } else {
-    await supabase.from("profiles").insert({ id: userId, email, role: "admin" });
-  }
+export async function seedAdminRole(_userId: string, _email: string) {
+  // Admin role seeding should be done server-side, not in frontend
+  // This function is kept for compatibility but should be removed
+  console.warn("[db] Admin role seeding should be done server-side");
+  return;
 }
 
 // ─── SITE QUOTES (editable Bengali/cultural quotes) ───

@@ -3,8 +3,8 @@
 
 import { neon } from "@neondatabase/serverless";
 
-const DATABASE_URL = process.env.VITE_NEON_DATABASE_URL;
-const SITE_URL = process.env.VITE_SITE_URL || "https://nabme.online";
+const DATABASE_URL = process.env.NEON_DATABASE_URL;
+const SITE_URL = process.env.SITE_URL || "https://nabome.online";
 
 const STATIC_ROUTES = [
   { loc: "/", priority: "1.0", changefreq: "daily" },

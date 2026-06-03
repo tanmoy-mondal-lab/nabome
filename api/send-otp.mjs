@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
-const SERVICE_KEY = process.env.VITE_SUPABASE_ANON_KEY;
-const WHATSAPP_SENDER = process.env.VITE_WHATSAPP_SENDER || '+919163854706';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SERVICE_KEY = process.env.SUPABASE_ANON_KEY;
+const WHATSAPP_SENDER = process.env.WHATSAPP_SENDER || '+919163854706';
 
 function generateOTP() {
   return String(Math.floor(100000 + Math.random() * 900000));

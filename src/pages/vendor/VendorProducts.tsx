@@ -36,10 +36,6 @@ export default function VendorProducts({ onTab, onEditProduct }: Props) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<string>("all");
 
-  useEffect(() => {
-    loadProducts();
-  }, [user]);
-
   const loadProducts = async () => {
     if (!user) return;
     if (!await isNeonConnected()) { setLoading(false); return; }
@@ -49,6 +45,10 @@ export default function VendorProducts({ onTab, onEditProduct }: Props) {
     } catch { /* ignore */ }
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadProducts();
+  }, [user]);
 
   const filtered = products.filter((p) => {
     if (filter !== "all" && p.status !== filter) return false;

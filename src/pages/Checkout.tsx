@@ -176,16 +176,13 @@ export default function Checkout() {
       sendOrderConfirmation(bill as BillData)
         .then((res) => {
           if (res.ok) showToast(`Confirmation email sent to ${customerData.email}`);
-          else if (!res.skipped) console.warn("Email failed:", res.error);
+          else console.warn("Email failed:", res.error);
         })
         .catch((err) => console.error("Email error:", err));
 
-      const adminEmail = import.meta.env.VITE_ADMIN_EMAIL as string | undefined;
-      if (adminEmail) {
-        sendAdminOrderNotification(bill as BillData, adminEmail).catch((err) =>
-          console.error("Admin notification error:", err)
-        );
-      }
+      // Admin notifications should be sent server-side
+      // This is disabled for security - admin email should not be in frontend
+      console.warn("[checkout] Admin notification disabled - should be server-side");
     }
 
     trackPurchase(result?.orderNumber || bill.billNo, grandTotal, cart.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity })));

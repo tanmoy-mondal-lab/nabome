@@ -4,7 +4,7 @@
 
 import { neon } from "@neondatabase/serverless";
 
-const DATABASE_URL = process.env.VITE_NEON_DATABASE_URL;
+const DATABASE_URL = process.env.NEON_DATABASE_URL;
 
 /**
  * Build a WHERE clause from a filters object.

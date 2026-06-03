@@ -53,10 +53,6 @@ export default function VendorProductForm({ productId, vendorId, onBack, onSave 
   const [mainImageIndex, setMainImageIndex] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    init();
-  }, [productId, vendorId]);
-
   const init = async () => {
     setLoading(true);
     if (productId && vendorId) {
@@ -82,6 +78,10 @@ export default function VendorProductForm({ productId, vendorId, onBack, onSave 
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    init();
+  }, [productId, vendorId]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
