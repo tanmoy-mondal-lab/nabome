@@ -204,7 +204,7 @@ function generateVariants(sizes: string[], colors: string[], basePrice: number):
   return variants;
 }
 
-export function generateAdvancedProduct(vendorId?: string, _index?: number): AdvancedProduct {
+export function generateAdvancedProduct(vendorId?: string): AdvancedProduct {
   const cat = pick(categories);
   const subcat = pick(subcategoryMap[cat] || ["General"]);
   const nameBase = pick(productNames[cat] || ["Premium Product"]);
@@ -292,7 +292,7 @@ export function generateAdvancedProduct(vendorId?: string, _index?: number): Adv
 }
 
 export function generateAdvancedProducts(count = 24, vendorId?: string): AdvancedProduct[] {
-  return Array.from({ length: count }, (_, i) => generateAdvancedProduct(vendorId, i));
+  return Array.from({ length: count }, () => generateAdvancedProduct(vendorId));
 }
 
 export function generateMockReviews(productId: string, count = rand(5, 12)): ProductReview[] {

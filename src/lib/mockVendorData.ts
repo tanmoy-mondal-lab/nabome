@@ -83,7 +83,7 @@ export function generateMockProducts(vendorId: string): VendorProduct[] {
 
 /* ─── ORDERS ─── */
 let ordId = 0;
-export function generateMockOrders(_vendorId?: string): VendorOrder[] {
+export function generateMockOrders(): VendorOrder[] {
   const statuses: VendorOrderStatus[] = ["new", "processing", "processing", "packed", "shipped", "delivered", "delivered", "delivered", "cancelled", "cancelled", "new", "processing", "packed", "shipped", "delivered"];
   const names = ["Arun Sharma", "Priya Patel", "Rahul Verma", "Sneha Gupta", "Vikram Singh", "Ananya Das", "Rohit Mehta", "Kavita Nair", "Amit Joshi", "Deepa Iyer", "Manish Kumar", "Neha Agarwal", "Sunil Rao", "Pooja Reddy", "Akash Malhotra"];
   return statuses.map((st, i) => {

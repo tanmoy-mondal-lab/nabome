@@ -1,5 +1,4 @@
-// Frontend client for Neon — calls Vercel API route at /api/neon-query
-// Each method returns { data, error } matching Supabase shape for drop-in compat
+import { supabase } from "./supabase";
 
 const API = "/api/neon-query";
 
@@ -13,6 +12,9 @@ type SelectOptions = {
   limit?: number;
   single?: boolean;
 };
+
+let connectedCache: boolean | null = null;
+let connecting: Promise<boolean> | null = null;
 
 async function call(method: string, table: string, opts?: { filters?: NeonFilters; data?: NeonData; options?: SelectOptions; sql?: string; params?: unknown[] }) {
   try {
@@ -52,16 +54,46 @@ export const neon = {
   },
 };
 
-export async function isNeonConnected() {
+let supabaseSessionChecked = false;
+
+export async function resolveUserId(): Promise<string | null> {
   try {
-    const res = await fetch(API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ method: "raw", sql: "SELECT 1 as ok", params: [] }),
+    if (!supabaseSessionChecked) {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user?.id) {
+        supabaseSessionChecked = true;
+        return data.session.user.id;
+      }
+    }
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.id) supabaseSessionChecked = true;
     });
-    const json = await res.json();
-    return !json.error;
+    setTimeout(() => listener?.subscription.unsubscribe(), 100);
+    return null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+export async function isNeonConnected(): Promise<boolean> {
+  if (connectedCache !== null) return connectedCache;
+  if (connecting) return connecting;
+  connecting = (async () => {
+    try {
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method: "raw", sql: "SELECT 1 as ok", params: [] }),
+      });
+      const json = await res.json();
+      connectedCache = !json.error;
+      return connectedCache;
+    } catch {
+      connectedCache = false;
+      return false;
+    } finally {
+      connecting = null;
+    }
+  })();
+  return connecting;
 }

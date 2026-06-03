@@ -35,12 +35,10 @@ export async function getCustomers(params?: { search?: string; status?: string; 
   let query = `SELECT u.*, (SELECT COUNT(*) FROM orders WHERE orders.user_id = u.id) as total_orders FROM users u`;
   const conditions: string[] = [];
   const values: unknown[] = [];
-  let idx = 1;
-
   if (params?.search) {
-    conditions.push(`(u.name ILIKE $${idx} OR u.email ILIKE $${idx})`);
+    const i = values.length + 1;
+    conditions.push(`(u.name ILIKE $${i} OR u.email ILIKE $${i})`);
     values.push(`%${params.search}%`);
-    idx++;
   }
   if (params?.status === "active") { conditions.push(`u.is_active = true`); }
   else if (params?.status === "inactive") { conditions.push(`u.is_active = false`); }

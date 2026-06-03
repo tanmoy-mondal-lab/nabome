@@ -28,10 +28,9 @@ export async function getLogs(params?: { action?: string; entityType?: string; l
   if (!(await isNeonConnected())) return [];
   let query = `SELECT * FROM system_logs WHERE 1=1`;
   const values: unknown[] = [];
-  let idx = 1;
 
-  if (params?.action) { query += ` AND action = $${idx++}`; values.push(params.action); }
-  if (params?.entityType) { query += ` AND entity_type = $${idx++}`; values.push(params.entityType); }
+  if (params?.action) { query += ` AND action = $${values.length + 1}`; values.push(params.action); }
+  if (params?.entityType) { query += ` AND entity_type = $${values.length + 1}`; values.push(params.entityType); }
   query += ` ORDER BY created_at DESC`;
   if (params?.limit) { query += ` LIMIT ${params.limit} OFFSET ${params.offset || 0}`; }
 

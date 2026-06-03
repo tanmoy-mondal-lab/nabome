@@ -25,23 +25,6 @@ type CustomerContextType = {
 
 const CustomerContext = createContext<CustomerContextType | null>(null);
 
-function loadSession(): Customer | null {
-  try {
-    const raw = localStorage.getItem("nabome-customer");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function saveSession(c: Customer) {
-  localStorage.setItem("nabome-customer", JSON.stringify(c));
-}
-
-function clearSession() {
-  localStorage.removeItem("nabome-customer");
-}
-
 function customerFromAuthUser(user: AuthUser): Customer {
   return {
     id: user.id,
@@ -59,8 +42,8 @@ function customerFromAuthUser(user: AuthUser): Customer {
 
 export function CustomerProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [customer, setCustomer] = useState<Customer | null>(loadSession);
-  const [loading] = useState(false);
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const mapRow = (row: any): Customer => ({
     id: row.id,
@@ -76,30 +59,24 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    if (user) {
-      const authCustomer = customerFromAuthUser(user);
-      setCustomer(authCustomer);
-      saveSession(authCustomer);
+    if (!user) {
+      setCustomer(null);
+      setLoading(false);
       return;
     }
-
-    const stored = loadSession();
-    setCustomer(stored);
+    setCustomer(customerFromAuthUser(user));
+    setLoading(false);
   }, [user]);
 
   const logout = () => {
     setCustomer(null);
-    clearSession();
   };
 
   const refresh = async () => {
-    if (!await isNeonConnected() || !customer) return;
+    if (!customer) return;
+    if (!await isNeonConnected()) return;
     const { data } = await neon.select("users", { id: customer.id }, { single: true });
-    if (data) {
-      const refreshed = mapRow(data);
-      setCustomer(refreshed);
-      saveSession(refreshed);
-    }
+    if (data) setCustomer(mapRow(data));
   };
 
   return (

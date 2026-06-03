@@ -713,85 +713,11 @@ export async function approveReview(id: string) {
   return id;
 }
 
-// ─── PROFILES ──────────────────────────────────────────
-
-export type ProfileData = {
-  name: string;
-  phone: string;
-  email: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  customerUpi: string;
-  role: string;
-};
-
-export function loadProfile(): ProfileData {
-  const saved = localStorage.getItem("nabome-profile");
-  if (saved) {
-    try { return JSON.parse(saved); } catch { /* fall through */ }
-  }
-  return { name: "", phone: "", email: "", address: "", city: "", state: "", pincode: "", customerUpi: "", role: "customer" };
-}
-
-export function saveProfileLocally(data: ProfileData) {
-  localStorage.setItem("nabome-profile", JSON.stringify(data));
-}
-
-export async function saveProfileToSupabase(data: ProfileData) {
-  // Admin role is determined by database, not frontend
-  const role = data.role || "customer";
-  if (await isNeonConnected()) {
-    const { data: session } = await supabase!.auth.getSession();
-    const userId = session?.session?.user?.id;
-    if (!userId) return;
-    await neon.update("users", { name: data.name, phone: data.phone, email: data.email, role }, { id: userId });
-    return;
-  }
-  if (!supabase) return;
-  const { data: session } = await supabase.auth.getSession();
-  const userId = session?.session?.user?.id;
-  if (!userId) return;
-  await supabase.from("profiles").upsert({
-    id: userId, name: data.name, phone: data.phone, email: data.email,
-    address: data.address, city: data.city, state: data.state,
-    pincode: data.pincode, customer_upi: data.customerUpi, role,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: "id" });
-}
-
-export async function loadProfileFromSupabase(): Promise<ProfileData | null> {
-  if (await isNeonConnected()) {
-    const { data: session } = await supabase!.auth.getSession();
-    const userId = session?.session?.user?.id;
-    if (!userId) return null;
-    const { data } = await neon.select("users", { id: userId }, { single: true });
-    if (!data) return null;
-    return {
-      name: data.name || "", phone: data.phone || "", email: data.email || "",
-      address: data.address || "", city: data.city || "", state: data.state || "",
-      pincode: data.pincode || "", customerUpi: "", role: data.role || "customer",
-    };
-  }
-  if (!supabase) return null;
-  const { data: session } = await supabase.auth.getSession();
-  const userId = session?.session?.user?.id;
-  if (!userId) return null;
-  const { data, error } = await supabase.from("profiles").select("*").eq("id", userId).single();
-  if (error || !data) return null;
-  return {
-    name: data.name || "", phone: data.phone || "", email: data.email || "",
-    address: data.address || "", city: data.city || "", state: data.state || "",
-    pincode: data.pincode || "", customerUpi: data.customer_upi || "", role: data.role || "customer",
-  };
-}
-
 // ─── ROLE HELPERS ─────────────────────────────────────
 
 export async function getUserRole(): Promise<string> {
   if (await isNeonConnected()) {
-    const { data: session } = await supabase!.auth.getSession();
+    const { data: session } = await supabase.auth.getSession();
     const userId = session?.session?.user?.id;
     if (!userId) return "customer";
     const { data } = await neon.select("users", { id: userId }, { single: true, columns: "role" });
@@ -807,11 +733,8 @@ export async function getUserRole(): Promise<string> {
   return "customer";
 }
 
-export async function seedAdminRole(_userId: string, _email: string) {
-  // Admin role seeding should be done server-side, not in frontend
-  // This function is kept for compatibility but should be removed
-  console.warn("[db] Admin role seeding should be done server-side");
-  return;
+export async function seedAdminRole(userId: string, email: string) {
+  void userId; void email;
 }
 
 // ─── SITE QUOTES (editable Bengali/cultural quotes) ───
@@ -833,14 +756,16 @@ const DEFAULT_QUOTES: Omit<SiteQuote, "id" | "created_at">[] = [
   { text: "একটি শিল্পী কখনো তার সংস্কৃতি হারায় না", attribution: "নবME Philosophy", is_active: true, sort_order: 4 },
 ];
 
+const QUOTES_TABLE = "site_quotes";
+
 export async function getSiteQuotes(): Promise<SiteQuote[]> {
   if (await isNeonConnected()) {
-    const { data } = await neon.select("banners", { is_active: true }, { order: "sort_order", ascending: true });
+    const { data } = await neon.select(QUOTES_TABLE, { is_active: true }, { order: "sort_order", ascending: true });
     return (data || []) as SiteQuote[];
   }
   if (!supabase) return [];
   const { data, error } = await supabase
-    .from("site_quotes")
+    .from(QUOTES_TABLE)
     .select("*")
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
@@ -850,12 +775,12 @@ export async function getSiteQuotes(): Promise<SiteQuote[]> {
 
 export async function getAllSiteQuotes(): Promise<SiteQuote[]> {
   if (await isNeonConnected()) {
-    const { data } = await neon.select("banners", {}, { order: "sort_order", ascending: true });
+    const { data } = await neon.select(QUOTES_TABLE, {}, { order: "sort_order", ascending: true });
     return (data || []) as SiteQuote[];
   }
   if (!supabase) return [];
   const { data, error } = await supabase
-    .from("site_quotes")
+    .from(QUOTES_TABLE)
     .select("*")
     .order("sort_order", { ascending: true });
   if (error || !data) return [];
@@ -865,52 +790,52 @@ export async function getAllSiteQuotes(): Promise<SiteQuote[]> {
 export async function createSiteQuote(data: { text: string; attribution: string; is_active?: boolean; sort_order?: number }) {
   const payload = { text: data.text, attribution: data.attribution, is_active: data.is_active ?? true, sort_order: data.sort_order ?? 0 };
   if (await isNeonConnected()) {
-    const result = await neon.insert("banners", payload);
+    const result = await neon.insert(QUOTES_TABLE, payload);
     return (result.data?.[0] || null) as SiteQuote | null;
   }
   if (!supabase) return null;
-  const { data: row, error } = await supabase.from("site_quotes").insert(payload).select().single();
+  const { data: row, error } = await supabase.from(QUOTES_TABLE).insert(payload).select().single();
   if (error) { console.error("Failed to create quote:", error); return null; }
   return row as SiteQuote;
 }
 
 export async function updateSiteQuote(id: string, data: Partial<SiteQuote>) {
   if (await isNeonConnected()) {
-    const result = await neon.update("banners", data, { id });
+    const result = await neon.update(QUOTES_TABLE, data, { id });
     return (result.data?.[0] || null) as SiteQuote | null;
   }
   if (!supabase) return null;
-  const { data: row, error } = await supabase.from("site_quotes").update(data).eq("id", id).select().single();
+  const { data: row, error } = await supabase.from(QUOTES_TABLE).update(data).eq("id", id).select().single();
   if (error) { console.error("Failed to update quote:", error); return null; }
   return row as SiteQuote;
 }
 
 export async function deleteSiteQuote(id: string) {
   if (await isNeonConnected()) {
-    const { error } = await neon.delete("banners", { id });
+    const { error } = await neon.delete(QUOTES_TABLE, { id });
     return !error;
   }
   if (!supabase) return false;
-  const { error } = await supabase.from("site_quotes").delete().eq("id", id);
+  const { error } = await supabase.from(QUOTES_TABLE).delete().eq("id", id);
   if (error) { console.error("Failed to delete quote:", error); return false; }
   return true;
 }
 
 export async function seedDefaultQuotesIfEmpty() {
   if (await isNeonConnected()) {
-    const { count } = await neon.count("banners");
+    const { count } = await neon.count(QUOTES_TABLE);
     if (count && count > 0) return;
     for (const q of DEFAULT_QUOTES) {
-      await neon.insert("banners", q);
+      await neon.insert(QUOTES_TABLE, q);
     }
     return;
   }
   if (!supabase) return;
-  const { data, error } = await supabase.from("site_quotes").select("id").limit(1);
+  const { data, error } = await supabase.from(QUOTES_TABLE).select("id").limit(1);
   if (error) return;
   if (data && data.length > 0) return;
   for (const q of DEFAULT_QUOTES) {
-    await supabase.from("site_quotes").insert(q);
+    await supabase.from(QUOTES_TABLE).insert(q);
   }
 }
 
