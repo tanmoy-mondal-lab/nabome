@@ -3,10 +3,12 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log("Seeding database...");
 
   // Clean existing data
   await prisma.inventoryMovement.deleteMany();
+  await prisma.relatedProduct.deleteMany();
+  await prisma.inventoryAlert.deleteMany();
   await prisma.productLabelOnProduct.deleteMany();
   await prisma.productTagOnProduct.deleteMany();
   await prisma.review.deleteMany();
@@ -26,6 +28,7 @@ async function main() {
   await prisma.collection.deleteMany();
   await prisma.lookbookItem.deleteMany();
   await prisma.lookbook.deleteMany();
+  await prisma.pageTemplate.deleteMany();
   await prisma.footerSection.deleteMany();
   await prisma.navigationMenu.deleteMany();
   await prisma.homepageSection.deleteMany();
@@ -41,6 +44,8 @@ async function main() {
   await prisma.coupon.deleteMany();
   await prisma.productTag.deleteMany();
   await prisma.productLabel.deleteMany();
+  await prisma.sizeGuide.deleteMany();
+  await prisma.brand.deleteMany();
 
   // ─── Categories ───
   const menCategory = await prisma.category.create({
@@ -575,7 +580,89 @@ async function main() {
     ],
   });
 
-  // ─── Site Settings ───
+  // ─── Lookbooks ───
+  const summerLookbook = await prisma.lookbook.create({
+    data: {
+      name: "Summer Solstice 2024",
+      slug: "summer-solstice-2024",
+      description: "Embrace the warmth with our curated summer edit — where lightweight fabrics meet effortless elegance.",
+      coverImageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/summer-cover",
+      season: "Summer", year: 2024, layout: "editorial",
+      story: { narrative: "Inspired by the golden hour, this collection captures the essence of sun-drenched days and balmy evenings. Each piece is designed to move with you, from morning coffees to sunset soirees." },
+      tags: ["summer", "linen", "editorial"], isActive: true, sortOrder: 1,
+    },
+  });
+  await prisma.lookbookItem.createMany({
+    data: [
+      { lookbookId: summerLookbook.id, imageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/summer-1", caption: "Linen in the golden hour", sortOrder: 1 },
+      { lookbookId: summerLookbook.id, imageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/summer-2", caption: "Effortless silhouettes", sortOrder: 2 },
+      { lookbookId: summerLookbook.id, imageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/summer-3", caption: "Sunset hues", sortOrder: 3 },
+    ],
+  });
+
+  const heritageLookbook = await prisma.lookbook.create({
+    data: {
+      name: "Heritage Revival",
+      slug: "heritage-revival",
+      description: "A tribute to the master artisans who keep India's textile traditions alive.",
+      coverImageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/heritage-cover",
+      season: "Festive", year: 2024, layout: "masonry",
+      story: { narrative: "Each piece in this lookbook tells a story of generations of craftsmanship. From the handloom weavers of Varanasi to the embroiderers of Lucknow, we celebrate the hands that create magic." },
+      tags: ["heritage", "craftsmanship", "festive"], isActive: true, sortOrder: 2,
+    },
+  });
+  await prisma.lookbookItem.createMany({
+    data: [
+      { lookbookId: heritageLookbook.id, imageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/heritage-1", caption: "Banarasi elegance", sortOrder: 1 },
+      { lookbookId: heritageLookbook.id, imageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/heritage-2", caption: "Zari detailing", sortOrder: 2 },
+    ],
+  });
+
+  // ─── Page Templates ───
+  await prisma.pageTemplate.createMany({
+    data: [
+      {
+        name: "Standard Landing Page", slug: "standard-landing",
+        description: "A balanced layout with hero banner, featured sections, and newsletter signup.",
+        category: "landing", thumbnail: null,
+        sections: [
+          { id: "section-1", type: "hero_banner", config: { heading: "Welcome", subheading: "Discover our collection", ctaText: "Shop Now", ctaUrl: "/shop" }, styles: {} },
+          { id: "section-2", type: "product_grid", config: { title: "Featured Products", columns: 4, limit: 8 }, styles: {} },
+          { id: "section-3", type: "newsletter", config: { heading: "Stay Connected", buttonText: "Subscribe" }, styles: {} },
+        ],
+        metadata: { description: "Best for brand homepages and campaign landing pages." },
+        isActive: true,
+      },
+      {
+        name: "Brand Story Page", slug: "brand-story",
+        description: "Tells your brand narrative with hero image, text blocks, and values section.",
+        category: "content", thumbnail: null,
+        sections: [
+          { id: "section-1", type: "hero_banner", config: { heading: "Our Story", subheading: "The journey of craftsmanship" }, styles: {} },
+          { id: "section-2", type: "text_block", config: { heading: "Our Heritage", content: "<p>Founded with a vision...</p>" }, styles: {} },
+          { id: "section-3", type: "image_block", config: { image: "" }, styles: {} },
+          { id: "section-4", type: "testimonial", config: { title: "What Our Customers Say", testimonials: [] }, styles: {} },
+        ],
+        metadata: { description: "Perfect for About Us and brand narrative pages." },
+        isActive: true,
+      },
+      {
+        name: "Lookbook Layout", slug: "lookbook-layout",
+        description: "Visual-first layout with full-width images and shop-the-look integrations.",
+        category: "editorial", thumbnail: null,
+        sections: [
+          { id: "section-1", type: "hero_banner", config: { heading: "Collection Name", subheading: "Season Year" }, styles: {} },
+          { id: "section-2", type: "image_block", config: { image: "", fullWidth: true }, styles: {} },
+          { id: "section-3", type: "rich_text", config: { heading: "The Inspiration", content: "<p>...</p>" }, styles: {} },
+          { id: "section-4", type: "product_grid", config: { title: "Shop the Look", columns: 3, limit: 6 }, styles: {} },
+        ],
+        metadata: { description: "Ideal for product launches and editorial content." },
+        isActive: true,
+      },
+    ],
+  });
+
+  // ─── Site Settings with Theme ───
   await prisma.siteSetting.create({
     data: {
       siteName: "NABOME",
@@ -588,6 +675,35 @@ async function main() {
       contactEmail: "hello@nabome.com",
       contactPhone: "+91-1800-NABOME",
       address: "NABOME House, Mumbai, Maharashtra, India",
+      theme: {
+        branding: {
+          logoLight: null, logoDark: null, logoMobile: null, favicon: null,
+          siteName: "NABOME", tagline: "Premium Fashion Destination",
+          description: "Premium fashion destination celebrating traditional craftsmanship.",
+        },
+        colors: {
+          primary: "#1B2A4A", primaryLight: "#2C4270", primaryDark: "#0F1B30",
+          accent: "#C9A84C", accentLight: "#DCC47A", accentDark: "#A8882E",
+          background: "#FFFFFF", surface: "#F8F7F4", surfaceHover: "#EEEDE8",
+          text: "#1A1A1A", textSecondary: "#6B6B6B", textOnPrimary: "#FFFFFF",
+          border: "#E5E4DF", divider: "#F0EFEB", error: "#DC2626", success: "#16A34A", warning: "#D97706",
+          productCardBg: "#FFFFFF", productCardBorder: "#F0EFEB", saleBadge: "#DC2626", newBadge: "#16A34A",
+        },
+        typography: {
+          displayFont: "Playfair Display", displaySizes: { sm: "2rem", md: "3rem", lg: "4rem", xl: "5rem" },
+          headingFont: "Inter", headingWeights: { regular: 400, medium: 500, semibold: 600, bold: 700 },
+          bodyFont: "Inter", bodySize: "0.9375rem", lineHeight: 1.6,
+          monoFont: "JetBrains Mono", letterSpacing: { tight: "-0.01em", normal: "0", wide: "0.02em", wider: "0.05em" },
+        },
+        buttons: {
+          primary: { bg: "#1B2A4A", text: "#FFFFFF", border: "#1B2A4A", radius: "0", paddingX: "1.75rem", paddingY: "0.75rem", hoverBg: "#2C4270", hoverText: "#FFFFFF", hoverBorder: "#2C4270" },
+          secondary: { bg: "transparent", text: "#1B2A4A", border: "#1B2A4A", radius: "0", paddingX: "1.75rem", paddingY: "0.75rem", hoverBg: "#1B2A4A", hoverText: "#FFFFFF", hoverBorder: "#1B2A4A" },
+          outline: { bg: "transparent", text: "#1A1A1A", border: "#E5E4DF", radius: "0", paddingX: "1.75rem", paddingY: "0.75rem", hoverBg: "#F8F7F4", hoverText: "#1A1A1A", hoverBorder: "#1A1A1A" },
+        },
+        layout: { containerMaxWidth: "1440px", maxWidth: "1280px", headerStyle: "classic", footerStyle: "classic", productCardLayout: "vertical", mobileMenuStyle: "drawer" },
+        header: { style: "classic", sticky: true, transparent: false, menuLocation: "header_main", showIcons: true, searchType: "overlay", cartType: "drawer" },
+        footer: { style: "classic", columns: 4, showNewsletter: true, showSocial: true, showContact: true, showPaymentIcons: true },
+      },
     },
   });
 
@@ -612,6 +728,8 @@ async function main() {
   console.log("   Coupons:", await prisma.coupon.count());
   console.log("   Announcements:", await prisma.announcementBar.count());
   console.log("   Social Links:", await prisma.socialMediaLink.count());
+  console.log("   Lookbooks:", await prisma.lookbook.count());
+  console.log("   Page Templates:", await prisma.pageTemplate.count());
 }
 
 main()

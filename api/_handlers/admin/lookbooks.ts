@@ -14,23 +14,36 @@ export async function handleAdminLookbookRequest(
       return handleList();
     case "create":
       return handleCreate(req);
+    case "detail":
+      return handleDetail(params[0]);
     case "update":
       return handleUpdate(params[0], req);
     case "delete":
       return handleDelete(params[0]);
     case "addItem":
       return handleAddItem(params[0], req);
+    case "updateItem":
+      return handleUpdateItem(params[0], params[1], req);
     case "removeItem":
       return handleRemoveItem(params[0], params[1]);
+    case "reorderItems":
+      return handleReorderItems(params[0], req);
     default:
       return badRequest("Unknown action");
   }
 }
 
+function buildInclude() {
+  return {
+    items: { orderBy: { sortOrder: "asc" as const } },
+    _count: { select: { items: true } },
+  };
+}
+
 async function handleList(): Promise<Response> {
   try {
     const lookbooks = await prisma.lookbook.findMany({
-      include: { _count: { select: { items: true } } },
+      include: buildInclude(),
       orderBy: { sortOrder: "asc" },
     });
     return success({ lookbooks });
@@ -39,11 +52,24 @@ async function handleList(): Promise<Response> {
   }
 }
 
+async function handleDetail(id: string): Promise<Response> {
+  try {
+    const lookbook = await prisma.lookbook.findUnique({
+      where: { id },
+      include: buildInclude(),
+    });
+    if (!lookbook) return notFound("Lookbook not found");
+    return success({ lookbook });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
 async function handleCreate(req: Request): Promise<Response> {
   const body = await req.json();
-  const { name, description, coverImageUrl, isActive, sortOrder } = body;
+  const { name, description, coverImageUrl, season, year, layout, story, tags, metaTitle, metaDesc, isActive, sortOrder } = body;
 
-  if (!name || !coverImageUrl) return badRequest("Name and cover image are required");
+  if (!name) return badRequest("Name is required");
 
   const slug = slugify(name);
   const slugExists = await prisma.lookbook.findUnique({ where: { slug } });
@@ -55,7 +81,14 @@ async function handleCreate(req: Request): Promise<Response> {
         name,
         slug: finalSlug,
         description: description ?? null,
-        coverImageUrl,
+        coverImageUrl: coverImageUrl ?? "",
+        season: season ?? null,
+        year: year ? parseInt(String(year)) : null,
+        layout: layout ?? "grid",
+        story: story ?? null,
+        tags: Array.isArray(tags) ? tags : [],
+        metaTitle: metaTitle ?? null,
+        metaDesc: metaDesc ?? null,
         isActive: isActive ?? true,
         sortOrder: sortOrder ?? 0,
       },
@@ -69,12 +102,19 @@ async function handleCreate(req: Request): Promise<Response> {
 async function handleUpdate(lookbookId: string, req: Request): Promise<Response> {
   const body = await req.json();
   try {
+    const existing = await prisma.lookbook.findUnique({ where: { id: lookbookId } });
+    if (!existing) return notFound("Lookbook not found");
+
     const data: Record<string, unknown> = {};
-    const fields = ["name", "description", "coverImageUrl", "isActive", "sortOrder"];
+    const fields = ["name", "description", "coverImageUrl", "layout", "metaTitle", "metaDesc", "isActive", "sortOrder"];
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = body[field];
     }
     if (body.name) data.slug = slugify(body.name);
+    if (body.season !== undefined) data.season = body.season;
+    if (body.year !== undefined) data.year = parseInt(String(body.year));
+    if (body.story !== undefined) data.story = body.story;
+    if (body.tags !== undefined) data.tags = Array.isArray(body.tags) ? body.tags : [];
 
     const lookbook = await prisma.lookbook.update({
       where: { id: lookbookId },
@@ -97,7 +137,7 @@ async function handleDelete(lookbookId: string): Promise<Response> {
 
 async function handleAddItem(lookbookId: string, req: Request): Promise<Response> {
   const body = await req.json();
-  const { imageUrl, productId, hotspotX, hotspotY, caption, sortOrder } = body;
+  const { imageUrl, productId, hotspotX, hotspotY, caption, sortOrder, linkUrl, linkText, type } = body;
 
   if (!imageUrl) return badRequest("Image URL is required");
 
@@ -107,8 +147,8 @@ async function handleAddItem(lookbookId: string, req: Request): Promise<Response
         lookbookId,
         imageUrl,
         productId: productId ?? null,
-        hotspotX: hotspotX ?? null,
-        hotspotY: hotspotY ?? null,
+        hotspotX: hotspotX ? parseFloat(String(hotspotX)) : null,
+        hotspotY: hotspotY ? parseFloat(String(hotspotY)) : null,
         caption: caption ?? null,
         sortOrder: sortOrder ?? 0,
       },
@@ -116,6 +156,27 @@ async function handleAddItem(lookbookId: string, req: Request): Promise<Response
     return created(item);
   } catch (err) {
     return serverError(err);
+  }
+}
+
+async function handleUpdateItem(lookbookId: string, itemId: string, req: Request): Promise<Response> {
+  const body = await req.json();
+  try {
+    const data: Record<string, unknown> = {};
+    const fields = ["imageUrl", "productId", "caption", "sortOrder"];
+    for (const field of fields) {
+      if (body[field] !== undefined) data[field] = body[field];
+    }
+    if (body.hotspotX !== undefined) data.hotspotX = parseFloat(String(body.hotspotX));
+    if (body.hotspotY !== undefined) data.hotspotY = parseFloat(String(body.hotspotY));
+
+    const item = await prisma.lookbookItem.update({
+      where: { id: itemId },
+      data: data as never,
+    });
+    return success(item);
+  } catch (err) {
+    return notFound("Item not found");
   }
 }
 
@@ -127,5 +188,24 @@ async function handleRemoveItem(lookbookId: string, itemId: string): Promise<Res
     return success({ message: "Item removed from lookbook" });
   } catch (err) {
     return notFound("Item not found");
+  }
+}
+
+async function handleReorderItems(lookbookId: string, req: Request): Promise<Response> {
+  const body = await req.json();
+  const { order } = body;
+  if (!Array.isArray(order)) return badRequest("Order array is required");
+  try {
+    await prisma.$transaction(
+      order.map((item: { id: string; sortOrder: number }) =>
+        prisma.lookbookItem.update({
+          where: { id: item.id, lookbookId },
+          data: { sortOrder: item.sortOrder },
+        })
+      )
+    );
+    return success({ message: "Items reordered" });
+  } catch (err) {
+    return serverError(err);
   }
 }

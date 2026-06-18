@@ -23,8 +23,8 @@ const AccountAddressesPage = lazy(() => import("../pages/AccountAddressesPage"))
 const AccountWishlistPage = lazy(() => import("../pages/AccountWishlistPage"));
 const AccountSettingsPage = lazy(() => import("../pages/AccountSettingsPage"));
 
-// Admin pages
-const AdminDashboardPage = lazy(() => import("../pages/admin/AdminDashboardPage"));
+// Admin pages (full dashboard with all modules)
+const AdminRoutes = lazy(() => import("../admin/AdminRoutes"));
 
 export const AUTH_ROUTES = (
   <>
@@ -58,11 +58,8 @@ export const ADMIN_ROUTES = (
     path="admin"
     element={
       <AdminRoute>
-        <AdminDashboardPage />
+        <AdminRoutes />
       </AdminRoute>
     }
-  >
-    <Route index element={<AdminDashboardPage />} />
-    <Route path="dashboard" element={<AdminDashboardPage />} />
-  </Route>
+  />
 );

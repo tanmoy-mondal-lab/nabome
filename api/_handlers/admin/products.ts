@@ -7,11 +7,15 @@ const productInclude = {
   category: { select: { id: true, name: true, slug: true } },
   subcategory: { select: { id: true, name: true, slug: true } },
   collection: { select: { id: true, name: true, slug: true } },
-  images: { orderBy: { sortOrder: "asc" } },
-  variants: true,
+  brand: { select: { id: true, name: true, slug: true, logoUrl: true } },
+  sizeGuide: { select: { id: true, name: true } },
+  images: { orderBy: { sortOrder: "asc" as const } },
+  variants: { include: { inventoryAlerts: { where: { isResolved: false }, take: 1 } } },
   attributes: true,
   productTags: { include: { tag: true } },
   productLabels: { include: { label: true } },
+  relatedTo: { include: { target: { select: { id: true, name: true, slug: true, basePrice: true, salePrice: true, images: { where: { isPrimary: true }, take: 1, select: { url: true } } } } } },
+  relatedFrom: { include: { source: { select: { id: true, name: true, slug: true, basePrice: true, salePrice: true, images: { where: { isPrimary: true }, take: 1, select: { url: true } } } } } },
   _count: { select: { reviews: true, orderItems: true } },
 };
 
@@ -22,24 +26,21 @@ export async function handleAdminProductRequest(
   action: string
 ): Promise<Response> {
   switch (action) {
-    case "list":
-      return handleList(req);
-    case "create":
-      return handleCreate(req);
-    case "detail":
-      return handleDetail(params[0]);
-    case "update":
-      return handleUpdate(params[0], req);
-    case "delete":
-      return handleDelete(params[0]);
-    case "variants":
-      return handleUpdateVariants(params[0], req);
-    case "addImage":
-      return handleAddImage(params[0], req);
-    case "deleteImage":
-      return handleDeleteImage(params[0], params[1]);
-    default:
-      return badRequest("Unknown action");
+    case "list": return handleList(req);
+    case "create": return handleCreate(req);
+    case "detail": return handleDetail(params[0]);
+    case "update": return handleUpdate(params[0], req);
+    case "delete": return handleDelete(params[0]);
+    case "duplicate": return handleDuplicate(params[0]);
+    case "restore": return handleRestore(params[0]);
+    case "variants": return handleUpdateVariants(params[0], req);
+    case "addImage": return handleAddImage(params[0], req);
+    case "deleteImage": return handleDeleteImage(params[0], params[1]);
+    case "bulkStatus": return handleBulkStatus(req);
+    case "bulkCategory": return handleBulkCategory(req);
+    case "bulkDelete": return handleBulkDelete(req);
+    case "schedule": return handleSchedule(params[0], req);
+    default: return badRequest("Unknown action");
   }
 }
 
@@ -294,4 +295,149 @@ async function handleDeleteImage(productId: string, imageId: string): Promise<Re
   } catch (err) {
     return notFound("Image not found");
   }
+}
+
+// ─── Duplicate ───
+
+async function handleDuplicate(productId: string): Promise<Response> {
+  try {
+    const source = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { attributes: true, variants: true, productTags: true, productLabels: true },
+    });
+    if (!source) return notFound("Product not found");
+
+    const suffix = `-copy-${Date.now().toString(36)}`;
+    const product = await prisma.product.create({
+      data: {
+        name: `${source.name} (Copy)`,
+        slug: `${source.slug}${suffix}`,
+        description: source.description,
+        shortDescription: source.shortDescription,
+        categoryId: source.categoryId,
+        subcategoryId: source.subcategoryId,
+        collectionId: source.collectionId,
+        brandId: source.brandId,
+        basePrice: source.basePrice,
+        compareAtPrice: source.compareAtPrice,
+        costPrice: source.costPrice,
+        salePrice: source.salePrice,
+        currency: source.currency,
+        material: source.material,
+        careInstructions: source.careInstructions,
+        gender: source.gender,
+        metaTitle: source.metaTitle ? `${source.metaTitle} (Copy)` : null,
+        metaDesc: source.metaDesc,
+        isActive: false,
+        isFeatured: false,
+        isNew: false,
+        sortOrder: 0,
+      },
+    });
+
+    // Duplicate variants
+    for (const v of source.variants) {
+      await prisma.productVariant.create({
+        data: {
+          productId: product.id,
+          sku: `${v.sku}-CP${Date.now().toString(36).toUpperCase()}`,
+          size: v.size,
+          color: v.color,
+          colorHex: v.colorHex,
+          priceAdjustment: v.priceAdjustment,
+          stock: 0,
+          weight: v.weight,
+          isActive: true,
+        },
+      });
+    }
+
+    // Duplicate attributes
+    if (source.attributes.length > 0) {
+      await prisma.productAttribute.createMany({
+        data: source.attributes.map((a) => ({ productId: product.id, name: a.name, value: a.value })),
+      });
+    }
+
+    return success({ product, message: "Product duplicated as draft" });
+  } catch (err) { return serverError(err); }
+}
+
+// ─── Restore (reactivate) ───
+
+async function handleRestore(productId: string): Promise<Response> {
+  try {
+    const product = await prisma.product.update({
+      where: { id: productId },
+      data: { isActive: true, publishedAt: new Date() },
+    });
+    return success(product);
+  } catch (err) { return notFound("Product not found"); }
+}
+
+// ─── Bulk Status ───
+
+async function handleBulkStatus(req: Request): Promise<Response> {
+  const body = await req.json();
+  const { ids, status } = body;
+  if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
+  if (typeof status !== "boolean") return badRequest("status boolean required");
+  try {
+    const result = await prisma.product.updateMany({
+      where: { id: { in: ids } },
+      data: { isActive: status, publishedAt: status ? new Date() : undefined },
+    });
+    return success({ updated: result.count });
+  } catch (err) { return serverError(err); }
+}
+
+// ─── Bulk Category ───
+
+async function handleBulkCategory(req: Request): Promise<Response> {
+  const body = await req.json();
+  const { ids, categoryId, subcategoryId, collectionId } = body;
+  if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
+  try {
+    const data: Record<string, unknown> = {};
+    if (categoryId !== undefined) data.categoryId = categoryId;
+    if (subcategoryId !== undefined) data.subcategoryId = subcategoryId;
+    if (collectionId !== undefined) data.collectionId = collectionId;
+    const result = await prisma.product.updateMany({
+      where: { id: { in: ids } },
+      data: data as never,
+    });
+    return success({ updated: result.count });
+  } catch (err) { return serverError(err); }
+}
+
+// ─── Bulk Delete ───
+
+async function handleBulkDelete(req: Request): Promise<Response> {
+  const body = await req.json();
+  const { ids } = body;
+  if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
+  try {
+    const result = await prisma.product.updateMany({
+      where: { id: { in: ids }, isActive: true },
+      data: { isActive: false },
+    });
+    return success({ archived: result.count });
+  } catch (err) { return serverError(err); }
+}
+
+// ─── Schedule Publish/Archive ───
+
+async function handleSchedule(productId: string, req: Request): Promise<Response> {
+  const body = await req.json();
+  const { publishAt, archiveAt } = body;
+  try {
+    const data: Record<string, unknown> = {};
+    if (publishAt) data.scheduledPublishAt = new Date(publishAt);
+    if (archiveAt) data.scheduledArchiveAt = new Date(archiveAt);
+    const product = await prisma.product.update({
+      where: { id: productId },
+      data: data as never,
+    });
+    return success(product);
+  } catch (err) { return notFound("Product not found"); }
 }

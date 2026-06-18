@@ -6,7 +6,7 @@ import { ORDER_STATUS_FLOW } from "../../../src/lib/constants";
 const orderInclude = {
   items: true,
   statusHistory: {
-    orderBy: { createdAt: "asc" },
+    orderBy: { createdAt: "asc" as const },
     include: { creator: { select: { firstName: true, lastName: true } } },
   },
   shippingAddress: true,

@@ -6,7 +6,7 @@
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearch", "postgresqlExtensions"]
+  previewFeatures = ["fullTextSearchPostgres", "postgresqlExtensions"]
 }
 
 datasource db {
@@ -202,6 +202,7 @@ model Category {
   children      Category[]    @relation("CategoryHierarchy")
   products      Product[]
   subcategories Subcategory[]
+  sizeGuides    SizeGuide[]
 
   @@index([slug])
   @@index([parentId])
@@ -255,6 +256,66 @@ model Collection {
   @@map("collections")
 }
 
+model Brand {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(200)
+  slug        String   @unique @db.VarChar(200)
+  description String?  @db.Text
+  logoUrl     String?  @map("logo_url") @db.Text
+  websiteUrl  String?  @map("website_url") @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("brands")
+}
+
+model SizeGuide {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(200)
+  slug        String   @unique @db.VarChar(200)
+  description String?  @db.Text
+  categoryId  String?  @map("category_id") @db.Uuid
+  type        String   @default("clothing") @db.VarChar(50)
+  unit        String   @default("inches") @db.VarChar(20)
+  imageUrl    String?  @map("image_url") @db.Text
+  measurements Json    @db.JsonB
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  products Product[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@map("size_guides")
+}
+
+model InventoryAlert {
+  id        String   @id @default(uuid()) @db.Uuid
+  variantId String   @map("variant_id") @db.Uuid
+  type      String   @db.VarChar(50)
+  message   String   @db.Text
+  threshold Int?     @db.SmallInt
+  currentStock Int  @map("current_stock") @db.SmallInt
+  isResolved Boolean @default(false) @map("is_resolved")
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId, isResolved])
+  @@index([type, isResolved])
+  @@index([createdAt])
+  @@map("inventory_alerts")
+}
+
 model Product {
   id               String    @id @default(uuid()) @db.Uuid
   name             String    @db.VarChar(300)
@@ -264,19 +325,25 @@ model Product {
   categoryId       String?   @map("category_id") @db.Uuid
   subcategoryId    String?   @map("subcategory_id") @db.Uuid
   collectionId     String?   @map("collection_id") @db.Uuid
+  brandId          String?   @map("brand_id") @db.Uuid
   basePrice        Decimal   @map("base_price") @db.Decimal(10, 2)
   compareAtPrice   Decimal?  @map("compare_at_price") @db.Decimal(10, 2)
   costPrice        Decimal?  @map("cost_price") @db.Decimal(10, 2)
+  salePrice        Decimal?  @map("sale_price") @db.Decimal(10, 2)
+  discountPercent  Int?      @map("discount_percent") @db.SmallInt
   currency         String    @default("INR") @db.VarChar(3)
   material         String?   @db.VarChar(200)
   careInstructions String?   @map("care_instructions") @db.Text
   sizeChartUrl     String?   @map("size_chart_url") @db.Text
+  sizeGuideId      String?   @map("size_guide_id") @db.Uuid
   isActive         Boolean   @default(true) @map("is_active")
   isFeatured       Boolean   @default(false) @map("is_featured")
   isNew            Boolean   @default(false) @map("is_new")
   gender           Gender    @default(unisex)
   sortOrder        Int       @default(0) @map("sort_order")
   publishedAt      DateTime? @map("published_at") @db.Timestamptz
+  scheduledPublishAt DateTime? @map("scheduled_publish_at") @db.Timestamptz
+  scheduledArchiveAt DateTime? @map("scheduled_archive_at") @db.Timestamptz
   metaTitle        String?   @map("meta_title") @db.VarChar(200)
   metaDesc         String?   @map("meta_desc") @db.Text
   createdAt        DateTime  @default(now()) @map("created_at")
@@ -285,12 +352,16 @@ model Product {
   category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   subcategory Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
   collection  Collection?  @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  brand       Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  sizeGuide   SizeGuide?   @relation(fields: [sizeGuideId], references: [id], onDelete: SetNull)
 
   variants      ProductVariant[]
   images        ProductImage[]
   attributes    ProductAttribute[]
   productTags   ProductTagOnProduct[]
   productLabels ProductLabelOnProduct[]
+  relatedTo     RelatedProduct[] @relation("RelatedProductSource")
+  relatedFrom   RelatedProduct[] @relation("RelatedProductTarget")
   reviews       Review[]
   orderItems    OrderItem[]
   lookbookItems LookbookItem[]
@@ -299,9 +370,12 @@ model Product {
   @@index([categoryId])
   @@index([collectionId])
   @@index([gender])
+  @@index([brandId])
   @@index([isActive, isFeatured])
   @@index([isActive, isNew])
   @@index([basePrice])
+  @@index([scheduledPublishAt])
+  @@index([scheduledArchiveAt])
   @@index([createdAt])
   @@map("products")
 }
@@ -327,6 +401,7 @@ model ProductVariant {
   wishlistItems  WishlistItem[]
   orderItems     OrderItem[]
   inventoryMovements InventoryMovement[]
+  inventoryAlerts    InventoryAlert[]
 
   @@index([productId])
   @@index([sku])
@@ -364,6 +439,23 @@ model ProductAttribute {
   @@index([productId])
   @@index([name])
   @@map("product_attributes")
+}
+
+model RelatedProduct {
+  id         String   @id @default(uuid()) @db.Uuid
+  sourceId   String   @map("source_id") @db.Uuid
+  targetId   String   @map("target_id") @db.Uuid
+  type       String   @default("related") @db.VarChar(50)
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  source Product @relation("RelatedProductSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target Product @relation("RelatedProductTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, targetId, type])
+  @@index([sourceId, type])
+  @@index([targetId, type])
+  @@map("related_products")
 }
 
 model ProductTag {
@@ -757,21 +849,29 @@ model BrandStory {
 }
 
 model Lookbook {
-  id            String    @id @default(uuid()) @db.Uuid
-  name          String    @db.VarChar(200)
-  slug          String    @unique @db.VarChar(200)
-  description   String?   @db.Text
-  coverImageUrl String    @map("cover_image_url") @db.Text
-  isActive      Boolean   @default(true) @map("is_active")
-  sortOrder     Int       @default(0) @map("sort_order")
-  publishedAt   DateTime? @map("published_at") @db.Timestamptz
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String    @db.VarChar(200)
+  slug            String    @unique @db.VarChar(200)
+  description     String?   @db.Text
+  coverImageUrl   String    @map("cover_image_url") @db.Text
+  season          String?   @db.VarChar(50)
+  year            Int?
+  layout          String    @default("grid") @db.VarChar(50)
+  story           Json?     @db.JsonB
+  tags            String[]  @default([])
+  metaTitle       String?   @map("meta_title") @db.VarChar(200)
+  metaDesc        String?   @map("meta_desc") @db.Text
+  isActive        Boolean   @default(true) @map("is_active")
+  sortOrder       Int       @default(0) @map("sort_order")
+  publishedAt     DateTime? @map("published_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   items LookbookItem[]
 
   @@index([slug])
   @@index([isActive, sortOrder])
+  @@index([season, year])
   @@map("lookbooks")
 }
 
@@ -864,6 +964,7 @@ model SiteSetting {
   address                  String? @db.Text
   googleAnalyticsId        String? @map("google_analytics_id") @db.VarChar(50)
   facebookPixelId          String? @map("facebook_pixel_id") @db.VarChar(50)
+  theme                    Json?   @map("theme") @db.JsonB
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @updatedAt @map("updated_at")
 
@@ -908,6 +1009,29 @@ model NewsletterSubscriber {
 
   @@index([isActive])
   @@map("newsletter_subscribers")
+}
+
+// ─────────────────────────────────────────────────────────────
+// TEMPLATE MODULE
+// ─────────────────────────────────────────────────────────────
+
+model PageTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(200)
+  slug        String   @unique @db.VarChar(200)
+  description String?  @db.Text
+  category    String   @default("custom") @db.VarChar(50)
+  thumbnail   String?  @map("thumbnail") @db.Text
+  sections    Json     @db.JsonB
+  metadata    Json?    @map("metadata") @db.JsonB
+  isActive    Boolean  @default(true) @map("is_active")
+  useCount    Int      @default(0) @map("use_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@index([category, isActive])
+  @@map("page_templates")
 }
 
 // ─────────────────────────────────────────────────────────────

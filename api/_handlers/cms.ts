@@ -91,8 +91,10 @@ async function handleAnnouncements(): Promise<Response> {
     const announcements = await prisma.announcementBar.findMany({
       where: {
         isActive: true,
-        OR: [{ startDate: null }, { startDate: { lte: now } }],
-        OR: [{ endDate: null }, { endDate: { gte: now } }],
+        AND: [
+          { OR: [{ startDate: null }, { startDate: { lte: now } }] },
+          { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+        ],
       },
       orderBy: { createdAt: "desc" },
     });

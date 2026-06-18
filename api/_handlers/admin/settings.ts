@@ -48,6 +48,7 @@ async function handleUpdate(req: Request): Promise<Response> {
       "shippingInfo", "returnPolicy", "aboutUs",
       "contactEmail", "contactPhone", "address",
       "googleAnalyticsId", "facebookPixelId",
+      "theme",
     ];
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = body[field];

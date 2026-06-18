@@ -6,11 +6,13 @@ const productInclude = {
   category: { select: { id: true, name: true, slug: true } },
   subcategory: { select: { id: true, name: true, slug: true } },
   collection: { select: { id: true, name: true, slug: true } },
+  brand: { select: { id: true, name: true, slug: true, logoUrl: true } },
   images: { orderBy: { sortOrder: "asc" as const } },
-  variants: { where: { isActive: true } },
+  variants: { where: { isActive: true }, include: { inventoryAlerts: { where: { isResolved: false }, take: 1 } } },
   attributes: true,
   productTags: { include: { tag: true } },
   productLabels: { include: { label: true } },
+  relatedTo: { include: { target: { select: { id: true, name: true, slug: true, basePrice: true, images: { where: { isPrimary: true }, take: 1, select: { url: true } } } } } },
   _count: { select: { reviews: true } },
 };
 
@@ -81,6 +83,12 @@ async function handleList(req: Request): Promise<Response> {
   const maxPrice = url.searchParams.get("maxPrice");
   const sort = url.searchParams.get("sort") ?? "newest";
   const tag = url.searchParams.get("tag");
+  const size = url.searchParams.get("size");
+  const color = url.searchParams.get("color");
+  const material = url.searchParams.get("material");
+  const brand = url.searchParams.get("brand");
+  const label = url.searchParams.get("label");
+  const availability = url.searchParams.get("availability");
 
   const where: Record<string, unknown> = { isActive: true };
 
@@ -94,6 +102,33 @@ async function handleList(req: Request): Promise<Response> {
   }
   if (tag) {
     where.productTags = { some: { tag: { slug: tag } } };
+  }
+  if (size || color) {
+    where.variants = {
+      some: {
+        isActive: true,
+        ...(size ? { size } : {}),
+        ...(color ? { color: { contains: color, mode: "insensitive" } } : {}),
+      },
+    };
+  }
+  if (material) {
+    where.material = { contains: material, mode: "insensitive" };
+  }
+  if (brand) {
+    where.brand = { slug: brand };
+  }
+  if (label) {
+    where.productLabels = { some: { label: { slug: label } } };
+  }
+  if (availability === "in_stock") {
+    where.variants = {
+      ...((where.variants as Record<string, unknown>) ?? {}),
+      some: {
+        ...(((where.variants as Record<string, unknown>)?.some as Record<string, unknown>) ?? {}),
+        stock: { gt: 0 },
+      },
+    };
   }
 
   let orderBy: Record<string, string> = { createdAt: "desc" };
@@ -148,7 +183,7 @@ async function handleFeatured(): Promise<Response> {
     const products = await prisma.product.findMany({
       where: { isActive: true, isFeatured: true },
       select: productListSelect,
-      orderBy: { sortOrder: "asc" },
+      orderBy: { sortOrder: "asc" as const },
       take: 8,
     });
     return success({ products });
@@ -162,7 +197,7 @@ async function handleNewArrivals(): Promise<Response> {
     const products = await prisma.product.findMany({
       where: { isActive: true, isNew: true },
       select: productListSelect,
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: "desc" as const },
       take: 8,
     });
     return success({ products });
@@ -191,11 +226,15 @@ async function handleSearch(req: Request): Promise<Response> {
           OR: [
             { name: { contains: q, mode: "insensitive" } },
             { description: { contains: q, mode: "insensitive" } },
+            { shortDescription: { contains: q, mode: "insensitive" } },
+            { material: { contains: q, mode: "insensitive" } },
+            { brand: { name: { contains: q, mode: "insensitive" } } },
+            { variants: { some: { sku: { contains: q, mode: "insensitive" } } } },
             { productTags: { some: { tag: { name: { contains: q, mode: "insensitive" } } } } },
           ],
         },
         select: productListSelect,
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "desc" as const },
         skip,
         take: limit,
       }),
@@ -251,8 +290,8 @@ async function handleVariants(slug: string): Promise<Response> {
 
     const variants = await prisma.productVariant.findMany({
       where: { productId: product.id, isActive: true },
-      include: { images: { orderBy: { sortOrder: "asc" } } },
-      orderBy: [{ color: "asc" }, { size: "asc" }],
+      include: { images: { orderBy: { sortOrder: "asc" as const } } },
+      orderBy: [{ color: "asc" as const }, { size: "asc" as const }],
     });
 
     return success({ variants });
@@ -275,7 +314,7 @@ async function handleProductReviews(slug: string): Promise<Response> {
       include: {
         profile: { select: { firstName: true, lastName: true, avatarUrl: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: "desc" as const },
     });
 
     // Calculate rating distribution

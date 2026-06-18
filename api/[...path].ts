@@ -76,6 +76,15 @@ import { handleAdminSettingsRequest } from "./_handlers/admin/settings";
 import { handleAdminMarketingRequest } from "./_handlers/admin/marketing";
 import { handleAdminMediaRequest } from "./_handlers/admin/media";
 import { handleAdminContactRequest } from "./_handlers/admin/contacts";
+import { handleAdminTemplateRequest } from "./_handlers/admin/templates";
+import { handleAdminImportExportRequest } from "./_handlers/admin/import-export";
+import { handleAdminSearchIndexRequest } from "./_handlers/admin/search-index";
+import { handleAdminBrandRequest } from "./_handlers/admin/brands";
+import { handleAdminSizeGuideRequest } from "./_handlers/admin/size-guides";
+import { handleAdminProductLabelRequest } from "./_handlers/admin/product-labels";
+import { handleAdminRelatedProductRequest } from "./_handlers/admin/related-products";
+import { handleAdminInventoryRequest } from "./_handlers/admin/inventory";
+import { handleAdminSubcategoryRequest } from "./_handlers/admin/subcategories";
 
 // ─── Route registration ───
 
@@ -152,6 +161,16 @@ route("DELETE", "/api/admin/products/:id", (req, ctx, p) => handleAdminProductRe
 route("PUT", "/api/admin/products/:id/variants", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "variants"), { auth: true, admin: true });
 route("POST", "/api/admin/products/:id/images", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "addImage"), { auth: true, admin: true });
 route("DELETE", "/api/admin/products/:id/images/:imageId", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "deleteImage"), { auth: true, admin: true });
+route("POST", "/api/admin/products/:id/duplicate", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "duplicate"), { auth: true, admin: true });
+route("PUT", "/api/admin/products/:id/restore", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "restore"), { auth: true, admin: true });
+route("PUT", "/api/admin/products/:id/schedule", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "schedule"), { auth: true, admin: true });
+route("PUT", "/api/admin/products/bulk/status", (req, ctx) => handleAdminProductRequest(req, ctx, [], "bulkStatus"), { auth: true, admin: true });
+route("PUT", "/api/admin/products/bulk/category", (req, ctx) => handleAdminProductRequest(req, ctx, [], "bulkCategory"), { auth: true, admin: true });
+route("PUT", "/api/admin/products/bulk/delete", (req, ctx) => handleAdminProductRequest(req, ctx, [], "bulkDelete"), { auth: true, admin: true });
+route("PUT", "/api/admin/products/:id/labels", (req, ctx, p) => handleAdminProductLabelRequest(req, ctx, p, "assignLabels"), { auth: true, admin: true });
+route("PUT", "/api/admin/products/:id/tags", (req, ctx, p) => handleAdminProductLabelRequest(req, ctx, p, "assignTags"), { auth: true, admin: true });
+route("GET", "/api/admin/products/:id/related", (req, ctx, p) => handleAdminRelatedProductRequest(req, ctx, p, "list"), { auth: true, admin: true });
+route("PUT", "/api/admin/products/:id/related/reorder", (req, ctx, p) => handleAdminRelatedProductRequest(req, ctx, p, "reorder"), { auth: true, admin: true });
 
 route("GET", "/api/admin/categories", (req, ctx) => handleAdminCategoryRequest(req, ctx, [], "list"), { auth: true, admin: true });
 route("POST", "/api/admin/categories", (req, ctx) => handleAdminCategoryRequest(req, ctx, [], "create"), { auth: true, admin: true });
@@ -236,6 +255,75 @@ route("DELETE", "/api/admin/contact-submissions/:id", (req, ctx, p) => handleAdm
 
 route("GET", "/api/admin/newsletter-subscribers", (req, ctx) => handleAdminContactRequest(req, ctx, [], "subscribers"), { auth: true, admin: true });
 route("DELETE", "/api/admin/newsletter-subscribers/:id", (req, ctx, p) => handleAdminContactRequest(req, ctx, p, "deleteSubscriber"), { auth: true, admin: true });
+
+// Brands
+route("GET", "/api/admin/brands", (req, ctx) => handleAdminBrandRequest(req, ctx, [], "list"), { auth: true, admin: true });
+route("POST", "/api/admin/brands", (req, ctx) => handleAdminBrandRequest(req, ctx, [], "create"), { auth: true, admin: true });
+route("GET", "/api/admin/brands/:id", (req, ctx, p) => handleAdminBrandRequest(req, ctx, p, "detail"), { auth: true, admin: true });
+route("PUT", "/api/admin/brands/:id", (req, ctx, p) => handleAdminBrandRequest(req, ctx, p, "update"), { auth: true, admin: true });
+route("DELETE", "/api/admin/brands/:id", (req, ctx, p) => handleAdminBrandRequest(req, ctx, p, "delete"), { auth: true, admin: true });
+
+// Size Guides
+route("GET", "/api/admin/size-guides", (req, ctx) => handleAdminSizeGuideRequest(req, ctx, [], "list"), { auth: true, admin: true });
+route("POST", "/api/admin/size-guides", (req, ctx) => handleAdminSizeGuideRequest(req, ctx, [], "create"), { auth: true, admin: true });
+route("GET", "/api/admin/size-guides/:id", (req, ctx, p) => handleAdminSizeGuideRequest(req, ctx, p, "detail"), { auth: true, admin: true });
+route("PUT", "/api/admin/size-guides/:id", (req, ctx, p) => handleAdminSizeGuideRequest(req, ctx, p, "update"), { auth: true, admin: true });
+route("DELETE", "/api/admin/size-guides/:id", (req, ctx, p) => handleAdminSizeGuideRequest(req, ctx, p, "delete"), { auth: true, admin: true });
+
+// Subcategories
+route("GET", "/api/admin/subcategories", (req, ctx) => handleAdminSubcategoryRequest(req, ctx, [], "list"), { auth: true, admin: true });
+route("POST", "/api/admin/subcategories", (req, ctx) => handleAdminSubcategoryRequest(req, ctx, [], "create"), { auth: true, admin: true });
+route("PUT", "/api/admin/subcategories/:id", (req, ctx, p) => handleAdminSubcategoryRequest(req, ctx, p, "update"), { auth: true, admin: true });
+route("DELETE", "/api/admin/subcategories/:id", (req, ctx, p) => handleAdminSubcategoryRequest(req, ctx, p, "delete"), { auth: true, admin: true });
+
+// Product Labels
+route("GET", "/api/admin/product-labels", (req, ctx) => handleAdminProductLabelRequest(req, ctx, [], "listLabels"), { auth: true, admin: true });
+route("POST", "/api/admin/product-labels", (req, ctx) => handleAdminProductLabelRequest(req, ctx, [], "createLabel"), { auth: true, admin: true });
+route("PUT", "/api/admin/product-labels/:id", (req, ctx, p) => handleAdminProductLabelRequest(req, ctx, p, "updateLabel"), { auth: true, admin: true });
+route("DELETE", "/api/admin/product-labels/:id", (req, ctx, p) => handleAdminProductLabelRequest(req, ctx, p, "deleteLabel"), { auth: true, admin: true });
+
+// Product Tags
+route("GET", "/api/admin/product-tags", (req, ctx) => handleAdminProductLabelRequest(req, ctx, [], "listTags"), { auth: true, admin: true });
+route("POST", "/api/admin/product-tags", (req, ctx) => handleAdminProductLabelRequest(req, ctx, [], "createTag"), { auth: true, admin: true });
+route("DELETE", "/api/admin/product-tags/:id", (req, ctx, p) => handleAdminProductLabelRequest(req, ctx, p, "deleteTag"), { auth: true, admin: true });
+
+// Related Products
+route("POST", "/api/admin/related-products", (req, ctx) => handleAdminRelatedProductRequest(req, ctx, [], "create"), { auth: true, admin: true });
+route("DELETE", "/api/admin/related-products/:id", (req, ctx, p) => handleAdminRelatedProductRequest(req, ctx, p, "delete"), { auth: true, admin: true });
+
+// Inventory
+route("GET", "/api/admin/inventory/overview", (req, ctx) => handleAdminInventoryRequest(req, ctx, [], "overview"), { auth: true, admin: true });
+route("GET", "/api/admin/inventory/product/:id/movements", (req, ctx, p) => handleAdminInventoryRequest(req, ctx, p, "productMovements"), { auth: true, admin: true });
+route("GET", "/api/admin/inventory/variant/:id/movements", (req, ctx, p) => handleAdminInventoryRequest(req, ctx, p, "variantMovements"), { auth: true, admin: true });
+route("POST", "/api/admin/inventory/variant/:id/adjust", (req, ctx, p) => handleAdminInventoryRequest(req, ctx, p, "adjustVariant"), { auth: true, admin: true });
+route("GET", "/api/admin/inventory/alerts", (req, ctx) => handleAdminInventoryRequest(req, ctx, [], "alerts"), { auth: true, admin: true });
+route("PUT", "/api/admin/inventory/alerts/:id/resolve", (req, ctx, p) => handleAdminInventoryRequest(req, ctx, p, "resolveAlert"), { auth: true, admin: true });
+
+// Lookbooks extended
+route("GET", "/api/admin/lookbooks/:id", (req, ctx, p) => handleAdminLookbookRequest(req, ctx, p, "detail"), { auth: true, admin: true });
+route("PUT", "/api/admin/lookbooks/:id/items/:itemId", (req, ctx, p) => handleAdminLookbookRequest(req, ctx, p, "updateItem"), { auth: true, admin: true });
+route("PUT", "/api/admin/lookbooks/:id/items/reorder", (req, ctx, p) => handleAdminLookbookRequest(req, ctx, p, "reorderItems"), { auth: true, admin: true });
+
+// Templates
+route("GET", "/api/admin/templates", (req, ctx) => handleAdminTemplateRequest(req, ctx, [], "list"), { auth: true, admin: true });
+route("POST", "/api/admin/templates", (req, ctx) => handleAdminTemplateRequest(req, ctx, [], "create"), { auth: true, admin: true });
+route("GET", "/api/admin/templates/:id", (req, ctx, p) => handleAdminTemplateRequest(req, ctx, p, "detail"), { auth: true, admin: true });
+route("PUT", "/api/admin/templates/:id", (req, ctx, p) => handleAdminTemplateRequest(req, ctx, p, "update"), { auth: true, admin: true });
+route("DELETE", "/api/admin/templates/:id", (req, ctx, p) => handleAdminTemplateRequest(req, ctx, p, "delete"), { auth: true, admin: true });
+route("POST", "/api/admin/templates/:id/apply", (req, ctx, p) => handleAdminTemplateRequest(req, ctx, p, "apply"), { auth: true, admin: true });
+
+// Import / Export
+route("GET", "/api/admin/products/export", (req, ctx) => handleAdminImportExportRequest(req, ctx, [], "exportProducts"), { auth: true, admin: true });
+route("POST", "/api/admin/products/import", (req, ctx) => handleAdminImportExportRequest(req, ctx, [], "importProducts"), { auth: true, admin: true });
+route("GET", "/api/admin/orders/export", (req, ctx) => handleAdminImportExportRequest(req, ctx, [], "exportOrders"), { auth: true, admin: true });
+
+// Search Index
+route("GET", "/api/admin/search/status", (req, ctx) => handleAdminSearchIndexRequest(req, ctx, [], "status"), { auth: true, admin: true });
+route("POST", "/api/admin/search/build", (req, ctx) => handleAdminSearchIndexRequest(req, ctx, [], "build"), { auth: true, admin: true });
+route("GET", "/api/admin/search", (req, ctx) => handleAdminSearchIndexRequest(req, ctx, [], "search"), { auth: true, admin: true });
+
+// Public theme endpoint
+route("GET", "/api/theme", (req, ctx) => handleSettingsRequest(req, ctx, [], "public"));
 
 // ─── Router ───
 

@@ -41,7 +41,7 @@ async function handleSales(req: Request): Promise<Response> {
         shippingCost: true,
         tax: true,
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "asc" as const },
     });
 
     // Aggregate by date
@@ -174,7 +174,7 @@ async function handleCustomers(): Promise<Response> {
 }
 
 function aggregateByPeriod(
-  orders: Array<{ total: number | string; createdAt: Date; status: string }>,
+  orders: Array<{ total: unknown; createdAt: Date; status: string }>,
   period: string
 ): Array<{ date: string; revenue: number; orders: number }> {
   const map = new Map<string, { revenue: number; orders: number }>();

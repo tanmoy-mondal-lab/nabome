@@ -1,0 +1,77 @@
+import { prisma } from "../../_lib/prisma";
+import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
+import type { RequestContext } from "../../_lib/types";
+import { slugify } from "../../../src/lib/utils/format";
+
+export async function handleAdminBrandRequest(
+  req: Request,
+  ctx: RequestContext,
+  params: string[],
+  action: string
+): Promise<Response> {
+  switch (action) {
+    case "list": return handleList();
+    case "create": return handleCreate(req);
+    case "detail": return handleDetail(params[0]);
+    case "update": return handleUpdate(params[0], req);
+    case "delete": return handleDelete(params[0]);
+    default: return badRequest("Unknown action");
+  }
+}
+
+async function handleList(): Promise<Response> {
+  try {
+    const brands = await prisma.brand.findMany({
+      include: { _count: { select: { products: true } } },
+      orderBy: { sortOrder: "asc" as const },
+    });
+    return success({ brands });
+  } catch (err) { return serverError(err); }
+}
+
+async function handleDetail(id: string): Promise<Response> {
+  try {
+    const brand = await prisma.brand.findUnique({
+      where: { id },
+      include: { _count: { select: { products: true } } },
+    });
+    if (!brand) return notFound("Brand not found");
+    return success({ brand });
+  } catch (err) { return serverError(err); }
+}
+
+async function handleCreate(req: Request): Promise<Response> {
+  const body = await req.json();
+  const { name, description, logoUrl, websiteUrl, sortOrder } = body;
+  if (!name) return badRequest("Brand name is required");
+  const slug = slugify(name);
+  const slugExists = await prisma.brand.findUnique({ where: { slug } });
+  const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
+  try {
+    const brand = await prisma.brand.create({
+      data: { name, slug: finalSlug, description, logoUrl, websiteUrl, sortOrder: sortOrder ?? 0 },
+    });
+    return created(brand);
+  } catch (err) { return serverError(err); }
+}
+
+async function handleUpdate(id: string, req: Request): Promise<Response> {
+  const body = await req.json();
+  try {
+    const existing = await prisma.brand.findUnique({ where: { id } });
+    if (!existing) return notFound("Brand not found");
+    const data: Record<string, unknown> = {};
+    const fields = ["name", "description", "logoUrl", "websiteUrl", "sortOrder", "isActive"];
+    for (const f of fields) { if (body[f] !== undefined) data[f] = body[f]; }
+    if (body.name) data.slug = slugify(body.name);
+    const brand = await prisma.brand.update({ where: { id }, data: data as never });
+    return success(brand);
+  } catch (err) { return serverError(err); }
+}
+
+async function handleDelete(id: string): Promise<Response> {
+  try {
+    await prisma.brand.update({ where: { id }, data: { isActive: false } });
+    return success({ message: "Brand archived" });
+  } catch (err) { return notFound("Brand not found"); }
+}
