@@ -2,10 +2,14 @@ import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
+import { requireAdmin } from "../../_lib/auth";
 
 export async function handleAdminSubcategoryRequest(
   req: Request, ctx: RequestContext, params: string[], action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "list": return handleList();
     case "create": return handleCreate(req);

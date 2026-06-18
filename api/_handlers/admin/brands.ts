@@ -2,6 +2,8 @@ import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
+import { requireAdmin } from "../../_lib/auth";
+import { logAction, extractRequestMeta } from "../../_lib/audit";
 
 export async function handleAdminBrandRequest(
   req: Request,
@@ -9,12 +11,15 @@ export async function handleAdminBrandRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "list": return handleList();
-    case "create": return handleCreate(req);
+    case "create": return handleCreate(req, ctx);
     case "detail": return handleDetail(params[0]);
-    case "update": return handleUpdate(params[0], req);
-    case "delete": return handleDelete(params[0]);
+    case "update": return handleUpdate(params[0], req, ctx);
+    case "delete": return handleDelete(params[0], req, ctx);
     default: return badRequest("Unknown action");
   }
 }
@@ -40,7 +45,7 @@ async function handleDetail(id: string): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleCreate(req: Request): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { name, description, logoUrl, websiteUrl, sortOrder } = body;
   if (!name) return badRequest("Brand name is required");
@@ -51,11 +56,17 @@ async function handleCreate(req: Request): Promise<Response> {
     const brand = await prisma.brand.create({
       data: { name, slug: finalSlug, description, logoUrl, websiteUrl, sortOrder: sortOrder ?? 0 },
     });
+    logAction(ctx.userId, "admin.brands.create", {
+      entity: "brand",
+      entityId: brand.id,
+      metadata: { name: brand.name, slug: brand.slug },
+      ...extractRequestMeta(req),
+    });
     return created(brand);
   } catch (err) { return serverError(err); }
 }
 
-async function handleUpdate(id: string, req: Request): Promise<Response> {
+async function handleUpdate(id: string, req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   try {
     const existing = await prisma.brand.findUnique({ where: { id } });
@@ -65,13 +76,24 @@ async function handleUpdate(id: string, req: Request): Promise<Response> {
     for (const f of fields) { if (body[f] !== undefined) data[f] = body[f]; }
     if (body.name) data.slug = slugify(body.name);
     const brand = await prisma.brand.update({ where: { id }, data: data as never });
+    logAction(ctx.userId, "admin.brands.update", {
+      entity: "brand",
+      entityId: brand.id,
+      metadata: { name: brand.name },
+      ...extractRequestMeta(req),
+    });
     return success(brand);
   } catch (err) { return serverError(err); }
 }
 
-async function handleDelete(id: string): Promise<Response> {
+async function handleDelete(id: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     await prisma.brand.update({ where: { id }, data: { isActive: false } });
+    logAction(ctx.userId, "admin.brands.delete", {
+      entity: "brand",
+      entityId: id,
+      ...extractRequestMeta(req),
+    });
     return success({ message: "Brand archived" });
   } catch (err) { return notFound("Brand not found"); }
 }

@@ -2,6 +2,7 @@ import { prisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
+import { requireAdmin } from "../../_lib/auth";
 
 export async function handleAdminImportExportRequest(
   req: Request,
@@ -9,6 +10,9 @@ export async function handleAdminImportExportRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "exportProducts":
       return handleExportProducts(req);

@@ -2,6 +2,8 @@ import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
+import { logAction, extractRequestMeta } from "../../_lib/audit";
+import { requireAdmin } from "../../_lib/auth";
 
 const productInclude = {
   category: { select: { id: true, name: true, slug: true } },
@@ -25,14 +27,17 @@ export async function handleAdminProductRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "list": return handleList(req);
     case "create": return handleCreate(req);
     case "detail": return handleDetail(params[0]);
     case "update": return handleUpdate(params[0], req);
-    case "delete": return handleDelete(params[0]);
-    case "duplicate": return handleDuplicate(params[0]);
-    case "restore": return handleRestore(params[0]);
+    case "delete": return handleDelete(params[0], req);
+    case "duplicate": return handleDuplicate(params[0], req);
+    case "restore": return handleRestore(params[0], req);
     case "variants": return handleUpdateVariants(params[0], req);
     case "addImage": return handleAddImage(params[0], req);
     case "deleteImage": return handleDeleteImage(params[0], params[1]);
@@ -131,6 +136,13 @@ async function handleCreate(req: Request): Promise<Response> {
       include: { images: true, variants: true },
     });
 
+    logAction(ctx.userId, "admin.product.create", {
+      entity: "product",
+      entityId: product.id,
+      metadata: { name: product.name, slug: product.slug },
+      ...extractRequestMeta(req),
+    });
+
     return created(product);
   } catch (err) {
     return serverError(err);
@@ -187,18 +199,32 @@ async function handleUpdate(productId: string, req: Request): Promise<Response> 
       include: productInclude,
     });
 
+    logAction(ctx.userId, "admin.product.update", {
+      entity: "product",
+      entityId: productId,
+      metadata: { name: product.name },
+      ...extractRequestMeta(req),
+    });
+
     return success(product);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleDelete(productId: string): Promise<Response> {
+async function handleDelete(productId: string, req: Request): Promise<Response> {
   try {
     await prisma.product.update({
       where: { id: productId },
       data: { isActive: false },
     });
+    logAction(ctx.userId, "admin.product.delete", {
+      entity: "product",
+      entityId: productId,
+      metadata: {},
+      ...extractRequestMeta(req),
+    });
+
     return success({ message: "Product deactivated" });
   } catch (err) {
     return serverError(err);
@@ -299,7 +325,7 @@ async function handleDeleteImage(productId: string, imageId: string): Promise<Re
 
 // ─── Duplicate ───
 
-async function handleDuplicate(productId: string): Promise<Response> {
+async function handleDuplicate(productId: string, req: Request): Promise<Response> {
   try {
     const source = await prisma.product.findUnique({
       where: { id: productId },
@@ -359,18 +385,32 @@ async function handleDuplicate(productId: string): Promise<Response> {
       });
     }
 
+    logAction(ctx.userId, "admin.product.duplicate", {
+      entity: "product",
+      entityId: product.id,
+      metadata: { sourceId: productId, name: product.name },
+      ...extractRequestMeta(req),
+    });
+
     return success({ product, message: "Product duplicated as draft" });
   } catch (err) { return serverError(err); }
 }
 
 // ─── Restore (reactivate) ───
 
-async function handleRestore(productId: string): Promise<Response> {
+async function handleRestore(productId: string, req: Request): Promise<Response> {
   try {
     const product = await prisma.product.update({
       where: { id: productId },
       data: { isActive: true, publishedAt: new Date() },
     });
+    logAction(ctx.userId, "admin.product.restore", {
+      entity: "product",
+      entityId: productId,
+      metadata: { name: product.name },
+      ...extractRequestMeta(req),
+    });
+
     return success(product);
   } catch (err) { return notFound("Product not found"); }
 }
@@ -387,6 +427,13 @@ async function handleBulkStatus(req: Request): Promise<Response> {
       where: { id: { in: ids } },
       data: { isActive: status, publishedAt: status ? new Date() : undefined },
     });
+    logAction(ctx.userId, "admin.product.bulk_status", {
+      entity: "product",
+      entityId: ids.join(","),
+      metadata: { count: ids.length, status },
+      ...extractRequestMeta(req),
+    });
+
     return success({ updated: result.count });
   } catch (err) { return serverError(err); }
 }
@@ -421,6 +468,13 @@ async function handleBulkDelete(req: Request): Promise<Response> {
       where: { id: { in: ids }, isActive: true },
       data: { isActive: false },
     });
+    logAction(ctx.userId, "admin.product.bulk_delete", {
+      entity: "product",
+      entityId: ids.join(","),
+      metadata: { count: ids.length },
+      ...extractRequestMeta(req),
+    });
+
     return success({ archived: result.count });
   } catch (err) { return serverError(err); }
 }

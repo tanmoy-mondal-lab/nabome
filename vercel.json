@@ -6,11 +6,15 @@
 
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap.xml"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/[...path]"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|sitemap\\.xml).*)",
       "destination": "/index.html"
     }
   ],

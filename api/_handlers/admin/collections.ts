@@ -2,6 +2,8 @@ import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
+import { logAction, extractRequestMeta } from "../../_lib/audit";
+import { requireAdmin } from "../../_lib/auth";
 
 export async function handleAdminCollectionRequest(
   req: Request,
@@ -9,6 +11,9 @@ export async function handleAdminCollectionRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "list":
       return handleList();
@@ -17,7 +22,7 @@ export async function handleAdminCollectionRequest(
     case "update":
       return handleUpdate(params[0], req);
     case "delete":
-      return handleDelete(params[0]);
+      return handleDelete(params[0], req);
     default:
       return badRequest("Unknown action");
   }
@@ -61,6 +66,13 @@ async function handleCreate(req: Request): Promise<Response> {
         metaDesc: metaDesc ?? null,
       },
     });
+    logAction(ctx.userId, "admin.collection.create", {
+      entity: "collection",
+      entityId: collection.id,
+      metadata: { name: collection.name, slug: collection.slug },
+      ...extractRequestMeta(req),
+    });
+
     return created(collection);
   } catch (err) {
     return serverError(err);
@@ -90,18 +102,32 @@ async function handleUpdate(collectionId: string, req: Request): Promise<Respons
       where: { id: collectionId },
       data: data as never,
     });
+    logAction(ctx.userId, "admin.collection.update", {
+      entity: "collection",
+      entityId: collectionId,
+      metadata: { name: collection.name },
+      ...extractRequestMeta(req),
+    });
+
     return success(collection);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleDelete(collectionId: string): Promise<Response> {
+async function handleDelete(collectionId: string, req: Request): Promise<Response> {
   try {
     await prisma.collection.update({
       where: { id: collectionId },
       data: { isActive: false },
     });
+    logAction(ctx.userId, "admin.collection.delete", {
+      entity: "collection",
+      entityId: collectionId,
+      metadata: {},
+      ...extractRequestMeta(req),
+    });
+
     return success({ message: "Collection deactivated" });
   } catch (err) {
     return serverError(err);

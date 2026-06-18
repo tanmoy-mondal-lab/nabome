@@ -1,6 +1,8 @@
 import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
+import { requireAdmin } from "../../_lib/auth";
+import { logAction, extractRequestMeta } from "../../_lib/audit";
 
 export async function handleAdminCouponRequest(
   req: Request,
@@ -8,15 +10,18 @@ export async function handleAdminCouponRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "list":
       return handleList();
     case "create":
-      return handleCreate(req);
+      return handleCreate(req, ctx);
     case "update":
-      return handleUpdate(params[0], req);
+      return handleUpdate(params[0], req, ctx);
     case "delete":
-      return handleDelete(params[0]);
+      return handleDelete(params[0], req, ctx);
     default:
       return badRequest("Unknown action");
   }
@@ -34,7 +39,7 @@ async function handleList(): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { code, description, discountType, discountValue, minOrderValue, maxDiscount, usageLimit, perUserLimit, applicableGender, isActive, startDate, endDate } = body;
 
@@ -62,13 +67,19 @@ async function handleCreate(req: Request): Promise<Response> {
         endDate: new Date(endDate),
       },
     });
+    logAction(ctx.userId, "admin.coupons.create", {
+      entity: "coupon",
+      entityId: coupon.id,
+      metadata: { code: coupon.code, discountType: coupon.discountType },
+      ...extractRequestMeta(req),
+    });
     return created(coupon);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleUpdate(couponId: string, req: Request): Promise<Response> {
+async function handleUpdate(couponId: string, req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
 
   try {
@@ -89,17 +100,28 @@ async function handleUpdate(couponId: string, req: Request): Promise<Response> {
       where: { id: couponId },
       data: data as never,
     });
+    logAction(ctx.userId, "admin.coupons.update", {
+      entity: "coupon",
+      entityId: coupon.id,
+      metadata: { code: coupon.code },
+      ...extractRequestMeta(req),
+    });
     return success(coupon);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleDelete(couponId: string): Promise<Response> {
+async function handleDelete(couponId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     await prisma.coupon.update({
       where: { id: couponId },
       data: { isActive: false },
+    });
+    logAction(ctx.userId, "admin.coupons.delete", {
+      entity: "coupon",
+      entityId: couponId,
+      ...extractRequestMeta(req),
     });
     return success({ message: "Coupon deactivated" });
   } catch (err) {

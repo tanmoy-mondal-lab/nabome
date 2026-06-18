@@ -2,7 +2,9 @@ import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { ORDER_STATUS_FLOW } from "../../../src/lib/constants";
+import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { sendEmailNotification } from "../../_lib/email";
+import { requireAdmin } from "../../_lib/auth";
 
 const orderInclude = {
   items: true,
@@ -21,6 +23,9 @@ export async function handleAdminOrderRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "list":
       return handleList(req);
@@ -31,7 +36,7 @@ export async function handleAdminOrderRequest(
     case "updateStatus":
       return handleUpdateStatus(params[0], req, ctx);
     case "internalNotes":
-      return handleInternalNotes(params[0], req);
+      return handleInternalNotes(params[0], req, ctx);
     case "timeline":
       return handleTimeline(params[0]);
     default:
@@ -288,13 +293,20 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
       }
     }
 
+    logAction(ctx.userId, "admin.order.status_change", {
+      entity: "order",
+      entityId: orderId,
+      metadata: { from: order.status, to: status },
+      ...extractRequestMeta(req),
+    });
+
     return success(updated);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleInternalNotes(orderId: string, req: Request): Promise<Response> {
+async function handleInternalNotes(orderId: string, req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { internalNotes } = body;
 
@@ -308,6 +320,13 @@ async function handleInternalNotes(orderId: string, req: Request): Promise<Respo
       where: { id: orderId },
       data: { internalNotes },
       include: orderInclude,
+    });
+
+    logAction(ctx.userId, "admin.order.internal_notes", {
+      entity: "order",
+      entityId: orderId,
+      metadata: {},
+      ...extractRequestMeta(req),
     });
 
     return success(updated);

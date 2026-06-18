@@ -56,15 +56,16 @@ export function StorefrontLayout() {
         <meta property="og:url" content={currentUrl} />
         <meta property="og:site_name" content="নবME" />
         <meta property="og:locale" content="en_IN" />
-        <meta property="og:image" content="https://www.nabome.online/og-image.jpg" />
+        <meta property="og:image" content="https://www.nabome.online/og-image.svg" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
+        <meta property="og:image:type" content="image/svg+xml" />
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@nabome" />
         <meta name="twitter:title" content={siteTitle} />
         <meta name="twitter:description" content={siteDescription} />
-        <meta name="twitter:image" content="https://www.nabome.online/og-image.jpg" />
+        <meta name="twitter:image" content="https://www.nabome.online/og-image.svg" />
 
         <script type="application/ld+json">{JSON.stringify(ws)}</script>
       </Helmet>

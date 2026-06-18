@@ -3,6 +3,7 @@ import { success, badRequest, notFound, error, serverError } from "../_lib/respo
 import type { RequestContext } from "../_lib/types";
 import { createHmac } from "crypto";
 import { sendEmailNotification } from "../_lib/email";
+import { logAction, extractRequestMeta } from "../_lib/audit";
 
 async function callRazorpay(
   path: string,
@@ -83,6 +84,12 @@ async function handleVerify(req: Request): Promise<Response> {
     if (!order) return notFound("Order not found");
 
     if (order.paymentStatus === "paid") {
+      logAction(null, "payment.verify_duplicate", {
+        entity: "order",
+        entityId: orderId,
+        metadata: { razorpayPaymentId },
+        ...extractRequestMeta(req),
+      });
       return success({ success: true, alreadyProcessed: true });
     }
 
@@ -130,6 +137,13 @@ async function handleVerify(req: Request): Promise<Response> {
     } catch (emailErr) {
       console.error("[EMAIL] Failed to send payment success:", (emailErr as Error).message);
     }
+
+    logAction(order.profileId, "payment.verify", {
+      entity: "order",
+      entityId: order.id,
+      metadata: { orderNumber: order.orderNumber, razorpayPaymentId },
+      ...extractRequestMeta(req),
+    });
 
     return success({ success: true });
   } catch (err) {
@@ -179,6 +193,13 @@ async function handleFailed(req: Request): Promise<Response> {
     } catch (emailErr) {
       console.error("[EMAIL] Failed to send payment failure:", (emailErr as Error).message);
     }
+
+    logAction(order.profileId, "payment.failed", {
+      entity: "order",
+      entityId: order.id,
+      metadata: { orderNumber: order.orderNumber, errorCode, errorDescription },
+      ...extractRequestMeta(req),
+    });
 
     return success({ success: true });
   } catch (err) {
@@ -321,6 +342,18 @@ async function handleRefund(req: Request, ctx: RequestContext): Promise<Response
           },
         },
       });
+    });
+
+    logAction(ctx.userId, "payment.refund", {
+      entity: "order",
+      entityId: orderId,
+      metadata: {
+        orderNumber: order.orderNumber,
+        amount: refundAmount,
+        refundId: refundData.id,
+        isFullRefund,
+      },
+      ...extractRequestMeta(req),
     });
 
     return success({
@@ -777,6 +810,12 @@ async function handleWebhook(req: Request): Promise<Response> {
       },
     }).catch(() => {});
 
+    logAction(null, "payment.webhook", {
+      entity: "payment_webhook",
+      entityId: eventId,
+      metadata: { event: eventName, status: "processed" },
+    });
+
     return success({ status: "processed", event: eventName, result });
   } catch (err) {
     const errorMessage = (err as Error).message;
@@ -789,6 +828,12 @@ async function handleWebhook(req: Request): Promise<Response> {
         processedAt: new Date(),
       },
     }).catch(() => {});
+
+    logAction(null, "payment.webhook_error", {
+      entity: "payment_webhook",
+      entityId: eventId,
+      metadata: { event: eventName, status: "failed", error: errorMessage },
+    });
 
     console.error(`[WEBHOOK] Error processing ${eventName}:`, errorMessage);
     return success({ status: "error", event: eventName, error: errorMessage });

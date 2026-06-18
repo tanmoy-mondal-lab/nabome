@@ -95,8 +95,9 @@ export function withRateLimit(
   return null;
 }
 
-export function getRateLimitKey(ip: string, endpoint: string): string {
-  return `${ip}:${endpoint}`;
+export function getRateLimitKey(ip: string, endpoint: string, userAgent?: string): string {
+  const ua = userAgent?.slice(0, 50) ?? "unknown";
+  return `${ip}:${ua}:${endpoint}`;
 }
 
 export { DEFAULTS as RATE_LIMIT_CONFIG };

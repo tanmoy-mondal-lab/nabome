@@ -1,6 +1,7 @@
 import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
+import { requireAdmin } from "../../_lib/auth";
 
 export async function handleAdminMarketingRequest(
   req: Request,
@@ -8,6 +9,9 @@ export async function handleAdminMarketingRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "announcements":
       return handleAnnouncementsList();

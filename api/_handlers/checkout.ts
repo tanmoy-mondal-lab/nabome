@@ -3,6 +3,7 @@ import { success, badRequest, serverError, unauthorized } from "../_lib/response
 import type { RequestContext } from "../_lib/types";
 import { generateOrderNumber } from "../../src/lib/utils/format";
 import { sendEmailNotification } from "../_lib/email";
+import { logAction, extractRequestMeta } from "../_lib/audit";
 
 const VALID_PAYMENT_METHODS = ["cod", "card", "upi", "netbanking", "wallet", "razorpay"] as const;
 const STANDARD_SHIPPING = 99;
@@ -455,6 +456,18 @@ export async function handleCheckoutRequest(
     } catch (emailErr) {
       console.error("[EMAIL] Failed to send order confirmation:", (emailErr as Error).message);
     }
+
+    logAction(profileId, "order.placed", {
+      entity: "order",
+      entityId: order.id,
+      metadata: {
+        orderNumber: order.orderNumber,
+        total: Number(order.total),
+        paymentMethod,
+        isGuest: !profileId,
+      },
+      ...extractRequestMeta(req),
+    });
 
     return success({ order, razorpayOrderId });
   } catch (err) {

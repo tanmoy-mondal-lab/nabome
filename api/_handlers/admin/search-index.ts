@@ -1,6 +1,7 @@
 import { prisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
+import { requireAdmin } from "../../_lib/auth";
 
 type SearchableDoc = {
   id: string;
@@ -28,6 +29,9 @@ export async function handleAdminSearchIndexRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "status":
       return handleStatus();

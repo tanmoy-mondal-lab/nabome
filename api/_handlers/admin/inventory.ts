@@ -1,6 +1,7 @@
 import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
+import { requireAdmin } from "../../_lib/auth";
 
 export async function handleAdminInventoryRequest(
   req: Request,
@@ -8,6 +9,9 @@ export async function handleAdminInventoryRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "overview": return handleOverview();
     case "productMovements": return handleProductMovements(params[0]);

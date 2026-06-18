@@ -2,6 +2,8 @@ import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
+import { logAction, extractRequestMeta } from "../../_lib/audit";
+import { requireAdmin } from "../../_lib/auth";
 
 export async function handleAdminCategoryRequest(
   req: Request,
@@ -9,6 +11,9 @@ export async function handleAdminCategoryRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "list":
       return handleList();
@@ -17,7 +22,7 @@ export async function handleAdminCategoryRequest(
     case "update":
       return handleUpdate(params[0], req);
     case "delete":
-      return handleDelete(params[0]);
+      return handleDelete(params[0], req);
     default:
       return badRequest("Unknown action");
   }
@@ -69,6 +74,13 @@ async function handleCreate(req: Request): Promise<Response> {
     // Also create subcategory if parentId is provided and no subcategory table entry needed
     // The subcategory model exists for finer-grained categorization
 
+    logAction(ctx.userId, "admin.category.create", {
+      entity: "category",
+      entityId: category.id,
+      metadata: { name: category.name, slug: category.slug },
+      ...extractRequestMeta(req),
+    });
+
     return created(category);
   } catch (err) {
     return serverError(err);
@@ -99,13 +111,20 @@ async function handleUpdate(categoryId: string, req: Request): Promise<Response>
       include: { _count: { select: { products: true } } },
     });
 
+    logAction(ctx.userId, "admin.category.update", {
+      entity: "category",
+      entityId: categoryId,
+      metadata: { name: category.name },
+      ...extractRequestMeta(req),
+    });
+
     return success(category);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleDelete(categoryId: string): Promise<Response> {
+async function handleDelete(categoryId: string, req: Request): Promise<Response> {
   try {
     const productCount = await prisma.product.count({ where: { categoryId } });
     if (productCount > 0) {
@@ -116,6 +135,13 @@ async function handleDelete(categoryId: string): Promise<Response> {
       where: { id: categoryId },
       data: { isActive: false },
     });
+    logAction(ctx.userId, "admin.category.delete", {
+      entity: "category",
+      entityId: categoryId,
+      metadata: {},
+      ...extractRequestMeta(req),
+    });
+
     return success({ message: "Category deactivated" });
   } catch (err) {
     return serverError(err);

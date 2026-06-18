@@ -2,6 +2,7 @@ import { prisma } from "../_lib/prisma";
 import { success, notFound, badRequest, unauthorized, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { ORDER_STATUS_FLOW } from "../../src/lib/constants";
+import { logAction, extractRequestMeta } from "../_lib/audit";
 
 export async function handleOrderRequest(
   req: Request,
@@ -23,7 +24,7 @@ export async function handleOrderRequest(
 
   // POST /api/orders/:id/cancel
   if (method === "POST" && params.length && action === "cancel") {
-    return handleCancel(ctx, params[0]);
+    return handleCancel(req, ctx, params[0]);
   }
 
   // GET /api/orders/:id/tracking
@@ -111,9 +112,17 @@ async function handleDetail(ctx: RequestContext, orderId: string): Promise<Respo
   }
 }
 
-async function handleCancel(ctx: RequestContext, orderId: string): Promise<Response> {
+async function handleCancel(req: Request, ctx: RequestContext, orderId: string): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
+  }
+
+  let cancellationReason: string | null = null;
+  try {
+    const body = await req.json();
+    cancellationReason = body.reason ?? null;
+  } catch {
+    // No body — that's fine
   }
 
   try {
@@ -137,10 +146,13 @@ async function handleCancel(ctx: RequestContext, orderId: string): Promise<Respo
         data: {
           status: "cancelled",
           cancelledAt: new Date(),
+          cancellationReason,
           statusHistory: {
             create: {
               status: "cancelled",
-              note: "Cancelled by customer",
+              note: cancellationReason
+                ? `Cancelled by customer: ${cancellationReason}`
+                : "Cancelled by customer",
               createdBy: ctx.userId,
             },
           },
@@ -188,6 +200,13 @@ async function handleCancel(ctx: RequestContext, orderId: string): Promise<Respo
       });
 
       return cancelled;
+    });
+
+    logAction(ctx.userId, "order.cancel", {
+      entity: "order",
+      entityId: orderId,
+      metadata: { orderNumber: order.orderNumber, reason: cancellationReason },
+      ...extractRequestMeta(req),
     });
 
     return success({ order: updated });

@@ -9,6 +9,7 @@ import type { RequestContext } from "./_lib/types";
 import { authenticateRequest, requireAdmin } from "./_lib/auth";
 import { notFound, serverError, error } from "./_lib/response";
 import { checkRateLimit, RATE_LIMIT_CONFIG, rateLimitResponse } from "./_lib/rate-limit";
+import { logAction, extractRequestMeta } from "./_lib/audit";
 import { setCsrfCookie } from "./_lib/csrf";
 
 const ALLOWED_ORIGINS = [
@@ -80,8 +81,9 @@ function calculateKey(request: Request, path: string): string {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
     || request.headers.get("x-real-ip")
     || "unknown";
+  const ua = request.headers.get("user-agent")?.slice(0, 50) || "unknown";
   const endpoint = path.replace(/\/\d+/g, "/:id");
-  return `${ip}:${endpoint}`;
+  return `${ip}:${ua}:${endpoint}`;
 }
 
 // ─── Route handler registry ───
@@ -550,6 +552,16 @@ async function handleRequest(method: string, request: Request): Promise<Response
   const rateResult = checkRateLimit(key, rateConfig);
   if (!rateResult.allowed) {
     return withCors(rateLimitResponse(rateConfig.message || "Too many requests", rateResult.resetAt), request, path);
+  }
+
+  // Body size limit
+  const contentLength = request.headers.get("content-length");
+  if (contentLength && ["POST", "PUT", "PATCH"].includes(method)) {
+    const isUpload = path === "/api/upload" || path.startsWith("/api/admin/media");
+    const maxBytes = isUpload ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (parseInt(contentLength) > maxBytes) {
+      return withCors(error(`Request body too large. Max: ${isUpload ? "20MB" : "5MB"}`, 413), request, path);
+    }
   }
 
   // Try to match a route

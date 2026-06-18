@@ -12,6 +12,7 @@ import { authenticate } from "../_lib/auth-middleware";
 import type { RequestContext } from "../_lib/types";
 import { validateBody, authRegisterSchema, authLoginSchema } from "../_lib/validate";
 import { sendEmailNotification } from "../_lib/email";
+import { logAction, extractRequestMeta } from "../_lib/audit";
 
 function getAnonClient() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
@@ -103,6 +104,10 @@ async function handleRegister(req: Request): Promise<Response> {
     return serverError(err);
   }
 
+  logAction(authData.user.id, "auth.register", {
+    metadata: { email, firstName },
+  });
+
   return created({
     user: { id: authData.user.id, email, firstName },
     message: "Account created successfully",
@@ -193,6 +198,11 @@ async function handleLogin(req: Request): Promise<Response> {
     },
   });
 
+  logAction(data.user.id, "auth.login", {
+    ipAddress: clientIp,
+    userAgent: userAgent,
+  });
+
   return success({
     session: {
       accessToken: data.session.access_token,
@@ -276,6 +286,12 @@ async function handleRefresh(req: Request): Promise<Response> {
     }),
   ]);
 
+  logAction(oldSession.profileId, "auth.token_refresh", {
+    metadata: { rotatedFromSession: oldSession.id, newSessionId: newSession.id },
+    ipAddress: clientIp,
+    userAgent: userAgent,
+  });
+
   return success({
     session: {
       accessToken: newSession.accessToken,
@@ -308,6 +324,8 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
   } catch {
     // Non-critical
   }
+
+  logAction(ctx.userId, "auth.logout", extractRequestMeta(req));
 
   return success({ message: "Logged out successfully" });
 }
@@ -444,10 +462,29 @@ async function handleResetPassword(req: Request): Promise<Response> {
     return unauthorized("Missing or invalid reset token");
   }
 
-  const supabase = getAnonClient();
-  const { error } = await supabase.auth.updateUser({ password });
+  const anonClient = getAnonClient();
+  const { data: userData, error } = await anonClient.auth.updateUser({ password });
 
   if (error) return badRequest(error.message);
+
+  // Invalidate all sessions after password reset (force re-login)
+  if (userData?.user?.id) {
+    try {
+      const adminClient = getAdminClient();
+      await adminClient.auth.admin.signOut(userData.user.id);
+      await prisma.authSession.updateMany({
+        where: { profileId: userData.user.id, isActive: true },
+        data: { isActive: false },
+      }).catch(() => {});
+    } catch {
+      // Non-critical
+    }
+  }
+
+  logAction(null, "auth.password_reset", {
+    metadata: {},
+    ...extractRequestMeta(req),
+  });
 
   return success({ message: "Password updated successfully" });
 }

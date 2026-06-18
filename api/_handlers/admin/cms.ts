@@ -2,6 +2,8 @@ import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
+import { requireAdmin } from "../../_lib/auth";
+import { logAction, extractRequestMeta } from "../../_lib/audit";
 
 export async function handleAdminCMSRequest(
   req: Request,
@@ -9,45 +11,48 @@ export async function handleAdminCMSRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "pages":
       return handlePagesList();
     case "createPage":
-      return handleCreatePage(req);
+      return handleCreatePage(req, ctx);
     case "updatePage":
-      return handleUpdatePage(params[0], req);
+      return handleUpdatePage(params[0], req, ctx);
     case "deletePage":
-      return handleDeletePage(params[0]);
+      return handleDeletePage(params[0], req, ctx);
     case "homepage":
       return handleHomepageList();
     case "createHomeSection":
-      return handleCreateHomeSection(req);
+      return handleCreateHomeSection(req, ctx);
     case "updateHomeSection":
-      return handleUpdateHomeSection(params[0], req);
+      return handleUpdateHomeSection(params[0], req, ctx);
     case "deleteHomeSection":
-      return handleDeleteHomeSection(params[0]);
+      return handleDeleteHomeSection(params[0], req, ctx);
     case "reorderHomeSections":
       return handleReorderHomeSections(req);
     case "navigation":
       return handleNavigationList();
     case "createNavigation":
-      return handleCreateNavigation(req);
+      return handleCreateNavigation(req, ctx);
     case "updateNavigation":
-      return handleUpdateNavigation(params[0], req);
+      return handleUpdateNavigation(params[0], req, ctx);
     case "deleteNavigation":
-      return handleDeleteNavigation(params[0]);
+      return handleDeleteNavigation(params[0], req, ctx);
     case "brandStory":
       return handleGetBrandStory();
     case "updateBrandStory":
-      return handleUpdateBrandStory(req);
+      return handleUpdateBrandStory(req, ctx);
     case "footer":
       return handleFooterList();
     case "createFooter":
-      return handleCreateFooter(req);
+      return handleCreateFooter(req, ctx);
     case "updateFooter":
-      return handleUpdateFooter(params[0], req);
+      return handleUpdateFooter(params[0], req, ctx);
     case "deleteFooter":
-      return handleDeleteFooter(params[0]);
+      return handleDeleteFooter(params[0], req, ctx);
     default:
       return badRequest("Unknown action");
   }
@@ -66,7 +71,7 @@ async function handlePagesList(): Promise<Response> {
   }
 }
 
-async function handleCreatePage(req: Request): Promise<Response> {
+async function handleCreatePage(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { title, content, template, isPublished, metaTitle, metaDesc, ogImage } = body;
 
@@ -90,13 +95,19 @@ async function handleCreatePage(req: Request): Promise<Response> {
         ogImage: ogImage ?? null,
       },
     });
+    logAction(ctx.userId, "admin.cms.page.create", {
+      entity: "staticPage",
+      entityId: page.id,
+      metadata: { title: page.title, slug: page.slug },
+      ...extractRequestMeta(req),
+    });
     return created(page);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleUpdatePage(pageId: string, req: Request): Promise<Response> {
+async function handleUpdatePage(pageId: string, req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   try {
     const existing = await prisma.staticPage.findUnique({ where: { id: pageId } });
@@ -116,15 +127,26 @@ async function handleUpdatePage(pageId: string, req: Request): Promise<Response>
       where: { id: pageId },
       data: data as never,
     });
+    logAction(ctx.userId, "admin.cms.page.update", {
+      entity: "staticPage",
+      entityId: page.id,
+      metadata: { title: page.title },
+      ...extractRequestMeta(req),
+    });
     return success(page);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleDeletePage(pageId: string): Promise<Response> {
+async function handleDeletePage(pageId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     await prisma.staticPage.delete({ where: { id: pageId } });
+    logAction(ctx.userId, "admin.cms.page.delete", {
+      entity: "staticPage",
+      entityId: pageId,
+      ...extractRequestMeta(req),
+    });
     return success({ message: "Page deleted" });
   } catch (err) {
     return notFound("Page not found");
@@ -144,7 +166,7 @@ async function handleHomepageList(): Promise<Response> {
   }
 }
 
-async function handleCreateHomeSection(req: Request): Promise<Response> {
+async function handleCreateHomeSection(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { sectionType, title, subtitle, content, sortOrder, isActive, visibility } = body;
 
@@ -162,13 +184,19 @@ async function handleCreateHomeSection(req: Request): Promise<Response> {
         visibility: visibility ?? "all",
       },
     });
+    logAction(ctx.userId, "admin.cms.homepage.create", {
+      entity: "homepageSection",
+      entityId: section.id,
+      metadata: { sectionType: section.sectionType, title: section.title },
+      ...extractRequestMeta(req),
+    });
     return created(section);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleUpdateHomeSection(sectionId: string, req: Request): Promise<Response> {
+async function handleUpdateHomeSection(sectionId: string, req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   try {
     const data: Record<string, unknown> = {};
@@ -181,15 +209,26 @@ async function handleUpdateHomeSection(sectionId: string, req: Request): Promise
       where: { id: sectionId },
       data: data as never,
     });
+    logAction(ctx.userId, "admin.cms.homepage.update", {
+      entity: "homepageSection",
+      entityId: section.id,
+      metadata: { sectionType: section.sectionType },
+      ...extractRequestMeta(req),
+    });
     return success(section);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleDeleteHomeSection(sectionId: string): Promise<Response> {
+async function handleDeleteHomeSection(sectionId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     await prisma.homepageSection.delete({ where: { id: sectionId } });
+    logAction(ctx.userId, "admin.cms.homepage.delete", {
+      entity: "homepageSection",
+      entityId: sectionId,
+      ...extractRequestMeta(req),
+    });
     return success({ message: "Section deleted" });
   } catch (err) {
     return notFound("Section not found");
@@ -230,7 +269,7 @@ async function handleNavigationList(): Promise<Response> {
   }
 }
 
-async function handleCreateNavigation(req: Request): Promise<Response> {
+async function handleCreateNavigation(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { name, location, items, isActive } = body;
 
@@ -247,13 +286,19 @@ async function handleCreateNavigation(req: Request): Promise<Response> {
         isActive: isActive ?? true,
       },
     });
+    logAction(ctx.userId, "admin.cms.navigation.create", {
+      entity: "navigationMenu",
+      entityId: menu.id,
+      metadata: { name: menu.name, location: menu.location },
+      ...extractRequestMeta(req),
+    });
     return created(menu);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleUpdateNavigation(menuId: string, req: Request): Promise<Response> {
+async function handleUpdateNavigation(menuId: string, req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   try {
     const data: Record<string, unknown> = {};
@@ -266,15 +311,26 @@ async function handleUpdateNavigation(menuId: string, req: Request): Promise<Res
       where: { id: menuId },
       data: data as never,
     });
+    logAction(ctx.userId, "admin.cms.navigation.update", {
+      entity: "navigationMenu",
+      entityId: menu.id,
+      metadata: { name: menu.name },
+      ...extractRequestMeta(req),
+    });
     return success(menu);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleDeleteNavigation(menuId: string): Promise<Response> {
+async function handleDeleteNavigation(menuId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     await prisma.navigationMenu.delete({ where: { id: menuId } });
+    logAction(ctx.userId, "admin.cms.navigation.delete", {
+      entity: "navigationMenu",
+      entityId: menuId,
+      ...extractRequestMeta(req),
+    });
     return success({ message: "Menu deleted" });
   } catch (err) {
     return notFound("Menu not found");
@@ -292,7 +348,7 @@ async function handleGetBrandStory(): Promise<Response> {
   }
 }
 
-async function handleUpdateBrandStory(req: Request): Promise<Response> {
+async function handleUpdateBrandStory(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { title, subtitle, heroImageUrl, content, mission, vision, values } = body;
 
@@ -311,6 +367,12 @@ async function handleUpdateBrandStory(req: Request): Promise<Response> {
           values: values ?? existing.values,
         },
       });
+      logAction(ctx.userId, "admin.cms.brand_story.update", {
+        entity: "brandStory",
+        entityId: story.id,
+        metadata: { title: story.title },
+        ...extractRequestMeta(req),
+      });
       return success(story);
     } else {
       const story = await prisma.brandStory.create({
@@ -323,6 +385,12 @@ async function handleUpdateBrandStory(req: Request): Promise<Response> {
           vision: vision ?? null,
           values: values ?? null,
         },
+      });
+      logAction(ctx.userId, "admin.cms.brand_story.create", {
+        entity: "brandStory",
+        entityId: story.id,
+        metadata: { title: story.title },
+        ...extractRequestMeta(req),
       });
       return created(story);
     }
@@ -344,7 +412,7 @@ async function handleFooterList(): Promise<Response> {
   }
 }
 
-async function handleCreateFooter(req: Request): Promise<Response> {
+async function handleCreateFooter(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { column, title, contentType, content, sortOrder, isActive } = body;
 
@@ -361,13 +429,19 @@ async function handleCreateFooter(req: Request): Promise<Response> {
         isActive: isActive ?? true,
       },
     });
+    logAction(ctx.userId, "admin.cms.footer.create", {
+      entity: "footerSection",
+      entityId: section.id,
+      metadata: { title: section.title, column: section.column },
+      ...extractRequestMeta(req),
+    });
     return created(section);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleUpdateFooter(sectionId: string, req: Request): Promise<Response> {
+async function handleUpdateFooter(sectionId: string, req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   try {
     const data: Record<string, unknown> = {};
@@ -380,15 +454,26 @@ async function handleUpdateFooter(sectionId: string, req: Request): Promise<Resp
       where: { id: sectionId },
       data: data as never,
     });
+    logAction(ctx.userId, "admin.cms.footer.update", {
+      entity: "footerSection",
+      entityId: section.id,
+      metadata: { title: section.title },
+      ...extractRequestMeta(req),
+    });
     return success(section);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleDeleteFooter(sectionId: string): Promise<Response> {
+async function handleDeleteFooter(sectionId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     await prisma.footerSection.delete({ where: { id: sectionId } });
+    logAction(ctx.userId, "admin.cms.footer.delete", {
+      entity: "footerSection",
+      entityId: sectionId,
+      ...extractRequestMeta(req),
+    });
     return success({ message: "Footer section deleted" });
   } catch (err) {
     return notFound("Section not found");

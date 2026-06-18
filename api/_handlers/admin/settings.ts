@@ -1,6 +1,8 @@
 import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
+import { requireAdmin } from "../../_lib/auth";
+import { logAction, extractRequestMeta } from "../../_lib/audit";
 
 export async function handleAdminSettingsRequest(
   req: Request,
@@ -8,19 +10,22 @@ export async function handleAdminSettingsRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+
   switch (action) {
     case "get":
       return handleGet();
     case "update":
-      return handleUpdate(req);
+      return handleUpdate(req, ctx);
     case "socialLinks":
       return handleSocialLinksList();
     case "createSocialLink":
-      return handleCreateSocialLink(req);
+      return handleCreateSocialLink(req, ctx);
     case "updateSocialLink":
-      return handleUpdateSocialLink(params[0], req);
+      return handleUpdateSocialLink(params[0], req, ctx);
     case "deleteSocialLink":
-      return handleDeleteSocialLink(params[0]);
+      return handleDeleteSocialLink(params[0], req, ctx);
     default:
       return badRequest("Unknown action");
   }
@@ -35,7 +40,7 @@ async function handleGet(): Promise<Response> {
   }
 }
 
-async function handleUpdate(req: Request): Promise<Response> {
+async function handleUpdate(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
 
   try {
@@ -65,6 +70,12 @@ async function handleUpdate(req: Request): Promise<Response> {
       settings = await prisma.siteSetting.create({ data: createData });
     }
 
+    logAction(ctx.userId, "admin.settings.update", {
+      entity: "siteSetting",
+      entityId: settings.id,
+      metadata: { siteName: settings.siteName },
+      ...extractRequestMeta(req),
+    });
     return success(settings);
   } catch (err) {
     return serverError(err);
@@ -82,7 +93,7 @@ async function handleSocialLinksList(): Promise<Response> {
   }
 }
 
-async function handleCreateSocialLink(req: Request): Promise<Response> {
+async function handleCreateSocialLink(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { platform, url, label, icon, isActive, sortOrder } = body;
 
@@ -99,13 +110,19 @@ async function handleCreateSocialLink(req: Request): Promise<Response> {
         sortOrder: sortOrder ?? 0,
       },
     });
+    logAction(ctx.userId, "admin.social_links.create", {
+      entity: "socialMediaLink",
+      entityId: link.id,
+      metadata: { platform: link.platform, url: link.url },
+      ...extractRequestMeta(req),
+    });
     return created(link);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleUpdateSocialLink(linkId: string, req: Request): Promise<Response> {
+async function handleUpdateSocialLink(linkId: string, req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
 
   try {
@@ -119,15 +136,26 @@ async function handleUpdateSocialLink(linkId: string, req: Request): Promise<Res
       where: { id: linkId },
       data: data as never,
     });
+    logAction(ctx.userId, "admin.social_links.update", {
+      entity: "socialMediaLink",
+      entityId: link.id,
+      metadata: { platform: link.platform },
+      ...extractRequestMeta(req),
+    });
     return success(link);
   } catch (err) {
     return serverError(err);
   }
 }
 
-async function handleDeleteSocialLink(linkId: string): Promise<Response> {
+async function handleDeleteSocialLink(linkId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     await prisma.socialMediaLink.delete({ where: { id: linkId } });
+    logAction(ctx.userId, "admin.social_links.delete", {
+      entity: "socialMediaLink",
+      entityId: linkId,
+      ...extractRequestMeta(req),
+    });
     return success({ message: "Social link deleted" });
   } catch (err) {
     return notFound("Link not found");

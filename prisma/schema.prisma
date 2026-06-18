@@ -262,6 +262,27 @@ model LoginAttempt {
   @@map("login_attempts")
 }
 
+// ─── USER ACTION AUDIT LOG ───
+// Records every significant action (admin, auth, payment, etc.) for audit trail.
+model UserActionLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  profileId String?  @map("profile_id") @db.Uuid
+  action    String   @db.VarChar(100)
+  entity    String?  @db.VarChar(100)
+  entityId  String?  @map("entity_id") @db.VarChar(100)
+  metadata  Json?    @db.JsonB
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  userAgent String?  @map("user_agent") @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([profileId])
+  @@index([action, createdAt])
+  @@index([entity, entityId])
+  @@map("user_action_logs")
+}
+
 // ─────────────────────────────────────────────────────────────
 // PRODUCT MODULE
 // ─────────────────────────────────────────────────────────────
@@ -710,8 +731,9 @@ model Order {
   notes           String?       @db.Text
   shippedAt       DateTime?     @map("shipped_at") @db.Timestamptz
   deliveredAt     DateTime?     @map("delivered_at") @db.Timestamptz
-  cancelledAt     DateTime?     @map("cancelled_at") @db.Timestamptz
-  refundedAt      DateTime?     @map("refunded_at") @db.Timestamptz
+  cancelledAt       DateTime?     @map("cancelled_at") @db.Timestamptz
+  cancellationReason String?      @map("cancellation_reason") @db.VarChar(500)
+  refundedAt        DateTime?     @map("refunded_at") @db.Timestamptz
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
   internalNotes      String?   @map("internal_notes") @db.Text
