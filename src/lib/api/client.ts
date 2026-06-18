@@ -1,5 +1,6 @@
 // ─────────────────────────────────────────────────────────────
 // API CLIENT — Base HTTP client with auth token injection
+// and automatic 401 → refresh → retry interceptor
 // ─────────────────────────────────────────────────────────────
 
 const BASE_URL = "/api";
@@ -21,17 +22,94 @@ class ApiError extends Error {
   }
 }
 
-function getAccessToken(): string | null {
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+function getStoredAuth():
+  | { accessToken: string; refreshToken: string; expiresAt: number }
+  | null {
   try {
     const stored = localStorage.getItem("nabome-auth");
     if (stored) {
       const parsed = JSON.parse(stored);
-      return parsed?.state?.session?.accessToken ?? null;
+      const state = parsed?.state ?? parsed;
+      if (state?.accessToken) {
+        return {
+          accessToken: state.accessToken,
+          refreshToken: state.refreshToken ?? "",
+          expiresAt: state.expiresAt ?? 0,
+        };
+      }
     }
   } catch {
     return null;
   }
   return null;
+}
+
+function setStoredTokens(
+  accessToken: string,
+  refreshToken: string,
+  expiresAt: number
+): void {
+  try {
+    const stored = localStorage.getItem("nabome-auth");
+    let state: Record<string, unknown> = {};
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      state = parsed?.state ?? parsed;
+    }
+    state.accessToken = accessToken;
+    state.refreshToken = refreshToken;
+    state.expiresAt = expiresAt;
+    localStorage.setItem(
+      "nabome-auth",
+      JSON.stringify({ state })
+    );
+  } catch {
+    // Storage unavailable
+  }
+}
+
+function clearStoredAuth(): void {
+  try {
+    localStorage.removeItem("nabome-auth");
+  } catch {
+    // Storage unavailable
+  }
+}
+
+async function attemptTokenRefresh(): Promise<boolean> {
+  const auth = getStoredAuth();
+  if (!auth?.refreshToken) return false;
+
+  try {
+    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken: auth.refreshToken }),
+    });
+
+    if (!res.ok) {
+      clearStoredAuth();
+      return false;
+    }
+
+    const json = await res.json();
+    const session = json.data?.session ?? json.session;
+    if (session?.accessToken) {
+      setStoredTokens(
+        session.accessToken,
+        session.refreshToken,
+        session.expiresAt
+      );
+      return true;
+    }
+    return false;
+  } catch {
+    clearStoredAuth();
+    return false;
+  }
 }
 
 async function request<T>(
@@ -40,7 +118,6 @@ async function request<T>(
 ): Promise<T> {
   const { body, params, ...fetchOptions } = options;
 
-  // Build URL with query params
   const url = new URL(`${BASE_URL}${endpoint}`, window.location.origin);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -50,28 +127,79 @@ async function request<T>(
     });
   }
 
-  // Headers
-  const headers = new Headers(fetchOptions.headers as Record<string, string> ?? {});
+  const headers = new Headers(
+    (fetchOptions.headers as Record<string, string>) ?? {}
+  );
 
-  // Set content type for JSON bodies
   if (body !== undefined && !(body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
 
-  // Inject auth token
-  const token = getAccessToken();
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
+  const auth = getStoredAuth();
+  if (auth?.accessToken) {
+    headers.set("Authorization", `Bearer ${auth.accessToken}`);
   }
 
-  // Build the request
   const response = await fetch(url.toString(), {
     ...fetchOptions,
     headers,
-    body: body instanceof FormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
+    body:
+      body instanceof FormData
+        ? body
+        : body !== undefined
+          ? JSON.stringify(body)
+          : undefined,
   });
 
-  // Handle 204 No Content
+  if (response.status === 401 && auth?.refreshToken) {
+    // ── Auto-refresh on 401 ──
+    if (!isRefreshing) {
+      isRefreshing = true;
+      refreshPromise = attemptTokenRefresh();
+    }
+
+    const refreshed = await refreshPromise;
+    isRefreshing = false;
+    refreshPromise = null;
+
+    if (refreshed) {
+      // Retry the original request with new token
+      const newAuth = getStoredAuth();
+      if (newAuth?.accessToken) {
+        headers.set("Authorization", `Bearer ${newAuth.accessToken}`);
+      }
+      const retryResponse = await fetch(url.toString(), {
+        ...fetchOptions,
+        headers,
+        body:
+          body instanceof FormData
+            ? body
+            : body !== undefined
+              ? JSON.stringify(body)
+              : undefined,
+      });
+
+      if (retryResponse.status === 204) {
+        return {} as T;
+      }
+
+      const retryData = await retryResponse.json();
+      if (!retryResponse.ok) {
+        throw new ApiError(
+          retryData.error?.message ??
+            `Request failed with status ${retryResponse.status}`,
+          retryResponse.status,
+          retryData.details
+        );
+      }
+      return retryData.data ?? retryData;
+    }
+
+    clearStoredAuth();
+    window.dispatchEvent(new CustomEvent("auth:logout"));
+    throw new ApiError("Session expired — please log in again", 401);
+  }
+
   if (response.status === 204) {
     return {} as T;
   }

@@ -1,17 +1,21 @@
 // ─────────────────────────────────────────────────────────────
 // USE AUTH — Hook for auth actions with loading/error states
+// Handles session restore, auto-refresh, and expiry detection
 // ─────────────────────────────────────────────────────────────
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useAuthStore } from "../stores/auth-store";
 import { authApi, type LoginRequest, type RegisterRequest } from "../lib/api/auth";
 import { ApiError } from "../lib/api/client";
 
+const REFRESH_MARGIN_SECONDS = 60;
+
 export function useAuth() {
   const store = useAuthStore();
   const [error, setError] = useState<string | null>(null);
+  const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Initialize — restore session on mount
+  // ── Session restore on mount ──
   useEffect(() => {
     if (store.accessToken && !store.user) {
       authApi
@@ -24,10 +28,53 @@ export function useAuth() {
           store.clearAuth();
           store.setLoading(false);
         });
+    } else if (store.accessToken && store.user) {
+      store.setLoading(false);
     } else {
       store.setLoading(false);
     }
   }, []);
+
+  // ── Listen for forced logout from API client (session expired) ──
+  useEffect(() => {
+    const handleForceLogout = () => {
+      store.clearAuth();
+    };
+    window.addEventListener("auth:logout", handleForceLogout);
+    return () => window.removeEventListener("auth:logout", handleForceLogout);
+  }, [store]);
+
+  // ── Proactive refresh timer ──
+  // Checks every 30s whether the token is about to expire
+  // and attempts a silent refresh before it does
+  useEffect(() => {
+    if (!store.refreshToken || !store.expiresAt) return;
+
+    const checkAndRefresh = async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const timeUntilExpiry = store.expiresAt! - now;
+
+      if (timeUntilExpiry > REFRESH_MARGIN_SECONDS) return;
+
+      try {
+        const res = await authApi.refresh(store.refreshToken!);
+        store.setTokens(
+          res.session.accessToken,
+          res.session.refreshToken,
+          res.session.expiresAt
+        );
+      } catch {
+        store.clearAuth();
+      }
+    };
+
+    refreshTimer.current = setInterval(checkAndRefresh, 30_000);
+    checkAndRefresh();
+
+    return () => {
+      if (refreshTimer.current) clearInterval(refreshTimer.current);
+    };
+  }, [store.refreshToken, store.expiresAt]);
 
   const login = useCallback(
     async (data: LoginRequest) => {
@@ -119,14 +166,12 @@ export function useAuth() {
   );
 
   return {
-    // State
     user: store.user,
     isAuthenticated: store.isAuthenticated,
     isAdmin: store.isAdmin,
     isLoading: store.isLoading,
     error,
 
-    // Actions
     login,
     register,
     logout,

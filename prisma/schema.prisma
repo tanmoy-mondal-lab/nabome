@@ -35,7 +35,9 @@ enum OrderStatus {
   pending
   confirmed
   processing
+  packed
   shipped
+  out_for_delivery
   delivered
   cancelled
   returned
@@ -47,6 +49,7 @@ enum PaymentStatus {
   paid
   failed
   refunded
+  partially_refunded
 }
 
 enum DiscountType {
@@ -99,6 +102,70 @@ enum AnnouncementBarPosition {
   bottom
 }
 
+enum ReturnReason {
+  wrong_item
+  damaged_product
+  size_issue
+  quality_issue
+  not_as_described
+  changed_mind
+  other
+}
+
+enum ReturnStatus {
+  pending
+  approved
+  rejected
+  item_received
+  refund_initiated
+  completed
+}
+
+enum RefundStatus {
+  pending
+  approved
+  processing
+  completed
+  failed
+}
+
+enum NotificationChannel {
+  email
+  sms
+  in_app
+}
+
+enum NotificationEvent {
+  order_placed
+  payment_success
+  payment_failed
+  order_confirmed
+  order_shipped
+  order_delivered
+  order_cancelled
+  return_requested
+  return_approved
+  return_rejected
+  refund_processed
+  welcome
+  password_reset
+  account_update
+}
+
+enum SupportTicketStatus {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+enum SupportTicketPriority {
+  low
+  medium
+  high
+  urgent
+}
+
 // ─────────────────────────────────────────────────────────────
 // AUTH MODULE
 // ─────────────────────────────────────────────────────────────
@@ -117,6 +184,9 @@ model Profile {
   lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz
   loginCount    Int       @default(0) @map("login_count")
   preferences   Json?     @db.JsonB
+  phoneVerified  Boolean  @default(false) @map("phone_verified")
+  marketingOptIn Boolean  @default(true) @map("marketing_opt_in")
+  notificationPreferences Json? @map("notification_preferences") @db.JsonB
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -129,6 +199,12 @@ model Profile {
   orderHistoryEntries OrderStatusHistory[]
   sessions            AuthSession[]
   loginAttempts       LoginAttempt[]
+  notifications       Notification[]
+  supportTickets      SupportTicket[]
+  assignedTickets     SupportTicket[]   @relation("AssignedSupport")
+  supportReplies      SupportTicketReply[]
+  returnRequests      ReturnRequest[]
+  refunds             Refund[]          @relation("RefundInitiator")
 
   @@index([role])
   @@index([isActive])
@@ -139,24 +215,30 @@ model Profile {
 // ─── AUTH SESSION TRACKING ───
 // Tracks every active session for audit and force-logout capability.
 model AuthSession {
-  id           String   @id @default(uuid()) @db.Uuid
-  profileId    String   @map("profile_id") @db.Uuid
-  accessToken  String   @unique @map("access_token") @db.Text
-  refreshToken String   @unique @map("refresh_token") @db.Text
-  userAgent    String?  @map("user_agent") @db.Text
-  ipAddress    String?  @map("ip_address") @db.VarChar(45)
-  deviceName   String?  @map("device_name") @db.VarChar(200)
-  isActive     Boolean  @default(true) @map("is_active")
-  lastActiveAt DateTime @default(now()) @map("last_active_at") @db.Timestamptz
-  expiresAt    DateTime @map("expires_at") @db.Timestamptz
-  createdAt    DateTime @default(now()) @map("created_at")
+  id                   String   @id @default(uuid()) @db.Uuid
+  profileId            String   @map("profile_id") @db.Uuid
+  accessToken          String   @unique @map("access_token") @db.Text
+  refreshToken         String   @unique @map("refresh_token") @db.Text
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz
+  userAgent            String?  @map("user_agent") @db.Text
+  ipAddress            String?  @map("ip_address") @db.VarChar(45)
+  deviceName           String?  @map("device_name") @db.VarChar(200)
+  isActive             Boolean  @default(true) @map("is_active")
+  revokedAt            DateTime? @map("revoked_at") @db.Timestamptz
+  rotatedFromSessionId String?  @map("rotated_from_session_id") @db.Uuid
+  lastActiveAt         DateTime @default(now()) @map("last_active_at") @db.Timestamptz
+  expiresAt            DateTime @map("expires_at") @db.Timestamptz
+  createdAt            DateTime @default(now()) @map("created_at")
 
-  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile       Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  rotatedFrom   AuthSession? @relation("SessionRotation", fields: [rotatedFromSessionId], references: [id])
+  rotatedSessions AuthSession[] @relation("SessionRotation")
 
   @@index([profileId, isActive])
   @@index([refreshToken])
   @@index([accessToken])
   @@index([expiresAt])
+  @@index([refreshTokenExpiresAt])
   @@map("auth_sessions")
 }
 
@@ -542,6 +624,8 @@ model Address {
   isDefault Boolean @default(false) @map("is_default")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  isBillingDefault Boolean @default(false) @map("is_billing_default")
+  addressType      String  @default("shipping") @map("address_type") @db.VarChar(20)
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
   ordersAsShipping Order[] @relation("ShippingAddress")
@@ -630,6 +714,9 @@ model Order {
   refundedAt      DateTime?     @map("refunded_at") @db.Timestamptz
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
+  internalNotes      String?   @map("internal_notes") @db.Text
+  invoiceUrl         String?   @map("invoice_url") @db.Text
+  returnRequestedAt  DateTime? @map("return_requested_at") @db.Timestamptz
 
   profile      Profile?    @relation(fields: [profileId], references: [id], onDelete: SetNull)
   shippingAddress Address? @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: SetNull)
@@ -638,6 +725,10 @@ model Order {
   items            OrderItem[]
   statusHistory    OrderStatusHistory[]
   couponRedemption CouponRedemption?
+  returnRequests   ReturnRequest[]
+  refunds          Refund[]
+  notifications    Notification[]
+  supportTickets   SupportTicket[]
 
   @@index([orderNumber])
   @@index([profileId])
@@ -660,10 +751,13 @@ model OrderItem {
   unitPrice    Decimal @map("unit_price") @db.Decimal(10, 2)
   totalPrice   Decimal @map("total_price") @db.Decimal(10, 2)
   imageUrl     String? @map("image_url") @db.Text
+  isReturned     Boolean  @default(false) @map("is_returned")
+  returnQuantity Int      @default(0) @map("return_quantity")
 
   order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
   variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  returnRequests ReturnRequest[]
 
   @@index([orderId])
   @@index([productId])
@@ -1054,6 +1148,236 @@ model AnalyticsEvent {
   @@index([sessionId])
   @@index([createdAt])
   @@map("analytics_events")
+}
+
+// ─────────────────────────────────────────────────────────────
+// SHIPPING MODULE
+// ─────────────────────────────────────────────────────────────
+
+model ShippingZone {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(200)
+  countries  String[] @default([])
+  states     String[] @default([])
+  pincodes   String[] @default([])
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  rates ShippingRate[]
+
+  @@index([isActive])
+  @@map("shipping_zones")
+}
+
+model ShippingRate {
+  id             String   @id @default(uuid()) @db.Uuid
+  zoneId         String   @map("zone_id") @db.Uuid
+  name           String   @db.VarChar(200)
+  method         String   @default("standard") @db.VarChar(50)
+  minOrderValue  Decimal? @map("min_order_value") @db.Decimal(10, 2)
+  maxOrderValue  Decimal? @map("max_order_value") @db.Decimal(10, 2)
+  baseRate       Decimal  @default(0) @map("base_rate") @db.Decimal(10, 2)
+  perKgRate      Decimal  @default(0) @map("per_kg_rate") @db.Decimal(10, 2)
+  freeAbove      Decimal? @map("free_above") @db.Decimal(10, 2)
+  estimatedDays  String?  @map("estimated_days") @db.VarChar(50)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  zone ShippingZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  @@index([zoneId, isActive])
+  @@map("shipping_rates")
+}
+
+// ─────────────────────────────────────────────────────────────
+// WEBHOOK MODULE (Razorpay event log for dedup + audit)
+// ─────────────────────────────────────────────────────────────
+
+model WebhookEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  eventId       String   @map("event_id") @db.VarChar(200)
+  source        String   @default("razorpay") @db.VarChar(50)
+  eventType     String   @map("event_type") @db.VarChar(100)
+  status        String   @default("received") @db.VarChar(20)
+  payload       Json     @db.JsonB
+  orderId       String?  @map("order_id") @db.Uuid
+  errorMessage  String?  @map("error_message") @db.Text
+  processedAt   DateTime? @map("processed_at") @db.Timestamptz
+  retryCount    Int      @default(0) @map("retry_count")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([source, eventId])
+  @@index([eventType, status])
+  @@index([orderId])
+  @@index([createdAt])
+  @@index([status])
+  @@map("webhook_events")
+}
+
+// ─────────────────────────────────────────────────────────────
+// RETURN & REFUND MODULE
+// ─────────────────────────────────────────────────────────────
+
+model ReturnRequest {
+  id            String       @id @default(uuid()) @db.Uuid
+  orderId       String       @map("order_id") @db.Uuid
+  orderItemId   String?      @map("order_item_id") @db.Uuid
+  profileId     String       @map("profile_id") @db.Uuid
+  reason        ReturnReason
+  reasonDetail  String?      @map("reason_detail") @db.Text
+  status        ReturnStatus @default(pending)
+  evidenceImages String[]    @map("evidence_images") @db.Text
+  adminNote     String?      @map("admin_note") @db.Text
+  reviewedBy    String?      @map("reviewed_by") @db.Uuid
+  reviewedAt    DateTime?    @map("reviewed_at") @db.Timestamptz
+  itemReceivedAt DateTime?   @map("item_received_at") @db.Timestamptz
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  order     Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  refund    Refund?
+
+  @@index([orderId])
+  @@index([profileId])
+  @@index([status])
+  @@map("return_requests")
+}
+
+model Refund {
+  id               String       @id @default(uuid()) @db.Uuid
+  returnRequestId  String       @unique @map("return_request_id") @db.Uuid
+  orderId          String       @map("order_id") @db.Uuid
+  amount           Decimal      @db.Decimal(10, 2)
+  type             String       @default("full") @db.VarChar(20)
+  status           RefundStatus @default(pending)
+  paymentMethod    String?      @map("payment_method") @db.VarChar(50)
+  transactionId    String?      @map("transaction_id") @db.VarChar(200)
+  initiatedBy      String?      @map("initiated_by") @db.Uuid
+  processedAt      DateTime?    @map("processed_at") @db.Timestamptz
+  notes            String?      @db.Text
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  initiator     Profile?      @relation("RefundInitiator", fields: [initiatedBy], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([status])
+  @@map("refunds")
+}
+
+// ─────────────────────────────────────────────────────────────
+// NOTIFICATION MODULE
+// ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id           String              @id @default(uuid()) @db.Uuid
+  profileId    String?             @map("profile_id") @db.Uuid
+  orderId      String?             @map("order_id") @db.Uuid
+  type         NotificationEvent
+  channel      NotificationChannel @default(in_app)
+  title        String              @db.VarChar(500)
+  body         String?             @db.Text
+  data         Json?               @db.JsonB
+  isRead       Boolean             @default(false) @map("is_read")
+  readAt       DateTime?           @map("read_at") @db.Timestamptz
+  sentAt       DateTime?           @map("sent_at") @db.Timestamptz
+  emailTo      String?             @map("email_to") @db.VarChar(255)
+  errorMessage String?             @map("error_message") @db.Text
+  retryCount   Int                 @default(0) @map("retry_count")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  order   Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([profileId, isRead])
+  @@index([profileId, createdAt])
+  @@index([orderId])
+  @@index([channel, sentAt])
+  @@map("notifications")
+}
+
+model NotificationTemplate {
+  id        String              @id @default(uuid()) @db.Uuid
+  event     NotificationEvent   @unique
+  subject   String              @db.VarChar(500)
+  emailBody String?             @map("email_body") @db.Text
+  smsBody   String?             @map("sms_body") @db.VarChar(500)
+  inAppBody String?             @map("in_app_body") @db.VarChar(500)
+  isActive  Boolean             @default(true) @map("is_active")
+  createdAt DateTime            @default(now()) @map("created_at")
+  updatedAt DateTime            @updatedAt @map("updated_at")
+
+  @@map("notification_templates")
+}
+
+// ─────────────────────────────────────────────────────────────
+// SUPPORT MODULE
+// ─────────────────────────────────────────────────────────────
+
+model SupportTicket {
+  id           String                @id @default(uuid()) @db.Uuid
+  orderId      String?               @map("order_id") @db.Uuid
+  profileId    String?               @map("profile_id") @db.Uuid
+  name         String                @db.VarChar(200)
+  email        String                @db.VarChar(255)
+  subject      String                @db.VarChar(500)
+  message      String                @db.Text
+  status       SupportTicketStatus   @default(open)
+  priority     SupportTicketPriority @default(medium)
+  assignedTo   String?               @map("assigned_to") @db.Uuid
+  resolvedAt   DateTime?             @map("resolved_at") @db.Timestamptz
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  order     Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  profile   Profile?  @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  assignee  Profile?  @relation("AssignedSupport", fields: [assignedTo], references: [id], onDelete: SetNull)
+  replies   SupportTicketReply[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([profileId])
+  @@index([orderId])
+  @@map("support_tickets")
+}
+
+model SupportTicketReply {
+  id        String   @id @default(uuid()) @db.Uuid
+  ticketId  String   @map("ticket_id") @db.Uuid
+  profileId String?  @map("profile_id") @db.Uuid
+  message   String   @db.Text
+  isStaff   Boolean  @default(false) @map("is_staff")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  ticket  SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author  Profile?      @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@map("support_ticket_replies")
+}
+
+model FAQ {
+  id        String   @id @default(uuid()) @db.Uuid
+  question  String   @db.Text
+  answer    String   @db.Text
+  category  String?  @db.VarChar(100)
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([category, isActive])
+  @@index([sortOrder])
+  @@map("faqs")
 }
 
 // ─────────────────────────────────────────────────────────────

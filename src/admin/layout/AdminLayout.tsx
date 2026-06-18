@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText,
   Image, Percent, BarChart3, Settings, Megaphone, Menu, X,
   Search, ChevronDown, LogOut, Palette, BarChart4, BookOpen,
-  PackageSearch,
+  PackageSearch, RotateCcw, Truck,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -24,6 +24,8 @@ const NAV_ITEMS = [
   { label: "Categories", icon: LayoutDashboard, href: "/admin/categories" },
   { label: "Collections", icon: LayoutDashboard, href: "/admin/collections" },
   { label: "Orders", icon: ShoppingCart, href: "/admin/orders" },
+  { label: "Returns & Refunds", icon: RotateCcw, href: "/admin/returns" },
+  { label: "Shipping Zones", icon: Truck, href: "/admin/shipping" },
   { label: "Customers", icon: Users, href: "/admin/customers" },
   {
     label: "Content", icon: FileText, children: [

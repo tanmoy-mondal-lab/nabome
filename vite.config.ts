@@ -15,6 +15,10 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
+    cssMinify: "lightningcss",
+    minify: "esbuild",
+    target: "es2020",
+    assetsInlineLimit: 4096,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -22,6 +26,9 @@ export default defineConfig({
           state: ["zustand", "@tanstack/react-query"],
           ui: ["framer-motion", "lucide-react"],
         },
+        chunkFileNames: "assets/[name]-[hash].js",
+        entryFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash][extname]",
       },
     },
   },

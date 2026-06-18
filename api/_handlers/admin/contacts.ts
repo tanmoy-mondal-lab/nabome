@@ -1,5 +1,5 @@
 import { prisma } from "../../_lib/prisma";
-import { success, notFound, serverError } from "../../_lib/response";
+import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 
 export async function handleAdminContactRequest(
@@ -20,7 +20,7 @@ export async function handleAdminContactRequest(
     case "deleteSubscriber":
       return handleDeleteSubscriber(params[0]);
     default:
-      return new Response("Unknown action", { status: 400 });
+      return badRequest("Unknown action");
   }
 }
 

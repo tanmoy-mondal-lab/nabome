@@ -3,6 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
+import { StatsCard } from "../common/StatsCard";
+import {
+  ShoppingCart, Clock, Package, Truck, CheckCircle,
+  RotateCcw, Banknote, Search, X,
+} from "lucide-react";
 
 interface Order {
   id: string;
@@ -15,32 +20,99 @@ interface Order {
   _count: { items: number };
 }
 
+interface OrderStats {
+  pending: number;
+  confirmed: number;
+  processing: number;
+  packed: number;
+  shipped: number;
+  out_for_delivery: number;
+  delivered: number;
+  cancelled: number;
+  returned: number;
+  refunded: number;
+  totalReturns: number;
+  totalRefunds: number;
+}
+
+const TABS = [
+  "All", "Pending", "Confirmed", "Processing", "Packed",
+  "Shipped", "Out for Delivery", "Delivered", "Cancelled",
+  "Returns", "Refunds",
+];
+
+const STATUS_MAP: Record<string, string> = {
+  Pending: "pending",
+  Confirmed: "confirmed",
+  Processing: "processing",
+  Packed: "packed",
+  Shipped: "shipped",
+  "Out for Delivery": "out_for_delivery",
+  Delivered: "delivered",
+  Cancelled: "cancelled",
+  Returns: "returned",
+  Refunds: "refunded",
+};
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [stats, setStats] = useState<OrderStats | null>(null);
+  const [activeTab, setActiveTab] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const navigate = useNavigate();
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await adminApi.getOrderStats();
+      setStats((res as unknown as OrderStats) ?? null);
+    } catch { /* ignore */ }
+  }, []);
 
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminApi.getOrders({ page, limit: 20 });
+      const statusKey = STATUS_MAP[activeTab];
+      const params: Record<string, string | number | undefined> = { page, limit: 20 };
+      if (statusKey) params.status = statusKey;
+      if (searchQuery) params.search = searchQuery;
+      if (dateFrom) params.dateFrom = dateFrom;
+      if (dateTo) params.dateTo = dateTo;
+      const res = await adminApi.getOrders(params);
       setOrders((res.orders as Order[]) ?? []);
       const pag = res.pagination as { totalPages?: number } | undefined;
       setTotalPages(pag?.totalPages ?? 1);
     } catch { /* ignore */ } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, activeTab, searchQuery, dateFrom, dateTo]);
 
+  useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => { setPage(1); }, [activeTab, searchQuery, dateFrom, dateTo]);
   useEffect(() => { fetch(); }, [fetch]);
 
+  const statCards = stats
+    ? [
+        { label: "Pending", value: stats.pending, icon: Clock },
+        { label: "Processing", value: stats.processing, icon: Package },
+        { label: "Shipped", value: stats.shipped, icon: Truck },
+        { label: "Delivered", value: stats.delivered, icon: CheckCircle },
+        { label: "Returns", value: stats.totalReturns, icon: RotateCcw },
+        { label: "Refunds", value: stats.totalRefunds, icon: Banknote },
+      ]
+    : [];
+
   const columns = [
-    { key: "orderNumber", label: "Order", sortable: true,
+    {
+      key: "orderNumber", label: "Order #", sortable: true,
       render: (o: Order) => <span className="font-medium text-neutral-900">#{o.orderNumber}</span>,
     },
-    { key: "customer", label: "Customer",
+    {
+      key: "customer", label: "Customer",
       render: (o: Order) => (
         <div>
           <p className="text-sm text-neutral-900">{o.customer?.firstName} {o.customer?.lastName}</p>
@@ -48,16 +120,24 @@ export default function OrdersPage() {
         </div>
       ),
     },
-    { key: "status", label: "Status",
+    {
+      key: "_count", label: "Items",
+      render: (o: Order) => <span className="text-sm text-neutral-600">{o._count?.items ?? 0}</span>,
+    },
+    {
+      key: "status", label: "Status",
       render: (o: Order) => <StatusBadge status={o.status} />,
     },
-    { key: "paymentStatus", label: "Payment",
+    {
+      key: "paymentStatus", label: "Payment",
       render: (o: Order) => <StatusBadge status={o.paymentStatus} />,
     },
-    { key: "total", label: "Total", sortable: true,
+    {
+      key: "total", label: "Total", sortable: true,
       render: (o: Order) => <span className="font-medium">₹{o.total?.toLocaleString()}</span>,
     },
-    { key: "createdAt", label: "Date", sortable: true,
+    {
+      key: "createdAt", label: "Date", sortable: true,
       render: (o: Order) => (
         <span className="text-sm text-neutral-500">
           {new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
@@ -73,6 +153,69 @@ export default function OrdersPage() {
         <p className="text-sm text-neutral-500 mt-1">Manage customer orders</p>
       </div>
 
+      {/* Stats Cards */}
+      {statCards.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          {statCards.map((s) => (
+            <StatsCard key={s.label} label={s.label} value={s.value} icon={s.icon} />
+          ))}
+        </div>
+      )}
+
+      {/* Tab Bar */}
+      <div className="flex gap-1 mb-4 overflow-x-auto pb-1">
+        {TABS.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`whitespace-nowrap px-3 py-1.5 text-sm rounded-full font-medium transition-colors ${
+              activeTab === tab
+                ? "bg-neutral-900 text-white"
+                : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-4 items-end">
+        <div className="relative max-w-xs flex-1 min-w-[200px]">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+          <input
+            type="text"
+            placeholder="Search order # or customer email…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600">
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <div>
+          <label className="block text-xs text-neutral-500 mb-1">From</label>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-neutral-500 mb-1">To</label>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+          />
+        </div>
+      </div>
+
       <DataTable
         columns={columns}
         data={orders}
@@ -80,9 +223,8 @@ export default function OrdersPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
-        searchPlaceholder="Search orders…"
         onRowClick={(o) => navigate(`/admin/orders/${o.id}`)}
-        emptyMessage="No orders yet"
+        emptyMessage="No orders found"
       />
     </div>
   );

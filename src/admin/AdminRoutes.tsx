@@ -7,6 +7,9 @@ import CategoriesPage from "./categories/CategoriesPage";
 import CollectionsPage from "./collections/CollectionsPage";
 import OrdersPage from "./orders/OrdersPage";
 import OrderDetailPage from "./orders/OrderDetailPage";
+import ReturnsPage from "./returns/ReturnsPage";
+import ReturnDetailPage from "./returns/ReturnDetailPage";
+import ShippingZonesPage from "./shipping/ShippingZonesPage";
 import CustomersPage from "./customers/CustomersPage";
 import CMSPagesPage from "./cms/CMSPagesPage";
 import HomepageBuilder from "./cms/HomepageBuilder";
@@ -43,6 +46,9 @@ export default function AdminRoutes() {
         <Route path="collections" element={<CollectionsPage />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="orders/:id" element={<OrderDetailPage />} />
+        <Route path="returns" element={<ReturnsPage />} />
+        <Route path="returns/:id" element={<ReturnDetailPage />} />
+        <Route path="shipping" element={<ShippingZonesPage />} />
         <Route path="customers" element={<CustomersPage />} />
         <Route path="lookbooks" element={<LookbooksPage />} />
         <Route path="lookbooks/new" element={<LookbookFormPage />} />

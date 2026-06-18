@@ -55,7 +55,6 @@ export const adminApi = {
   getOrder: (id: string) => api.get<{ order: unknown }>(`/admin/orders/${id}`),
   updateOrderStatus: (id: string, data: { status: string; note?: string }) =>
     api.put<unknown>(`/admin/orders/${id}/status`, data),
-
   // Customers
   getCustomers: (params?: Record<string, string | number | undefined>) =>
     api.get<{ customers: unknown[]; pagination: unknown }>("/admin/customers", { params }),
@@ -268,4 +267,71 @@ export const adminApi = {
       headers: {} as Record<string, string>,
     });
   },
+
+  // Enhanced Orders
+  getOrderStats: () => api.get<Record<string, unknown>>("/admin/orders/stats"),
+  updateOrderInternalNotes: (id: string, notes: string) =>
+    api.put<{ order: unknown }>(`/admin/orders/${id}/internal-notes`, { notes }),
+  getOrderTimeline: (id: string) => api.get<{ timeline: unknown[] }>(`/admin/orders/${id}/timeline`),
+
+  // Shipping Zones
+  getShippingZones: () => api.get<{ zones: unknown[] }>("/admin/shipping/zones"),
+  createShippingZone: (data: unknown) => api.post<unknown>("/admin/shipping/zones", data),
+  updateShippingZone: (id: string, data: unknown) => api.put<unknown>(`/admin/shipping/zones/${id}`, data),
+  deleteShippingZone: (id: string) => api.delete<{ message: string }>(`/admin/shipping/zones/${id}`),
+  addShippingRate: (zoneId: string, data: unknown) => api.post<unknown>(`/admin/shipping/zones/${zoneId}/rates`, data),
+  updateShippingRate: (id: string, data: unknown) => api.put<unknown>(`/admin/shipping/rates/${id}`, data),
+  deleteShippingRate: (id: string) => api.delete<{ message: string }>(`/admin/shipping/rates/${id}`),
+
+  // Returns
+  getReturns: (params?: Record<string, string | number | undefined>) =>
+    api.get<{ returns: unknown[]; pagination: unknown }>("/admin/returns", { params }),
+  getReturn: (id: string) => api.get<{ returnRequest: unknown }>(`/admin/returns/${id}`),
+  approveReturn: (id: string, data?: { adminNote?: string }) =>
+    api.put<unknown>(`/admin/returns/${id}/approve`, data ?? {}),
+  rejectReturn: (id: string, data: { adminNote: string }) =>
+    api.put<unknown>(`/admin/returns/${id}/reject`, data),
+  receiveReturn: (id: string) => api.put<unknown>(`/admin/returns/${id}/receive`),
+
+  // Refunds
+  getRefunds: (params?: Record<string, string | number | undefined>) =>
+    api.get<{ refunds: unknown[]; pagination: unknown }>("/admin/refunds", { params }),
+  getRefund: (id: string) => api.get<{ refund: unknown }>(`/admin/refunds/${id}`),
+  createRefund: (data: { orderId: string; returnRequestId?: string; amount: number; type: string; notes?: string }) =>
+    api.post<unknown>("/admin/refunds", data),
+  processRefund: (id: string) => api.post<unknown>(`/admin/refunds/${id}/process`),
+  completeRefund: (id: string) => api.post<unknown>(`/admin/refunds/${id}/complete`),
+  failRefund: (id: string, data?: { notes?: string }) =>
+    api.post<unknown>(`/admin/refunds/${id}/fail`, data ?? {}),
+
+  // Notifications
+  getNotifications: (params?: Record<string, string | number | undefined>) =>
+    api.get<{ notifications: unknown[] }>("/admin/notifications", { params }),
+  getNotificationTemplates: () => api.get<{ templates: unknown[] }>("/admin/notification-templates"),
+  updateNotificationTemplate: (id: string, data: unknown) =>
+    api.put<unknown>(`/admin/notification-templates/${id}`, data),
+  sendManualNotification: (data: { profileId: string; type: string; title: string; body?: string }) =>
+    api.post<unknown>("/admin/notifications/send", data),
+
+  // Support
+  getSupportTickets: (params?: Record<string, string | number | undefined>) =>
+    api.get<{ tickets: unknown[]; pagination: unknown }>("/admin/support", { params }),
+  getSupportTicket: (id: string) => api.get<{ ticket: unknown }>(`/admin/support/${id}`),
+  updateSupportTicketStatus: (id: string, data: { status: string }) =>
+    api.put<unknown>(`/admin/support/${id}/status`, data),
+  assignSupportTicket: (id: string, data: { assignedTo: string }) =>
+    api.put<unknown>(`/admin/support/${id}/assign`, data),
+  replySupportTicket: (id: string, data: { message: string }) =>
+    api.post<unknown>(`/admin/support/${id}/reply`, data),
+
+  // FAQ
+  getFaqs: () => api.get<{ faqs: unknown[] }>("/admin/faq"),
+  createFaq: (data: { question: string; answer: string; category?: string; sortOrder?: number }) =>
+    api.post<unknown>("/admin/faq", data),
+  updateFaq: (id: string, data: unknown) => api.put<unknown>(`/admin/faq/${id}`, data),
+  deleteFaq: (id: string) => api.delete<{ message: string }>(`/admin/faq/${id}`),
+
+  // Invoices
+  getOrderInvoice: (orderId: string) => api.get<{ html: string }>(`/admin/orders/${orderId}/invoice`),
+  generateOrderInvoice: (orderId: string) => api.post<{ order: unknown }>(`/admin/orders/${orderId}/invoice/generate`),
 };

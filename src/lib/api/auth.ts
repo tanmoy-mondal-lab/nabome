@@ -71,6 +71,12 @@ export const authApi = {
   logout: () =>
     api.post<{ message: string }>("/auth/logout"),
 
+  refresh: (refreshToken: string) =>
+    api.post<{ session: { accessToken: string; refreshToken: string; expiresAt: number; expiresIn: number } }>(
+      "/auth/refresh",
+      { refreshToken }
+    ),
+
   me: () =>
     api.get<{ user: UserProfile }>("/auth/me"),
 

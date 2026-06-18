@@ -1,6 +1,7 @@
 import { prisma } from "../_lib/prisma";
-import { success, notFound, serverError } from "../_lib/response";
+import { success, notFound, badRequest, unauthorized, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
+import { ORDER_STATUS_FLOW } from "../../src/lib/constants";
 
 export async function handleOrderRequest(
   req: Request,
@@ -11,8 +12,8 @@ export async function handleOrderRequest(
   const method = req.method;
 
   // GET /api/orders — list customer orders
-  if (method === "GET" && !params.length) {
-    return handleList(ctx);
+  if (method === "GET" && !params.length && !action) {
+    return handleList(ctx, req);
   }
 
   // GET /api/orders/:id
@@ -20,25 +21,54 @@ export async function handleOrderRequest(
     return handleDetail(ctx, params[0]);
   }
 
-  return new Response("Not found", { status: 404 });
-}
-
-async function handleList(ctx: RequestContext): Promise<Response> {
-  if (!ctx.userId) {
-    return new Response("Unauthorized", { status: 401 });
+  // POST /api/orders/:id/cancel
+  if (method === "POST" && params.length && action === "cancel") {
+    return handleCancel(ctx, params[0]);
   }
 
-  try {
-    const orders = await prisma.order.findMany({
-      where: { profileId: ctx.userId },
-      include: {
-        items: true,
-        statusHistory: { orderBy: { createdAt: "desc" }, take: 1 },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+  // GET /api/orders/:id/tracking
+  if (method === "GET" && params.length && action === "tracking") {
+    return handleTracking(ctx, params[0]);
+  }
 
-    return success({ orders });
+  return notFound();
+}
+
+async function handleList(ctx: RequestContext, req: Request): Promise<Response> {
+  if (!ctx.userId) {
+    return unauthorized();
+  }
+
+  const url = new URL(req.url);
+  const page = parseInt(url.searchParams.get("page") ?? "1");
+  const limit = parseInt(url.searchParams.get("limit") ?? "10");
+  const status = url.searchParams.get("status");
+
+  const where: Record<string, unknown> = { profileId: ctx.userId };
+  if (status) where.status = status;
+
+  const skip = (page - 1) * limit;
+
+  try {
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where: where as never,
+        include: {
+          items: true,
+          statusHistory: { orderBy: { createdAt: "desc" }, take: 1 },
+          shippingAddress: true,
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.order.count({ where: where as never }),
+    ]);
+
+    return success({
+      orders,
+      pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) },
+    });
   } catch (err) {
     return serverError(err);
   }
@@ -46,7 +76,7 @@ async function handleList(ctx: RequestContext): Promise<Response> {
 
 async function handleDetail(ctx: RequestContext, orderId: string): Promise<Response> {
   if (!ctx.userId) {
-    return new Response("Unauthorized", { status: 401 });
+    return unauthorized();
   }
 
   try {
@@ -63,12 +93,134 @@ async function handleDetail(ctx: RequestContext, orderId: string): Promise<Respo
         },
         shippingAddress: true,
         billingAddress: true,
+        returnRequests: {
+          include: { refund: true },
+        },
+        refunds: true,
+        notifications: {
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 
     if (!order) return notFound("Order not found");
 
     return success({ order });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleCancel(ctx: RequestContext, orderId: string): Promise<Response> {
+  if (!ctx.userId) {
+    return unauthorized();
+  }
+
+  try {
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, profileId: ctx.userId },
+      include: { items: true },
+    });
+
+    if (!order) return notFound("Order not found");
+
+    const allowedTransitions = ORDER_STATUS_FLOW[order.status] ?? [];
+    if (!allowedTransitions.includes("cancelled")) {
+      return badRequest(
+        `Order cannot be cancelled from status "${order.status}". Allowed: ${allowedTransitions.join(", ") || "none"}`
+      );
+    }
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const cancelled = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: "cancelled",
+          cancelledAt: new Date(),
+          statusHistory: {
+            create: {
+              status: "cancelled",
+              note: "Cancelled by customer",
+              createdBy: ctx.userId,
+            },
+          },
+        },
+        include: { items: true, statusHistory: true, shippingAddress: true },
+      });
+
+      // Restore stock for all items
+      for (const item of order.items) {
+        if (item.variantId) {
+          const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } });
+          if (variant) {
+            await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: {
+                stock: { increment: item.quantity },
+                reservedStock: { decrement: item.quantity },
+              },
+            });
+
+            await tx.inventoryMovement.create({
+              data: {
+                variantId: item.variantId,
+                quantityChange: item.quantity,
+                stockAfter: variant.stock + item.quantity,
+                reason: "cancellation",
+                referenceId: order.orderNumber,
+              },
+            });
+          }
+        }
+      }
+
+      // Create notification
+      await tx.notification.create({
+        data: {
+          profileId: ctx.userId!,
+          orderId: orderId,
+          type: "order_cancelled",
+          channel: "in_app",
+          title: "Order Cancelled",
+          body: `Your order ${order.orderNumber} has been cancelled.`,
+          data: { orderNumber: order.orderNumber },
+        },
+      });
+
+      return cancelled;
+    });
+
+    return success({ order: updated });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleTracking(ctx: RequestContext, orderId: string): Promise<Response> {
+  if (!ctx.userId) {
+    return unauthorized();
+  }
+
+  try {
+    const order = await prisma.order.findFirst({
+      where: { id: orderId, profileId: ctx.userId },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        shippingAddress: true,
+        shippedAt: true,
+        deliveredAt: true,
+        statusHistory: {
+          orderBy: { createdAt: "asc" },
+          include: { creator: { select: { firstName: true } } },
+        },
+      },
+    });
+
+    if (!order) return notFound("Order not found");
+
+    return success({ tracking: order });
   } catch (err) {
     return serverError(err);
   }

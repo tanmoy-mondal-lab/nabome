@@ -1,5 +1,5 @@
 import { prisma } from "../../_lib/prisma";
-import { success, serverError } from "../../_lib/response";
+import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 
 export async function handleDashboardRequest(
@@ -12,7 +12,7 @@ export async function handleDashboardRequest(
     case "overview":
       return handleOverview();
     default:
-      return new Response("Unknown action", { status: 400 });
+      return badRequest("Unknown action");
   }
 }
 

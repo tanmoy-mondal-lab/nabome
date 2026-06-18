@@ -1,0 +1,256 @@
+import { prisma } from "../_lib/prisma";
+import { success, badRequest, notFound, unauthorized, serverError, created } from "../_lib/response";
+import type { RequestContext } from "../_lib/types";
+
+export async function createNotification(
+  profileId: string,
+  type: string,
+  title: string,
+  body?: string,
+  orderId?: string,
+  channel: string = "in_app"
+): Promise<void> {
+  try {
+    const notification = await prisma.notification.create({
+      data: {
+        profileId,
+        type: type as never,
+        title,
+        body: body ?? null,
+        orderId: orderId ?? null,
+        channel: channel as never,
+        sentAt: new Date(),
+      },
+    });
+
+    console.log(`[Notification] Created ${type} for ${profileId}: ${title}`);
+
+    if (channel === "email") {
+      console.log(`[Notification] Email channel: Would send email for notification ${notification.id}`);
+    }
+  } catch (err) {
+    console.error("[Notification] Failed to create notification:", err);
+  }
+}
+
+export async function handleNotificationRequest(
+  req: Request,
+  ctx: RequestContext,
+  params: string[],
+  action?: string
+): Promise<Response> {
+  const method = req.method;
+
+  // Customer routes (require auth)
+  if (!action || action === "list") {
+    if (method === "GET" && !params.length) return handleList(ctx, req);
+  }
+  if (action === "read") {
+    if (method === "PUT") return handleMarkRead(ctx, params[0]);
+  }
+  if (action === "readAll") {
+    if (method === "PUT") return handleMarkAllRead(ctx);
+  }
+  if (action === "unreadCount") {
+    if (method === "GET") return handleUnreadCount(ctx);
+  }
+
+  // Admin routes
+  if (action === "adminList") {
+    if (method === "GET") return handleAdminList(ctx, req);
+  }
+  if (action === "adminTemplates") {
+    if (method === "GET") return handleListTemplates(ctx);
+  }
+  if (action === "adminUpdateTemplate") {
+    if (method === "PUT") return handleUpdateTemplate(ctx, params[0], req);
+  }
+  if (action === "adminSend") {
+    if (method === "POST") return handleAdminSend(ctx, req);
+  }
+
+  return notFound();
+}
+
+async function handleList(ctx: RequestContext, req: Request): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+
+  const url = new URL(req.url);
+  const page = parseInt(url.searchParams.get("page") ?? "1");
+  const limit = parseInt(url.searchParams.get("limit") ?? "20");
+  const isRead = url.searchParams.get("isRead");
+
+  const where: Record<string, unknown> = { profileId: ctx.userId };
+  if (isRead === "true") where.isRead = true;
+  if (isRead === "false") where.isRead = false;
+
+  const skip = (page - 1) * limit;
+
+  try {
+    const [notifications, total] = await Promise.all([
+      prisma.notification.findMany({
+        where: where as never,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.notification.count({ where: where as never }),
+    ]);
+
+    return success({
+      notifications,
+      pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleMarkRead(ctx: RequestContext, notificationId: string): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+
+  try {
+    const notification = await prisma.notification.findFirst({
+      where: { id: notificationId, profileId: ctx.userId },
+    });
+    if (!notification) return notFound("Notification not found");
+
+    const updated = await prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true, readAt: new Date() },
+    });
+
+    return success({ notification: updated });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleMarkAllRead(ctx: RequestContext): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+
+  try {
+    await prisma.notification.updateMany({
+      where: { profileId: ctx.userId, isRead: false },
+      data: { isRead: true, readAt: new Date() },
+    });
+
+    return success({ message: "All notifications marked as read" });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleUnreadCount(ctx: RequestContext): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+
+  try {
+    const count = await prisma.notification.count({
+      where: { profileId: ctx.userId, isRead: false },
+    });
+
+    return success({ count });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleAdminList(ctx: RequestContext, req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  const page = parseInt(url.searchParams.get("page") ?? "1");
+  const limit = parseInt(url.searchParams.get("limit") ?? "25");
+  const isRead = url.searchParams.get("isRead");
+  const type = url.searchParams.get("type");
+  const channel = url.searchParams.get("channel");
+
+  const where: Record<string, unknown> = {};
+  if (isRead === "true") where.isRead = true;
+  if (isRead === "false") where.isRead = false;
+  if (type) where.type = type;
+  if (channel) where.channel = channel;
+
+  const skip = (page - 1) * limit;
+
+  try {
+    const [notifications, total] = await Promise.all([
+      prisma.notification.findMany({
+        where: where as never,
+        include: {
+          profile: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.notification.count({ where: where as never }),
+    ]);
+
+    return success({
+      notifications,
+      pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleListTemplates(ctx: RequestContext): Promise<Response> {
+  try {
+    const templates = await prisma.notificationTemplate.findMany({
+      orderBy: { event: "asc" },
+    });
+    return success({ templates });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleUpdateTemplate(ctx: RequestContext, templateId: string, req: Request): Promise<Response> {
+  const body = await req.json();
+  const allowedFields = ["subject", "emailBody", "smsBody", "inAppBody", "isActive"];
+  const updateData: Record<string, unknown> = {};
+
+  for (const field of allowedFields) {
+    if (body[field] !== undefined) {
+      updateData[field] = body[field];
+    }
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return badRequest("No valid fields to update");
+  }
+
+  try {
+    const existing = await prisma.notificationTemplate.findUnique({ where: { id: templateId } });
+    if (!existing) return notFound("Template not found");
+
+    const updated = await prisma.notificationTemplate.update({
+      where: { id: templateId },
+      data: updateData as never,
+    });
+
+    return success({ template: updated });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleAdminSend(ctx: RequestContext, req: Request): Promise<Response> {
+  const body = await req.json();
+  const { profileId, type, title, body: messageBody, orderId, channel } = body;
+
+  if (!profileId || !type || !title) {
+    return badRequest("profileId, type, and title are required");
+  }
+
+  try {
+    const profile = await prisma.profile.findUnique({ where: { id: profileId } });
+    if (!profile) return notFound("Profile not found");
+
+    await createNotification(profileId, type, title, messageBody ?? null, orderId ?? null, channel ?? "in_app");
+
+    return created({ message: "Notification sent" });
+  } catch (err) {
+    return serverError(err);
+  }
+}

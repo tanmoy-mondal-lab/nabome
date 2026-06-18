@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// NABOME API — Catch-all Router
+// নবME API — Catch-all Router
 // ─────────────────────────────────────────────────────────────
 // Receives all /api/* requests and dispatches to handlers.
 // Vercel serverless function entry point.
@@ -8,6 +8,81 @@
 import type { RequestContext } from "./_lib/types";
 import { authenticateRequest, requireAdmin } from "./_lib/auth";
 import { notFound, serverError, error } from "./_lib/response";
+import { checkRateLimit, RATE_LIMIT_CONFIG, rateLimitResponse } from "./_lib/rate-limit";
+import { setCsrfCookie } from "./_lib/csrf";
+
+const ALLOWED_ORIGINS = [
+  "https://www.nabome.online",
+  "https://nabome.online",
+  "http://localhost:5173",
+  "http://localhost:4173",
+];
+
+function corsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get("Origin") ?? "";
+  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : "https://www.nabome.online";
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-CSRF-Token",
+    "Access-Control-Allow-Credentials": "true",
+    "Vary": "Origin",
+  };
+}
+
+function securityHeaders(): Record<string, string> {
+  return {
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://res.cloudinary.com data:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://api.razorpay.com; frame-src https://checkout.razorpay.com;",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+    "Cross-Origin-Opener-Policy": "same-origin",
+    "Cross-Origin-Embedder-Policy": "require-corp",
+    "Cross-Origin-Resource-Policy": "same-origin",
+  };
+}
+
+function cacheControlHeaders(path: string): Record<string, string> {
+  // Don't cache auth, admin, or mutation endpoints
+  if (path.includes("/auth/") || path.includes("/admin/") || path.includes("/checkout") || path.includes("/payments") || path.includes("/orders") || path.includes("/cart")) {
+    return { "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate" };
+  }
+  // Cache public product/category data for 60 seconds, stale-while-revalidate for 5 min
+  if (path.includes("/api/products") || path.includes("/api/categories") || path.includes("/api/collections")) {
+    return { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" };
+  }
+  // Cache static CMS content for 5 minutes
+  if (path.includes("/api/cms") || path.includes("/api/settings")) {
+    return { "Cache-Control": "public, max-age=300, stale-while-revalidate=600" };
+  }
+  return { "Cache-Control": "no-cache" };
+}
+
+function withCors(response: Response, request: Request, path?: string): Response {
+  const headers = {
+    ...corsHeaders(request),
+    ...securityHeaders(),
+    ...(path ? cacheControlHeaders(path) : {}),
+  };
+  for (const [key, value] of Object.entries(headers)) {
+    response.headers.set(key, value);
+  }
+  return response;
+}
+
+function isAuthPath(path: string): boolean {
+  return path.includes("/auth/login") || path.includes("/auth/register") || path.includes("/contact");
+}
+
+function calculateKey(request: Request, path: string): string {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || request.headers.get("x-real-ip")
+    || "unknown";
+  const endpoint = path.replace(/\/\d+/g, "/:id");
+  return `${ip}:${endpoint}`;
+}
 
 // ─── Route handler registry ───
 type RouteHandler = (req: Request, ctx: RequestContext, params: string[]) => Promise<Response>;
@@ -85,6 +160,14 @@ import { handleAdminProductLabelRequest } from "./_handlers/admin/product-labels
 import { handleAdminRelatedProductRequest } from "./_handlers/admin/related-products";
 import { handleAdminInventoryRequest } from "./_handlers/admin/inventory";
 import { handleAdminSubcategoryRequest } from "./_handlers/admin/subcategories";
+import { handleShippingRequest } from "./_handlers/shipping";
+import { handleReturnRequest } from "./_handlers/returns";
+import { handleRefundRequest } from "./_handlers/refunds";
+import { handlePaymentRequest, handleAdminWebhookRequest } from "./_handlers/payments";
+import { handleNotificationRequest } from "./_handlers/notifications";
+import { handleSupportRequest } from "./_handlers/support";
+import { handleInvoiceRequest } from "./_handlers/invoices";
+import { handleDashboardRequest as handleCustomerDashboardRequest } from "./_handlers/dashboard";
 
 // ─── Route registration ───
 
@@ -94,6 +177,7 @@ route("PUT", "/api/auth/me", (req, ctx) => handleAuthRequest(req, ctx, [], "upda
 route("POST", "/api/auth/register", (req, ctx) => handleAuthRequest(req, ctx, [], "register"));
 route("POST", "/api/auth/login", (req, ctx) => handleAuthRequest(req, ctx, [], "login"));
 route("POST", "/api/auth/logout", (req, ctx) => handleAuthRequest(req, ctx, [], "logout"), { auth: true });
+route("POST", "/api/auth/refresh", (req, ctx) => handleAuthRequest(req, ctx, [], "refresh"));
 route("POST", "/api/auth/forgot-password", (req, ctx) => handleAuthRequest(req, ctx, [], "forgotPassword"));
 route("POST", "/api/auth/reset-password", (req, ctx) => handleAuthRequest(req, ctx, [], "resetPassword"));
 route("POST", "/api/auth/change-password", (req, ctx) => handleAuthRequest(req, ctx, [], "changePassword"), { auth: true });
@@ -126,12 +210,14 @@ route("GET", "/api/lookbooks", (req, ctx) => handleLookbookRequest(req, ctx, [],
 route("GET", "/api/lookbooks/:slug", (req, ctx, p) => handleLookbookRequest(req, ctx, p, "detail"));
 
 route("GET", "/api/settings", (req, ctx) => handleSettingsRequest(req, ctx, [], "public"));
+route("GET", "/api/orders", (req, ctx) => handleOrderRequest(req, ctx, [], "list"));
+route("GET", "/api/orders/stats", (req, ctx) => handleOrderRequest(req, ctx, [], "stats"), { auth: true });
+route("GET", "/api/orders/:id", (req, ctx, p) => handleOrderRequest(req, ctx, p, "detail"), { auth: true });
+route("POST", "/api/orders/:id/cancel", (req, ctx, p) => handleOrderRequest(req, ctx, p, "cancel"), { auth: true });
+route("GET", "/api/orders/:id/tracking", (req, ctx, p) => handleOrderRequest(req, ctx, p, "tracking"), { auth: true });
 
-route("GET", "/api/orders", handleOrderRequest);
-route("GET", "/api/orders/:id", (req, ctx, p) => handleOrderRequest(req, ctx, p, "detail"));
-
-route("POST", "/api/checkout", handleCheckoutRequest, { auth: true });
-
+route("POST", "/api/checkout", handleCheckoutRequest);
+route("POST", "/api/checkout/guest", (req, ctx) => handleCheckoutRequest(req, ctx, [], "guest"));
 route("GET", "/api/addresses", handleAddressRequest, { auth: true });
 route("POST", "/api/addresses", handleAddressRequest, { auth: true });
 route("PUT", "/api/addresses/:id", (req, ctx, p) => handleAddressRequest(req, ctx, p, "update"), { auth: true });
@@ -149,6 +235,37 @@ route("POST", "/api/contact", (req, ctx) => handleContactRequest(req, ctx, [], "
 route("POST", "/api/newsletter", (req, ctx) => handleContactRequest(req, ctx, [], "newsletter"));
 
 route("POST", "/api/upload", handleUploadRequest, { auth: true });
+
+// Shipping
+route("GET", "/api/shipping/zones", (req, ctx) => handleShippingRequest(req, ctx, [], "listZones"));
+route("GET", "/api/shipping/rates", (req, ctx) => handleShippingRequest(req, ctx, [], "calculateRates"));
+
+route("GET", "/api/admin/shipping/zones", (req, ctx) => handleShippingRequest(req, ctx, [], "adminListZones"), { auth: true, admin: true });
+route("POST", "/api/admin/shipping/zones", (req, ctx) => handleShippingRequest(req, ctx, [], "createZone"), { auth: true, admin: true });
+route("PUT", "/api/admin/shipping/zones/:id", (req, ctx, p) => handleShippingRequest(req, ctx, p, "updateZone"), { auth: true, admin: true });
+route("DELETE", "/api/admin/shipping/zones/:id", (req, ctx, p) => handleShippingRequest(req, ctx, p, "deleteZone"), { auth: true, admin: true });
+route("POST", "/api/admin/shipping/zones/:id/rates", (req, ctx, p) => handleShippingRequest(req, ctx, p, "addRate"), { auth: true, admin: true });
+route("PUT", "/api/admin/shipping/rates/:id", (req, ctx, p) => handleShippingRequest(req, ctx, p, "updateRate"), { auth: true, admin: true });
+route("DELETE", "/api/admin/shipping/rates/:id", (req, ctx, p) => handleShippingRequest(req, ctx, p, "deleteRate"), { auth: true, admin: true });
+
+// Returns
+route("POST", "/api/returns", (req, ctx) => handleReturnRequest(req, ctx, [], "create"), { auth: true });
+route("GET", "/api/returns", (req, ctx) => handleReturnRequest(req, ctx, [], "listMy"), { auth: true });
+route("GET", "/api/returns/:id", (req, ctx, p) => handleReturnRequest(req, ctx, p, "detailMy"), { auth: true });
+
+route("GET", "/api/admin/returns", (req, ctx) => handleReturnRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
+route("GET", "/api/admin/returns/:id", (req, ctx, p) => handleReturnRequest(req, ctx, p, "adminDetail"), { auth: true, admin: true });
+route("PUT", "/api/admin/returns/:id/approve", (req, ctx, p) => handleReturnRequest(req, ctx, p, "approve"), { auth: true, admin: true });
+route("PUT", "/api/admin/returns/:id/reject", (req, ctx, p) => handleReturnRequest(req, ctx, p, "reject"), { auth: true, admin: true });
+route("PUT", "/api/admin/returns/:id/receive", (req, ctx, p) => handleReturnRequest(req, ctx, p, "receive"), { auth: true, admin: true });
+
+// Refunds
+route("GET", "/api/admin/refunds", (req, ctx) => handleRefundRequest(req, ctx, [], "list"), { auth: true, admin: true });
+route("GET", "/api/admin/refunds/:id", (req, ctx, p) => handleRefundRequest(req, ctx, p, "detail"), { auth: true, admin: true });
+route("POST", "/api/admin/refunds", (req, ctx) => handleRefundRequest(req, ctx, [], "create"), { auth: true, admin: true });
+route("POST", "/api/admin/refunds/:id/process", (req, ctx, p) => handleRefundRequest(req, ctx, p, "process"), { auth: true, admin: true });
+route("POST", "/api/admin/refunds/:id/complete", (req, ctx, p) => handleRefundRequest(req, ctx, p, "complete"), { auth: true, admin: true });
+route("POST", "/api/admin/refunds/:id/fail", (req, ctx, p) => handleRefundRequest(req, ctx, p, "fail"), { auth: true, admin: true });
 
 // Admin routes
 route("GET", "/api/admin/dashboard", (req, ctx) => handleDashboardRequest(req, ctx, [], "overview"), { auth: true, admin: true });
@@ -183,8 +300,11 @@ route("PUT", "/api/admin/collections/:id", (req, ctx, p) => handleAdminCollectio
 route("DELETE", "/api/admin/collections/:id", (req, ctx, p) => handleAdminCollectionRequest(req, ctx, p, "delete"), { auth: true, admin: true });
 
 route("GET", "/api/admin/orders", (req, ctx) => handleAdminOrderRequest(req, ctx, [], "list"), { auth: true, admin: true });
+route("GET", "/api/admin/orders/stats", (req, ctx) => handleAdminOrderRequest(req, ctx, [], "stats"), { auth: true, admin: true });
 route("GET", "/api/admin/orders/:id", (req, ctx, p) => handleAdminOrderRequest(req, ctx, p, "detail"), { auth: true, admin: true });
 route("PUT", "/api/admin/orders/:id/status", (req, ctx, p) => handleAdminOrderRequest(req, ctx, p, "updateStatus"), { auth: true, admin: true });
+route("PUT", "/api/admin/orders/:id/internal-notes", (req, ctx, p) => handleAdminOrderRequest(req, ctx, p, "internalNotes"), { auth: true, admin: true });
+route("GET", "/api/admin/orders/:id/timeline", (req, ctx, p) => handleAdminOrderRequest(req, ctx, p, "timeline"), { auth: true, admin: true });
 
 route("GET", "/api/admin/customers", (req, ctx) => handleAdminCustomerRequest(req, ctx, [], "list"), { auth: true, admin: true });
 route("GET", "/api/admin/customers/:id", (req, ctx, p) => handleAdminCustomerRequest(req, ctx, p, "detail"), { auth: true, admin: true });
@@ -325,6 +445,64 @@ route("GET", "/api/admin/search", (req, ctx) => handleAdminSearchIndexRequest(re
 // Public theme endpoint
 route("GET", "/api/theme", (req, ctx) => handleSettingsRequest(req, ctx, [], "public"));
 
+route("GET", "/api/orders/:id/invoice", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "customerInvoice"), { auth: true });
+
+// Payments
+route("POST", "/api/payments/verify", (req, ctx) => handlePaymentRequest(req, ctx, [], "verify"));
+route("POST", "/api/payments/failed", (req, ctx) => handlePaymentRequest(req, ctx, [], "failed"));
+route("POST", "/api/payments/retry", (req, ctx) => handlePaymentRequest(req, ctx, [], "retry"));
+route("POST", "/api/payments/refund", (req, ctx) => handlePaymentRequest(req, ctx, [], "refund"), { auth: true });
+route("POST", "/api/payments/webhook", (req) => handlePaymentRequest(req, {} as RequestContext, [], "webhook"));
+
+// Admin Webhooks
+route("GET", "/api/admin/webhooks/events", (req, ctx) => handleAdminWebhookRequest(req, ctx, [], "events"), { auth: true, admin: true });
+route("POST", "/api/admin/webhooks/reprocess/:id", (req, ctx, p) => handleAdminWebhookRequest(req, ctx, p, "reprocess"), { auth: true, admin: true });
+route("POST", "/api/admin/webhooks/reconcile/:orderId", (req, ctx, p) => handleAdminWebhookRequest(req, ctx, p, "reconcile"), { auth: true, admin: true });
+
+// Notifications
+route("GET", "/api/notifications", (req, ctx) => handleNotificationRequest(req, ctx, [], "list"), { auth: true });
+route("PUT", "/api/notifications/read-all", (req, ctx) => handleNotificationRequest(req, ctx, [], "readAll"), { auth: true });
+route("GET", "/api/notifications/unread-count", (req, ctx) => handleNotificationRequest(req, ctx, [], "unreadCount"), { auth: true });
+route("PUT", "/api/notifications/:id/read", (req, ctx, p) => handleNotificationRequest(req, ctx, p, "markRead"), { auth: true });
+
+// Dashboard
+route("GET", "/api/dashboard", (req, ctx) => handleCustomerDashboardRequest(req, ctx, [], "overview"), { auth: true });
+route("GET", "/api/profile", (req, ctx) => handleCustomerDashboardRequest(req, ctx, [], "profile"), { auth: true });
+route("PUT", "/api/profile", (req, ctx) => handleCustomerDashboardRequest(req, ctx, [], "updateProfile"), { auth: true });
+route("PUT", "/api/profile/password", (req, ctx) => handleCustomerDashboardRequest(req, ctx, [], "changePassword"), { auth: true });
+
+// Support
+route("POST", "/api/support", (req, ctx) => handleSupportRequest(req, ctx, [], "createTicket"));
+route("GET", "/api/support", (req, ctx) => handleSupportRequest(req, ctx, [], "myTickets"), { auth: true });
+route("GET", "/api/support/:id", (req, ctx, p) => handleSupportRequest(req, ctx, p, "ticketDetail"), { auth: true });
+route("POST", "/api/support/:id/reply", (req, ctx, p) => handleSupportRequest(req, ctx, p, "addReply"), { auth: true });
+route("GET", "/api/faq", (req, ctx) => handleSupportRequest(req, ctx, [], "faq"));
+
+// --- ADMIN ROUTES ---
+
+// Admin Notifications
+route("GET", "/api/admin/notifications", (req, ctx) => handleNotificationRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
+route("GET", "/api/admin/notification-templates", (req, ctx) => handleNotificationRequest(req, ctx, [], "listTemplates"), { auth: true, admin: true });
+route("PUT", "/api/admin/notification-templates/:id", (req, ctx, p) => handleNotificationRequest(req, ctx, p, "updateTemplate"), { auth: true, admin: true });
+route("POST", "/api/admin/notifications/send", (req, ctx) => handleNotificationRequest(req, ctx, [], "sendManual"), { auth: true, admin: true });
+
+// Admin Support
+route("GET", "/api/admin/support", (req, ctx) => handleSupportRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
+route("GET", "/api/admin/support/:id", (req, ctx, p) => handleSupportRequest(req, ctx, p, "adminDetail"), { auth: true, admin: true });
+route("PUT", "/api/admin/support/:id/status", (req, ctx, p) => handleSupportRequest(req, ctx, p, "updateStatus"), { auth: true, admin: true });
+route("PUT", "/api/admin/support/:id/assign", (req, ctx, p) => handleSupportRequest(req, ctx, p, "assign"), { auth: true, admin: true });
+route("POST", "/api/admin/support/:id/reply", (req, ctx, p) => handleSupportRequest(req, ctx, p, "adminReply"), { auth: true, admin: true });
+
+// Admin FAQ
+route("GET", "/api/admin/faq", (req, ctx) => handleSupportRequest(req, ctx, [], "adminFaqList"), { auth: true, admin: true });
+route("POST", "/api/admin/faq", (req, ctx) => handleSupportRequest(req, ctx, [], "createFaq"), { auth: true, admin: true });
+route("PUT", "/api/admin/faq/:id", (req, ctx, p) => handleSupportRequest(req, ctx, p, "updateFaq"), { auth: true, admin: true });
+route("DELETE", "/api/admin/faq/:id", (req, ctx, p) => handleSupportRequest(req, ctx, p, "deleteFaq"), { auth: true, admin: true });
+
+// Admin Invoices
+route("GET", "/api/admin/orders/:id/invoice", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "adminInvoice"), { auth: true, admin: true });
+route("POST", "/api/admin/orders/:id/invoice/generate", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "generate"), { auth: true, admin: true });
+
 // ─── Router ───
 
 export async function GET(request: Request): Promise<Response> {
@@ -347,9 +525,32 @@ export async function PATCH(request: Request): Promise<Response> {
   return handleRequest("PATCH", request);
 }
 
+export async function OPTIONS(request: Request): Promise<Response> {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      ...corsHeaders(request),
+      "Access-Control-Max-Age": "86400",
+    },
+  });
+}
+
 async function handleRequest(method: string, request: Request): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname;
+
+  // Rate limiting
+  const key = calculateKey(request, path);
+  let rateConfig = RATE_LIMIT_CONFIG.standard;
+  if (isAuthPath(path)) {
+    rateConfig = path.includes("/contact") ? RATE_LIMIT_CONFIG.contact : RATE_LIMIT_CONFIG.auth;
+  } else if (path.includes("/api/admin/")) {
+    rateConfig = RATE_LIMIT_CONFIG.admin;
+  }
+  const rateResult = checkRateLimit(key, rateConfig);
+  if (!rateResult.allowed) {
+    return withCors(rateLimitResponse(rateConfig.message || "Too many requests", rateResult.resetAt), request, path);
+  }
 
   // Try to match a route
   for (const r of routes) {
@@ -364,23 +565,26 @@ async function handleRequest(method: string, request: Request): Promise<Response
     let context: RequestContext = {};
     if (r.auth || r.admin) {
       const result = await authenticateRequest(request);
-      if (result instanceof Response) return result;
+      if (result instanceof Response) return withCors(result, request, path);
       context = result;
     }
 
     // Check admin role
     if (r.admin) {
       const forbidden = requireAdmin(context);
-      if (forbidden) return forbidden;
+      if (forbidden) return withCors(forbidden, request, path);
     }
 
     try {
-      return await r.handler(request, context, params);
+      const response = await r.handler(request, context, params);
+      // Set CSRF cookie on GET responses for SPA to read
+      const responseWithCsrf = method === "GET" ? setCsrfCookie(response) : response;
+      return withCors(responseWithCsrf, request, path);
     } catch (err) {
       console.error(`Error handling ${method} ${path}:`, err);
-      return serverError(err);
+      return withCors(serverError(err), request, path);
     }
   }
 
-  return notFound(`Route not found: ${method} ${path}`);
+  return withCors(notFound(`Route not found: ${method} ${path}`), request, path);
 }

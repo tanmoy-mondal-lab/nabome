@@ -1,11 +1,11 @@
-import { badRequest, serverError, success } from "../_lib/response";
+import { badRequest, unauthorized, serverError, success } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
 export async function handleUploadRequest(
   req: Request,
   ctx: RequestContext
 ): Promise<Response> {
-  if (!ctx.userId) return new Response("Unauthorized", { status: 401 });
+  if (!ctx.userId) return unauthorized();
 
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME ?? process.env.VITE_CLOUDINARY_CLOUD_NAME;
   const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET ?? process.env.VITE_CLOUDINARY_UPLOAD_PRESET;

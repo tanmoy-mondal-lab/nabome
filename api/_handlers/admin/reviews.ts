@@ -1,5 +1,5 @@
 import { prisma } from "../../_lib/prisma";
-import { success, notFound, serverError } from "../../_lib/response";
+import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 
 export async function handleAdminReviewRequest(
@@ -14,7 +14,7 @@ export async function handleAdminReviewRequest(
     case "approve":
       return handleApprove(params[0], req);
     default:
-      return new Response("Unknown action", { status: 400 });
+      return badRequest("Unknown action");
   }
 }
 

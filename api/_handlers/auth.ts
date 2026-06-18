@@ -10,6 +10,8 @@ import {
 } from "../_lib/response";
 import { authenticate } from "../_lib/auth-middleware";
 import type { RequestContext } from "../_lib/types";
+import { validateBody, authRegisterSchema, authLoginSchema } from "../_lib/validate";
+import { sendEmailNotification } from "../_lib/email";
 
 function getAnonClient() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
@@ -41,6 +43,7 @@ export async function handleAuthRequest(
     case "logout":       return handleLogout(req, ctx);
     case "me":           return handleMe(req);
     case "updateMe":     return handleUpdateMe(req, ctx);
+    case "refresh":      return handleRefresh(req);
     case "forgotPassword": return handleForgotPassword(req);
     case "resetPassword":  return handleResetPassword(req);
     case "changePassword": return handleChangePassword(req, ctx);
@@ -54,20 +57,9 @@ export async function handleAuthRequest(
 // ─── REGISTER ───
 
 async function handleRegister(req: Request): Promise<Response> {
-  const body = await req.json();
-  const { email, password, firstName, lastName, phone } = body;
-
-  if (!email || !password || !firstName) {
-    return badRequest("Email, password, and first name are required");
-  }
-
-  if (password.length < 8) {
-    return badRequest("Password must be at least 8 characters");
-  }
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return badRequest("Invalid email format");
-  }
+  const parsed = await validateBody(req, authRegisterSchema);
+  if ("response" in parsed) return parsed.response;
+  const { email, password, firstName, lastName } = parsed.data;
 
   const supabase = getAdminClient();
 
@@ -103,7 +95,7 @@ async function handleRegister(req: Request): Promise<Response> {
         role: "customer",
         firstName,
         lastName: lastName ?? null,
-        phone: phone ?? null,
+        phone: null,
       },
     });
   } catch (err) {
@@ -120,12 +112,9 @@ async function handleRegister(req: Request): Promise<Response> {
 // ─── LOGIN ───
 
 async function handleLogin(req: Request): Promise<Response> {
-  const body = await req.json();
-  const { email, password } = body;
-
-  if (!email || !password) {
-    return badRequest("Email and password are required");
-  }
+    const parsed = await validateBody(req, authLoginSchema);
+    if ("response" in parsed) return parsed.response;
+    const { email, password } = parsed.data;
 
   const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
   const userAgent = req.headers.get("user-agent");
@@ -215,18 +204,100 @@ async function handleLogin(req: Request): Promise<Response> {
   });
 }
 
+// ─── REFRESH TOKEN ───
+// Rotates the refresh token: validates old, issues new, revokes old.
+// Uses Supabase `setSession` to get fresh tokens, then rotates local session record.
+
+async function handleRefresh(req: Request): Promise<Response> {
+  const body = await req.json();
+  const { refreshToken } = body;
+
+  if (!refreshToken || typeof refreshToken !== "string") {
+    return badRequest("Refresh token is required");
+  }
+
+  // 1. Find the active session with this refresh token
+  const oldSession = await prisma.authSession.findUnique({
+    where: { refreshToken },
+  });
+
+  if (!oldSession || !oldSession.isActive) {
+    return unauthorized("Invalid or revoked refresh token");
+  }
+
+  // 2. Check if refresh token itself is expired
+  if (oldSession.refreshTokenExpiresAt && new Date() > oldSession.refreshTokenExpiresAt) {
+    await prisma.authSession.update({
+      where: { id: oldSession.id },
+      data: { isActive: false, revokedAt: new Date() },
+    });
+    return unauthorized("Refresh token expired — please log in again");
+  }
+
+  // 3. Call Supabase to exchange refresh token for new session tokens
+  const supabase = getAnonClient();
+  const { data: sbData, error: sbError } = await supabase.auth.setSession({
+    access_token: oldSession.accessToken,
+    refresh_token: refreshToken,
+  });
+
+  if (sbError || !sbData.session) {
+    // Supabase rejected the refresh — revoke the session
+    await prisma.authSession.update({
+      where: { id: oldSession.id },
+      data: { isActive: false, revokedAt: new Date() },
+    }).catch(() => {});
+    return unauthorized("Session expired — please log in again");
+  }
+
+  const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
+  const userAgent = req.headers.get("user-agent");
+  const newExpiresAt = new Date(Date.now() + sbData.session.expires_in * 1000);
+  const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days for refresh
+
+  // 4. Rotate: revoke old session, create new one linked via rotatedFromSessionId
+  const [newSession] = await prisma.$transaction([
+    prisma.authSession.create({
+      data: {
+        profileId: oldSession.profileId,
+        accessToken: sbData.session.access_token,
+        refreshToken: sbData.session.refresh_token,
+        refreshTokenExpiresAt: refreshExpiresAt,
+        userAgent: userAgent ?? oldSession.userAgent,
+        ipAddress: clientIp,
+        deviceName: oldSession.deviceName,
+        expiresAt: newExpiresAt,
+        rotatedFromSessionId: oldSession.id,
+      },
+    }),
+    prisma.authSession.update({
+      where: { id: oldSession.id },
+      data: { isActive: false, revokedAt: new Date() },
+    }),
+  ]);
+
+  return success({
+    session: {
+      accessToken: newSession.accessToken,
+      refreshToken: newSession.refreshToken,
+      expiresAt: Math.floor(newExpiresAt.getTime() / 1000),
+      expiresIn: sbData.session.expires_in,
+    },
+  });
+}
+
 // ─── LOGOUT ───
 
 async function handleLogout(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  // Invalidate current session in our tracking
+  // Revoke the specific session for this access token (with audit trail)
   const authHeader = req.headers.get("Authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
     await prisma.authSession.updateMany({
-      where: { accessToken: token, isActive: true },
-      data: { isActive: false },
+      where: { accessToken: token, isActive: true, profileId: ctx.userId },
+      data: { isActive: false, revokedAt: new Date() },
     }).catch(() => {});
   }
 
@@ -330,12 +401,29 @@ async function handleForgotPassword(req: Request): Promise<Response> {
 
   const siteUrl = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "http://localhost:5173";
 
-  const supabase = getAnonClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/auth/reset-password`,
+  // Generate reset link using admin client (does not send Supabase email)
+  const supabase = getAdminClient();
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: "recovery",
+    email,
   });
 
-  if (error) return badRequest(error.message);
+  if (error || !data.properties?.action_link) {
+    // Fallback: don't reveal whether account exists
+    return success({ message: "If an account exists with this email, a password reset link has been sent." });
+  }
+
+  const resetLink = data.properties.action_link;
+
+  // Send branded password reset email via Resend
+  try {
+    await sendEmailNotification("password_reset", {
+      email,
+      resetLink,
+    });
+  } catch (mailErr) {
+    console.error("[EMAIL] Failed to send password reset:", (mailErr as Error).message);
+  }
 
   return success({ message: "If an account exists with this email, a password reset link has been sent." });
 }

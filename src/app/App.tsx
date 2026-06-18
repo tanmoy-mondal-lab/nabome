@@ -1,8 +1,10 @@
 import { Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "../components/ui/Toast";
-import { AUTH_ROUTES, ACCOUNT_ROUTES, ADMIN_ROUTES } from "./routes";
+import { GoogleAnalytics } from "../components/GoogleAnalytics";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { STOREFRONT_ROUTES, AUTH_ROUTES, ADMIN_ROUTES } from "./routes";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,24 +32,16 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Navigate to="/collections" replace />} />
-
-            {/* Auth module */}
-            {AUTH_ROUTES}
-
-            {/* Account module (protected) */}
-            {ACCOUNT_ROUTES}
-
-            {/* Admin module (super_admin only) */}
-            {ADMIN_ROUTES}
-
-            {/* 404 fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              {STOREFRONT_ROUTES}
+              {AUTH_ROUTES}
+              {ADMIN_ROUTES}
+            </Routes>
+          </ErrorBoundary>
         </Suspense>
         <Toaster />
+        <GoogleAnalytics />
       </BrowserRouter>
     </QueryClientProvider>
   );

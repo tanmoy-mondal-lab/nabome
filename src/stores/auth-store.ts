@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // AUTH STORE — Zustand-based auth state management
-// Persists access token to localStorage for session restoration
+// Persists tokens to localStorage for session restoration
+// Supports refresh token rotation and auto-logout events
 // ─────────────────────────────────────────────────────────────
 
 import { create } from "zustand";
@@ -20,6 +21,7 @@ export interface AuthState {
   setAuth: (user: UserProfile, accessToken: string, refreshToken: string, expiresAt: number) => void;
   setUser: (user: UserProfile) => void;
   setLoading: (loading: boolean) => void;
+  setTokens: (accessToken: string, refreshToken: string, expiresAt: number) => void;
   clearAuth: () => void;
 }
 
@@ -50,6 +52,9 @@ export const useAuthStore = create<AuthState>()(
           user,
           isAdmin: user.role === "super_admin",
         }),
+
+      setTokens: (accessToken, refreshToken, expiresAt) =>
+        set({ accessToken, refreshToken, expiresAt }),
 
       setLoading: (loading) => set({ isLoading: loading }),
 

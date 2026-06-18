@@ -1,6 +1,7 @@
 import { prisma } from "../_lib/prisma";
 import { success, badRequest, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
+import { validateBody, contactSchema, emailSchema } from "../_lib/validate";
 
 export async function handleContactRequest(
   req: Request,
@@ -19,12 +20,9 @@ export async function handleContactRequest(
 }
 
 async function handleContact(req: Request): Promise<Response> {
-  const body = await req.json();
-  const { name, email, phone, subject, message } = body;
-
-  if (!name || !email || !message) {
-    return badRequest("Name, email, and message are required");
-  }
+  const parsed = await validateBody(req, contactSchema);
+  if ("response" in parsed) return parsed.response;
+  const { name, email, phone, subject, message } = parsed.data;
 
   try {
     const submission = await prisma.contactSubmission.create({
@@ -47,13 +45,14 @@ async function handleContact(req: Request): Promise<Response> {
 
 async function handleNewsletter(req: Request): Promise<Response> {
   const body = await req.json();
-  const { email } = body;
+  const email = body?.email;
 
-  if (!email) return badRequest("Email is required");
+  const parsed = emailSchema.safeParse(email);
+  if (!parsed.success) return badRequest("Valid email is required");
 
   try {
     const existing = await prisma.newsletterSubscriber.findUnique({
-      where: { email },
+      where: { email: parsed.data },
     });
 
     if (existing) {
@@ -67,7 +66,7 @@ async function handleNewsletter(req: Request): Promise<Response> {
     }
 
     await prisma.newsletterSubscriber.create({
-      data: { email },
+      data: { email: parsed.data },
     });
 
     return created({ message: "Successfully subscribed to our newsletter!" });

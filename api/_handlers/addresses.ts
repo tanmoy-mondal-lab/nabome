@@ -1,5 +1,5 @@
 import { prisma } from "../_lib/prisma";
-import { success, badRequest, notFound, serverError, created } from "../_lib/response";
+import { success, badRequest, notFound, unauthorized, error, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
 export async function handleAddressRequest(
@@ -8,7 +8,7 @@ export async function handleAddressRequest(
   params: string[],
   action?: string
 ): Promise<Response> {
-  if (!ctx.userId) return new Response("Unauthorized", { status: 401 });
+  if (!ctx.userId) return unauthorized();
 
   switch (req.method) {
     case "GET":
@@ -20,7 +20,7 @@ export async function handleAddressRequest(
     case "DELETE":
       return handleDelete(ctx.userId, params[0]);
     default:
-      return new Response("Method not allowed", { status: 405 });
+      return error("Method not allowed", 405);
   }
 }
 
