@@ -1,0 +1,62 @@
+import { prisma } from "../_lib/prisma";
+import { success, notFound, serverError } from "../_lib/response";
+import type { RequestContext } from "../_lib/types";
+
+export async function handleLookbookRequest(
+  req: Request,
+  ctx: RequestContext,
+  params: string[],
+  action: string
+): Promise<Response> {
+  switch (action) {
+    case "list":
+      return handleList();
+    case "detail":
+      return handleDetail(params[0]);
+    default:
+      return new Response("Unknown action", { status: 400 });
+  }
+}
+
+async function handleList(): Promise<Response> {
+  try {
+    const lookbooks = await prisma.lookbook.findMany({
+      where: { isActive: true },
+      include: { _count: { select: { items: true } } },
+      orderBy: { sortOrder: "asc" },
+    });
+    return success({ lookbooks });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleDetail(slug: string): Promise<Response> {
+  try {
+    const lookbook = await prisma.lookbook.findFirst({
+      where: { slug, isActive: true },
+      include: {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                basePrice: true,
+                images: { take: 1, where: { isPrimary: true } },
+              },
+            },
+          },
+          orderBy: { sortOrder: "asc" },
+        },
+      },
+    });
+
+    if (!lookbook) return notFound("Lookbook not found");
+
+    return success({ lookbook });
+  } catch (err) {
+    return serverError(err);
+  }
+}
