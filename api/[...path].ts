@@ -81,11 +81,15 @@ import { handleAdminContactRequest } from "./_handlers/admin/contacts";
 
 // Public routes
 route("GET", "/api/auth/me", (req, ctx) => handleAuthRequest(req, ctx, [], "me"));
+route("PUT", "/api/auth/me", (req, ctx) => handleAuthRequest(req, ctx, [], "updateMe"), { auth: true });
 route("POST", "/api/auth/register", (req, ctx) => handleAuthRequest(req, ctx, [], "register"));
 route("POST", "/api/auth/login", (req, ctx) => handleAuthRequest(req, ctx, [], "login"));
-route("POST", "/api/auth/logout", (req, ctx) => handleAuthRequest(req, ctx, [], "logout"));
+route("POST", "/api/auth/logout", (req, ctx) => handleAuthRequest(req, ctx, [], "logout"), { auth: true });
 route("POST", "/api/auth/forgot-password", (req, ctx) => handleAuthRequest(req, ctx, [], "forgotPassword"));
 route("POST", "/api/auth/reset-password", (req, ctx) => handleAuthRequest(req, ctx, [], "resetPassword"));
+route("POST", "/api/auth/change-password", (req, ctx) => handleAuthRequest(req, ctx, [], "changePassword"), { auth: true });
+route("GET", "/api/auth/sessions", (req, ctx) => handleAuthRequest(req, ctx, [], "sessions"), { auth: true });
+route("DELETE", "/api/auth/sessions/:id", (req, ctx, p) => handleAuthRequest(req, ctx, p, "deleteSession"), { auth: true });
 
 route("GET", "/api/products", (req, ctx) => handleProductRequest(req, ctx, [], "list"));
 route("GET", "/api/products/featured", (req, ctx) => handleProductRequest(req, ctx, [], "featured"));

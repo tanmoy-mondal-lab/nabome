@@ -105,27 +105,79 @@ enum AnnouncementBarPosition {
 
 // Maps 1:1 to Supabase auth.users
 model Profile {
-  id         String   @id @default(uuid()) @db.Uuid
-  role       UserRole @default(customer)
-  firstName  String   @map("first_name") @db.VarChar(100)
-  lastName   String?  @map("last_name") @db.VarChar(100)
-  phone      String?  @db.VarChar(20)
-  avatarUrl  String?  @map("avatar_url") @db.Text
-  isActive   Boolean  @default(true) @map("is_active")
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  id            String    @id @default(uuid()) @db.Uuid
+  role          UserRole  @default(customer)
+  email         String    @unique @db.VarChar(255) // Denormalized from auth.users for quick access
+  firstName     String    @map("first_name") @db.VarChar(100)
+  lastName      String?   @map("last_name") @db.VarChar(100)
+  phone         String?   @db.VarChar(20)
+  avatarUrl     String?   @map("avatar_url") @db.Text
+  isActive      Boolean   @default(true) @map("is_active")
+  emailVerified Boolean   @default(false) @map("email_verified")
+  lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz
+  loginCount    Int       @default(0) @map("login_count")
+  preferences   Json?     @db.JsonB
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  addresses        Address[]
-  wishlistItems    WishlistItem[]
-  orders           Order[]
-  reviews          Review[]
-  cart             Cart?
-  couponRedemptions CouponRedemption[]
+  addresses           Address[]
+  wishlistItems       WishlistItem[]
+  orders              Order[]
+  reviews             Review[]
+  cart                Cart?
+  couponRedemptions   CouponRedemption[]
   orderHistoryEntries OrderStatusHistory[]
+  sessions            AuthSession[]
+  loginAttempts       LoginAttempt[]
 
   @@index([role])
   @@index([isActive])
+  @@index([email])
   @@map("profiles")
+}
+
+// ─── AUTH SESSION TRACKING ───
+// Tracks every active session for audit and force-logout capability.
+model AuthSession {
+  id           String   @id @default(uuid()) @db.Uuid
+  profileId    String   @map("profile_id") @db.Uuid
+  accessToken  String   @unique @map("access_token") @db.Text
+  refreshToken String   @unique @map("refresh_token") @db.Text
+  userAgent    String?  @map("user_agent") @db.Text
+  ipAddress    String?  @map("ip_address") @db.VarChar(45)
+  deviceName   String?  @map("device_name") @db.VarChar(200)
+  isActive     Boolean  @default(true) @map("is_active")
+  lastActiveAt DateTime @default(now()) @map("last_active_at") @db.Timestamptz
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId, isActive])
+  @@index([refreshToken])
+  @@index([accessToken])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+// ─── LOGIN ATTEMPT AUDIT ───
+// Records every login attempt for brute-force detection and security audit.
+model LoginAttempt {
+  id         String   @id @default(uuid()) @db.Uuid
+  profileId  String?  @map("profile_id") @db.Uuid
+  email      String   @db.VarChar(255)
+  ipAddress  String   @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.Text
+  success    Boolean  @default(false)
+  failReason String?  @map("fail_reason") @db.VarChar(100)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([email, createdAt])
+  @@index([ipAddress, createdAt])
+  @@index([profileId])
+  @@map("login_attempts")
 }
 
 // ─────────────────────────────────────────────────────────────

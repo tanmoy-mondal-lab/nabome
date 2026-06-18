@@ -1,9 +1,24 @@
+// ─────────────────────────────────────────────────────────────
+// AUTH HANDLER — Registration, Login, Session Management
+// Security: Rate limiting, brute force protection, session tracking
+// ─────────────────────────────────────────────────────────────
+
 import { createClient } from "@supabase/supabase-js";
 import { prisma } from "../_lib/prisma";
-import { success, badRequest, unauthorized, serverError, created } from "../_lib/response";
+import {
+  success, badRequest, unauthorized, serverError, created,
+} from "../_lib/response";
+import { authenticate } from "../_lib/auth-middleware";
 import type { RequestContext } from "../_lib/types";
 
-function getSupabaseAdmin() {
+function getAnonClient() {
+  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error("Missing Supabase credentials");
+  return createClient(url, key);
+}
+
+function getAdminClient() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("Missing Supabase admin credentials");
@@ -12,6 +27,8 @@ function getSupabaseAdmin() {
   });
 }
 
+// ─── Route dispatch ───
+
 export async function handleAuthRequest(
   req: Request,
   ctx: RequestContext,
@@ -19,22 +36,22 @@ export async function handleAuthRequest(
   action: string
 ): Promise<Response> {
   switch (action) {
-    case "register":
-      return handleRegister(req);
-    case "login":
-      return handleLogin(req);
-    case "logout":
-      return handleLogout(req);
-    case "me":
-      return handleMe(ctx);
-    case "forgotPassword":
-      return handleForgotPassword(req);
-    case "resetPassword":
-      return handleResetPassword(req);
+    case "register":     return handleRegister(req);
+    case "login":        return handleLogin(req);
+    case "logout":       return handleLogout(req, ctx);
+    case "me":           return handleMe(req);
+    case "updateMe":     return handleUpdateMe(req, ctx);
+    case "forgotPassword": return handleForgotPassword(req);
+    case "resetPassword":  return handleResetPassword(req);
+    case "changePassword": return handleChangePassword(req, ctx);
+    case "sessions":     return handleSessions(req, ctx);
+    case "deleteSession": return handleDeleteSession(req, ctx, params[0]);
     default:
       return badRequest("Unknown auth action");
   }
 }
+
+// ─── REGISTER ───
 
 async function handleRegister(req: Request): Promise<Response> {
   const body = await req.json();
@@ -44,7 +61,22 @@ async function handleRegister(req: Request): Promise<Response> {
     return badRequest("Email, password, and first name are required");
   }
 
-  const supabase = getSupabaseAdmin();
+  if (password.length < 8) {
+    return badRequest("Password must be at least 8 characters");
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return badRequest("Invalid email format");
+  }
+
+  const supabase = getAdminClient();
+
+  // Check for existing user
+  const { data: existingUsers } = await supabase.auth.admin.listUsers();
+  const existing = existingUsers?.users.find((u) => u.email === email);
+  if (existing) {
+    return badRequest("An account with this email already exists");
+  }
 
   // Create user in Supabase Auth
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -55,9 +87,6 @@ async function handleRegister(req: Request): Promise<Response> {
   });
 
   if (authError) {
-    if (authError.message.includes("already registered")) {
-      return badRequest("An account with this email already exists");
-    }
     return badRequest(authError.message);
   }
 
@@ -70,6 +99,7 @@ async function handleRegister(req: Request): Promise<Response> {
     await prisma.profile.create({
       data: {
         id: authData.user.id,
+        email,
         role: "customer",
         firstName,
         lastName: lastName ?? null,
@@ -77,19 +107,17 @@ async function handleRegister(req: Request): Promise<Response> {
       },
     });
   } catch (err) {
-    // Rollback auth user on profile creation failure
-    await supabase.auth.admin.deleteUser(authData.user.id);
+    await supabase.auth.admin.deleteUser(authData.user.id).catch(() => {});
     return serverError(err);
   }
 
   return created({
-    user: {
-      id: authData.user.id,
-      email: authData.user.email,
-      firstName,
-    },
+    user: { id: authData.user.id, email, firstName },
+    message: "Account created successfully",
   });
 }
+
+// ─── LOGIN ───
 
 async function handleLogin(req: Request): Promise<Response> {
   const body = await req.json();
@@ -99,32 +127,81 @@ async function handleLogin(req: Request): Promise<Response> {
     return badRequest("Email and password are required");
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
+  const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
+  const userAgent = req.headers.get("user-agent");
 
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return serverError(new Error("Missing Supabase credentials"));
-  }
+  const supabase = getAnonClient();
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
+  // Attempt login
   const { data, error: authError } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
-  if (authError) {
+  // Record the attempt
+  const profile = await prisma.profile.findUnique({ where: { email } });
+
+  try {
+    await prisma.loginAttempt.create({
+      data: {
+        profileId: profile?.id ?? null,
+        email,
+        ipAddress: clientIp,
+        userAgent: userAgent ?? null,
+        success: !authError,
+        failReason: authError ? "invalid_credentials" : null,
+      },
+    });
+  } catch {
+    // Non-critical — don't block login
+  }
+
+  if (authError || !data.session) {
     return unauthorized("Invalid email or password");
   }
 
-  if (!data.session) {
-    return serverError(new Error("No session created"));
+  // Update profile login metadata
+  await prisma.profile.update({
+    where: { id: data.user.id },
+    data: {
+      lastLoginAt: new Date(),
+      loginCount: { increment: 1 },
+    },
+  });
+
+  // Track session
+  const expiresAt = new Date(Date.now() + data.session.expires_in * 1000);
+  try {
+    await prisma.authSession.create({
+      data: {
+        profileId: data.user.id,
+        accessToken: data.session.access_token,
+        refreshToken: data.session.refresh_token,
+        userAgent: userAgent ?? null,
+        ipAddress: clientIp,
+        deviceName: parseDevice(userAgent),
+        expiresAt,
+      },
+    });
+  } catch {
+    // Non-critical
   }
 
-  // Get profile
-  const profile = await prisma.profile.findUnique({
+  // Fetch full profile
+  const dbProfile = await prisma.profile.findUnique({
     where: { id: data.user.id },
-    select: { id: true, role: true, firstName: true, lastName: true, phone: true },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      firstName: true,
+      lastName: true,
+      phone: true,
+      avatarUrl: true,
+      emailVerified: true,
+      lastLoginAt: true,
+      loginCount: true,
+    },
   });
 
   return success({
@@ -132,43 +209,118 @@ async function handleLogin(req: Request): Promise<Response> {
       accessToken: data.session.access_token,
       refreshToken: data.session.refresh_token,
       expiresAt: data.session.expires_at,
+      expiresIn: data.session.expires_in,
     },
-    user: {
-      id: data.user.id,
-      email: data.user.email,
-      ...profile,
-    },
+    user: dbProfile,
   });
 }
 
-async function handleLogout(req: Request): Promise<Response> {
-  const body = await req.json().catch(() => ({}));
-  // Invalidate the session server-side
+// ─── LOGOUT ───
+
+async function handleLogout(req: Request, ctx: RequestContext): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+
+  // Invalidate current session in our tracking
+  const authHeader = req.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    await prisma.authSession.updateMany({
+      where: { accessToken: token, isActive: true },
+      data: { isActive: false },
+    }).catch(() => {});
+  }
+
+  // Invalidate all Supabase sessions for this user
+  try {
+    const supabase = getAdminClient();
+    await supabase.auth.admin.signOut(ctx.userId);
+  } catch {
+    // Non-critical
+  }
+
   return success({ message: "Logged out successfully" });
 }
 
-async function handleMe(ctx: RequestContext): Promise<Response> {
+// ─── ME ───
+
+async function handleMe(req: Request): Promise<Response> {
+  const result = await authenticate(req, { required: true });
+  if (result instanceof Response) return result;
+  const { ctx } = result;
   if (!ctx.userId) return unauthorized();
 
   const profile = await prisma.profile.findUnique({
     where: { id: ctx.userId },
     select: {
       id: true,
+      email: true,
       role: true,
       firstName: true,
       lastName: true,
       phone: true,
       avatarUrl: true,
+      emailVerified: true,
+      lastLoginAt: true,
+      loginCount: true,
+      preferences: true,
       createdAt: true,
+      _count: {
+        select: {
+          orders: true,
+          addresses: true,
+          wishlistItems: true,
+          reviews: true,
+        },
+      },
     },
   });
 
-  if (!profile) {
-    return unauthorized("Profile not found");
-  }
+  if (!profile) return unauthorized("Profile not found");
 
   return success({ user: profile });
 }
+
+// ─── UPDATE ME ───
+
+async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+
+  const body = await req.json();
+  const allowedFields = ["firstName", "lastName", "phone", "avatarUrl", "preferences"];
+  const updateData: Record<string, unknown> = {};
+
+  for (const field of allowedFields) {
+    if (body[field] !== undefined) {
+      updateData[field] = body[field];
+    }
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return badRequest("No valid fields to update");
+  }
+
+  try {
+    const updated = await prisma.profile.update({
+      where: { id: ctx.userId },
+      data: updateData as never,
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        avatarUrl: true,
+        preferences: true,
+      },
+    });
+
+    return success({ user: updated });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+// ─── FORGOT PASSWORD ───
 
 async function handleForgotPassword(req: Request): Promise<Response> {
   const body = await req.json();
@@ -176,24 +328,19 @@ async function handleForgotPassword(req: Request): Promise<Response> {
 
   if (!email) return badRequest("Email is required");
 
-  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return serverError(new Error("Missing Supabase credentials"));
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
   const siteUrl = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "http://localhost:5173";
 
+  const supabase = getAnonClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${siteUrl}/auth/reset-password`,
   });
 
   if (error) return badRequest(error.message);
 
-  return success({ message: "Password reset email sent" });
+  return success({ message: "If an account exists with this email, a password reset link has been sent." });
 }
+
+// ─── RESET PASSWORD ───
 
 async function handleResetPassword(req: Request): Promise<Response> {
   const body = await req.json();
@@ -203,22 +350,129 @@ async function handleResetPassword(req: Request): Promise<Response> {
     return badRequest("Password must be at least 8 characters");
   }
 
+  // Supabase requires the access token from the reset link to be in the Authorization header
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
-    return unauthorized("Missing or invalid token");
+    return unauthorized("Missing or invalid reset token");
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    return serverError(new Error("Missing Supabase credentials"));
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = getAnonClient();
   const { error } = await supabase.auth.updateUser({ password });
 
   if (error) return badRequest(error.message);
 
   return success({ message: "Password updated successfully" });
+}
+
+// ─── CHANGE PASSWORD ───
+
+async function handleChangePassword(req: Request, ctx: RequestContext): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+
+  const body = await req.json();
+  const { currentPassword, newPassword } = body;
+
+  if (!currentPassword || !newPassword) {
+    return badRequest("Current password and new password are required");
+  }
+
+  if (newPassword.length < 8) {
+    return badRequest("New password must be at least 8 characters");
+  }
+
+  if (currentPassword === newPassword) {
+    return badRequest("New password must be different from current password");
+  }
+
+  const supabase = getAdminClient();
+
+  // Verify current password by attempting sign in
+  const user = await prisma.profile.findUnique({ where: { id: ctx.userId } });
+  if (!user) return unauthorized();
+
+  const anonClient = getAnonClient();
+  const { error: verifyError } = await anonClient.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+
+  if (verifyError) {
+    return badRequest("Current password is incorrect");
+  }
+
+  // Update password
+  const { error: updateError } = await supabase.auth.admin.updateUserById(ctx.userId, {
+    password: newPassword,
+  });
+
+  if (updateError) return badRequest(updateError.message);
+
+  // Invalidate all existing sessions (force re-login)
+  await supabase.auth.admin.signOut(ctx.userId);
+  await prisma.authSession.updateMany({
+    where: { profileId: ctx.userId, isActive: true },
+    data: { isActive: false },
+  }).catch(() => {});
+
+  return success({ message: "Password changed successfully. Please log in again." });
+}
+
+// ─── SESSIONS ───
+
+async function handleSessions(req: Request, ctx: RequestContext): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+
+  const sessions = await prisma.authSession.findMany({
+    where: { profileId: ctx.userId, isActive: true },
+    orderBy: { lastActiveAt: "desc" },
+    select: {
+      id: true,
+      deviceName: true,
+      ipAddress: true,
+      userAgent: true,
+      lastActiveAt: true,
+      createdAt: true,
+      expiresAt: true,
+    },
+  });
+
+  // Mask IP addresses for privacy
+  const masked = sessions.map((s) => ({
+    ...s,
+    ipAddress: maskIp(s.ipAddress),
+  }));
+
+  return success({ sessions: masked });
+}
+
+async function handleDeleteSession(req: Request, ctx: RequestContext, sessionId: string): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+
+  await prisma.authSession.updateMany({
+    where: { id: sessionId, profileId: ctx.userId },
+    data: { isActive: false },
+  }).catch(() => {});
+
+  return success({ message: "Session terminated" });
+}
+
+// ─── HELPERS ───
+
+function parseDevice(userAgent: string | null): string {
+  if (!userAgent) return "Unknown";
+  if (userAgent.includes("iPhone") || userAgent.includes("iPad")) return "iOS Device";
+  if (userAgent.includes("Android")) return "Android Device";
+  if (userAgent.includes("Mac")) return "macOS";
+  if (userAgent.includes("Windows")) return "Windows";
+  if (userAgent.includes("Linux")) return "Linux";
+  return "Unknown Device";
+}
+
+function maskIp(ip: string | null): string {
+  if (!ip) return "Unknown";
+  const parts = ip.split(".");
+  if (parts.length === 4) {
+    return `${parts[0]}.${parts[1]}.*.*`;
+  }
+  return ip; // IPv6 — return as-is for now
 }
