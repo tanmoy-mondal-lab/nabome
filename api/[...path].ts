@@ -512,7 +512,37 @@ route("POST", "/api/admin/orders/:id/invoice/generate", (req, ctx, p) => handleI
 
 // ─── Router ───
 
-// Vercel serverless format
+// Cloudflare Worker (standalone — handles all traffic)
+export default {
+  async fetch(request: Request, env: any, _ctx: any): Promise<Response> {
+    const url = new URL(request.url);
+    console.log("[WORKER]", request.method, url.pathname);
+    try {
+      // API routes
+      if (url.pathname.startsWith("/api/") || url.pathname === "/sitemap.xml") {
+        const method = request.method.toUpperCase();
+        if (method === "OPTIONS") {
+          return new Response(null, { status: 204, headers: { ...corsHeaders(request), ...securityHeaders(), "Access-Control-Max-Age": "86400" } });
+        }
+        return handleRequest(method, request);
+      }
+      // Serve SPA for all other routes
+      // The SPA HTML must be deployed alongside the Worker or fetched from KV
+      try {
+        const index = await env.__STATIC_CONTENT?.get("index.html") ?? await env.ASSETS?.fetch(new URL("/index.html", request.url));
+        if (index) return new Response(index, { headers: { "content-type": "text/html" } });
+      } catch {}
+      // Fallback
+      const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>NABOME</title></head><body><div id="root"></div><script>window.location.href="/api/auth/me"</script></body></html>`;
+      return new Response(html, { headers: { "content-type": "text/html" } });
+    } catch (err) {
+      console.error("[WORKER ERROR]", err);
+      return new Response(JSON.stringify({ success: false, error: { message: "Internal error", status: 500 } }), { status: 500, headers: { "content-type": "application/json" } });
+    }
+  },
+};
+
+// Vercel serverless format (kept for local dev)
 export async function GET(request: Request): Promise<Response> {
   return handleRequest("GET", request);
 }
