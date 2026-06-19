@@ -131,8 +131,8 @@ async function handleRegister(req: Request): Promise<Response> {
     });
 
     // Send verification email
-    const siteUrl = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "http://localhost:5173";
-    const verifyLink = `${siteUrl}/auth/verify-email?token=${verificationToken}`;
+    const verifyLink = `http://localhost:5173/auth/verify-email?token=${verificationToken}`;
+    console.log(`[VERIFY LINK] ${verifyLink}`);
 
     try {
       await sendEmailNotification("email_verification", {
@@ -157,8 +157,45 @@ async function handleRegister(req: Request): Promise<Response> {
 // ─── VERIFY EMAIL ───
 
 async function handleVerifyEmail(req: Request): Promise<Response> {
-  console.log("[VERIFY EMAIL] HANDLER REACHED!", new Date().toISOString());
-  return success({ message: "TEST_OK_123" });
+  try {
+    const url = new URL(req.url);
+    const token = url.searchParams.get("token");
+
+    if (!token) {
+      return badRequest("Verification token is required");
+    }
+
+    const profile = await prisma.profile.findFirst({
+      where: { verificationToken: token, emailVerified: false },
+      select: { id: true, email: true, verificationTokenExpiresAt: true },
+    });
+
+    if (!profile) {
+      return badRequest("Invalid or expired verification token");
+    }
+
+    if (profile.verificationTokenExpiresAt && profile.verificationTokenExpiresAt < new Date()) {
+      return badRequest("Verification token has expired. Request a new one.");
+    }
+
+    await prisma.profile.update({
+      where: { id: profile.id },
+      data: {
+        emailVerified: true,
+        verificationToken: null,
+        verificationTokenExpiresAt: null,
+      },
+    });
+
+    logAction(profile.id, "auth.email_verified", {
+      metadata: { email: profile.email },
+    });
+
+    return success({ message: "Email verified successfully" });
+  } catch (err) {
+    console.error("[VERIFY EMAIL] Error:", err);
+    return serverError(err);
+  }
 }
 
 // ─── RESEND VERIFICATION EMAIL ───
@@ -194,8 +231,8 @@ async function handleResendVerification(req: Request): Promise<Response> {
       data: { verificationToken, verificationTokenExpiresAt },
     });
 
-    const siteUrl = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "http://localhost:5173";
-    const verifyLink = `${siteUrl}/auth/verify-email?token=${verificationToken}`;
+    const verifyLink = `http://localhost:5173/auth/verify-email?token=${verificationToken}`;
+    console.log(`[VERIFY LINK] ${verifyLink}`);
 
     try {
       await sendEmailNotification("email_verification", {
