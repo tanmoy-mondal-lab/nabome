@@ -162,45 +162,60 @@ async function handleVerifyEmail(req: Request): Promise<Response> {
   try {
     const url = new URL(req.url);
     const token = url.searchParams.get("token");
+    console.log("[VERIFY EMAIL] Token from URL:", token);
 
     if (!token) {
+      console.log("[VERIFY EMAIL] No token found");
       return badRequest("Verification token is required");
     }
 
-    // Find profile with matching verification token using direct JSON query
-    const profiles = await prisma.$queryRaw<Array<{ id: string; email: string; preferences: string | null }>>`
-      SELECT id, email, preferences FROM Profile
-      WHERE JSON_UNQUOTE(JSON_EXTRACT(preferences, '$.verificationToken')) = ${token}
-      LIMIT 1
-    `;
+    // Find profile with matching verification token via raw query
+    console.log("[VERIFY EMAIL] Querying database...");
+    const rows = await prisma.$queryRawUnsafe<Array<{ id: string; email: string; preferences: unknown }>>(
+      `SELECT id, email, preferences FROM "profiles" WHERE email_verified = FALSE AND preferences->>'verificationToken' = $1 LIMIT 1`,
+      token
+    );
+    console.log("[VERIFY EMAIL] Rows found:", rows.length);
 
-    const profile = profiles[0];
-    if (!profile) {
+    const row = rows[0];
+    if (!row) {
+      console.log("[VERIFY EMAIL] No matching profile found");
       return badRequest("Invalid or expired verification token");
     }
 
-    const prefs = profile.preferences ? JSON.parse(profile.preferences) : null;
+    const prefs = typeof row.preferences === "string" ? JSON.parse(row.preferences) : row.preferences as Record<string, unknown> | null;
     const expiresAt = prefs?.verificationTokenExpiresAt
-      ? new Date(prefs.verificationTokenExpiresAt)
+      ? new Date(prefs.verificationTokenExpiresAt as string)
       : null;
 
     if (expiresAt && expiresAt < new Date()) {
+      console.log("[VERIFY EMAIL] Token expired:", expiresAt);
       return badRequest("Verification token has expired. Request a new one.");
     }
 
-    // Mark email as verified and clear the token
-    await prisma.profile.update({
-      where: { id: profile.id },
-      data: {
-        emailVerified: true,
-        preferences: { verificationToken: null, verificationTokenExpiresAt: null } as never,
-      },
+    console.log("[VERIFY EMAIL] Token valid, updating profile...");
+
+    // Remove verification token fields and update
+    const cleaned: Record<string, unknown> = {};
+    if (prefs) {
+      for (const [k, v] of Object.entries(prefs)) {
+        if (k !== "verificationToken" && k !== "verificationTokenExpiresAt") {
+          cleaned[k] = v;
+        }
+      }
+    }
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE "profiles" SET email_verified = TRUE, preferences = $1::jsonb WHERE id = $2`,
+      JSON.stringify(Object.keys(cleaned).length > 0 ? cleaned : null),
+      row.id
+    );
+
+    logAction(row.id, "auth.email_verified", {
+      metadata: { email: row.email },
     });
 
-    logAction(profile.id, "auth.email_verified", {
-      metadata: { email: profile.email },
-    });
-
+    console.log("[VERIFY EMAIL] Success!");
     return success({ message: "Email verified successfully" });
   } catch (err) {
     console.error("[VERIFY EMAIL] Error:", err);

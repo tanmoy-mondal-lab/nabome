@@ -512,6 +512,7 @@ route("POST", "/api/admin/orders/:id/invoice/generate", (req, ctx, p) => handleI
 
 // ─── Router ───
 
+// Vercel serverless format
 export async function GET(request: Request): Promise<Response> {
   return handleRequest("GET", request);
 }
@@ -531,6 +532,27 @@ export async function DELETE(request: Request): Promise<Response> {
 export async function PATCH(request: Request): Promise<Response> {
   return handleRequest("PATCH", request);
 }
+
+// Cloudflare Workers + Pages format
+export default {
+  async fetch(request: Request, env: any, _ctx: any): Promise<Response> {
+    const url = new URL(request.url);
+    if (url.pathname.startsWith("/api/") || url.pathname === "/sitemap.xml") {
+      const method = request.method.toUpperCase();
+      if (method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: { ...corsHeaders(request), ...securityHeaders(), "Access-Control-Max-Age": "86400" } });
+      }
+      return handleRequest(method, request);
+    }
+    // Serve SPA from Cloudflare Pages static assets
+    if (typeof env.ASSETS?.fetch === "function") {
+      const spaUrl = new URL(request.url);
+      spaUrl.pathname = "/index.html";
+      return env.ASSETS.fetch(new Request(spaUrl.toString(), request));
+    }
+    return new Response("Not Found", { status: 404 });
+  },
+};
 
 export async function OPTIONS(request: Request): Promise<Response> {
   return new Response(null, {
