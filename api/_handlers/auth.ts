@@ -117,10 +117,8 @@ async function handleRegister(req: Request): Promise<Response> {
           firstName,
           lastName: lastName ?? null,
           phone: phone ?? null,
-          preferences: {
-            verificationToken,
-            verificationTokenExpiresAt: verificationTokenExpiresAt.toISOString(),
-          },
+          verificationToken,
+          verificationTokenExpiresAt,
         },
       });
     } catch (err) {
@@ -159,68 +157,8 @@ async function handleRegister(req: Request): Promise<Response> {
 // ─── VERIFY EMAIL ───
 
 async function handleVerifyEmail(req: Request): Promise<Response> {
-  try {
-    const url = new URL(req.url);
-    const token = url.searchParams.get("token");
-    console.log("[VERIFY EMAIL] Token from URL:", token);
-
-    if (!token) {
-      console.log("[VERIFY EMAIL] No token found");
-      return badRequest("Verification token is required");
-    }
-
-    // Find profile with matching verification token via raw query
-    console.log("[VERIFY EMAIL] Querying database...");
-    const rows = await prisma.$queryRawUnsafe<Array<{ id: string; email: string; preferences: unknown }>>(
-      `SELECT id, email, preferences FROM "profiles" WHERE email_verified = FALSE AND preferences->>'verificationToken' = $1 LIMIT 1`,
-      token
-    );
-    console.log("[VERIFY EMAIL] Rows found:", rows.length);
-
-    const row = rows[0];
-    if (!row) {
-      console.log("[VERIFY EMAIL] No matching profile found");
-      return badRequest("Invalid or expired verification token");
-    }
-
-    const prefs = typeof row.preferences === "string" ? JSON.parse(row.preferences) : row.preferences as Record<string, unknown> | null;
-    const expiresAt = prefs?.verificationTokenExpiresAt
-      ? new Date(prefs.verificationTokenExpiresAt as string)
-      : null;
-
-    if (expiresAt && expiresAt < new Date()) {
-      console.log("[VERIFY EMAIL] Token expired:", expiresAt);
-      return badRequest("Verification token has expired. Request a new one.");
-    }
-
-    console.log("[VERIFY EMAIL] Token valid, updating profile...");
-
-    // Remove verification token fields and update
-    const cleaned: Record<string, unknown> = {};
-    if (prefs) {
-      for (const [k, v] of Object.entries(prefs)) {
-        if (k !== "verificationToken" && k !== "verificationTokenExpiresAt") {
-          cleaned[k] = v;
-        }
-      }
-    }
-
-    await prisma.$executeRawUnsafe(
-      `UPDATE "profiles" SET email_verified = TRUE, preferences = $1::jsonb WHERE id = $2`,
-      JSON.stringify(Object.keys(cleaned).length > 0 ? cleaned : null),
-      row.id
-    );
-
-    logAction(row.id, "auth.email_verified", {
-      metadata: { email: row.email },
-    });
-
-    console.log("[VERIFY EMAIL] Success!");
-    return success({ message: "Email verified successfully" });
-  } catch (err) {
-    console.error("[VERIFY EMAIL] Error:", err);
-    return serverError(err);
-  }
+  console.log("[VERIFY EMAIL] HANDLER REACHED!", new Date().toISOString());
+  return success({ message: "TEST_OK_123" });
 }
 
 // ─── RESEND VERIFICATION EMAIL ───
@@ -236,7 +174,7 @@ async function handleResendVerification(req: Request): Promise<Response> {
 
     const profile = await prisma.profile.findUnique({
       where: { email },
-      select: { id: true, email: true, firstName: true, emailVerified: true, preferences: true },
+      select: { id: true, email: true, firstName: true, emailVerified: true },
     });
 
     if (!profile) {
@@ -253,12 +191,7 @@ async function handleResendVerification(req: Request): Promise<Response> {
 
     await prisma.profile.update({
       where: { id: profile.id },
-      data: {
-        preferences: {
-          verificationToken,
-          verificationTokenExpiresAt: verificationTokenExpiresAt.toISOString(),
-        },
-      },
+      data: { verificationToken, verificationTokenExpiresAt },
     });
 
     const siteUrl = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "http://localhost:5173";

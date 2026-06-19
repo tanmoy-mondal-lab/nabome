@@ -181,6 +181,8 @@ model Profile {
   avatarUrl     String?   @map("avatar_url") @db.Text
   isActive      Boolean   @default(true) @map("is_active")
   emailVerified Boolean   @default(false) @map("email_verified")
+  verificationToken String? @map("verification_token") @db.VarChar(255)
+  verificationTokenExpiresAt DateTime? @map("verification_token_expires_at") @db.Timestamptz
   lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz
   loginCount    Int       @default(0) @map("login_count")
   preferences   Json?     @db.JsonB
