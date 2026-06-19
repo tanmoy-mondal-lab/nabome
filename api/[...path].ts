@@ -512,46 +512,7 @@ route("POST", "/api/admin/orders/:id/invoice/generate", (req, ctx, p) => handleI
 
 // ─── Router ───
 
-// Cloudflare Worker (standalone — handles all traffic)
-export default {
-  async fetch(request: Request, env: any, _ctx: any): Promise<Response> {
-    const url = new URL(request.url);
-    const path = url.pathname;
-    console.log("[WORKER]", request.method, path);
-    try {
-      // Check for API routes — Cloudflare may or may not strip /api prefix
-      const isApi = path.startsWith("/api/") || path === "/api" || path === "/sitemap.xml";
-      const apiPath = isApi ? path : (
-        path.startsWith("/auth/") || path.startsWith("/products/") || path.startsWith("/categories/")
-        || path.startsWith("/collections/") || path.startsWith("/cart/") || path.startsWith("/checkout/")
-        || path.startsWith("/orders/") || path.startsWith("/payments/") || path.startsWith("/contact")
-        || path.startsWith("/admin/") || path.startsWith("/cms/")
-          ? `/api${path}`
-          : null
-      );
-      if (isApi || apiPath) {
-        const method = request.method.toUpperCase();
-        if (method === "OPTIONS") {
-          return new Response(null, { status: 204, headers: { ...corsHeaders(request), ...securityHeaders(), "Access-Control-Max-Age": "86400" } });
-        }
-        const req = apiPath && !isApi ? new Request(`https://placeholder${apiPath}${url.search}`, request) : request;
-        return handleRequest(method, req);
-      }
-      // Serve SPA from Cloudflare Pages static assets
-      if (typeof env.ASSETS?.fetch === "function") {
-        const spaUrl = new URL(request.url);
-        spaUrl.pathname = "/index.html";
-        return env.ASSETS.fetch(new Request(spaUrl.toString(), request));
-      }
-      return new Response("Not Found", { status: 404 });
-    } catch (err) {
-      console.error("[WORKER ERROR]", err);
-      return new Response(JSON.stringify({ success: false, error: { message: "Internal error", status: 500 } }), { status: 500, headers: { "content-type": "application/json" } });
-    }
-  },
-};
-
-// Vercel / local dev format
+// Vercel serverless / Cloudflare Pages Functions format
 export async function GET(request: Request): Promise<Response> {
   return handleRequest("GET", request);
 }
