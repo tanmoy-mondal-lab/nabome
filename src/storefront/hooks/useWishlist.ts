@@ -5,13 +5,13 @@ import { useAuthStore } from "../../stores/auth-store";
 export function useWishlist() {
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
-  const { isAuthenticated, accessToken } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const fetch = useCallback(async () => {
     if (!isAuthenticated) { setItems([]); return; }
     setLoading(true);
     try {
-      const res = await api.get<{ items: Record<string, unknown>[] }>("/api/wishlist", { params: { action: "list" } });
+      const res = await api.get<{ items: Record<string, unknown>[] }>("/api/wishlist");
       setItems(res.items ?? []);
     } catch { setItems([]); }
     setLoading(false);

@@ -60,6 +60,7 @@ export const authRegisterSchema = z.object({
   password: passwordSchema,
   firstName: nameSchema,
   lastName: nameSchema.optional(),
+  phone: z.string().optional(),
 });
 
 export const authLoginSchema = z.object({

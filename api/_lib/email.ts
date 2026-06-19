@@ -36,7 +36,7 @@ async function sendViaResend(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `নবME <${from}>`,
+        from: `NabME <${from}>`,
         to: [to],
         subject,
         html,

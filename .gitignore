@@ -12,6 +12,8 @@ dist
 dist-ssr
 *.local
 .env
+*.tsbuildinfo
+.turbo
 
 # Editor directories and files
 .vscode/*

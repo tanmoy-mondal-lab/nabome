@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { PasswordInput } from "../components/PasswordInput";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -53,14 +54,14 @@ export default function ResetPasswordPage() {
             <label htmlFor="password" className="block text-sm font-body text-neutral-700 mb-1">
               New Password
             </label>
-            <input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="input-field" placeholder="Min. 8 characters" />
+            <PasswordInput id="password" value={password} onChange={setPassword} placeholder="Min. 8 characters" required />
           </div>
 
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-body text-neutral-700 mb-1">
               Confirm Password
             </label>
-            <input id="confirmPassword" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="input-field" placeholder="Re-enter password" />
+            <PasswordInput id="confirmPassword" value={confirmPassword} onChange={setConfirmPassword} placeholder="Re-enter password" required />
           </div>
 
           <button type="submit" disabled={isLoading} className="btn-primary w-full">

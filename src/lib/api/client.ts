@@ -140,6 +140,17 @@ async function request<T>(
     headers.set("Authorization", `Bearer ${auth.accessToken}`);
   }
 
+  // CSRF token from cookie for state-changing methods
+  const method = (fetchOptions.method ?? "GET").toUpperCase();
+  if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
+    const csrfCookie = document.cookie
+      .split("; ")
+      .find((c) => c.startsWith("csrf_token="));
+    if (csrfCookie) {
+      headers.set("X-CSRF-Token", csrfCookie.split("=")[1]);
+    }
+  }
+
   const response = await fetch(url.toString(), {
     ...fetchOptions,
     headers,

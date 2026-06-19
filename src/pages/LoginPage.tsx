@@ -1,20 +1,59 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { PasswordInput } from "../components/PasswordInput";
+import { useToast } from "../components/ui/Toast";
+
+const VERIFICATION_ERROR = "Please verify your email address before logging in";
+const NO_ACCOUNT_ERROR = "No account found with that email";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, error, isLoading } = useAuth();
+  const { toast } = useToast();
+  const { login, resendVerification, error, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [resending, setResending] = useState(false);
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? "/";
+  const state = location.state as { from?: { pathname: string }; registered?: boolean } | null;
+  const from = state?.from?.pathname ?? "/";
+  const needsVerification = error?.startsWith(VERIFICATION_ERROR);
+  const noAccount = error?.startsWith(NO_ACCOUNT_ERROR);
+
+  useEffect(() => {
+    if (state?.registered) {
+      toast("Account created successfully. Please verify your email.", "success");
+      window.history.replaceState({}, document.title);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (noAccount) {
+      toast("No account found. Redirecting to sign up…", "info");
+      const timer = setTimeout(() => navigate("/auth/register"), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [noAccount, navigate, toast]);
+
+  const handleResend = async () => {
+    if (!email) return;
+    setResending(true);
+    try {
+      await resendVerification(email);
+      toast("Verification email sent. Please check your inbox.", "success");
+    } catch {
+      toast("Failed to send verification email. Try again.", "error");
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const user = await login({ email, password });
+      toast(`Welcome back, ${user.firstName}`, "success");
       if (user.role === "super_admin") {
         navigate("/admin", { replace: true });
       } else {
@@ -41,6 +80,15 @@ export default function LoginPage() {
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded">
               <p className="text-sm text-red-700">{error}</p>
+              {needsVerification && (
+                <button
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="mt-2 text-xs text-brand-600 hover:text-brand-700 underline disabled:opacity-50"
+                >
+                  {resending ? "Sending…" : "Resend verification email"}
+                </button>
+              )}
             </div>
           )}
 
@@ -65,14 +113,12 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-sm font-body text-neutral-700 mb-1">
                 Password
               </label>
-              <input
+              <PasswordInput
                 id="password"
-                type="password"
-                required
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input-field"
+                onChange={setPassword}
                 placeholder="••••••••"
+                required
                 autoComplete="current-password"
               />
             </div>

@@ -3,8 +3,9 @@ import { PrismaClient } from "@prisma/client";
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
 
 function getDatabaseUrl(): string {
-  // Prefer pooled connection for serverless. Fall back to direct if not available.
-  return process.env.DATABASE_URL_POOLED || process.env.DATABASE_URL || "";
+  // Prefer the direct URL over the pooled URL for reliability.
+  // Set DATABASE_URL_POOLED only when using PgBouncer with Supabase.
+  return process.env.DATABASE_URL || process.env.DATABASE_URL_POOLED || "";
 }
 
 export const prisma =

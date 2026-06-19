@@ -1,4 +1,6 @@
 export type EmailType =
+  | "welcome"
+  | "email_verification"
   | "order_confirmation"
   | "payment_success"
   | "payment_failure"
@@ -350,9 +352,64 @@ ${button(`https://www.nabome.online/admin/contact`, "View in Admin")}`;
   };
 }
 
+function welcomeEmail(data: Record<string, unknown>): EmailTemplate {
+  const firstName = (data.firstName as string) || "there";
+
+  const body = `<h1 style="font-size:22px;font-weight:700;margin:0 0 8px">Welcome to নবME, ${firstName}!</h1>
+<p style="color:${BRAND.textMuted};font-size:14px;margin:0 0 24px">We're thrilled to have you join our community of fashion enthusiasts.</p>
+
+<div style="background:${BRAND.bgColor};border-radius:6px;padding:24px;margin-bottom:24px">
+<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:${BRAND.textDark}">Your account has been created successfully. Here's what you can do now:</p>
+<ul style="margin:0;padding:0 0 0 18px;font-size:14px;line-height:1.8;color:${BRAND.textDark}">
+<li>Browse our latest collections</li>
+<li>Save items to your wishlist</li>
+<li>Track your orders in real-time</li>
+<li>Enjoy exclusive member benefits</li>
+</ul>
+</div>
+
+<p style="font-size:14px;color:${BRAND.textMuted};line-height:1.6;margin:0 0 24px">Start exploring — we're confident you'll find something you love.</p>
+
+${button("https://www.nabome.online/products", "Shop Now")}
+
+<p style="font-size:12px;color:${BRAND.textMuted};line-height:1.5;margin:0">If you didn't create this account, please ignore this email.</p>`;
+
+  return {
+    subject: "Welcome to নবME — Account Created Successfully",
+    preview: `Welcome, ${firstName}! Your নবME account is ready.`,
+    html: baseLayout(body),
+    notificationEvent: "welcome",
+  };
+}
+
+function emailVerification(data: Record<string, unknown>): EmailTemplate {
+  const firstName = (data.firstName as string) || "there";
+  const verifyLink = data.verifyLink as string;
+
+  const body = `<h1 style="font-size:22px;font-weight:700;margin:0 0 8px">Verify Your Email, ${firstName}!</h1>
+<p style="color:${BRAND.textMuted};font-size:14px;margin:0 0 24px">Thanks for joining নবME. Please verify your email address to get started.</p>
+
+<div style="background:${BRAND.bgColor};border-radius:6px;padding:24px;margin-bottom:24px">
+<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:${BRAND.textDark}">Click the button below to confirm your email address and activate your account:</p>
+${button(verifyLink, "Verify Email")}
+</div>
+
+<p style="font-size:13px;color:${BRAND.textMuted};line-height:1.5;margin:0 0 8px">This link will expire in 24 hours.</p>
+<p style="font-size:12px;color:${BRAND.textMuted};line-height:1.5;margin:0">If you didn't create this account, please ignore this email.</p>`;
+
+  return {
+    subject: "Verify Your নবME Email Address",
+    preview: `Welcome, ${firstName}! Please verify your email address.`,
+    html: baseLayout(body),
+    notificationEvent: "welcome",
+  };
+}
+
 // ─── Registry ───
 
 const TEMPLATES: Record<EmailType, (data: Record<string, unknown>) => EmailTemplate> = {
+  welcome: welcomeEmail,
+  email_verification: emailVerification,
   order_confirmation: orderConfirmation,
   payment_success: paymentSuccess,
   payment_failure: paymentFailure,

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAddresses } from "../hooks/useAddresses";
 import type { AddressInput } from "../lib/api/addresses";
+import { PhoneInput } from "../components/PhoneInput";
 
 export default function AccountAddressesPage() {
   const { addresses, defaultAddress, isLoading, create, update, remove } = useAddresses();
@@ -137,7 +138,7 @@ export default function AccountAddressesPage() {
               </div>
               <div>
                 <label className="block text-sm text-neutral-700 mb-1">Phone *</label>
-                <input required value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="input-field" />
+                <PhoneInput value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} required />
               </div>
             </div>
             <div>

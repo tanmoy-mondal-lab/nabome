@@ -7,6 +7,7 @@ const LoginPage = lazy(() => import("../pages/LoginPage"));
 const RegisterPage = lazy(() => import("../pages/RegisterPage"));
 const ForgotPasswordPage = lazy(() => import("../pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("../pages/ResetPasswordPage"));
+const VerifyEmailPage = lazy(() => import("../pages/VerifyEmailPage"));
 
 const AdminRoutes = lazy(() => import("../admin/AdminRoutes"));
 
@@ -31,7 +32,6 @@ const DashboardNotifications = lazy(() => import("../storefront/pages/Notificati
 const DashboardSettings = lazy(() => import("../storefront/pages/SettingsPage"));
 const DashboardSupport = lazy(() => import("../storefront/pages/SupportTicketsPage"));
 const DashboardReturnRequest = lazy(() => import("../storefront/pages/ReturnRequestPage"));
-const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
 
 export const STOREFRONT_ROUTES = (
   <Route element={<StorefrontLayout />}>
@@ -54,7 +54,6 @@ export const STOREFRONT_ROUTES = (
     <Route path="account/notifications" element={<ProtectedRoute><DashboardNotifications /></ProtectedRoute>} />
     <Route path="account/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
     <Route path="account/support" element={<ProtectedRoute><DashboardSupport /></ProtectedRoute>} />
-    <Route path="*" element={<NotFoundPage />} />
   </Route>
 );
 
@@ -64,6 +63,7 @@ export const AUTH_ROUTES = (
     <Route path="auth/register" element={<RegisterPage />} />
     <Route path="auth/forgot-password" element={<ForgotPasswordPage />} />
     <Route path="auth/reset-password" element={<ResetPasswordPage />} />
+    <Route path="auth/verify-email" element={<VerifyEmailPage />} />
   </>
 );
 

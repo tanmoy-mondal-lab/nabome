@@ -12,7 +12,7 @@ generator client {
 datasource db {
   provider          = "postgresql"
   url               = env("DATABASE_URL")
-  extensions        = [pg_trgm, uuid_ossp, pgcrypto]
+  extensions        = [pg_trgm, pgcrypto]
   relationMode      = "foreignKeys"
 }
 
@@ -205,6 +205,7 @@ model Profile {
   supportReplies      SupportTicketReply[]
   returnRequests      ReturnRequest[]
   refunds             Refund[]          @relation("RefundInitiator")
+  userActionLogs      UserActionLog[]
 
   @@index([role])
   @@index([isActive])

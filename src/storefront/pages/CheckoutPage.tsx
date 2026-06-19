@@ -16,6 +16,7 @@ import { useAuthStore } from "../../stores/auth-store";
 import { customerApi } from "../../lib/api/customer";
 import { addressesApi, type Address, type AddressInput } from "../../lib/api/addresses";
 import { useRazorpay } from "../../lib/razorpay/use-razorpay";
+import { PhoneInput } from "../../components/PhoneInput";
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
@@ -366,7 +367,7 @@ export default function CheckoutPage() {
         </div>
         <div className="col-span-2 sm:col-span-1">
           <label className={labelCls} htmlFor={`${prefix}-phone`}>Phone *</label>
-          <input id={`${prefix}-phone`} value={form.phone} onChange={(e) => update("phone", e.target.value)} className={inputCls("phone")} placeholder="9876543210" maxLength={10} />
+          <PhoneInput id={`${prefix}-phone`} value={form.phone} onChange={(v) => update("phone", v)} />
           {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
         </div>
         <div className="col-span-2">

@@ -885,7 +885,7 @@ async function handleListWebhookEvents(req: Request): Promise<Response> {
 
   return success({
     events,
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    pagination: { page, pageSize: limit, total, totalPages: Math.ceil(total / limit) },
   });
 }
 

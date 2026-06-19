@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { MapPin, Plus, Pencil, Trash2, Star } from "lucide-react";
 import { customerApi } from "../../lib/api/customer";
 import { DashboardSidebar } from "../components/DashboardSidebar";
+import { PhoneInput } from "../../components/PhoneInput";
 
 interface Address {
   id: string;
@@ -173,7 +174,7 @@ export default function AddressesPage() {
                 </div>
                 <div>
                   <label className="text-xs text-neutral-500 mb-1 block">Phone *</label>
-                  <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input-field w-full" />
+                  <PhoneInput value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs text-neutral-500 mb-1 block">Address Line 1 *</label>

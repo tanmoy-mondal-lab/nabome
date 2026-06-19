@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "../../lib/utils/cn";
 import { LayoutDashboard, ShoppingBag, Heart, MapPin, Bell, Settings, LogOut, HelpCircle } from "lucide-react";
-import { useAuthStore } from "../stores/auth-store";
+import { useAuthStore } from "../../stores/auth-store";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/account" },

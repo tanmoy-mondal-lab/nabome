@@ -10,14 +10,6 @@ interface RateLimitEntry {
 
 const store = new Map<string, RateLimitEntry>();
 
-// Cleanup stale entries every 60 seconds
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of store) {
-    if (entry.resetAt <= now) store.delete(key);
-  }
-}, 60_000);
-
 export interface RateLimitConfig {
   windowMs: number;
   maxRequests: number;
@@ -44,6 +36,14 @@ export function checkRateLimit(
   config: RateLimitConfig = DEFAULTS.auth
 ): { allowed: boolean; remaining: number; resetAt: number } {
   const now = Date.now();
+
+  // Lazy cleanup: remove up to 20 stale entries per check
+  let cleaned = 0;
+  for (const [k, v] of store) {
+    if (v.resetAt <= now) { store.delete(k); cleaned++; }
+    if (cleaned >= 20) break;
+  }
+
   const entry = store.get(key);
 
   if (!entry || entry.resetAt <= now) {

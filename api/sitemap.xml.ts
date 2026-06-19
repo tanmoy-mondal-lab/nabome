@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { prisma } from "./_lib/prisma";
 
 const SITE_URL = "https://www.nabome.online";
 

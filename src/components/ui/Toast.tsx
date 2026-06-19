@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import type React from "react";
 import { cn } from "../../lib/utils/cn";
 
 interface Toast {
@@ -19,7 +20,7 @@ export function useToast() {
   return ctx;
 }
 
-export function Toaster() {
+export function Toaster({ children }: { children?: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = useCallback((message: string, type: Toast["type"] = "info") => {
@@ -32,6 +33,7 @@ export function Toaster() {
 
   return (
     <ToastContext.Provider value={{ toast: addToast }}>
+      {children}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2">
         {toasts.map((t) => (
           <div

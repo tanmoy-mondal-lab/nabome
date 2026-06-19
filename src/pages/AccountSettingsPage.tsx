@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useAuthStore } from "../stores/auth-store";
 import { authApi } from "../lib/api/auth";
+import { PhoneInput } from "../components/PhoneInput";
+import { PasswordInput } from "../components/PasswordInput";
 
 export default function AccountSettingsPage() {
   const { user } = useAuthStore();
@@ -85,7 +87,7 @@ export default function AccountSettingsPage() {
           </div>
           <div>
             <label className="block text-sm text-neutral-700 mb-1">Phone</label>
-            <input value={profileForm.phone} onChange={(e) => setProfileForm((f) => ({ ...f, phone: e.target.value }))} className="input-field" />
+            <PhoneInput value={profileForm.phone} onChange={(v) => setProfileForm((f) => ({ ...f, phone: v }))} />
           </div>
           <div>
             <label className="block text-sm text-neutral-700 mb-1">Email</label>
@@ -115,16 +117,16 @@ export default function AccountSettingsPage() {
 
           <div>
             <label className="block text-sm text-neutral-700 mb-1">Current Password</label>
-            <input type="password" required value={passwordForm.currentPassword} onChange={(e) => setPasswordForm((f) => ({ ...f, currentPassword: e.target.value }))} className="input-field" />
+            <PasswordInput value={passwordForm.currentPassword} onChange={(v) => setPasswordForm((f) => ({ ...f, currentPassword: v }))} required />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm text-neutral-700 mb-1">New Password</label>
-              <input type="password" required value={passwordForm.newPassword} onChange={(e) => setPasswordForm((f) => ({ ...f, newPassword: e.target.value }))} className="input-field" />
+              <PasswordInput value={passwordForm.newPassword} onChange={(v) => setPasswordForm((f) => ({ ...f, newPassword: v }))} required />
             </div>
             <div>
               <label className="block text-sm text-neutral-700 mb-1">Confirm Password</label>
-              <input type="password" required value={passwordForm.confirmPassword} onChange={(e) => setPasswordForm((f) => ({ ...f, confirmPassword: e.target.value }))} className="input-field" />
+              <PasswordInput value={passwordForm.confirmPassword} onChange={(v) => setPasswordForm((f) => ({ ...f, confirmPassword: v }))} required />
             </div>
           </div>
           <button type="submit" disabled={passwordSaving} className="btn-primary text-sm !px-6 !py-2">

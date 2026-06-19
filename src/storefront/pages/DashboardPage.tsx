@@ -4,7 +4,7 @@ import { ShoppingBag, Clock, Heart, MapPin, Bell, Settings, HelpCircle, ArrowRig
 import { customerApi } from "../../lib/api/customer";
 import { formatPrice } from "../../lib/utils/format";
 import { formatDate } from "../../lib/utils/format";
-import { useAuthStore } from "../stores/auth-store";
+import { useAuthStore } from "../../stores/auth-store";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 
 interface DashboardData {

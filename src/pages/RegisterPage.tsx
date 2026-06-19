@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { PhoneInput } from "../components/PhoneInput";
+import { PasswordInput } from "../components/PasswordInput";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -93,21 +95,21 @@ export default function RegisterPage() {
               <label htmlFor="phone" className="block text-sm font-body text-neutral-700 mb-1">
                 Phone (optional)
               </label>
-              <input id="phone" type="tel" value={form.phone} onChange={handleChange("phone")} className="input-field" placeholder="+91 98765 43210" />
+              <PhoneInput id="phone" value={form.phone} onChange={(v) => setForm((p) => ({ ...p, phone: v }))} />
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-body text-neutral-700 mb-1">
                 Password *
               </label>
-              <input id="password" type="password" required value={form.password} onChange={handleChange("password")} className="input-field" placeholder="Min. 8 characters" autoComplete="new-password" />
+              <PasswordInput id="password" value={form.password} onChange={(v) => setForm((p) => ({ ...p, password: v }))} placeholder="Min. 8 characters" required autoComplete="new-password" />
             </div>
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-body text-neutral-700 mb-1">
                 Confirm Password *
               </label>
-              <input id="confirmPassword" type="password" required value={form.confirmPassword} onChange={handleChange("confirmPassword")} className="input-field" placeholder="Re-enter password" autoComplete="new-password" />
+              <PasswordInput id="confirmPassword" value={form.confirmPassword} onChange={(v) => setForm((p) => ({ ...p, confirmPassword: v }))} placeholder="Re-enter password" required autoComplete="new-password" />
             </div>
 
             <button type="submit" disabled={isLoading} className="btn-primary w-full mt-6">

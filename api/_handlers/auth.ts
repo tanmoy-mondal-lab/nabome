@@ -3,6 +3,7 @@
 // Security: Rate limiting, brute force protection, session tracking
 // ─────────────────────────────────────────────────────────────
 
+import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { prisma } from "../_lib/prisma";
 import {
@@ -39,17 +40,19 @@ export async function handleAuthRequest(
   action: string
 ): Promise<Response> {
   switch (action) {
-    case "register":     return handleRegister(req);
-    case "login":        return handleLogin(req);
-    case "logout":       return handleLogout(req, ctx);
-    case "me":           return handleMe(req);
-    case "updateMe":     return handleUpdateMe(req, ctx);
-    case "refresh":      return handleRefresh(req);
-    case "forgotPassword": return handleForgotPassword(req);
-    case "resetPassword":  return handleResetPassword(req);
-    case "changePassword": return handleChangePassword(req, ctx);
-    case "sessions":     return handleSessions(req, ctx);
-    case "deleteSession": return handleDeleteSession(req, ctx, params[0]);
+    case "register":         return handleRegister(req);
+    case "login":            return handleLogin(req);
+    case "logout":           return handleLogout(req, ctx);
+    case "me":               return handleMe(req);
+    case "updateMe":         return handleUpdateMe(req, ctx);
+    case "refresh":          return handleRefresh(req);
+    case "forgotPassword":   return handleForgotPassword(req);
+    case "resetPassword":    return handleResetPassword(req);
+    case "changePassword":   return handleChangePassword(req, ctx);
+    case "sessions":         return handleSessions(req, ctx);
+    case "deleteSession":    return handleDeleteSession(req, ctx, params[0]);
+    case "verifyEmail":      return handleVerifyEmail(req);
+    case "resendVerification": return handleResendVerification(req);
     default:
       return badRequest("Unknown auth action");
   }
@@ -58,60 +61,209 @@ export async function handleAuthRequest(
 // ─── REGISTER ───
 
 async function handleRegister(req: Request): Promise<Response> {
-  const parsed = await validateBody(req, authRegisterSchema);
-  if ("response" in parsed) return parsed.response;
-  const { email, password, firstName, lastName } = parsed.data;
-
-  const supabase = getAdminClient();
-
-  // Check for existing user
-  const { data: existingUsers } = await supabase.auth.admin.listUsers();
-  const existing = existingUsers?.users.find((u) => u.email === email);
-  if (existing) {
-    return badRequest("An account with this email already exists");
-  }
-
-  // Create user in Supabase Auth
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { role: "customer", first_name: firstName },
-  });
-
-  if (authError) {
-    return badRequest(authError.message);
-  }
-
-  if (!authData.user) {
-    return serverError(new Error("Failed to create user"));
-  }
-
-  // Create profile in database
   try {
-    await prisma.profile.create({
-      data: {
-        id: authData.user.id,
+    const parsed = await validateBody(req, authRegisterSchema);
+    if ("response" in parsed) return parsed.response;
+    const { email, password, firstName, lastName, phone } = parsed.data;
+
+    let supabase;
+    try {
+      supabase = getAdminClient();
+    } catch {
+      return serverError(new Error("Registration service unavailable"));
+    }
+
+    // Delete existing user if re-registering
+    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 100,
+    });
+    if (listError) {
+      console.error("[REGISTER] listUsers error:", listError.message);
+    }
+    const existing = existingUsers?.users?.find((u) => u.email === email);
+    if (existing) {
+      await prisma.profile.deleteMany({ where: { email } }).catch(() => {});
+      await supabase.auth.admin.deleteUser(existing.id).catch(() => {});
+    }
+
+    // Create user in Supabase Auth (auto-confirmed so they can log in)
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { role: "customer", first_name: firstName },
+    });
+
+    if (authError) {
+      return badRequest(authError.message);
+    }
+
+    if (!authData.user) {
+      return serverError(new Error("Failed to create user"));
+    }
+
+    // Generate email verification token
+    const verificationToken = crypto.randomUUID();
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    // Create profile in database with verification token
+    try {
+      await prisma.profile.create({
+        data: {
+          id: authData.user.id,
+          email,
+          role: "customer",
+          firstName,
+          lastName: lastName ?? null,
+          phone: phone ?? null,
+          preferences: {
+            verificationToken,
+            verificationTokenExpiresAt: verificationTokenExpiresAt.toISOString(),
+          },
+        },
+      });
+    } catch (err) {
+      await supabase.auth.admin.deleteUser(authData.user.id).catch(() => {});
+      return serverError(err);
+    }
+
+    logAction(authData.user.id, "auth.register", {
+      metadata: { email, firstName },
+    });
+
+    // Send verification email
+    const siteUrl = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "http://localhost:5173";
+    const verifyLink = `${siteUrl}/auth/verify-email?token=${verificationToken}`;
+
+    try {
+      await sendEmailNotification("email_verification", {
         email,
-        role: "customer",
         firstName,
-        lastName: lastName ?? null,
-        phone: null,
-      },
+        verifyLink,
+      }, { profileId: authData.user.id });
+    } catch (emailErr) {
+      console.error("[EMAIL] Failed to send verification:", (emailErr as Error).message);
+    }
+
+    return created({
+      user: { id: authData.user.id, email, firstName },
+      message: "Account created successfully. Please verify your email.",
     });
   } catch (err) {
-    await supabase.auth.admin.deleteUser(authData.user.id).catch(() => {});
+    console.error("[REGISTER] Unexpected error:", err);
     return serverError(err);
   }
+}
 
-  logAction(authData.user.id, "auth.register", {
-    metadata: { email, firstName },
-  });
+// ─── VERIFY EMAIL ───
 
-  return created({
-    user: { id: authData.user.id, email, firstName },
-    message: "Account created successfully",
-  });
+async function handleVerifyEmail(req: Request): Promise<Response> {
+  try {
+    const url = new URL(req.url);
+    const token = url.searchParams.get("token");
+
+    if (!token) {
+      return badRequest("Verification token is required");
+    }
+
+    // Find profile with matching verification token using direct JSON query
+    const profiles = await prisma.$queryRaw<Array<{ id: string; email: string; preferences: string | null }>>`
+      SELECT id, email, preferences FROM Profile
+      WHERE JSON_UNQUOTE(JSON_EXTRACT(preferences, '$.verificationToken')) = ${token}
+      LIMIT 1
+    `;
+
+    const profile = profiles[0];
+    if (!profile) {
+      return badRequest("Invalid or expired verification token");
+    }
+
+    const prefs = profile.preferences ? JSON.parse(profile.preferences) : null;
+    const expiresAt = prefs?.verificationTokenExpiresAt
+      ? new Date(prefs.verificationTokenExpiresAt)
+      : null;
+
+    if (expiresAt && expiresAt < new Date()) {
+      return badRequest("Verification token has expired. Request a new one.");
+    }
+
+    // Mark email as verified and clear the token
+    await prisma.profile.update({
+      where: { id: profile.id },
+      data: {
+        emailVerified: true,
+        preferences: { verificationToken: null, verificationTokenExpiresAt: null } as never,
+      },
+    });
+
+    logAction(profile.id, "auth.email_verified", {
+      metadata: { email: profile.email },
+    });
+
+    return success({ message: "Email verified successfully" });
+  } catch (err) {
+    console.error("[VERIFY EMAIL] Error:", err);
+    return serverError(err);
+  }
+}
+
+// ─── RESEND VERIFICATION EMAIL ───
+
+async function handleResendVerification(req: Request): Promise<Response> {
+  try {
+    const body = await req.json();
+    const { email } = body;
+
+    if (!email) {
+      return badRequest("Email is required");
+    }
+
+    const profile = await prisma.profile.findUnique({
+      where: { email },
+      select: { id: true, email: true, firstName: true, emailVerified: true, preferences: true },
+    });
+
+    if (!profile) {
+      return success({ message: "If an account exists with this email, a verification link has been sent." });
+    }
+
+    if (profile.emailVerified) {
+      return success({ message: "Email is already verified." });
+    }
+
+    // Generate new token
+    const verificationToken = crypto.randomUUID();
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.profile.update({
+      where: { id: profile.id },
+      data: {
+        preferences: {
+          verificationToken,
+          verificationTokenExpiresAt: verificationTokenExpiresAt.toISOString(),
+        },
+      },
+    });
+
+    const siteUrl = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "http://localhost:5173";
+    const verifyLink = `${siteUrl}/auth/verify-email?token=${verificationToken}`;
+
+    try {
+      await sendEmailNotification("email_verification", {
+        email,
+        firstName: profile.firstName,
+        verifyLink,
+      }, { profileId: profile.id });
+    } catch (emailErr) {
+      console.error("[EMAIL] Failed to resend verification:", (emailErr as Error).message);
+    }
+
+    return success({ message: "If an account exists with this email, a verification link has been sent." });
+  } catch (err) {
+    console.error("[RESEND VERIFICATION] Error:", err);
+    return serverError(err);
+  }
 }
 
 // ─── LOGIN ───
@@ -124,6 +276,16 @@ async function handleLogin(req: Request): Promise<Response> {
   const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
   const userAgent = req.headers.get("user-agent");
 
+  // Check if account exists in Prisma first
+  const existingProfile = await prisma.profile.findUnique({
+    where: { email },
+    select: { id: true, emailVerified: true },
+  });
+
+  if (!existingProfile) {
+    return unauthorized("No account found with that email");
+  }
+
   const supabase = getAnonClient();
 
   // Attempt login
@@ -133,12 +295,10 @@ async function handleLogin(req: Request): Promise<Response> {
   });
 
   // Record the attempt
-  const profile = await prisma.profile.findUnique({ where: { email } });
-
   try {
     await prisma.loginAttempt.create({
       data: {
-        profileId: profile?.id ?? null,
+        profileId: existingProfile.id,
         email,
         ipAddress: clientIp,
         userAgent: userAgent ?? null,
@@ -152,6 +312,10 @@ async function handleLogin(req: Request): Promise<Response> {
 
   if (authError || !data.session) {
     return unauthorized("Invalid email or password");
+  }
+
+  if (!existingProfile.emailVerified) {
+    return unauthorized("Please verify your email address before logging in. Check your inbox for the verification link.");
   }
 
   // Update profile login metadata
@@ -365,6 +529,7 @@ async function handleMe(req: Request): Promise<Response> {
   });
 
   if (!profile) return unauthorized("Profile not found");
+  if (!profile.emailVerified) return unauthorized("Please verify your email address before logging in. Check your inbox for the verification link.");
 
   return success({ user: profile });
 }
@@ -417,7 +582,7 @@ async function handleForgotPassword(req: Request): Promise<Response> {
 
   if (!email) return badRequest("Email is required");
 
-  const siteUrl = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "http://localhost:5173";
+  const siteUrl = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "";
 
   // Generate reset link using admin client (does not send Supabase email)
   const supabase = getAdminClient();

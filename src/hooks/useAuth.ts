@@ -15,26 +15,6 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null);
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Session restore on mount ──
-  useEffect(() => {
-    if (store.accessToken && !store.user) {
-      authApi
-        .me()
-        .then((res) => {
-          store.setUser(res.user);
-          store.setLoading(false);
-        })
-        .catch(() => {
-          store.clearAuth();
-          store.setLoading(false);
-        });
-    } else if (store.accessToken && store.user) {
-      store.setLoading(false);
-    } else {
-      store.setLoading(false);
-    }
-  }, []);
-
   // ── Listen for forced logout from API client (session expired) ──
   useEffect(() => {
     const handleForceLogout = () => {
@@ -116,6 +96,17 @@ export function useAuth() {
     store.clearAuth();
   }, [store]);
 
+  const resendVerification = useCallback(async (email: string) => {
+    setError(null);
+    try {
+      return await authApi.resendVerification(email);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to resend verification email";
+      setError(message);
+      throw err;
+    }
+  }, []);
+
   const forgotPassword = useCallback(async (email: string) => {
     setError(null);
     try {
@@ -175,6 +166,7 @@ export function useAuth() {
     login,
     register,
     logout,
+    resendVerification,
     forgotPassword,
     resetPassword,
     changePassword,

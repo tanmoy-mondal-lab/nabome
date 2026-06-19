@@ -1,10 +1,13 @@
-import { Suspense } from "react";
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "../components/ui/Toast";
 import { GoogleAnalytics } from "../components/GoogleAnalytics";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { AuthLoader } from "../components/AuthLoader";
 import { STOREFRONT_ROUTES, AUTH_ROUTES, ADMIN_ROUTES } from "./routes";
+
+const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,14 +36,17 @@ export function App() {
       <BrowserRouter>
         <Suspense fallback={<LoadingFallback />}>
           <ErrorBoundary>
-            <Routes>
-              {STOREFRONT_ROUTES}
-              {AUTH_ROUTES}
-              {ADMIN_ROUTES}
-            </Routes>
+            <Toaster>
+              <Routes>
+                {STOREFRONT_ROUTES}
+                {AUTH_ROUTES}
+                {ADMIN_ROUTES}
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Toaster>
           </ErrorBoundary>
         </Suspense>
-        <Toaster />
+        <AuthLoader />
         <GoogleAnalytics />
       </BrowserRouter>
     </QueryClientProvider>

@@ -10,7 +10,7 @@ import { authenticateRequest, requireAdmin } from "./_lib/auth";
 import { notFound, serverError, error } from "./_lib/response";
 import { checkRateLimit, RATE_LIMIT_CONFIG, rateLimitResponse } from "./_lib/rate-limit";
 import { logAction, extractRequestMeta } from "./_lib/audit";
-import { setCsrfCookie } from "./_lib/csrf";
+import { setCsrfCookie, validateCsrf, csrfError } from "./_lib/csrf";
 
 const ALLOWED_ORIGINS = [
   "https://www.nabome.online",
@@ -74,7 +74,10 @@ function withCors(response: Response, request: Request, path?: string): Response
 }
 
 function isAuthPath(path: string): boolean {
-  return path.includes("/auth/login") || path.includes("/auth/register") || path.includes("/contact");
+  return path.includes("/auth/login") || path.includes("/auth/register") ||
+    path.includes("/auth/verify-email") || path.includes("/auth/resend-verification") ||
+    path.includes("/contact") || path.includes("/auth/forgot-password") ||
+    path.includes("/auth/reset-password");
 }
 
 function calculateKey(request: Request, path: string): string {
@@ -185,6 +188,8 @@ route("POST", "/api/auth/reset-password", (req, ctx) => handleAuthRequest(req, c
 route("POST", "/api/auth/change-password", (req, ctx) => handleAuthRequest(req, ctx, [], "changePassword"), { auth: true });
 route("GET", "/api/auth/sessions", (req, ctx) => handleAuthRequest(req, ctx, [], "sessions"), { auth: true });
 route("DELETE", "/api/auth/sessions/:id", (req, ctx, p) => handleAuthRequest(req, ctx, p, "deleteSession"), { auth: true });
+route("GET", "/api/auth/verify-email", (req, ctx) => handleAuthRequest(req, ctx, [], "verifyEmail"));
+route("POST", "/api/auth/resend-verification", (req, ctx) => handleAuthRequest(req, ctx, [], "resendVerification"));
 
 route("GET", "/api/products", (req, ctx) => handleProductRequest(req, ctx, [], "list"));
 route("GET", "/api/products/featured", (req, ctx) => handleProductRequest(req, ctx, [], "featured"));
@@ -212,7 +217,7 @@ route("GET", "/api/lookbooks", (req, ctx) => handleLookbookRequest(req, ctx, [],
 route("GET", "/api/lookbooks/:slug", (req, ctx, p) => handleLookbookRequest(req, ctx, p, "detail"));
 
 route("GET", "/api/settings", (req, ctx) => handleSettingsRequest(req, ctx, [], "public"));
-route("GET", "/api/orders", (req, ctx) => handleOrderRequest(req, ctx, [], "list"));
+route("GET", "/api/orders", (req, ctx) => handleOrderRequest(req, ctx, []), { auth: true });
 route("GET", "/api/orders/stats", (req, ctx) => handleOrderRequest(req, ctx, [], "stats"), { auth: true });
 route("GET", "/api/orders/:id", (req, ctx, p) => handleOrderRequest(req, ctx, p, "detail"), { auth: true });
 route("POST", "/api/orders/:id/cancel", (req, ctx, p) => handleOrderRequest(req, ctx, p, "cancel"), { auth: true });
@@ -447,7 +452,7 @@ route("GET", "/api/admin/search", (req, ctx) => handleAdminSearchIndexRequest(re
 // Public theme endpoint
 route("GET", "/api/theme", (req, ctx) => handleSettingsRequest(req, ctx, [], "public"));
 
-route("GET", "/api/orders/:id/invoice", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "customerInvoice"), { auth: true });
+route("GET", "/api/orders/:id/invoice", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "getInvoice"), { auth: true });
 
 // Payments
 route("POST", "/api/payments/verify", (req, ctx) => handlePaymentRequest(req, ctx, [], "verify"));
@@ -465,45 +470,45 @@ route("POST", "/api/admin/webhooks/reconcile/:orderId", (req, ctx, p) => handleA
 route("GET", "/api/notifications", (req, ctx) => handleNotificationRequest(req, ctx, [], "list"), { auth: true });
 route("PUT", "/api/notifications/read-all", (req, ctx) => handleNotificationRequest(req, ctx, [], "readAll"), { auth: true });
 route("GET", "/api/notifications/unread-count", (req, ctx) => handleNotificationRequest(req, ctx, [], "unreadCount"), { auth: true });
-route("PUT", "/api/notifications/:id/read", (req, ctx, p) => handleNotificationRequest(req, ctx, p, "markRead"), { auth: true });
+route("PUT", "/api/notifications/:id/read", (req, ctx, p) => handleNotificationRequest(req, ctx, p, "read"), { auth: true });
 
 // Dashboard
 route("GET", "/api/dashboard", (req, ctx) => handleCustomerDashboardRequest(req, ctx, [], "overview"), { auth: true });
 route("GET", "/api/profile", (req, ctx) => handleCustomerDashboardRequest(req, ctx, [], "profile"), { auth: true });
-route("PUT", "/api/profile", (req, ctx) => handleCustomerDashboardRequest(req, ctx, [], "updateProfile"), { auth: true });
+route("PUT", "/api/profile", (req, ctx) => handleCustomerDashboardRequest(req, ctx, [], "profile"), { auth: true });
 route("PUT", "/api/profile/password", (req, ctx) => handleCustomerDashboardRequest(req, ctx, [], "changePassword"), { auth: true });
 
 // Support
 route("POST", "/api/support", (req, ctx) => handleSupportRequest(req, ctx, [], "createTicket"));
-route("GET", "/api/support", (req, ctx) => handleSupportRequest(req, ctx, [], "myTickets"), { auth: true });
+route("GET", "/api/support", (req, ctx) => handleSupportRequest(req, ctx, [], "listTickets"), { auth: true });
 route("GET", "/api/support/:id", (req, ctx, p) => handleSupportRequest(req, ctx, p, "ticketDetail"), { auth: true });
-route("POST", "/api/support/:id/reply", (req, ctx, p) => handleSupportRequest(req, ctx, p, "addReply"), { auth: true });
+route("POST", "/api/support/:id/reply", (req, ctx, p) => handleSupportRequest(req, ctx, p, "ticketReply"), { auth: true });
 route("GET", "/api/faq", (req, ctx) => handleSupportRequest(req, ctx, [], "faq"));
 
 // --- ADMIN ROUTES ---
 
 // Admin Notifications
 route("GET", "/api/admin/notifications", (req, ctx) => handleNotificationRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
-route("GET", "/api/admin/notification-templates", (req, ctx) => handleNotificationRequest(req, ctx, [], "listTemplates"), { auth: true, admin: true });
-route("PUT", "/api/admin/notification-templates/:id", (req, ctx, p) => handleNotificationRequest(req, ctx, p, "updateTemplate"), { auth: true, admin: true });
-route("POST", "/api/admin/notifications/send", (req, ctx) => handleNotificationRequest(req, ctx, [], "sendManual"), { auth: true, admin: true });
+route("GET", "/api/admin/notification-templates", (req, ctx) => handleNotificationRequest(req, ctx, [], "adminTemplates"), { auth: true, admin: true });
+route("PUT", "/api/admin/notification-templates/:id", (req, ctx, p) => handleNotificationRequest(req, ctx, p, "adminUpdateTemplate"), { auth: true, admin: true });
+route("POST", "/api/admin/notifications/send", (req, ctx) => handleNotificationRequest(req, ctx, [], "adminSend"), { auth: true, admin: true });
 
 // Admin Support
 route("GET", "/api/admin/support", (req, ctx) => handleSupportRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
 route("GET", "/api/admin/support/:id", (req, ctx, p) => handleSupportRequest(req, ctx, p, "adminDetail"), { auth: true, admin: true });
-route("PUT", "/api/admin/support/:id/status", (req, ctx, p) => handleSupportRequest(req, ctx, p, "updateStatus"), { auth: true, admin: true });
-route("PUT", "/api/admin/support/:id/assign", (req, ctx, p) => handleSupportRequest(req, ctx, p, "assign"), { auth: true, admin: true });
+route("PUT", "/api/admin/support/:id/status", (req, ctx, p) => handleSupportRequest(req, ctx, p, "adminUpdateStatus"), { auth: true, admin: true });
+route("PUT", "/api/admin/support/:id/assign", (req, ctx, p) => handleSupportRequest(req, ctx, p, "adminAssign"), { auth: true, admin: true });
 route("POST", "/api/admin/support/:id/reply", (req, ctx, p) => handleSupportRequest(req, ctx, p, "adminReply"), { auth: true, admin: true });
 
 // Admin FAQ
 route("GET", "/api/admin/faq", (req, ctx) => handleSupportRequest(req, ctx, [], "adminFaqList"), { auth: true, admin: true });
-route("POST", "/api/admin/faq", (req, ctx) => handleSupportRequest(req, ctx, [], "createFaq"), { auth: true, admin: true });
-route("PUT", "/api/admin/faq/:id", (req, ctx, p) => handleSupportRequest(req, ctx, p, "updateFaq"), { auth: true, admin: true });
-route("DELETE", "/api/admin/faq/:id", (req, ctx, p) => handleSupportRequest(req, ctx, p, "deleteFaq"), { auth: true, admin: true });
+route("POST", "/api/admin/faq", (req, ctx) => handleSupportRequest(req, ctx, [], "adminFaqCreate"), { auth: true, admin: true });
+route("PUT", "/api/admin/faq/:id", (req, ctx, p) => handleSupportRequest(req, ctx, p, "adminFaqUpdate"), { auth: true, admin: true });
+route("DELETE", "/api/admin/faq/:id", (req, ctx, p) => handleSupportRequest(req, ctx, p, "adminFaqDelete"), { auth: true, admin: true });
 
 // Admin Invoices
-route("GET", "/api/admin/orders/:id/invoice", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "adminInvoice"), { auth: true, admin: true });
-route("POST", "/api/admin/orders/:id/invoice/generate", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "generate"), { auth: true, admin: true });
+route("GET", "/api/admin/orders/:id/invoice", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "adminGetInvoice"), { auth: true, admin: true });
+route("POST", "/api/admin/orders/:id/invoice/generate", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "adminGenerateInvoice"), { auth: true, admin: true });
 
 // ─── Router ───
 
@@ -572,6 +577,15 @@ async function handleRequest(method: string, request: Request): Promise<Response
     if (!match) continue;
 
     const params = match.slice(1);
+
+    // CSRF validation for state-changing methods
+    // Auth routes are exempt (no prior GET to set cookie, already protected by credentials)
+    if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
+      const isPublicWebhook = path === "/api/payments/webhook";
+      if (!isPublicWebhook && !isAuthPath(path) && !validateCsrf(request)) {
+        return withCors(csrfError(), request, path);
+      }
+    }
 
     // Authenticate if required
     let context: RequestContext = {};

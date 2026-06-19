@@ -13,8 +13,13 @@ export async function handleOrderRequest(
   const method = req.method;
 
   // GET /api/orders — list customer orders
-  if (method === "GET" && !params.length && !action) {
+  if (method === "GET" && !params.length && (!action || action === "list")) {
     return handleList(ctx, req);
+  }
+
+  // GET /api/orders/stats — customer order statistics
+  if (method === "GET" && action === "stats") {
+    return handleStats(ctx);
   }
 
   // GET /api/orders/:id
@@ -33,6 +38,32 @@ export async function handleOrderRequest(
   }
 
   return notFound();
+}
+
+async function handleStats(ctx: RequestContext): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+  try {
+    const [orders, aggregation] = await Promise.all([
+      prisma.order.findMany({
+        where: { profileId: ctx.userId },
+        select: { status: true, total: true },
+      }),
+      prisma.order.aggregate({
+        where: { profileId: ctx.userId },
+        _count: true,
+        _sum: { total: true },
+      }),
+    ]);
+    const totalOrders = aggregation._count;
+    const totalSpent = Number(aggregation._sum.total ?? 0);
+    const pendingOrders = orders.filter(
+      (o) => o.status === "pending" || o.status === "confirmed" || o.status === "processing"
+    ).length;
+    const deliveredOrders = orders.filter((o) => o.status === "delivered").length;
+    return success({ totalOrders, totalSpent, pendingOrders, deliveredOrders });
+  } catch (err) {
+    return serverError(err);
+  }
 }
 
 async function handleList(ctx: RequestContext, req: Request): Promise<Response> {

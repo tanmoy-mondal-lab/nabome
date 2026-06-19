@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User, Lock, Bell, Mail } from "lucide-react";
 import { customerApi } from "../../lib/api/customer";
 import { DashboardSidebar } from "../components/DashboardSidebar";
+import { PhoneInput } from "../../components/PhoneInput";
+import { PasswordInput } from "../../components/PasswordInput";
 
 interface Profile {
   id: string;
@@ -126,7 +128,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs text-neutral-500 mb-1 block">Phone</label>
-                  <input value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} className="input-field w-full" />
+                  <PhoneInput value={profile.phone} onChange={(v) => setProfile((p) => ({ ...p, phone: v }))} />
                 </div>
               </div>
               {profileSuccess && <p className="text-xs text-green-600">{profileSuccess}</p>}
@@ -148,16 +150,16 @@ export default function SettingsPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="text-xs text-neutral-500 mb-1 block">Current Password</label>
-                <input type="password" value={password.currentPassword} onChange={(e) => setPassword({ ...password, currentPassword: e.target.value })} className="input-field w-full" />
+                <PasswordInput value={password.currentPassword} onChange={(v) => setPassword((p) => ({ ...p, currentPassword: v }))} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-neutral-500 mb-1 block">New Password</label>
-                  <input type="password" value={password.newPassword} onChange={(e) => setPassword({ ...password, newPassword: e.target.value })} className="input-field w-full" />
+                  <PasswordInput value={password.newPassword} onChange={(v) => setPassword((p) => ({ ...p, newPassword: v }))} />
                 </div>
                 <div>
                   <label className="text-xs text-neutral-500 mb-1 block">Confirm New Password</label>
-                  <input type="password" value={password.confirmPassword} onChange={(e) => setPassword({ ...password, confirmPassword: e.target.value })} className="input-field w-full" />
+                  <PasswordInput value={password.confirmPassword} onChange={(v) => setPassword((p) => ({ ...p, confirmPassword: v }))} />
                 </div>
               </div>
               {passwordError && <p className="text-xs text-red-500">{passwordError}</p>}
