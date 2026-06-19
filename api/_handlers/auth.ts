@@ -131,7 +131,7 @@ async function handleRegister(req: Request): Promise<Response> {
     });
 
     // Send verification email
-    const verifyLink = `http://localhost:5173/auth/verify-email?token=${verificationToken}`;
+    const verifyLink = `${process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "http://localhost:5173"}/auth/verify-email?token=${verificationToken}`;
     console.log(`[VERIFY LINK] ${verifyLink}`);
 
     try {
@@ -231,7 +231,7 @@ async function handleResendVerification(req: Request): Promise<Response> {
       data: { verificationToken, verificationTokenExpiresAt },
     });
 
-    const verifyLink = `http://localhost:5173/auth/verify-email?token=${verificationToken}`;
+    const verifyLink = `${process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "http://localhost:5173"}/auth/verify-email?token=${verificationToken}`;
     console.log(`[VERIFY LINK] ${verifyLink}`);
 
     try {
