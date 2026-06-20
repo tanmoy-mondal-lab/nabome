@@ -3,7 +3,6 @@
 // Security: Rate limiting, brute force protection, session tracking
 // ─────────────────────────────────────────────────────────────
 
-import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { prisma } from "../_lib/prisma";
 import {
@@ -14,6 +13,13 @@ import type { RequestContext } from "../_lib/types";
 import { validateBody, authRegisterSchema, authLoginSchema } from "../_lib/validate";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
+
+function generateVerificationCode(): string {
+  const buf = new Uint8Array(4);
+  crypto.getRandomValues(buf);
+  const num = 100000 + ((buf[0]! << 8 | buf[1]!) % 900000);
+  return num.toString();
+}
 
 function getAnonClient() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
@@ -104,7 +110,7 @@ async function handleRegister(req: Request): Promise<Response> {
     }
 
     // Generate 6-digit email verification code
-    const verificationToken = crypto.randomInt(100000, 999999).toString();
+    const verificationToken = generateVerificationCode();
     const verificationTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Create profile in database with verification token
@@ -226,7 +232,7 @@ async function handleResendVerification(req: Request): Promise<Response> {
     }
 
     // Generate new 6-digit code
-    const verificationToken = crypto.randomInt(100000, 999999).toString();
+    const verificationToken = generateVerificationCode();
     const verificationTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     await prisma.profile.update({

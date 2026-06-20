@@ -15,13 +15,22 @@ import { setCsrfCookie, validateCsrf, csrfError } from "./_lib/csrf";
 const ALLOWED_ORIGINS = [
   "https://www.nabome.online",
   "https://nabome.online",
+  "https://nabome.pages.dev",
+  "https://*.nabome.pages.dev",
   "http://localhost:5173",
   "http://localhost:4173",
 ];
 
+function isOriginAllowed(origin: string): boolean {
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  const url = new URL(origin);
+  if (!url) return false;
+  return ALLOWED_ORIGINS.some((o) => o.startsWith("https://*.") && url.hostname.endsWith(o.slice(10)));
+}
+
 function corsHeaders(request: Request): Record<string, string> {
   const origin = request.headers.get("Origin") ?? "";
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : "https://www.nabome.online";
+  const allowed = isOriginAllowed(origin) ? origin : "https://www.nabome.online";
   return {
     "Access-Control-Allow-Origin": allowed,
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",

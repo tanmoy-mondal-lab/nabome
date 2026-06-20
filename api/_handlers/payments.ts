@@ -1,9 +1,21 @@
 import { prisma } from "../_lib/prisma";
 import { success, badRequest, notFound, error, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
-import { createHmac } from "crypto";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
+
+async function createHMACSHA256(secret: string, data: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw", enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false, ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(data));
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 async function callRazorpay(
   path: string,
@@ -19,7 +31,7 @@ async function callRazorpay(
     method,
     headers: {
       "Content-Type": "application/json",
-      Authorization: "Basic " + Buffer.from(`${keyId}:${keySecret}`).toString("base64"),
+      Authorization: "Basic " + btoa(`${keyId}:${keySecret}`),
     },
     body: body ? JSON.stringify(body) : undefined,
   });
@@ -72,9 +84,7 @@ async function handleVerify(req: Request): Promise<Response> {
       return serverError(new Error("Razorpay secret not configured"));
     }
 
-    const expected = createHmac("sha256", keySecret)
-      .update(`${razorpayOrderId}|${razorpayPaymentId}`)
-      .digest("hex");
+    const expected = await createHMACSHA256(keySecret, `${razorpayOrderId}|${razorpayPaymentId}`);
 
     if (expected !== razorpaySignature) {
       return badRequest("Invalid payment signature");
@@ -705,9 +715,7 @@ async function handleWebhook(req: Request): Promise<Response> {
     return success({ status: "invalid_signature" });
   }
 
-  const expected = createHmac("sha256", webhookSecret)
-    .update(rawBody)
-    .digest("hex");
+  const expected = await createHMACSHA256(webhookSecret, rawBody);
 
   if (expected !== signature) {
     console.error("[WEBHOOK] Invalid signature");

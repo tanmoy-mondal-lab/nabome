@@ -1,0 +1,36 @@
+name = "nabome"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ─── Environment variables ───
+# Set secrets via: wrangler pages secret put <NAME>
+# (values come from .env — never commit secrets to git)
+
+# Supabase Auth
+# SUPABASE_URL
+# SUPABASE_SERVICE_ROLE_KEY
+# SUPABASE_ANON_KEY
+
+# Database
+# DATABASE_URL
+# DATABASE_URL_POOLED
+
+# Razorpay
+# RAZORPAY_KEY_ID
+# RAZORPAY_KEY_SECRET
+# RAZORPAY_WEBHOOK_SECRET
+
+# Resend (Email)
+# RESEND_API_KEY
+# EMAIL_FROM
+# ADMIN_EMAILS
+
+# Cloudinary
+# CLOUDINARY_CLOUD_NAME
+# CLOUDINARY_API_KEY
+# CLOUDINARY_API_SECRET
+# CLOUDINARY_UPLOAD_PRESET
+
+# Site URL
+# SITE_URL
