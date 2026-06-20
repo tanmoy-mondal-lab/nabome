@@ -384,22 +384,22 @@ ${button("https://www.nabome.online/products", "Shop Now")}
 
 function emailVerification(data: Record<string, unknown>): EmailTemplate {
   const firstName = (data.firstName as string) || "there";
-  const verifyLink = data.verifyLink as string;
+  const verificationCode = data.verificationCode as string;
 
   const body = `<h1 style="font-size:22px;font-weight:700;margin:0 0 8px">Verify Your Email, ${firstName}!</h1>
 <p style="color:${BRAND.textMuted};font-size:14px;margin:0 0 24px">Thanks for joining নবME. Please verify your email address to get started.</p>
 
-<div style="background:${BRAND.bgColor};border-radius:6px;padding:24px;margin-bottom:24px">
-<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:${BRAND.textDark}">Click the button below to confirm your email address and activate your account:</p>
-${button(verifyLink, "Verify Email")}
+<div style="background:${BRAND.bgColor};border-radius:6px;padding:24px;margin-bottom:24px;text-align:center">
+<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:${BRAND.textDark}">Use the verification code below to confirm your email address:</p>
+<div style="background:#ffffff;border:2px dashed ${BRAND.primaryColor};border-radius:8px;padding:16px;margin:0 auto;display:inline-block;font-size:32px;font-weight:700;letter-spacing:8px;color:${BRAND.primaryColor};font-family:'Courier New',monospace">${verificationCode}</div>
 </div>
 
-<p style="font-size:13px;color:${BRAND.textMuted};line-height:1.5;margin:0 0 8px">This link will expire in 24 hours.</p>
+<p style="font-size:13px;color:${BRAND.textMuted};line-height:1.5;margin:0 0 8px">This code will expire in 10 minutes.</p>
 <p style="font-size:12px;color:${BRAND.textMuted};line-height:1.5;margin:0">If you didn't create this account, please ignore this email.</p>`;
 
   return {
     subject: "Verify Your নবME Email Address",
-    preview: `Welcome, ${firstName}! Please verify your email address.`,
+    preview: `Welcome, ${firstName}! Your verification code: ${verificationCode}`,
     html: baseLayout(body),
     notificationEvent: "welcome",
   };

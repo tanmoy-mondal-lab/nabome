@@ -404,8 +404,8 @@ function roundAmount(amount: unknown): number {
 // WEBHOOK EVENT HANDLERS
 // ─────────────────────────────────────────────────────────────
 
-async function handlePaymentCaptured(payload: WebhookEventPayload) {
-  const payment = payload.payment?.entity as Record<string, unknown> | undefined;
+async function handlePaymentCaptured(event: WebhookEventPayload) {
+  const payment = event.payload.payment?.entity as Record<string, unknown> | undefined;
   if (!payment) throw new Error("Missing payment entity in payload");
 
   const razorpayOrderId = payment.order_id as string;
@@ -471,8 +471,8 @@ async function handlePaymentCaptured(payload: WebhookEventPayload) {
   return result;
 }
 
-async function handlePaymentFailed(payload: WebhookEventPayload) {
-  const payment = payload.payment?.entity as Record<string, unknown> | undefined;
+async function handlePaymentFailed(event: WebhookEventPayload) {
+  const payment = event.payload.payment?.entity as Record<string, unknown> | undefined;
   if (!payment) throw new Error("Missing payment entity in payload");
 
   const razorpayOrderId = payment.order_id as string;
@@ -525,8 +525,8 @@ async function handlePaymentFailed(payload: WebhookEventPayload) {
   return result;
 }
 
-async function handleRefundCreated(payload: WebhookEventPayload) {
-  const refund = payload.refund?.entity as Record<string, unknown> | undefined;
+async function handleRefundCreated(event: WebhookEventPayload) {
+  const refund = event.payload.refund?.entity as Record<string, unknown> | undefined;
   if (!refund) throw new Error("Missing refund entity in payload");
 
   const refundId = refund.id as string;
@@ -537,7 +537,7 @@ async function handleRefundCreated(payload: WebhookEventPayload) {
 
   let order = await findOrderByPaymentId(razorpayPaymentId);
   if (!order) {
-    const paymentEntity = payload.payment?.entity as Record<string, unknown> | undefined;
+    const paymentEntity = event.payload.payment?.entity as Record<string, unknown> | undefined;
     const razorpayOrderId = paymentEntity?.order_id as string || "";
     if (razorpayOrderId) {
       order = await findOrderByRazorpayOrderId(razorpayOrderId);
@@ -618,8 +618,8 @@ async function handleRefundCreated(payload: WebhookEventPayload) {
   });
 }
 
-async function handleRefundProcessed(payload: WebhookEventPayload) {
-  const refund = payload.refund?.entity as Record<string, unknown> | undefined;
+async function handleRefundProcessed(event: WebhookEventPayload) {
+  const refund = event.payload.refund?.entity as Record<string, unknown> | undefined;
   if (!refund) throw new Error("Missing refund entity in payload");
 
   const refundId = refund.id as string;
@@ -629,7 +629,7 @@ async function handleRefundProcessed(payload: WebhookEventPayload) {
     where: { transactionId: refundId },
   });
   if (!existingRefund) {
-    return handleRefundCreated(payload);
+    return handleRefundCreated(event);
   }
 
   return prisma.$transaction(async (tx) => {
@@ -760,7 +760,7 @@ async function handleWebhook(req: Request): Promise<Response> {
         source: "razorpay",
         eventType: eventName,
         status: "received",
-        payload: event as unknown as Record<string, unknown>,
+        payload: event as never,
       },
       update: {
         retryCount: { increment: 1 },
@@ -778,7 +778,7 @@ async function handleWebhook(req: Request): Promise<Response> {
           source: "razorpay",
           eventType: eventName,
           status: "received",
-          payload: event as unknown as Record<string, unknown>,
+          payload: event as never,
         },
       });
       webhookEventId = record.id;

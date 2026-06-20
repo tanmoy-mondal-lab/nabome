@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { getEmailTemplate } from "./email-templates";
 import type { EmailType } from "./email-templates";
+import type { NotificationEvent } from "@prisma/client";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
@@ -79,7 +80,7 @@ export async function sendEmailNotification(
     data: {
       profileId: options?.profileId || null,
       orderId: options?.orderId || null,
-      type: template.notificationEvent,
+      type: template.notificationEvent as NotificationEvent,
       channel: "email",
       title: template.subject,
       body: template.preview,

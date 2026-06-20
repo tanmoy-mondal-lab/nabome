@@ -32,18 +32,18 @@ export async function handleAdminProductRequest(
 
   switch (action) {
     case "list": return handleList(req);
-    case "create": return handleCreate(req);
+    case "create": return handleCreate(req, ctx);
     case "detail": return handleDetail(params[0]);
-    case "update": return handleUpdate(params[0], req);
-    case "delete": return handleDelete(params[0], req);
-    case "duplicate": return handleDuplicate(params[0], req);
-    case "restore": return handleRestore(params[0], req);
+    case "update": return handleUpdate(params[0], req, ctx);
+    case "delete": return handleDelete(params[0], req, ctx);
+    case "duplicate": return handleDuplicate(params[0], req, ctx);
+    case "restore": return handleRestore(params[0], req, ctx);
     case "variants": return handleUpdateVariants(params[0], req);
     case "addImage": return handleAddImage(params[0], req);
     case "deleteImage": return handleDeleteImage(params[0], params[1]);
-    case "bulkStatus": return handleBulkStatus(req);
+    case "bulkStatus": return handleBulkStatus(req, ctx);
     case "bulkCategory": return handleBulkCategory(req);
-    case "bulkDelete": return handleBulkDelete(req);
+    case "bulkDelete": return handleBulkDelete(req, ctx);
     case "schedule": return handleSchedule(params[0], req);
     default: return badRequest("Unknown action");
   }
@@ -94,7 +94,7 @@ async function handleList(req: Request): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { name, description, shortDescription, categoryId, subcategoryId, collectionId, basePrice, compareAtPrice, costPrice, material, careInstructions, isActive, isFeatured, isNew, gender, sortOrder, metaTitle, metaDesc } = body;
 
@@ -162,7 +162,7 @@ async function handleDetail(productId: string): Promise<Response> {
   }
 }
 
-async function handleUpdate(productId: string, req: Request): Promise<Response> {
+async function handleUpdate(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
 
   try {
@@ -212,7 +212,7 @@ async function handleUpdate(productId: string, req: Request): Promise<Response> 
   }
 }
 
-async function handleDelete(productId: string, req: Request): Promise<Response> {
+async function handleDelete(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     await prisma.product.update({
       where: { id: productId },
@@ -325,7 +325,7 @@ async function handleDeleteImage(productId: string, imageId: string): Promise<Re
 
 // ─── Duplicate ───
 
-async function handleDuplicate(productId: string, req: Request): Promise<Response> {
+async function handleDuplicate(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     const source = await prisma.product.findUnique({
       where: { id: productId },
@@ -398,7 +398,7 @@ async function handleDuplicate(productId: string, req: Request): Promise<Respons
 
 // ─── Restore (reactivate) ───
 
-async function handleRestore(productId: string, req: Request): Promise<Response> {
+async function handleRestore(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     const product = await prisma.product.update({
       where: { id: productId },
@@ -417,7 +417,7 @@ async function handleRestore(productId: string, req: Request): Promise<Response>
 
 // ─── Bulk Status ───
 
-async function handleBulkStatus(req: Request): Promise<Response> {
+async function handleBulkStatus(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { ids, status } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
@@ -459,7 +459,7 @@ async function handleBulkCategory(req: Request): Promise<Response> {
 
 // ─── Bulk Delete ───
 
-async function handleBulkDelete(req: Request): Promise<Response> {
+async function handleBulkDelete(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { ids } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");

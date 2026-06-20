@@ -1,4 +1,5 @@
 import { prisma } from "./_lib/prisma";
+import type { Product, Category, Collection, Lookbook } from "@prisma/client";
 
 const SITE_URL = "https://www.nabome.online";
 
@@ -18,16 +19,12 @@ ${urls.map((u) => `  <url>
 
 export async function GET(): Promise<Response> {
   try {
-    const [products, categories, pages, collections, lookbooks] = await Promise.all([
+    const [products, categories, collections, lookbooks] = await Promise.all([
       prisma.product.findMany({
-        where: { isActive: true, isDeleted: false },
-        select: { slug: true, updatedAt: true },
-      }),
-      prisma.category.findMany({
         where: { isActive: true },
         select: { slug: true, updatedAt: true },
       }),
-      prisma.cmsPage.findMany({
+      prisma.category.findMany({
         where: { isActive: true },
         select: { slug: true, updatedAt: true },
       }),
@@ -44,31 +41,25 @@ export async function GET(): Promise<Response> {
     const urls: { loc: string; lastmod?: string; changefreq?: string; priority?: string }[] = [
       { loc: SITE_URL + "/", changefreq: "weekly", priority: "1.0" },
       { loc: SITE_URL + "/products", changefreq: "daily", priority: "0.9" },
-      ...products.map((p) => ({
+      ...products.map((p: Pick<Product, "slug" | "updatedAt">) => ({
         loc: `${SITE_URL}/products/${p.slug}`,
         lastmod: p.updatedAt.toISOString().split("T")[0],
         changefreq: "weekly" as const,
         priority: "0.8",
       })),
-      ...categories.map((c) => ({
+      ...categories.map((c: Pick<Category, "slug" | "updatedAt">) => ({
         loc: `${SITE_URL}/categories/${c.slug}`,
         lastmod: c.updatedAt.toISOString().split("T")[0],
         changefreq: "weekly" as const,
         priority: "0.7",
       })),
-      ...collections.map((c) => ({
+      ...collections.map((c: Pick<Collection, "slug" | "updatedAt">) => ({
         loc: `${SITE_URL}/collections/${c.slug}`,
         lastmod: c.updatedAt.toISOString().split("T")[0],
         changefreq: "weekly" as const,
         priority: "0.7",
       })),
-      ...pages.map((p) => ({
-        loc: `${SITE_URL}/pages/${p.slug}`,
-        lastmod: p.updatedAt.toISOString().split("T")[0],
-        changefreq: "monthly" as const,
-        priority: "0.6",
-      })),
-      ...lookbooks.map((l) => ({
+      ...lookbooks.map((l: Pick<Lookbook, "slug" | "updatedAt">) => ({
         loc: `${SITE_URL}/lookbooks/${l.slug}`,
         lastmod: l.updatedAt.toISOString().split("T")[0],
         changefreq: "weekly" as const,

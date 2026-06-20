@@ -18,11 +18,11 @@ export async function handleAdminCategoryRequest(
     case "list":
       return handleList();
     case "create":
-      return handleCreate(req);
+      return handleCreate(req, ctx);
     case "update":
-      return handleUpdate(params[0], req);
+      return handleUpdate(params[0], req, ctx);
     case "delete":
-      return handleDelete(params[0], req);
+      return handleDelete(params[0], req, ctx);
     default:
       return badRequest("Unknown action");
   }
@@ -45,7 +45,7 @@ async function handleList(): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { name, description, imageUrl, parentId, sortOrder, isActive, metaTitle, metaDesc } = body;
 
@@ -87,7 +87,7 @@ async function handleCreate(req: Request): Promise<Response> {
   }
 }
 
-async function handleUpdate(categoryId: string, req: Request): Promise<Response> {
+async function handleUpdate(categoryId: string, req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
 
   try {
@@ -124,7 +124,7 @@ async function handleUpdate(categoryId: string, req: Request): Promise<Response>
   }
 }
 
-async function handleDelete(categoryId: string, req: Request): Promise<Response> {
+async function handleDelete(categoryId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     const productCount = await prisma.product.count({ where: { categoryId } });
     if (productCount > 0) {

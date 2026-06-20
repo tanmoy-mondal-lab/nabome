@@ -18,11 +18,11 @@ export async function handleAdminCollectionRequest(
     case "list":
       return handleList();
     case "create":
-      return handleCreate(req);
+      return handleCreate(req, ctx);
     case "update":
-      return handleUpdate(params[0], req);
+      return handleUpdate(params[0], req, ctx);
     case "delete":
-      return handleDelete(params[0], req);
+      return handleDelete(params[0], req, ctx);
     default:
       return badRequest("Unknown action");
   }
@@ -40,7 +40,7 @@ async function handleList(): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { name, description, heroImageUrl, isActive, isFeatured, startDate, endDate, sortOrder, metaTitle, metaDesc } = body;
 
@@ -79,7 +79,7 @@ async function handleCreate(req: Request): Promise<Response> {
   }
 }
 
-async function handleUpdate(collectionId: string, req: Request): Promise<Response> {
+async function handleUpdate(collectionId: string, req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
 
   try {
@@ -115,7 +115,7 @@ async function handleUpdate(collectionId: string, req: Request): Promise<Respons
   }
 }
 
-async function handleDelete(collectionId: string, req: Request): Promise<Response> {
+async function handleDelete(collectionId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     await prisma.collection.update({
       where: { id: collectionId },

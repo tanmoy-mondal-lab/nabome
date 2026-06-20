@@ -188,7 +188,7 @@ route("POST", "/api/auth/reset-password", (req, ctx) => handleAuthRequest(req, c
 route("POST", "/api/auth/change-password", (req, ctx) => handleAuthRequest(req, ctx, [], "changePassword"), { auth: true });
 route("GET", "/api/auth/sessions", (req, ctx) => handleAuthRequest(req, ctx, [], "sessions"), { auth: true });
 route("DELETE", "/api/auth/sessions/:id", (req, ctx, p) => handleAuthRequest(req, ctx, p, "deleteSession"), { auth: true });
-route("GET", "/api/auth/verify-email", (req, ctx) => handleAuthRequest(req, ctx, [], "verifyEmail"));
+route("POST", "/api/auth/verify-email", (req, ctx) => handleAuthRequest(req, ctx, [], "verifyEmail"));
 route("POST", "/api/auth/resend-verification", (req, ctx) => handleAuthRequest(req, ctx, [], "resendVerification"));
 
 route("GET", "/api/products", (req, ctx) => handleProductRequest(req, ctx, [], "list"));

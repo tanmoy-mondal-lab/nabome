@@ -42,7 +42,7 @@ export default function RegisterPage() {
         lastName: form.lastName || undefined,
         phone: form.phone || undefined,
       });
-      navigate("/auth/login", { state: { registered: true } });
+      navigate(`/auth/verify-email?email=${encodeURIComponent(form.email)}`);
     } catch {
       // Error set by hook
     }

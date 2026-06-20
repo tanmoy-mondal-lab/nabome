@@ -98,8 +98,8 @@ export const authApi = {
   deleteSession: (sessionId: string) =>
     api.delete<{ message: string }>(`/auth/sessions/${sessionId}`),
 
-  verifyEmail: (token: string) =>
-    api.get<{ message: string }>(`/auth/verify-email?token=${token}`),
+  verifyEmail: (data: { email: string; code: string }) =>
+    api.post<{ message: string }>("/auth/verify-email", data),
 
   resendVerification: (email: string) =>
     api.post<{ message: string }>("/auth/resend-verification", { email }),

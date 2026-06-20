@@ -23,7 +23,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (state?.registered) {
-      toast("Account created successfully. Please verify your email.", "success");
+      toast("Account created successfully. Please verify your email with the code sent.", "success");
       window.history.replaceState({}, document.title);
     }
   }, []);
@@ -41,7 +41,7 @@ export default function LoginPage() {
     setResending(true);
     try {
       await resendVerification(email);
-      toast("Verification email sent. Please check your inbox.", "success");
+      toast("Verification code sent. Please check your inbox.", "success");
     } catch {
       toast("Failed to send verification email. Try again.", "error");
     } finally {
@@ -86,7 +86,7 @@ export default function LoginPage() {
                   disabled={resending}
                   className="mt-2 text-xs text-brand-600 hover:text-brand-700 underline disabled:opacity-50"
                 >
-                  {resending ? "Sending…" : "Resend verification email"}
+                  {resending ? "Sending…" : "Resend verification code"}
                 </button>
               )}
             </div>

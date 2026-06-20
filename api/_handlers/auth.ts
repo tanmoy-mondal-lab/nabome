@@ -103,9 +103,9 @@ async function handleRegister(req: Request): Promise<Response> {
       return serverError(new Error("Failed to create user"));
     }
 
-    // Generate email verification token
-    const verificationToken = crypto.randomUUID();
-    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    // Generate 6-digit email verification code
+    const verificationToken = crypto.randomInt(100000, 999999).toString();
+    const verificationTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Create profile in database with verification token
     try {
@@ -130,15 +130,14 @@ async function handleRegister(req: Request): Promise<Response> {
       metadata: { email, firstName },
     });
 
-    // Send verification email
-    const verifyLink = `${process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "http://localhost:5173"}/auth/verify-email?token=${verificationToken}`;
-    console.log(`[VERIFY LINK] ${verifyLink}`);
+    // Send verification email with 6-digit code
+    console.log(`[VERIFY CODE] ${email}: ${verificationToken}`);
 
     try {
       await sendEmailNotification("email_verification", {
         email,
         firstName,
-        verifyLink,
+        verificationCode: verificationToken,
       }, { profileId: authData.user.id });
     } catch (emailErr) {
       console.error("[EMAIL] Failed to send verification:", (emailErr as Error).message);
@@ -158,24 +157,28 @@ async function handleRegister(req: Request): Promise<Response> {
 
 async function handleVerifyEmail(req: Request): Promise<Response> {
   try {
-    const url = new URL(req.url);
-    const token = url.searchParams.get("token");
+    const body = await req.json();
+    const { email, code } = body;
 
-    if (!token) {
-      return badRequest("Verification token is required");
+    if (!email || !code) {
+      return badRequest("Email and verification code are required");
+    }
+
+    if (!/^\d{6}$/.test(code)) {
+      return badRequest("Verification code must be a 6-digit number");
     }
 
     const profile = await prisma.profile.findFirst({
-      where: { verificationToken: token, emailVerified: false },
+      where: { email, verificationToken: code, emailVerified: false },
       select: { id: true, email: true, verificationTokenExpiresAt: true },
     });
 
     if (!profile) {
-      return badRequest("Invalid or expired verification token");
+      return badRequest("Invalid verification code");
     }
 
     if (profile.verificationTokenExpiresAt && profile.verificationTokenExpiresAt < new Date()) {
-      return badRequest("Verification token has expired. Request a new one.");
+      return badRequest("Verification code has expired. Request a new one.");
     }
 
     await prisma.profile.update({
@@ -222,29 +225,28 @@ async function handleResendVerification(req: Request): Promise<Response> {
       return success({ message: "Email is already verified." });
     }
 
-    // Generate new token
-    const verificationToken = crypto.randomUUID();
-    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // Generate new 6-digit code
+    const verificationToken = crypto.randomInt(100000, 999999).toString();
+    const verificationTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     await prisma.profile.update({
       where: { id: profile.id },
       data: { verificationToken, verificationTokenExpiresAt },
     });
 
-    const verifyLink = `${process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "http://localhost:5173"}/auth/verify-email?token=${verificationToken}`;
-    console.log(`[VERIFY LINK] ${verifyLink}`);
+    console.log(`[VERIFY CODE] ${email}: ${verificationToken}`);
 
     try {
       await sendEmailNotification("email_verification", {
         email,
         firstName: profile.firstName,
-        verifyLink,
+        verificationCode: verificationToken,
       }, { profileId: profile.id });
     } catch (emailErr) {
       console.error("[EMAIL] Failed to resend verification:", (emailErr as Error).message);
     }
 
-    return success({ message: "If an account exists with this email, a verification link has been sent." });
+    return success({ message: "If an account exists with this email, a verification code has been sent." });
   } catch (err) {
     console.error("[RESEND VERIFICATION] Error:", err);
     return serverError(err);
@@ -300,7 +302,7 @@ async function handleLogin(req: Request): Promise<Response> {
   }
 
   if (!existingProfile.emailVerified) {
-    return unauthorized("Please verify your email address before logging in. Check your inbox for the verification link.");
+    return unauthorized("Please verify your email address before logging in. Check your inbox for the verification code.");
   }
 
   // Update profile login metadata
