@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "../../lib/utils/cn";
 import { LayoutDashboard, ShoppingBag, Heart, MapPin, Bell, Settings, LogOut, HelpCircle } from "lucide-react";
-import { useAuthStore } from "../../stores/auth-store";
+import { useAuth } from "../../hooks/useAuth";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/account" },
@@ -15,7 +15,7 @@ const navItems = [
 
 export function DashboardSidebar() {
   const location = useLocation();
-  const clearAuth = useAuthStore((s) => s.clearAuth);
+  const { logout } = useAuth();
 
   return (
     <aside className="w-full lg:w-64 shrink-0">
@@ -38,7 +38,7 @@ export function DashboardSidebar() {
           );
         })}
         <button
-          onClick={clearAuth}
+          onClick={logout}
           className="flex items-center gap-3 px-4 py-2.5 text-sm text-neutral-500 hover:bg-neutral-50 rounded w-full transition-colors tracking-fashion"
         >
           <LogOut className="w-5 h-5" />

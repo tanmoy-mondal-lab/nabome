@@ -20,6 +20,7 @@ export function useWishlist() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const add = async (variantId: string) => {
+    if (!isAuthenticated) return;
     // Optimistic: add immediately if not already present
     const alreadyExists = items.some((i) => (i.variantId as string) === variantId);
     if (alreadyExists) return;
@@ -39,6 +40,7 @@ export function useWishlist() {
   };
 
   const remove = async (variantId: string) => {
+    if (!isAuthenticated) return;
     // Optimistic: remove immediately
     const previous = items;
     setItems((prev) => prev.filter((i) => (i.variantId as string) !== variantId));

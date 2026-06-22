@@ -11,6 +11,7 @@ interface Address {
   label: string | null;
   street: string;
   city: string;
+  district: string | null;
   state: string;
   postalCode: string;
   country: string;
@@ -122,6 +123,7 @@ export default function AddressesPage() {
                 <th className="text-left px-4 py-3 font-medium text-neutral-600">Label</th>
                 <th className="text-left px-4 py-3 font-medium text-neutral-600">Street</th>
                 <th className="text-left px-4 py-3 font-medium text-neutral-600">City</th>
+                <th className="text-left px-4 py-3 font-medium text-neutral-600">District</th>
                 <th className="text-left px-4 py-3 font-medium text-neutral-600">State</th>
                 <th className="text-left px-4 py-3 font-medium text-neutral-600">Country</th>
                 <th className="text-left px-4 py-3 font-medium text-neutral-600">Default</th>
@@ -142,6 +144,7 @@ export default function AddressesPage() {
                   </td>
                   <td className="px-4 py-3 text-neutral-700">{a.street}</td>
                   <td className="px-4 py-3 text-neutral-700">{a.city}</td>
+                  <td className="px-4 py-3 text-neutral-700">{a.district ?? "—"}</td>
                   <td className="px-4 py-3 text-neutral-700">{a.state}</td>
                   <td className="px-4 py-3 text-neutral-700">{a.country}</td>
                   <td className="px-4 py-3">
@@ -228,6 +231,10 @@ export default function AddressesPage() {
               <div>
                 <label className="block text-xs text-neutral-500 mb-1">City</label>
                 <p className="text-sm text-neutral-900">{detailItem.city}</p>
+              </div>
+              <div>
+                <label className="block text-xs text-neutral-500 mb-1">District</label>
+                <p className="text-sm text-neutral-900">{detailItem.district ?? "—"}</p>
               </div>
               <div>
                 <label className="block text-xs text-neutral-500 mb-1">State</label>

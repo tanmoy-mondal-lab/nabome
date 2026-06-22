@@ -18,9 +18,16 @@ async function handleList(req: Request): Promise<Response> {
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
   const couponId = url.searchParams.get("couponId");
   const profileId = url.searchParams.get("profileId");
+  const search = url.searchParams.get("search");
   const where: Record<string, unknown> = {};
   if (couponId) where.couponId = couponId;
   if (profileId) where.profileId = profileId;
+  if (search) {
+    where.OR = [
+      { coupon: { code: { contains: search, mode: "insensitive" } } },
+      { profile: { email: { contains: search, mode: "insensitive" } } },
+    ];
+  }
   const [items, total] = await Promise.all([
     prisma.couponRedemption.findMany({
       where: where as never,

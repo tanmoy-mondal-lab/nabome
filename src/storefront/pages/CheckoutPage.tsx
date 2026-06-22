@@ -52,6 +52,7 @@ interface ShippingFormState {
   line1: string;
   line2: string;
   city: string;
+  district: string;
   state: string;
   pincode: string;
   country: string;
@@ -70,6 +71,7 @@ const EMPTY_SHIPPING: ShippingFormState = {
   line1: "",
   line2: "",
   city: "",
+  district: "",
   state: "",
   pincode: "",
   country: "India",
@@ -112,7 +114,27 @@ export default function CheckoutPage() {
   const [guestEmail, setGuestEmail] = useState("");
   const [guestEmailError, setGuestEmailError] = useState("");
 
+  const [siteSettings, setSiteSettings] = useState<{ taxRate: number; freeShippingThreshold: number; shippingCost: number }>({
+    taxRate: 5, freeShippingThreshold: 500, shippingCost: 99,
+  });
+
   const { loaded: razorpayLoaded, openRazorpay } = useRazorpay();
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        const s = d?.data;
+        if (s) {
+          setSiteSettings({
+            taxRate: Number(s.taxRate ?? 5),
+            freeShippingThreshold: Number(s.freeShippingThreshold ?? 500),
+            shippingCost: Number(s.shippingInfo?.shippingCost ?? 99),
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -132,6 +154,7 @@ export default function CheckoutPage() {
               line1: def.line1,
               line2: def.line2 || "",
               city: def.city,
+              district: def.district || "",
               state: def.state,
               pincode: def.pincode,
               country: def.country,
@@ -145,8 +168,8 @@ export default function CheckoutPage() {
     }
   }, [isAuthenticated]);
 
-  const shippingCost = subtotal >= 999 ? 0 : 99;
-  const tax = Math.round(subtotal * 0.05);
+  const shippingCost = subtotal >= siteSettings.freeShippingThreshold ? 0 : siteSettings.shippingCost;
+  const tax = Math.round(subtotal * siteSettings.taxRate) / 100;
   const grandTotal = total + shippingCost + tax;
   const email = isAuthenticated ? (user?.email || "") : guestEmail;
 
@@ -260,6 +283,10 @@ export default function CheckoutPage() {
           giftMessage: giftMessage || undefined,
           notes: orderNotes || undefined,
           paymentMethod,
+          items: items.map((item) => ({
+            variantId: item.variantId,
+            quantity: item.quantity,
+          })),
         });
       } else {
         orderData = await customerApi.guestCheckout({
@@ -388,6 +415,10 @@ export default function CheckoutPage() {
           <label className={labelCls} htmlFor={`${prefix}-city`}>City *</label>
           <input id={`${prefix}-city`} value={form.city} onChange={(e) => update("city", e.target.value)} className={inputCls("city")} placeholder="Mumbai" />
           {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
+        </div>
+        <div>
+          <label className={labelCls} htmlFor={`${prefix}-district`}>District</label>
+          <input id={`${prefix}-district`} value={form.district} onChange={(e) => update("district", e.target.value)} className={inputCls("district")} placeholder="Mumbai City" />
         </div>
         <div>
           <label className={labelCls} htmlFor={`${prefix}-state`}>State *</label>
@@ -599,6 +630,7 @@ export default function CheckoutPage() {
                               line1: addr.line1,
                               line2: addr.line2 || "",
                               city: addr.city,
+                              district: addr.district || "",
                               state: addr.state,
                               pincode: addr.pincode,
                               country: addr.country,
@@ -870,7 +902,7 @@ export default function CheckoutPage() {
                   <div className="text-sm text-neutral-600 bg-luxe-ivory p-3 border shadow-subtle">
                     <p className="font-medium text-neutral-900">{shipping.fullName}</p>
                     <p>{shipping.line1}{shipping.line2 ? `, ${shipping.line2}` : ""}</p>
-                    <p>{shipping.city}, {shipping.state} — {shipping.pincode}</p>
+                    <p>{shipping.city}{shipping.district ? `, ${shipping.district}` : ""}, {shipping.state} — {shipping.pincode}</p>
                     <p className="text-xs text-neutral-400 mt-1">{shipping.phone}</p>
                   </div>
                 </div>
@@ -881,7 +913,7 @@ export default function CheckoutPage() {
                     <div className="text-sm text-neutral-600 bg-luxe-ivory p-3 border shadow-subtle">
                       <p className="font-medium text-neutral-900">{billing.fullName}</p>
                       <p>{billing.line1}{billing.line2 ? `, ${billing.line2}` : ""}</p>
-                      <p>{billing.city}, {billing.state} — {billing.pincode}</p>
+                      <p>{billing.city}{billing.district ? `, ${billing.district}` : ""}, {billing.state} — {billing.pincode}</p>
                       <p className="text-xs text-neutral-400 mt-1">{billing.phone}</p>
                     </div>
                   </div>

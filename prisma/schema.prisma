@@ -649,6 +649,7 @@ model Address {
   line1     String  @db.VarChar(500)
   line2     String? @db.VarChar(500)
   city      String  @db.VarChar(200)
+  district  String? @db.VarChar(200) @map("district")
   state     String  @db.VarChar(200)
   pincode   String  @db.VarChar(10)
   country   String  @default("India") @db.VarChar(100)

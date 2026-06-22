@@ -18,7 +18,7 @@ interface Order {
   subtotal?: number;
   shippingCost?: number;
   tax?: number;
-  discountAmount?: number;
+  discount?: number;
   couponCode?: string;
   currency?: string;
   paymentMethod?: string;
@@ -28,18 +28,10 @@ interface Order {
 }
 
 interface OrderStats {
-  pending: number;
-  confirmed: number;
-  processing: number;
-  packed: number;
-  shipped: number;
-  out_for_delivery: number;
-  delivered: number;
-  cancelled: number;
-  returned: number;
-  refunded: number;
-  totalReturns: number;
-  totalRefunds: number;
+  countsByStatus: Record<string, number>;
+  returnRequestCount: number;
+  refundRequestCount: number;
+  today: { orders: number; revenue: number };
 }
 
 const TABS = [
@@ -87,8 +79,8 @@ export default function OrdersPage() {
       const params: Record<string, string | number | undefined> = { page, limit: 20 };
       if (statusKey) params.status = statusKey;
       if (searchQuery) params.search = searchQuery;
-      if (dateFrom) params.dateFrom = dateFrom;
-      if (dateTo) params.dateTo = dateTo;
+      if (dateFrom) params.from = dateFrom;
+      if (dateTo) params.to = dateTo;
       const res = await adminApi.getOrders(params);
       setOrders((res.orders as Order[]) ?? []);
       const pag = res.pagination as { totalPages?: number } | undefined;
@@ -104,12 +96,12 @@ export default function OrdersPage() {
 
   const statCards = stats
     ? [
-        { label: "Pending", value: stats.pending, icon: Clock },
-        { label: "Processing", value: stats.processing, icon: Package },
-        { label: "Shipped", value: stats.shipped, icon: Truck },
-        { label: "Delivered", value: stats.delivered, icon: CheckCircle },
-        { label: "Returns", value: stats.totalReturns, icon: RotateCcw },
-        { label: "Refunds", value: stats.totalRefunds, icon: Banknote },
+        { label: "Pending", value: stats.countsByStatus?.pending ?? 0, icon: Clock },
+        { label: "Processing", value: stats.countsByStatus?.processing ?? 0, icon: Package },
+        { label: "Shipped", value: stats.countsByStatus?.shipped ?? 0, icon: Truck },
+        { label: "Delivered", value: stats.countsByStatus?.delivered ?? 0, icon: CheckCircle },
+        { label: "Returns", value: stats.returnRequestCount ?? 0, icon: RotateCcw },
+        { label: "Refunds", value: stats.refundRequestCount ?? 0, icon: Banknote },
       ]
     : [];
 
@@ -122,8 +114,8 @@ export default function OrdersPage() {
       key: "customer", label: "Customer",
       render: (o: Order) => (
         <div>
-          <p className="text-sm text-neutral-900">{o.customer?.firstName} {o.customer?.lastName}</p>
-          <p className="text-xs text-neutral-400">{o.customer?.email}</p>
+          <p className="text-sm text-neutral-900">{(o as unknown as { profile?: { firstName: string; lastName: string; email: string } })?.profile?.firstName} {(o as unknown as { profile?: { firstName: string; lastName: string; email: string } })?.profile?.lastName}</p>
+          <p className="text-xs text-neutral-400">{(o as unknown as { profile?: { firstName: string; lastName: string; email: string } })?.profile?.email}</p>
         </div>
       ),
     },
@@ -136,8 +128,8 @@ export default function OrdersPage() {
       render: (o: Order) => <span className="text-sm text-neutral-500">₹{o.subtotal?.toLocaleString() ?? "—"}</span>,
     },
     {
-      key: "discountAmount", label: "Disc.",
-      render: (o: Order) => o.discountAmount ? <span className="text-xs text-green-600">-₹{o.discountAmount.toLocaleString()}{o.couponCode ? ` (${o.couponCode})` : ""}</span> : <span className="text-xs text-neutral-300">—</span>,
+      key: "discount", label: "Disc.",
+      render: (o: Order) => o.discount ? <span className="text-xs text-green-600">-₹{o.discount.toLocaleString()}{o.couponCode ? ` (${o.couponCode})` : ""}</span> : <span className="text-xs text-neutral-300">—</span>,
     },
     {
       key: "status", label: "Status",

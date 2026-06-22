@@ -9,6 +9,7 @@ export interface Address {
   line1: string;
   line2: string | null;
   city: string;
+  district: string | null;
   state: string;
   pincode: string;
   country: string;
@@ -23,6 +24,7 @@ export interface AddressInput {
   line1: string;
   line2?: string;
   city: string;
+  district?: string;
   state: string;
   pincode: string;
   country?: string;

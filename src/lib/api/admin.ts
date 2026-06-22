@@ -115,6 +115,8 @@ export const adminApi = {
     api.get<unknown>("/admin/analytics/sales", { params }),
   getProductAnalytics: () => api.get<unknown>("/admin/analytics/products"),
   getCustomerAnalytics: () => api.get<unknown>("/admin/analytics/customers"),
+  getDeliveryAddressAnalytics: (params?: Record<string, string | undefined>) =>
+    api.get<unknown>("/admin/analytics/delivery-addresses", { params }),
 
   // Settings
   getSettings: () => api.get<{ settings: unknown }>("/admin/settings"),
@@ -378,7 +380,7 @@ export const adminApi = {
 
   // ─── Wishlists ───
   getWishlists: (params?: Record<string, string | number | undefined>) =>
-    api.get<{ wishlistItems: unknown[]; pagination: unknown }>("/admin/wishlists", { params }),
+    api.get<unknown>("/admin/wishlists", { params }),
 
   // ─── Product Attributes ───
   getProductAttributes: (productId: string) =>
@@ -402,5 +404,5 @@ export const adminApi = {
 
   // ─── Login Attempts ───
   getLoginAttempts: (params?: Record<string, string | number | undefined>) =>
-    api.get<{ attempts: unknown[]; pagination: unknown }>("/admin/login-attempts", { params }),
+    api.get<unknown>("/admin/login-attempts", { params }),
 };

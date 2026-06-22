@@ -13,6 +13,7 @@ interface Address {
   line1: string;
   line2: string | null;
   city: string;
+  district: string | null;
   state: string;
   pincode: string;
   isDefault: boolean;
@@ -25,6 +26,7 @@ const emptyForm = {
   line1: "",
   line2: "",
   city: "",
+  district: "",
   state: "",
   pincode: "",
   isDefault: false,
@@ -72,6 +74,7 @@ export default function AddressesPage() {
       line1: address.line1,
       line2: address.line2 || "",
       city: address.city,
+      district: address.district || "",
       state: address.state,
       pincode: address.pincode,
       isDefault: address.isDefault,
@@ -135,7 +138,7 @@ export default function AddressesPage() {
                   <p className="text-sm font-medium text-neutral-900">{addr.fullName}</p>
                   <p className="text-sm text-neutral-600">{addr.line1}</p>
                   {addr.line2 && <p className="text-sm text-neutral-600">{addr.line2}</p>}
-                  <p className="text-sm text-neutral-600">{addr.city}, {addr.state} {addr.pincode}</p>
+                  <p className="text-sm text-neutral-600">{addr.city}{addr.district ? `, ${addr.district}` : ""}, {addr.state} {addr.pincode}</p>
                   <p className="text-sm text-neutral-600">{addr.phone}</p>
                   <div className="flex items-center gap-3 mt-3 pt-3 border-t">
                     <button onClick={() => openEdit(addr)} className="btn-ghost flex items-center gap-1">
@@ -187,6 +190,10 @@ export default function AddressesPage() {
                 <div>
                   <label className="text-xs text-neutral-500 mb-1 block">City *</label>
                   <input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className="input-field w-full" />
+                </div>
+                <div>
+                  <label className="text-xs text-neutral-500 mb-1 block">District</label>
+                  <input value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} className="input-field w-full" />
                 </div>
                 <div>
                   <label className="text-xs text-neutral-500 mb-1 block">State *</label>

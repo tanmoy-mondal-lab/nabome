@@ -113,11 +113,11 @@ export default function DashboardPage() {
           <h3 className="font-medium text-sm text-neutral-900 mb-4">Recent Orders</h3>
           <div className="space-y-3">
             {data?.recentOrders?.length ? (
-              (data.recentOrders as Array<{ id: string; orderNumber: string; status: string; total: number; customer: { firstName: string; lastName: string } }>).slice(0, 5).map((order) => (
+              (data.recentOrders as Array<{ id: string; orderNumber: string; status: string; total: number; profile: { firstName: string; lastName: string } }>).slice(0, 5).map((order) => (
                 <div key={order.id} className="flex items-center justify-between py-2 border-b border-neutral-50 last:border-0">
                   <div>
                     <p className="text-sm font-medium text-neutral-900">#{order.orderNumber}</p>
-                    <p className="text-xs text-neutral-500">{order.customer?.firstName} {order.customer?.lastName}</p>
+                    <p className="text-xs text-neutral-500">{order.profile?.firstName} {order.profile?.lastName}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium">₹{order.total?.toLocaleString()}</p>

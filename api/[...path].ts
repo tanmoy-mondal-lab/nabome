@@ -391,6 +391,7 @@ route("PUT", "/api/admin/reviews/:id/approve", (req, ctx, p) => handleAdminRevie
 route("GET", "/api/admin/analytics/sales", (req, ctx) => handleAdminAnalyticsRequest(req, ctx, [], "sales"), { auth: true, admin: true });
 route("GET", "/api/admin/analytics/products", (req, ctx) => handleAdminAnalyticsRequest(req, ctx, [], "products"), { auth: true, admin: true });
 route("GET", "/api/admin/analytics/customers", (req, ctx) => handleAdminAnalyticsRequest(req, ctx, [], "customers"), { auth: true, admin: true });
+route("GET", "/api/admin/analytics/delivery-addresses", (req, ctx) => handleAdminAnalyticsRequest(req, ctx, [], "deliveryAddresses"), { auth: true, admin: true });
 
 route("GET", "/api/admin/settings", (req, ctx) => handleAdminSettingsRequest(req, ctx, [], "get"), { auth: true, admin: true });
 route("PUT", "/api/admin/settings", (req, ctx) => handleAdminSettingsRequest(req, ctx, [], "update"), { auth: true, admin: true });
@@ -483,6 +484,9 @@ route("GET", "/api/admin/search", (req, ctx) => handleAdminSearchIndexRequest(re
 route("GET", "/api/theme", (req, ctx) => handleSettingsRequest(req, ctx, [], "public"));
 
 route("GET", "/api/orders/:id/invoice", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "getInvoice"), { auth: true });
+
+// Public invoice by orderNumber (serves the stored invoiceUrl like /invoices/NB-XXXX.html)
+route("GET", "/api/invoices/:orderNumber", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "getByOrderNumber"));
 
 // Payments
 route("POST", "/api/payments/verify", (req, ctx) => handlePaymentRequest(req, ctx, [], "verify"));

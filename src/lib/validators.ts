@@ -51,6 +51,7 @@ export const addressSchema = z.object({
   line1: z.string().min(1, "Address line 1 is required").max(500),
   line2: z.string().max(500).optional(),
   city: z.string().min(1, "City is required").max(200),
+  district: z.string().max(200).optional(),
   state: z.string().min(1, "State is required").max(200),
   pincode: z.string().regex(/^\d{6}$/, "Invalid pincode"),
   country: z.string().default("India"),

@@ -187,7 +187,7 @@ export default function CustomersPage() {
                     <div key={i} className="p-3 bg-neutral-50 rounded text-xs text-neutral-600">
                       <p className="font-medium text-neutral-900">{String(a.label ?? "") || `Address ${i + 1}`}</p>
                       <p>{String(a.line1 ?? "")}{a.line2 ? `, ${String(a.line2)}` : ""}</p>
-                      <p>{String(a.city ?? "")}, {String(a.state ?? "")} — {String(a.pincode ?? "")}</p>
+                      <p>{String(a.city ?? "")}{a.district ? `, ${String(a.district)}` : ""}, {String(a.state ?? "")} — {String(a.pincode ?? "")}</p>
                       {Boolean(a.isDefault) && <span className="text-green-600">Default</span>}
                     </div>
                   ))}

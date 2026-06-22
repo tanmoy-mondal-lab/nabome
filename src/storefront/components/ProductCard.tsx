@@ -44,6 +44,10 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
     e.preventDefault();
     e.stopPropagation();
     if (!defaultVariant) return;
+    if (!isAuthenticated) {
+      navigate("/auth/login", { state: { from: window.location.pathname } });
+      return;
+    }
     if (inWishlist) {
       removeFromWishlist(defaultVariant.id as string);
     } else {

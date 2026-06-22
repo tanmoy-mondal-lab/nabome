@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { unauthorized, forbidden, serverError } from "./response";
 import type { RequestContext } from "./types";
+import { prisma } from "./prisma";
 
 function getSupabaseAdmin() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
@@ -36,9 +37,15 @@ export async function authenticateRequest(
       return unauthorized("Invalid or expired token");
     }
 
+    // Read role from the profile table (source of truth), not from JWT metadata
+    const profile = await prisma.profile.findUnique({
+      where: { id: user.id },
+      select: { role: true },
+    });
+
     return {
       userId: user.id,
-      userRole: user.user_metadata?.role ?? "customer",
+      userRole: profile?.role ?? "customer",
     };
   } catch (err) {
     return serverError(err);
@@ -59,10 +66,7 @@ export function requireRole(
 export function requireAdmin(context: RequestContext | Response): Response | null {
   if (context instanceof Response) return context;
   if (context.userRole !== "admin") {
-    // Log warning for debugging
-    console.warn(`Admin access attempt by user ${context.userId} with role: ${context.userRole}`);
-    // Temporarily allow access for testing - remove this in production
-    return null;
+    return forbidden("Requires admin role");
   }
   return null;
 }

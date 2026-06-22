@@ -80,7 +80,7 @@ async function handleList(req: Request): Promise<Response> {
         where: where as never,
         include: {
           items: { take: 3 },
-          profile: { select: { firstName: true, lastName: true } },
+          profile: { select: { firstName: true, lastName: true, email: true } },
           statusHistory: { take: 1, orderBy: { createdAt: "desc" } },
         },
         orderBy,

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, ArrowLeft, Tag, Shield, Truck, RotateCcw, X, ShoppingBag } from "lucide-react";
@@ -17,6 +17,25 @@ export default function CartPage() {
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState("");
   const [removingId, setRemovingId] = useState<string | null>(null);
+
+  const [siteSettings, setSiteSettings] = useState<{ freeShippingThreshold: number; shippingCost: number }>({
+    freeShippingThreshold: 500, shippingCost: 99,
+  });
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((d) => {
+        const s = d?.data;
+        if (s) {
+          setSiteSettings({
+            freeShippingThreshold: Number(s.freeShippingThreshold ?? 500),
+            shippingCost: Number(s.shippingInfo?.shippingCost ?? 99),
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleApplyCoupon() {
     if (!couponInput.trim()) return;
@@ -47,9 +66,9 @@ export default function CartPage() {
     }, 300);
   }
 
-  const shipping = subtotal >= 999 ? 0 : 99;
+  const shipping = subtotal >= siteSettings.freeShippingThreshold ? 0 : siteSettings.shippingCost;
   const finalTotal = total + shipping;
-  const freeShippingProgress = Math.min((subtotal / 999) * 100, 100);
+  const freeShippingProgress = Math.min((subtotal / siteSettings.freeShippingThreshold) * 100, 100);
 
   if (items.length === 0) {
     return (
@@ -71,7 +90,7 @@ export default function CartPage() {
           </Link>
           <div className="grid grid-cols-3 gap-6 mt-16 pt-10 border-t border-neutral-100">
             {[
-              { icon: Truck, label: "Free Shipping", desc: "On orders above ₹999" },
+              { icon: Truck, label: "Free Shipping", desc: `On orders above ${formatPrice(siteSettings.freeShippingThreshold)}` },
               { icon: RotateCcw, label: "Easy Returns", desc: "30-day return policy" },
               { icon: Shield, label: "Secure Checkout", desc: "Protected payment" },
             ].map((item) => (
@@ -240,7 +259,7 @@ export default function CartPage() {
               </div>
 
               <div className="mt-6">
-                {subtotal < 999 ? (
+                {subtotal < siteSettings.freeShippingThreshold ? (
                   <div className="space-y-3">
                     <div className="h-1.5 bg-neutral-200 rounded-full overflow-hidden">
                       <motion.div
@@ -251,7 +270,7 @@ export default function CartPage() {
                       />
                     </div>
                     <p className="text-[10px] font-body text-neutral-500">
-                      Add <span className="font-semibold text-brand-600">{formatPrice(999 - subtotal)}</span> more for free shipping
+                      Add <span className="font-semibold text-brand-600">{formatPrice(siteSettings.freeShippingThreshold - subtotal)}</span> more for free shipping
                     </p>
                   </div>
                 ) : (

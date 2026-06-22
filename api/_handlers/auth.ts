@@ -426,6 +426,19 @@ async function handleRefresh(req: Request): Promise<Response> {
   const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days for refresh
 
   // 4. Rotate: revoke old session, create new one linked via rotatedFromSessionId
+  // If Supabase returned the same access_token, just update expiry instead of creating a duplicate
+  if (sbData.session.access_token === oldSession.accessToken) {
+    await prisma.authSession.update({
+      where: { id: oldSession.id },
+      data: { expiresAt: newExpiresAt },
+    });
+    return success({
+      accessToken: sbData.session.access_token,
+      refreshToken: sbData.session.refresh_token,
+      expiresAt: newExpiresAt.toISOString(),
+    });
+  }
+
   const [newSession] = await prisma.$transaction([
     prisma.authSession.create({
       data: {

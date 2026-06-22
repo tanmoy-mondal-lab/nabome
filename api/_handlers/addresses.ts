@@ -38,7 +38,7 @@ async function handleList(userId: string): Promise<Response> {
 
 async function handleCreate(userId: string, req: Request): Promise<Response> {
   const body = await req.json();
-  const { label, fullName, phone, line1, line2, city, state, pincode, country, isDefault } = body;
+  const { label, fullName, phone, line1, line2, city, district, state, pincode, country, isDefault } = body;
 
   if (!fullName || !phone || !line1 || !city || !state || !pincode) {
     return badRequest("Missing required address fields");
@@ -62,6 +62,7 @@ async function handleCreate(userId: string, req: Request): Promise<Response> {
         line1,
         line2: line2 ?? null,
         city,
+        district: district ?? null,
         state,
         pincode,
         country: country ?? "India",
@@ -100,6 +101,7 @@ async function handleUpdate(userId: string, addressId: string, req: Request): Pr
         line1: body.line1 ?? existing.line1,
         line2: body.line2 !== undefined ? body.line2 : existing.line2,
         city: body.city ?? existing.city,
+        district: body.district !== undefined ? body.district : existing.district,
         state: body.state ?? existing.state,
         pincode: body.pincode ?? existing.pincode,
         country: body.country ?? existing.country,

@@ -125,6 +125,10 @@ export default function ProductDetailPage() {
 
   function handleWishlistToggle() {
     if (!matchedVariant) return;
+    if (!isAuthenticated) {
+      navigate("/auth/login", { state: { from: window.location.pathname } });
+      return;
+    }
     if (isInWishlist(matchedVariant.id as string)) {
       removeFromWishlist(matchedVariant.id as string);
     } else {

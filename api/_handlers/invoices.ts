@@ -181,12 +181,38 @@ export async function handleInvoiceRequest(
   switch (action) {
     case "getInvoice":
       return handleGetInvoice(ctx, params[0]);
+    case "getByOrderNumber":
+      return handleGetByOrderNumber(params[0]);
     case "adminGetInvoice":
       return handleAdminGetInvoice(params[0]);
     case "adminGenerateInvoice":
       return handleAdminGenerateInvoice(params[0]);
     default:
       return notFound();
+  }
+}
+
+async function handleGetByOrderNumber(orderNumber: string): Promise<Response> {
+  try {
+    const order = await prisma.order.findUnique({
+      where: { orderNumber },
+      include: {
+        items: true,
+        shippingAddress: true,
+        billingAddress: true,
+        profile: { select: { firstName: true, lastName: true, email: true, phone: true } },
+      },
+    });
+
+    if (!order) return notFound("Order not found");
+
+    const html = generateInvoiceHTML(order as unknown as Record<string, unknown>);
+
+    return new Response(html, {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  } catch (err) {
+    return serverError(err);
   }
 }
 
@@ -261,7 +287,7 @@ async function handleAdminGenerateInvoice(orderId: string): Promise<Response> {
 
     // In production, upload HTML to storage and store URL
     // For now, store a placeholder URL
-    const invoiceUrl = `/invoices/${order.orderNumber}.html`;
+    const invoiceUrl = `/api/invoices/${order.orderNumber}`;
 
     await prisma.order.update({
       where: { id: orderId },

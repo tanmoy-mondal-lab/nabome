@@ -9,6 +9,19 @@ import { SafeImage } from "../../components/SafeImage";
 
 const TRENDING = ["Summer Dresses", "Linen Shirts", "Leather Bags", "Sneakers", "Silk Scarves"];
 
+function getUserKey(): string {
+  try {
+    const raw = localStorage.getItem("nabome-auth");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return parsed?.state?.user?.id ?? "guest";
+    }
+  } catch {}
+  return "guest";
+}
+
+const SEARCH_KEY = "nabome-recent-searches";
+
 export function SearchOverlay() {
   const { isSearchOpen, closeSearch } = useUIStore();
   const [query, setQuery] = useState("");
@@ -18,7 +31,7 @@ export function SearchOverlay() {
   const { data } = useSearch(query);
 
   useEffect(() => {
-    try { setRecent(JSON.parse(localStorage.getItem("nabome-recent-searches") || "[]")); } catch {}
+    try { setRecent(JSON.parse(localStorage.getItem(`${SEARCH_KEY}-${getUserKey()}`) || "[]")); } catch {}
     api.get("/api/categories", { params: { action: "list" } })
       .then((res) => setCategories(((res as Record<string, unknown>).categories ?? []) as { name: string; slug: string }[]))
       .catch(() => {});
@@ -32,7 +45,7 @@ export function SearchOverlay() {
   function handleSearch(term: string) {
     const updated = [term, ...recent.filter((s) => s !== term)].slice(0, 5);
     setRecent(updated);
-    localStorage.setItem("nabome-recent-searches", JSON.stringify(updated));
+    localStorage.setItem(`${SEARCH_KEY}-${getUserKey()}`, JSON.stringify(updated));
     closeSearch();
   }
 

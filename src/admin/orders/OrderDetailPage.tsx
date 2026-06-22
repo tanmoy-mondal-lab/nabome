@@ -136,8 +136,12 @@ export default function OrderDetailPage() {
   const handleGenerateInvoice = async () => {
     if (!id) return;
     try {
-      const res = await adminApi.generateOrderInvoice(id);
-      if ((res as { html?: string }).html) window.open(`/admin/orders/${id}/invoice`, "_blank");
+      const res = await adminApi.generateOrderInvoice(id) as { invoiceUrl?: string };
+      if (res?.invoiceUrl) {
+        window.open(res.invoiceUrl, "_blank");
+      } else {
+        window.open(`/api/admin/orders/${id}/invoice`, "_blank");
+      }
     } catch { /* ignore */ }
   };
 
@@ -363,7 +367,7 @@ export default function OrderDetailPage() {
               <div className="text-sm text-neutral-600 space-y-1">
                 <p className="text-neutral-900">{order.shippingAddress.firstName} {order.shippingAddress.lastName}</p>
                 <p>{order.shippingAddress.street || order.shippingAddress.address}</p>
-                <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zip || order.shippingAddress.pincode}</p>
+                <p>{order.shippingAddress.city}{order.shippingAddress.district ? `, ${order.shippingAddress.district}` : ""}, {order.shippingAddress.state} {order.shippingAddress.zip || order.shippingAddress.pincode}</p>
                 <p>{order.shippingAddress.country}</p>
                 {order.shippingAddress.phone && <p className="text-neutral-500">{order.shippingAddress.phone}</p>}
               </div>
@@ -377,7 +381,7 @@ export default function OrderDetailPage() {
               <div className="text-sm text-neutral-600 space-y-1">
                 <p className="text-neutral-900">{order.billingAddress.firstName} {order.billingAddress.lastName}</p>
                 <p>{order.billingAddress.street || order.billingAddress.address}</p>
-                <p>{order.billingAddress.city}, {order.billingAddress.state} {order.billingAddress.zip || order.billingAddress.pincode}</p>
+                <p>{order.billingAddress.city}{order.billingAddress.district ? `, ${order.billingAddress.district}` : ""}, {order.billingAddress.state} {order.billingAddress.zip || order.billingAddress.pincode}</p>
                 <p>{order.billingAddress.country}</p>
                 {order.billingAddress.phone && <p className="text-neutral-500">{order.billingAddress.phone}</p>}
               </div>

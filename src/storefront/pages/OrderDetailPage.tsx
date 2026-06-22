@@ -35,6 +35,7 @@ interface Order {
     line1: string;
     line2?: string;
     city: string;
+    district?: string;
     state: string;
     pincode: string;
   };
@@ -197,7 +198,7 @@ export default function OrderDetailPage() {
                   <p className="font-medium text-neutral-900">{order.shippingAddress.fullName}</p>
                   <p>{order.shippingAddress.line1}</p>
                   {order.shippingAddress.line2 && <p>{order.shippingAddress.line2}</p>}
-                  <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.pincode}</p>
+                  <p>{order.shippingAddress.city}{order.shippingAddress.district ? `, ${order.shippingAddress.district}` : ""}, {order.shippingAddress.state} {order.shippingAddress.pincode}</p>
                   <p>{order.shippingAddress.phone}</p>
                 </div>
               ) : (

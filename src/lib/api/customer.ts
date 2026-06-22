@@ -66,6 +66,7 @@ export const customerApi = {
     shippingAddressId: string;
     billingAddressId?: string;
     email: string;
+    items: { variantId: string; quantity: number }[];
     couponCode?: string;
     giftMessage?: string;
     notes?: string;

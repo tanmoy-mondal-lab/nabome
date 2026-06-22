@@ -24,8 +24,8 @@ export default function ReviewsPage() {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
-      if (filter === "pending") params.approved = "false";
-      else if (filter === "approved") params.approved = "true";
+      if (filter === "pending") params.status = "pending";
+      else if (filter === "approved") params.status = "approved";
       const res = await adminApi.getReviews(params);
       setReviews((res.reviews as Review[]) ?? []);
     } catch { /* ignore */ } finally {

@@ -41,6 +41,7 @@ async function handlePublic(): Promise<Response> {
           faviconUrl: true,
           ogImageUrl: true,
           currency: true,
+          taxRate: true,
           freeShippingThreshold: true,
           shippingInfo: true,
           returnPolicy: true,

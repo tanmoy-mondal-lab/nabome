@@ -54,6 +54,8 @@ async function handleList(req: Request): Promise<Response> {
           avatarUrl: true,
           isActive: true,
           role: true,
+          emailVerified: true,
+          lastLoginAt: true,
           createdAt: true,
           _count: { select: { orders: true } },
         },

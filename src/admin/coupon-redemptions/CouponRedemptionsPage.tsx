@@ -26,7 +26,7 @@ export default function CouponRedemptionsPage() {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const params: Record<string, string | number | undefined> = { page, perPage: 20 };
+      const params: Record<string, string | number | undefined> = { page, limit: 20 };
       if (search) params.search = search;
       const res = await adminApi.getCouponRedemptions(params);
       setRedemptions((res.redemptions as Redemption[]) ?? []);

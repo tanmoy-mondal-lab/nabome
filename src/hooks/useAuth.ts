@@ -4,6 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth-store";
 import { authApi, type LoginRequest, type RegisterRequest } from "../lib/api/auth";
 import { ApiError } from "../lib/api/client";
@@ -13,6 +14,7 @@ const REFRESH_MARGIN_SECONDS = 60;
 
 export function useAuth() {
   const store = useAuthStore();
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -20,10 +22,12 @@ export function useAuth() {
   useEffect(() => {
     const handleForceLogout = () => {
       store.clearAuth();
+      useCartStore.getState().switchUser();
+      queryClient.clear();
     };
     window.addEventListener("auth:logout", handleForceLogout);
     return () => window.removeEventListener("auth:logout", handleForceLogout);
-  }, [store]);
+  }, [store, queryClient]);
 
   // ── Proactive refresh timer ──
   // Checks every 30s whether the token is about to expire
@@ -62,8 +66,8 @@ export function useAuth() {
       setError(null);
       try {
         const res = await authApi.login(data);
-        useCartStore.getState().clearCart();
         store.setAuth(res.user, res.session.accessToken, res.session.refreshToken, res.session.expiresAt);
+        useCartStore.getState().switchUser();
         return res.user;
       } catch (err) {
         const message = err instanceof ApiError ? err.message : "Login failed";
@@ -95,9 +99,10 @@ export function useAuth() {
     } catch {
       // Proceed even if API call fails
     }
-    useCartStore.getState().clearCart();
     store.clearAuth();
-  }, [store]);
+    useCartStore.getState().switchUser();
+    queryClient.clear();
+  }, [store, queryClient]);
 
   const resendVerification = useCallback(async (email: string) => {
     setError(null);

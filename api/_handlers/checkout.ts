@@ -8,7 +8,7 @@ import { logAction, extractRequestMeta } from "../_lib/audit";
 const VALID_PAYMENT_METHODS = ["cod", "card", "upi", "netbanking", "wallet", "razorpay"] as const;
 const STANDARD_SHIPPING = 99;
 const DEFAULT_FREE_THRESHOLD = 999;
-const DEFAULT_TAX_RATE = 0.05;
+const DEFAULT_TAX_RATE = 5; // percentage (5%)
 
 function validateAddressFields(addr: Record<string, unknown>, label: string): string | null {
   const required = ["fullName", "phone", "line1", "city", "state", "pincode"];
@@ -108,50 +108,10 @@ export async function handleCheckoutRequest(
       };
     }
 
-    let cartItems: CartItemData[];
+    let cartItems: CartItemData[] = [];
 
-    if (ctx.userId) {
-      const cart = await prisma.cart.findUnique({
-        where: { profileId: ctx.userId },
-        include: {
-          items: {
-            include: {
-              variant: {
-                include: {
-                  product: true,
-                  images: { take: 1, where: { isPrimary: true } },
-                },
-              },
-            },
-          },
-        },
-      });
-      if (!cart || cart.items.length === 0) {
-        return badRequest("Cart is empty");
-      }
-      cartItems = cart.items.map((item) => ({
-        variantId: item.variantId,
-        quantity: item.quantity,
-        variant: {
-          id: item.variant.id,
-          productId: item.variant.productId,
-          sku: item.variant.sku,
-          size: item.variant.size,
-          color: item.variant.color,
-          stock: item.variant.stock,
-          priceAdjustment: Number(item.variant.priceAdjustment),
-          product: {
-            id: item.variant.product.id,
-            name: item.variant.product.name,
-            basePrice: Number(item.variant.product.basePrice),
-          },
-          images: item.variant.images as { url: string }[],
-        },
-      }));
-    } else {
-      if (!Array.isArray(guestItems) || guestItems.length === 0) {
-        return badRequest("Cart is empty. Provide items array for guest checkout.");
-      }
+    // Priority 1: Items from request body (always use if provided — covers both guest and authenticated with localStorage cart)
+    if (Array.isArray(guestItems) && guestItems.length > 0) {
       const variantIds = guestItems.map((i: Record<string, unknown>) => i.variantId).filter(Boolean) as string[];
       const variants = await prisma.productVariant.findMany({
         where: { id: { in: variantIds } },
@@ -184,6 +144,50 @@ export async function handleCheckoutRequest(
           },
         };
       });
+    }
+
+    // Priority 2: Fallback to server-side cart for authenticated users (if no items in request body)
+    if (cartItems.length === 0 && ctx.userId) {
+      const cart = await prisma.cart.findUnique({
+        where: { profileId: ctx.userId },
+        include: {
+          items: {
+            include: {
+              variant: {
+                include: {
+                  product: true,
+                  images: { take: 1, where: { isPrimary: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+      if (cart && cart.items.length > 0) {
+        cartItems = cart.items.map((item) => ({
+          variantId: item.variantId,
+          quantity: item.quantity,
+          variant: {
+            id: item.variant.id,
+            productId: item.variant.productId,
+            sku: item.variant.sku,
+            size: item.variant.size,
+            color: item.variant.color,
+            stock: item.variant.stock,
+            priceAdjustment: Number(item.variant.priceAdjustment),
+            product: {
+              id: item.variant.product.id,
+              name: item.variant.product.name,
+              basePrice: Number(item.variant.product.basePrice),
+            },
+            images: item.variant.images as { url: string }[],
+          },
+        }));
+      }
+    }
+
+    if (cartItems.length === 0) {
+      return badRequest("Cart is empty. Add items to your cart before checkout.");
     }
 
     // ── Stock validation ──
@@ -245,6 +249,7 @@ export async function handleCheckoutRequest(
             line1: a.line1 as string,
             line2: (a.line2 as string) || null,
             city: a.city as string,
+            district: (a.district as string) || null,
             state: a.state as string,
             pincode: a.pincode as string,
             country: (a.country as string) || "India",
@@ -284,7 +289,7 @@ export async function handleCheckoutRequest(
       : DEFAULT_FREE_THRESHOLD;
 
     const shippingCost = subtotal >= freeThreshold ? 0 : STANDARD_SHIPPING;
-    const tax = Math.round(subtotal * taxRate * 100) / 100;
+    const tax = Math.round(subtotal * taxRate) / 100;
 
     // ── Coupon application ──
     let discount = 0;
@@ -364,25 +369,29 @@ export async function handleCheckoutRequest(
         include: { items: true },
       });
 
-      // Decrement stock and record movements
-      for (const item of cartItems) {
-        await tx.productVariant.update({
-          where: { id: item.variantId },
-          data: {
-            stock: { decrement: item.quantity },
-            reservedStock: { increment: item.quantity },
-          },
-        });
-        await tx.inventoryMovement.create({
-          data: {
-            variantId: item.variantId,
-            quantityChange: -item.quantity,
-            stockAfter: item.variant.stock - item.quantity,
-            reason: "order",
-            referenceId: newOrder.orderNumber,
-          },
-        });
-      }
+      // Decrement stock in batch
+      await Promise.all(
+        cartItems.map((item) =>
+          tx.productVariant.update({
+            where: { id: item.variantId },
+            data: {
+              stock: { decrement: item.quantity },
+              reservedStock: { increment: item.quantity },
+            },
+          })
+        )
+      );
+
+      // Record inventory movements in batch
+      await tx.inventoryMovement.createMany({
+        data: cartItems.map((item) => ({
+          variantId: item.variantId,
+          quantityChange: -item.quantity,
+          stockAfter: item.variant.stock - item.quantity,
+          reason: "order",
+          referenceId: newOrder.orderNumber,
+        })),
+      });
 
       // Update coupon usage
       if (appliedCouponId) {
@@ -425,7 +434,7 @@ export async function handleCheckoutRequest(
       }
 
       return newOrder;
-    });
+    }, { timeout: 15000 });
 
     // ── Create Razorpay order for online payments ──
     let razorpayOrderId: string | null = null;

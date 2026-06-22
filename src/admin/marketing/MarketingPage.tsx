@@ -10,13 +10,13 @@ import { Edit3, Trash2, Plus, Percent, Bell } from "lucide-react";
 interface Coupon {
   id: string;
   code: string;
-  type: string;
-  value: number;
+  discountType: string;
+  discountValue: number;
   minOrderValue: number;
-  maxUses: number;
+  usageLimit: number | null;
   usedCount: number;
   isActive: boolean;
-  expiresAt: string;
+  endDate: string;
 }
 
 // ─── Announcements ───
@@ -39,8 +39,8 @@ export default function MarketingPage() {
 
   // Coupon form
   const [couponForm, setCouponForm] = useState({
-    code: "", type: "percentage", value: 0, minOrderValue: 0,
-    maxUses: 0, isActive: true, expiresAt: "",
+    code: "", discountType: "percentage", discountValue: 0, minOrderValue: 0,
+    usageLimit: 0, isActive: true, endDate: "",
   });
   const [editCoupon, setEditCoupon] = useState<Coupon | null>(null);
 
@@ -69,16 +69,16 @@ export default function MarketingPage() {
   // Coupon handlers
   const openCouponCreate = () => {
     setEditCoupon(null);
-    setCouponForm({ code: "", type: "percentage", value: 0, minOrderValue: 0, maxUses: 0, isActive: true, expiresAt: "" });
+    setCouponForm({ code: "", discountType: "percentage", discountValue: 0, minOrderValue: 0, usageLimit: 0, isActive: true, endDate: "" });
     setModalOpen(true);
   };
 
   const openCouponEdit = (c: Coupon) => {
     setEditCoupon(c);
     setCouponForm({
-      code: c.code, type: c.type, value: c.value, minOrderValue: c.minOrderValue,
-      maxUses: c.maxUses, isActive: c.isActive,
-      expiresAt: c.expiresAt ? new Date(c.expiresAt).toISOString().split("T")[0] : "",
+      code: c.code, discountType: c.discountType, discountValue: c.discountValue, minOrderValue: c.minOrderValue,
+      usageLimit: c.usageLimit ?? 0, isActive: c.isActive,
+      endDate: c.endDate ? new Date(c.endDate).toISOString().split("T")[0] : "",
     });
     setModalOpen(true);
   };
@@ -197,10 +197,10 @@ export default function MarketingPage() {
                   {coupons.map((c) => (
                     <tr key={c.id} className="border-b border-neutral-50">
                       <td className="px-4 py-3 font-mono font-medium text-neutral-900">{c.code}</td>
-                      <td className="px-4 py-3">{c.type === "percentage" ? `${c.value}%` : `₹${c.value}`}</td>
-                      <td className="px-4 py-3 text-neutral-500">{c.usedCount}/{c.maxUses || "∞"}</td>
+                      <td className="px-4 py-3">{c.discountType === "percentage" ? `${c.discountValue}%` : `₹${c.discountValue}`}</td>
+                      <td className="px-4 py-3 text-neutral-500">{c.usedCount}/{c.usageLimit || "∞"}</td>
                       <td className="px-4 py-3 text-neutral-500">
-                        {c.expiresAt ? new Date(c.expiresAt).toLocaleDateString("en-IN") : "Never"}
+                        {c.endDate ? new Date(c.endDate).toLocaleDateString("en-IN") : "Never"}
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={c.isActive ? "active" : "inactive"} /></td>
                       <td className="px-4 py-3 text-right">
@@ -228,8 +228,8 @@ export default function MarketingPage() {
                 </div>
                 <div>
                   <label className="block text-xs text-neutral-500 mb-1">Type</label>
-                  <select value={couponForm.type}
-                    onChange={(e) => setCouponForm({ ...couponForm, type: e.target.value })}
+                  <select value={couponForm.discountType}
+                    onChange={(e) => setCouponForm({ ...couponForm, discountType: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-neutral-200 rounded">
                     <option value="percentage">Percentage</option>
                     <option value="fixed">Fixed Amount</option>
@@ -240,8 +240,8 @@ export default function MarketingPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-neutral-500 mb-1">Value</label>
-                  <input type="number" value={couponForm.value || ""}
-                    onChange={(e) => setCouponForm({ ...couponForm, value: Number(e.target.value) })}
+                  <input type="number" value={couponForm.discountValue || ""}
+                    onChange={(e) => setCouponForm({ ...couponForm, discountValue: Number(e.target.value) })}
                     className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
                 </div>
                 <div>
@@ -254,14 +254,14 @@ export default function MarketingPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-neutral-500 mb-1">Max Uses (0 = unlimited)</label>
-                  <input type="number" value={couponForm.maxUses || ""}
-                    onChange={(e) => setCouponForm({ ...couponForm, maxUses: Number(e.target.value) })}
+                  <input type="number" value={couponForm.usageLimit || ""}
+                    onChange={(e) => setCouponForm({ ...couponForm, usageLimit: Number(e.target.value) })}
                     className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
                 </div>
                 <div>
                   <label className="block text-xs text-neutral-500 mb-1">Expires At</label>
-                  <input type="date" value={couponForm.expiresAt}
-                    onChange={(e) => setCouponForm({ ...couponForm, expiresAt: e.target.value })}
+                  <input type="date" value={couponForm.endDate}
+                    onChange={(e) => setCouponForm({ ...couponForm, endDate: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
                 </div>
               </div>

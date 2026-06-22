@@ -13,6 +13,7 @@ export default function AccountAddressesPage() {
     line1: "",
     line2: "",
     city: "",
+    district: "",
     state: "",
     pincode: "",
     label: "Home",
@@ -20,7 +21,7 @@ export default function AccountAddressesPage() {
   });
 
   const resetForm = () => {
-    setForm({ fullName: "", phone: "", line1: "", line2: "", city: "", state: "", pincode: "", label: "Home", isDefault: false });
+    setForm({ fullName: "", phone: "", line1: "", line2: "", city: "", district: "", state: "", pincode: "", label: "Home", isDefault: false });
     setEditingId(null);
     setShowForm(false);
   };
@@ -32,6 +33,7 @@ export default function AccountAddressesPage() {
       line1: address.line1,
       line2: address.line2 ?? "",
       city: address.city,
+      district: address.district ?? "",
       state: address.state,
       pincode: address.pincode,
       label: address.label,
@@ -97,7 +99,7 @@ export default function AccountAddressesPage() {
             <p className="text-sm font-medium text-neutral-900">{addr.fullName}</p>
             <p className="text-sm text-neutral-600">{addr.line1}</p>
             {addr.line2 && <p className="text-sm text-neutral-600">{addr.line2}</p>}
-            <p className="text-sm text-neutral-600">{addr.city}, {addr.state} — {addr.pincode}</p>
+            <p className="text-sm text-neutral-600">{addr.city}{addr.district ? `, ${addr.district}` : ""}, {addr.state} — {addr.pincode}</p>
             <p className="text-sm text-neutral-600">{addr.phone}</p>
             <div className="flex gap-4 mt-3 pt-3 border-t border-neutral-100">
               <button onClick={() => handleEdit(addr)} className="text-xs text-brand-500 hover:text-brand-600">
@@ -153,6 +155,10 @@ export default function AccountAddressesPage() {
               <div>
                 <label className="block text-sm text-neutral-700 mb-1">City *</label>
                 <input required value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} className="input-field" />
+              </div>
+              <div>
+                <label className="block text-sm text-neutral-700 mb-1">District</label>
+                <input value={form.district} onChange={(e) => setForm((f) => ({ ...f, district: e.target.value }))} className="input-field" />
               </div>
               <div>
                 <label className="block text-sm text-neutral-700 mb-1">State *</label>

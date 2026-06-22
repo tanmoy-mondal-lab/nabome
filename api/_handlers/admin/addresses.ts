@@ -20,7 +20,7 @@ async function handleList(req: Request): Promise<Response> {
   const search = url.searchParams.get("search");
   const where: Record<string, unknown> = {};
   if (profileId) where.profileId = profileId;
-  if (search) where.OR = [{ fullName: { contains: search, mode: "insensitive" } }, { city: { contains: search, mode: "insensitive" } }, { pincode: { contains: search } }];
+  if (search) where.OR = [{ fullName: { contains: search, mode: "insensitive" } }, { city: { contains: search, mode: "insensitive" } }, { district: { contains: search, mode: "insensitive" } }, { pincode: { contains: search } }];
   const [items, total] = await Promise.all([
     prisma.address.findMany({
       where: where as never,
