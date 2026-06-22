@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
+import { MediaPicker } from "../common/MediaPicker";
 import { Edit3, Trash2, Plus, Menu, ChevronDown, GripVertical, Image, PlusCircle, X } from "lucide-react";
 import { type NavigationMenu, type NavigationItem, type MegaMenuColumn, type PromotionalMenuContent } from "../../cms/core/cms-types";
 
@@ -11,7 +12,7 @@ export default function HeaderBuilder() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editMenu, setEditMenu] = useState<NavigationMenu | null>(null);
   const [form, setForm] = useState({
-    name: "", location: "header_main" as NavigationMenu["location"], isActive: true,
+    name: "", location: "header" as NavigationMenu["location"], isActive: true,
     items: [] as NavigationItem[],
   });
 
@@ -20,7 +21,9 @@ export default function HeaderBuilder() {
     try {
       const res = await adminApi.getNavigationMenus();
       setMenus((res.menus as NavigationMenu[]) ?? []);
-    } catch { /* ignore */ } finally {
+    } catch (error) {
+      console.error("Failed to fetch navigation menus:", error);
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -29,7 +32,7 @@ export default function HeaderBuilder() {
 
   const openCreate = () => {
     setEditMenu(null);
-    setForm({ name: "", location: "header_main", isActive: true, items: [] });
+    setForm({ name: "", location: "header", isActive: true, items: [] });
     setModalOpen(true);
   };
 
@@ -49,7 +52,9 @@ export default function HeaderBuilder() {
       }
       setModalOpen(false);
       fetch();
-    } catch { /* ignore */ }
+    } catch (error) {
+      console.error("Failed to save navigation menu:", error);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -57,7 +62,9 @@ export default function HeaderBuilder() {
     try {
       await adminApi.deleteNavigation(id);
       fetch();
-    } catch { /* ignore */ }
+    } catch (error) {
+      console.error("Failed to delete navigation menu:", error);
+    }
   };
 
   // Menu item editing helpers
@@ -253,10 +260,10 @@ export default function HeaderBuilder() {
               <select value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value as NavigationMenu["location"] })}
                 className="w-full px-3 py-2 text-sm border border-neutral-200 rounded">
-                <option value="header_main">Header Main Navigation</option>
-                <option value="header_top">Header Top Bar</option>
-                <option value="header_mobile">Mobile Menu</option>
+                <option value="header">Header Main Navigation</option>
                 <option value="footer">Footer Menu</option>
+                <option value="mobile">Mobile Menu</option>
+                <option value="sidebar">Sidebar</option>
               </select>
             </div>
           </div>
@@ -391,9 +398,7 @@ export default function HeaderBuilder() {
                         <input placeholder="Description" value={item.promotionalContent.description}
                           onChange={(e) => updateItem(idx, "promotionalContent", { ...item.promotionalContent!, description: e.target.value })}
                           className="px-2 py-1 text-xs border border-neutral-200 rounded" />
-                        <input placeholder="Image URL" value={item.promotionalContent.image}
-                          onChange={(e) => updateItem(idx, "promotionalContent", { ...item.promotionalContent!, image: e.target.value })}
-                          className="px-2 py-1 text-xs border border-neutral-200 rounded" />
+                        <MediaPicker value={item.promotionalContent?.image ?? ""} onChange={(url: string) => updateItem(idx, "promotionalContent", { ...item.promotionalContent!, image: url })} folder="promotions" placeholder="Image URL" />
                         <input placeholder="Link URL" value={item.promotionalContent.linkUrl}
                           onChange={(e) => updateItem(idx, "promotionalContent", { ...item.promotionalContent!, linkUrl: e.target.value })}
                           className="px-2 py-1 text-xs border border-neutral-200 rounded" />

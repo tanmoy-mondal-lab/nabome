@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const COUNTRY_CODES = [
   { code: "+1", label: "US +1" },
@@ -71,9 +71,14 @@ interface PhoneInputProps {
 
 export function PhoneInput({ value, onChange, className = "", required, id }: PhoneInputProps) {
   const [focused, setFocused] = useState(false);
-  const parsed = parsePhone(value);
-  const [selectedCode, setSelectedCode] = useState(parsed.countryCode);
-  const [localNumber, setLocalNumber] = useState(parsed.number);
+  const [selectedCode, setSelectedCode] = useState("+91");
+  const [localNumber, setLocalNumber] = useState("");
+
+  useEffect(() => {
+    const parsed = parsePhone(value);
+    setSelectedCode(parsed.countryCode);
+    setLocalNumber(parsed.number);
+  }, [value]);
 
   function handleCodeChange(code: string) {
     setSelectedCode(code);

@@ -20,6 +20,7 @@ export async function handleAdminProductLabelRequest(
     case "deleteLabel": return handleDeleteLabel(params[0]);
     case "listTags": return handleListTags();
     case "createTag": return handleCreateTag(req);
+    case "updateTag": return handleUpdateTag(params[0], req);
     case "deleteTag": return handleDeleteTag(params[0]);
     case "assignLabels": return handleAssignLabels(params[0], req);
     case "assignTags": return handleAssignTags(params[0], req);
@@ -91,6 +92,16 @@ async function handleCreateTag(req: Request): Promise<Response> {
     });
     return created(tag);
   } catch (err) { return serverError(err); }
+}
+
+async function handleUpdateTag(id: string, req: Request): Promise<Response> {
+  const body = await req.json();
+  try {
+    const data: Record<string, unknown> = {};
+    if (body.name !== undefined) { data.name = body.name; data.slug = slugify(body.name); }
+    const tag = await prisma.productTag.update({ where: { id }, data: data as never });
+    return success(tag);
+  } catch (err) { return notFound("Tag not found"); }
 }
 
 async function handleDeleteTag(id: string): Promise<Response> {

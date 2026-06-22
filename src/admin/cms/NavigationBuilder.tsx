@@ -23,14 +23,16 @@ export default function NavigationBuilder() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<NavMenu | null>(null);
-  const [form, setForm] = useState({ name: "", location: "main", isActive: true, itemsRaw: "[]" });
+  const [form, setForm] = useState({ name: "", location: "header", isActive: true, itemsRaw: "[]" });
 
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
       const res = await adminApi.getNavigationMenus();
       setMenus((res.menus as NavMenu[]) ?? []);
-    } catch { /* ignore */ } finally {
+    } catch (error) {
+      console.error("Failed to fetch navigation menus:", error);
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -39,7 +41,7 @@ export default function NavigationBuilder() {
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ name: "", location: "main", isActive: true, itemsRaw: "[]" });
+    setForm({ name: "", location: "header", isActive: true, itemsRaw: "[]" });
     setModalOpen(true);
   };
 
@@ -63,7 +65,9 @@ export default function NavigationBuilder() {
       }
       setModalOpen(false);
       fetch();
-    } catch { /* ignore */ }
+    } catch (error) {
+      console.error("Failed to save navigation menu:", error);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -71,7 +75,9 @@ export default function NavigationBuilder() {
     try {
       await adminApi.deleteNavigation(id);
       fetch();
-    } catch { /* ignore */ }
+    } catch (error) {
+      console.error("Failed to delete navigation menu:", error);
+    }
   };
 
   const itemCount = (items: NavItem[]): number => {
@@ -160,10 +166,10 @@ export default function NavigationBuilder() {
               <select value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
                 className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none">
-                <option value="main">Main Navigation</option>
+                <option value="header">Header Navigation</option>
                 <option value="footer">Footer</option>
                 <option value="mobile">Mobile Menu</option>
-                <option value="secondary">Secondary</option>
+                <option value="sidebar">Sidebar</option>
               </select>
             </div>
           </div>

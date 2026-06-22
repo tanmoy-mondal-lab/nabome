@@ -417,7 +417,7 @@ async function main() {
         sectionType: "brand_story",
         title: "Our Heritage",
         subtitle: "Crafted with passion since 2020",
-        content: { body: "NABOME was born from a vision to blend traditional Indian craftsmanship with contemporary design. Every piece tells a story of heritage, artistry, and timeless elegance." },
+        content: { body: "নবME was born from a vision to blend traditional Indian craftsmanship with contemporary design. Every piece tells a story of heritage, artistry, and timeless elegance." },
         sortOrder: 4,
         isActive: true,
       },
@@ -439,23 +439,23 @@ async function main() {
         name: "Main Menu",
         location: "header",
         items: [
-          { label: "Men", link: "/c/men", children: [
-            { label: "Shirts", link: "/c/men?sub=shirts" },
-            { label: "Trousers", link: "/c/men?sub=trousers" },
-            { label: "Blazers", link: "/c/men?sub=blazers" },
-            { label: "Kurtas", link: "/c/men?sub=kurtas" },
+          { label: "Men", link: "/products?category=men", children: [
+            { label: "Shirts", link: "/products?category=men&subcategory=shirts" },
+            { label: "Trousers", link: "/products?category=men&subcategory=trousers" },
+            { label: "Blazers", link: "/products?category=men&subcategory=blazers" },
+            { label: "Kurtas", link: "/products?category=men&subcategory=kurtas" },
           ]},
-          { label: "Women", link: "/c/women", children: [
-            { label: "Dresses", link: "/c/women?sub=dresses" },
-            { label: "Sarees", link: "/c/women?sub=sarees" },
-            { label: "Suits", link: "/c/women?sub=suits" },
+          { label: "Women", link: "/products?category=women", children: [
+            { label: "Dresses", link: "/products?category=women&subcategory=dresses" },
+            { label: "Sarees", link: "/products?category=women&subcategory=sarees" },
+            { label: "Suits", link: "/products?category=women&subcategory=suits" },
           ]},
-          { label: "Accessories", link: "/c/accessories", children: [
-            { label: "Bags", link: "/c/accessories?sub=bags" },
-            { label: "Watches", link: "/c/accessories?sub=watches" },
-            { label: "Jewellery", link: "/c/accessories?sub=jewellery" },
+          { label: "Accessories", link: "/products?category=accessories", children: [
+            { label: "Bags", link: "/products?category=accessories&subcategory=bags" },
+            { label: "Watches", link: "/products?category=accessories&subcategory=watches" },
+            { label: "Jewellery", link: "/products?category=accessories&subcategory=jewellery" },
           ]},
-          { label: "Collections", link: "/collections" },
+          { label: "Collections", link: "/products" },
           { label: "Lookbook", link: "/lookbooks" },
           { label: "Our Story", link: "/pages/our-story" },
         ],
@@ -465,11 +465,11 @@ async function main() {
         name: "Footer - Shop",
         location: "footer",
         items: [
-          { label: "Men", link: "/c/men" },
-          { label: "Women", link: "/c/women" },
-          { label: "Accessories", link: "/c/accessories" },
-          { label: "Collections", link: "/collections" },
-          { label: "New Arrivals", link: "/search?sort=newest" },
+          { label: "Men", link: "/products?category=men" },
+          { label: "Women", link: "/products?category=women" },
+          { label: "Accessories", link: "/products?category=accessories" },
+          { label: "Collections", link: "/products" },
+          { label: "New Arrivals", link: "/products?sort=newest" },
         ],
         isActive: true,
       },
@@ -490,7 +490,7 @@ async function main() {
   // ─── Footer Sections ───
   await prisma.footerSection.createMany({
     data: [
-      { column: 1, title: "NABOME", contentType: "text", content: { text: "Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design." }, sortOrder: 1 },
+      { column: 1, title: "নবME", contentType: "text", content: { text: "Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design." }, sortOrder: 1 },
       { column: 2, title: "Shop", contentType: "menu", content: { menuSlug: "Footer - Shop" }, sortOrder: 2 },
       { column: 3, title: "Support", contentType: "menu", content: { menuSlug: "Footer - Support" }, sortOrder: 3 },
       { column: 4, title: "Connect", contentType: "social", content: { description: "Follow us on social media for the latest updates." }, sortOrder: 4 },
@@ -505,8 +505,8 @@ async function main() {
         slug: "our-story",
         content: {
           blocks: [
-            { type: "heading", content: "The NABOME Story" },
-            { type: "text", content: "Founded in 2020, NABOME was created with a singular vision: to bring the finest of Indian craftsmanship to the global stage. Every piece in our collection is a testament to the skill of our artisans and the richness of our heritage." },
+            { type: "heading", content: "The নবME Story" },
+            { type: "text", content: "Founded in 2020, নবME was created with a singular vision: to bring the finest of Indian craftsmanship to the global stage. Every piece in our collection is a testament to the skill of our artisans and the richness of our heritage." },
             { type: "image", url: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/about/workshop" },
             { type: "heading", content: "Our Craft" },
             { type: "text", content: "From the handloom weavers of Varanasi to the embroiderers of Lucknow, we work directly with artisan communities across India, ensuring fair wages and preserving centuries-old techniques." },
@@ -514,8 +514,8 @@ async function main() {
         },
         isPublished: true,
         publishedAt: new Date(),
-        metaTitle: "Our Story — NABOME",
-        metaDesc: "Discover the story behind NABOME — a premium fashion brand celebrating Indian craftsmanship.",
+        metaTitle: "Our Story — নবME",
+        metaDesc: "Discover the story behind নবME — a premium fashion brand celebrating Indian craftsmanship.",
       },
       {
         title: "Shipping & Returns",
@@ -541,7 +541,7 @@ async function main() {
       subtitle: "Where tradition meets modernity",
       heroImageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/about/hero",
       content: { blocks: [
-        { type: "text", content: "NABOME represents the confluence of India's rich textile heritage and contemporary design sensibility. Each creation is a narrative woven with threads of tradition and innovation." },
+        { type: "text", content: "নবME represents the confluence of India's rich textile heritage and contemporary design sensibility. Each creation is a narrative woven with threads of tradition and innovation." },
       ]},
       mission: "To preserve and promote Indian craftsmanship while creating timeless pieces for the modern wardrobe.",
       vision: "To be the global ambassador of Indian luxury fashion, known for uncompromising quality and authentic craftsmanship.",
@@ -665,7 +665,7 @@ async function main() {
   // ─── Site Settings with Theme ───
   await prisma.siteSetting.create({
     data: {
-      siteName: "NABOME",
+      siteName: "নবME",
       tagline: "Premium Fashion Destination",
       currency: "INR",
       taxRate: 5,
@@ -673,12 +673,12 @@ async function main() {
       shippingInfo: { standard: "3-5 business days", express: "1-2 business days" },
       returnPolicy: { days: 14, condition: "Unworn with tags" },
       contactEmail: "hello@nabome.com",
-      contactPhone: "+91-1800-NABOME",
-      address: "NABOME House, Mumbai, Maharashtra, India",
+      contactPhone: "+91-1800-নবME",
+      address: "নবME House, Mumbai, Maharashtra, India",
       theme: {
         branding: {
           logoLight: null, logoDark: null, logoMobile: null, favicon: null,
-          siteName: "NABOME", tagline: "Premium Fashion Destination",
+          siteName: "নবME", tagline: "Premium Fashion Destination",
           description: "Premium fashion destination celebrating traditional craftsmanship.",
         },
         colors: {

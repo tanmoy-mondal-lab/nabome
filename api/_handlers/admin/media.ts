@@ -2,6 +2,7 @@ import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
+import { destroyCloudinaryAsset } from "../../_lib/cloudinary";
 
 export async function handleAdminMediaRequest(
   req: Request,
@@ -17,6 +18,8 @@ export async function handleAdminMediaRequest(
       return handleList(req);
     case "create":
       return handleCreate(req);
+    case "update":
+      return handleUpdate(params[0], req);
     case "delete":
       return handleDelete(params[0]);
     default:
@@ -66,7 +69,7 @@ async function handleList(req: Request): Promise<Response> {
 
 async function handleCreate(req: Request): Promise<Response> {
   const body = await req.json();
-  const { url, altText, width, height, fileSize, mimeType, type, tags, folder } = body;
+  const { url, publicId, altText, width, height, fileSize, mimeType, type, tags, folder } = body;
 
   if (!url) return badRequest("URL is required");
 
@@ -74,6 +77,7 @@ async function handleCreate(req: Request): Promise<Response> {
     const asset = await prisma.mediaAsset.create({
       data: {
         url,
+        publicId: publicId ?? null,
         altText: altText ?? null,
         width: width ?? null,
         height: height ?? null,
@@ -92,8 +96,30 @@ async function handleCreate(req: Request): Promise<Response> {
 
 async function handleDelete(assetId: string): Promise<Response> {
   try {
+    const asset = await prisma.mediaAsset.findUnique({ where: { id: assetId } });
+    if (!asset) return notFound("Asset not found");
+    if (asset.publicId) await destroyCloudinaryAsset(asset.publicId);
     await prisma.mediaAsset.delete({ where: { id: assetId } });
     return success({ message: "Asset deleted" });
+  } catch (err) {
+    return notFound("Asset not found");
+  }
+}
+
+async function handleUpdate(assetId: string, req: Request): Promise<Response> {
+  const body = await req.json();
+  const { altText, folder } = body;
+
+  try {
+    const data: Record<string, unknown> = {};
+    if (altText !== undefined) data.altText = altText;
+    if (folder !== undefined) data.folder = folder;
+
+    const asset = await prisma.mediaAsset.update({
+      where: { id: assetId },
+      data: data as never,
+    });
+    return success(asset);
   } catch (err) {
     return notFound("Asset not found");
   }

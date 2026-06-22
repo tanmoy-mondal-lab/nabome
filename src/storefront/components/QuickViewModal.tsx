@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ShoppingBag, Eye } from "lucide-react";
 import { PriceDisplay } from "./PriceDisplay";
@@ -7,8 +7,9 @@ import { ColorSelector } from "./ColorSelector";
 import { SizeSelector } from "./SizeSelector";
 import { QuantitySelector } from "./QuantitySelector";
 import { useCartStore } from "../stores/cart-store";
+import { useAuthStore } from "../../stores/auth-store";
 import { cn } from "../../lib/utils/cn";
-import { img } from "../../lib/seo";
+import { SafeImage } from "../../components/SafeImage";
 
 interface QuickViewModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ interface QuickViewModalProps {
 
 export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps) {
   const addItem = useCartStore((s) => s.addItem);
+  const navigate = useNavigate();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState("");
@@ -68,6 +71,11 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
 
   const handleAddToCart = () => {
     if (!selectedVariant) return;
+    if (!isAuthenticated) {
+      onClose();
+      navigate("/auth/login", { state: { from: window.location.pathname } });
+      return;
+    }
     addItem({
       productId: product.id as string,
       variantId: (selectedVariant.id as string) || (selectedVariant.sku as string),
@@ -117,10 +125,9 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
 
             <div className="relative">
               <div className="aspect-[4/5] bg-neutral-50">
-                <img
-                  src={img(images[selectedImage]?.url, { width: 560 })}
+                <SafeImage
+                  src={images[selectedImage]?.url}
                   alt={name}
-                  loading="lazy"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -135,7 +142,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                         selectedImage === i ? "border-neutral-900" : "border-transparent hover:border-neutral-300"
                       )}
                     >
-                      <img src={img(image.url, { width: 64 })} alt="" loading="lazy" className="w-full h-full object-cover" />
+                      <SafeImage src={image.url} alt="" className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>

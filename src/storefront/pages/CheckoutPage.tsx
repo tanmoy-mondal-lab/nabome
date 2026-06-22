@@ -17,6 +17,7 @@ import { customerApi } from "../../lib/api/customer";
 import { addressesApi, type Address, type AddressInput } from "../../lib/api/addresses";
 import { useRazorpay } from "../../lib/razorpay/use-razorpay";
 import { PhoneInput } from "../../components/PhoneInput";
+import { SafeImage } from "../../components/SafeImage";
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
@@ -156,7 +157,11 @@ export default function CheckoutPage() {
     const errs: Partial<Record<keyof ShippingFormState, string>> = {};
     if (!form.fullName.trim()) errs.fullName = "Full name is required";
     if (!form.phone.trim()) errs.phone = "Phone number is required";
-    else if (!/^[6-9]\d{9}$/.test(form.phone.trim())) errs.phone = "Enter a valid 10-digit number";
+    else {
+      const digits = form.phone.replace(/\D/g, "");
+      const localNumber = digits.length > 10 ? digits.slice(-10) : digits;
+      if (!/^[6-9]\d{9}$/.test(localNumber)) errs.phone = "Enter a valid 10-digit number";
+    }
     if (!form.line1.trim()) errs.line1 = "Address is required";
     if (!form.city.trim()) errs.city = "City is required";
     if (!form.state) errs.state = "Select a state";
@@ -1004,7 +1009,7 @@ export default function CheckoutPage() {
             <div className="space-y-3 max-h-72 overflow-y-auto">
               {items.map((item) => (
                 <div key={item.variantId} className="flex gap-3">
-                  <img
+                  <SafeImage
                     src={item.image || "/placeholder.svg"}
                     alt={item.name}
                     className="w-14 h-18 object-cover bg-luxe-ivory shrink-0 rounded"

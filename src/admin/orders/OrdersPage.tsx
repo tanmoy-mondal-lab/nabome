@@ -15,6 +15,13 @@ interface Order {
   status: string;
   paymentStatus: string;
   total: number;
+  subtotal?: number;
+  shippingCost?: number;
+  tax?: number;
+  discountAmount?: number;
+  couponCode?: string;
+  currency?: string;
+  paymentMethod?: string;
   createdAt: string;
   customer: { firstName: string; lastName: string; email: string };
   _count: { items: number };
@@ -125,8 +132,20 @@ export default function OrdersPage() {
       render: (o: Order) => <span className="text-sm text-neutral-600">{o._count?.items ?? 0}</span>,
     },
     {
+      key: "subtotal", label: "Subtotal",
+      render: (o: Order) => <span className="text-sm text-neutral-500">₹{o.subtotal?.toLocaleString() ?? "—"}</span>,
+    },
+    {
+      key: "discountAmount", label: "Disc.",
+      render: (o: Order) => o.discountAmount ? <span className="text-xs text-green-600">-₹{o.discountAmount.toLocaleString()}{o.couponCode ? ` (${o.couponCode})` : ""}</span> : <span className="text-xs text-neutral-300">—</span>,
+    },
+    {
       key: "status", label: "Status",
       render: (o: Order) => <StatusBadge status={o.status} />,
+    },
+    {
+      key: "paymentMethod", label: "Payment Method",
+      render: (o: Order) => <span className="text-xs text-neutral-500 capitalize">{o.paymentMethod ?? "—"}</span>,
     },
     {
       key: "paymentStatus", label: "Payment",
@@ -135,6 +154,10 @@ export default function OrdersPage() {
     {
       key: "total", label: "Total", sortable: true,
       render: (o: Order) => <span className="font-medium">₹{o.total?.toLocaleString()}</span>,
+    },
+    {
+      key: "currency", label: "Curr.",
+      render: (o: Order) => <span className="text-xs text-neutral-400">{o.currency ?? "INR"}</span>,
     },
     {
       key: "createdAt", label: "Date", sortable: true,

@@ -1,3 +1,4 @@
+import { MediaPicker } from "../common/MediaPicker";
 import { useState, useEffect } from "react";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
@@ -12,7 +13,7 @@ export default function SizeGuidesPage() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [edit, setEdit] = useState<Record<string, unknown> | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", categoryId: "", type: "clothing", unit: "inches", imageUrl: "", measurements: "[]" });
+  const [form, setForm] = useState({ name: "", description: "", categoryId: "", type: "clothing", unit: "inches", imageUrl: "", measurements: "[]", isActive: true });
   const [measurementsArr, setMeasurementsArr] = useState<{ size: string; bust?: string; waist?: string; hips?: string; length?: string; chest?: string; shoulder?: string }[]>([]);
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export default function SizeGuidesPage() {
 
   function openCreate() {
     setEdit(null);
-    setForm({ name: "", description: "", categoryId: "", type: "clothing", unit: "inches", imageUrl: "", measurements: "[]" });
+    setForm({ name: "", description: "", categoryId: "", type: "clothing", unit: "inches", imageUrl: "", measurements: "[]", isActive: true });
     setMeasurementsArr([]);
     setShowModal(true);
   }
@@ -41,6 +42,7 @@ export default function SizeGuidesPage() {
       unit: (guide.unit as string) ?? "inches",
       imageUrl: (guide.imageUrl as string) ?? "",
       measurements: JSON.stringify(m),
+      isActive: (guide.isActive as boolean) ?? true,
     });
     setShowModal(true);
   }
@@ -112,7 +114,11 @@ export default function SizeGuidesPage() {
             <div><label className="block text-xs text-neutral-500 mb-1">Type</label><select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-3 py-2 text-sm border rounded"><option value="clothing">Clothing</option><option value="shoes">Shoes</option><option value="accessories">Accessories</option><option value="rings">Rings</option></select></div>
           </div>
           <div><label className="block text-xs text-neutral-500 mb-1">Unit</label><select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="w-full px-3 py-2 text-sm border rounded"><option value="inches">Inches</option><option value="cm">Centimeters</option><option value="us">US</option><option value="uk">UK</option><option value="eu">EU</option></select></div>
-          <div><label className="block text-xs text-neutral-500 mb-1">Image URL</label><input value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+          <div><MediaPicker value={form.imageUrl} onChange={(url) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="size-guides" /></div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="rounded border-neutral-300" />
+            <span className="text-sm text-neutral-700">Active</span>
+          </label>
 
           <div className="border-t pt-4">
             <div className="flex items-center justify-between mb-3">

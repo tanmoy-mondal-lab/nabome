@@ -5,13 +5,10 @@ interface ProductGridProps {
   columns?: number;
   isLoading?: boolean;
   view?: "grid" | "list";
-  onAddToCart?: (product: Record<string, unknown>) => void;
-  onToggleWishlist?: (product: Record<string, unknown>) => void;
   onQuickView?: (product: Record<string, unknown>) => void;
-  isInWishlist?: (product: Record<string, unknown>) => boolean;
 }
 
-export function ProductGrid({ products, columns = 4, isLoading, view = "grid", onAddToCart, onToggleWishlist, onQuickView, isInWishlist }: ProductGridProps) {
+export function ProductGrid({ products, columns = 4, isLoading, view = "grid", onQuickView }: ProductGridProps) {
   if (isLoading) {
     return (
       <div className={view === "grid" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6" : "space-y-4"}>
@@ -45,10 +42,7 @@ export function ProductGrid({ products, columns = 4, isLoading, view = "grid", o
             key={product.id as string}
             product={product}
             view="list"
-            onAddToCart={() => onAddToCart?.(product)}
-            onToggleWishlist={() => onToggleWishlist?.(product)}
             onQuickView={() => onQuickView?.(product)}
-            isInWishlist={isInWishlist?.(product)}
           />
         ))}
       </div>
@@ -61,10 +55,7 @@ export function ProductGrid({ products, columns = 4, isLoading, view = "grid", o
         <ProductCard
           key={product.id as string}
           product={product}
-          onAddToCart={() => onAddToCart?.(product)}
-          onToggleWishlist={() => onToggleWishlist?.(product)}
           onQuickView={() => onQuickView?.(product)}
-          isInWishlist={isInWishlist?.(product)}
         />
       ))}
     </div>

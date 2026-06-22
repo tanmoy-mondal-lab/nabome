@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { adminApi } from "../../lib/api/admin";
+import { MediaPicker } from "../common/MediaPicker";
 
 export default function BrandStoryPage() {
   const [form, setForm] = useState({
@@ -15,14 +16,14 @@ export default function BrandStoryPage() {
       const story = res.story as Record<string, unknown> | undefined;
       if (story) {
         setForm({
-          heading: (story.heading as string) ?? "",
-          subheading: (story.subheading as string) ?? "",
-          body: (story.body as string) ?? "",
-          imageUrl: (story.imageUrl as string) ?? "",
-          videoUrl: (story.videoUrl as string) ?? "",
+          heading: (story.title as string) ?? "",
+          subheading: (story.subtitle as string) ?? "",
+          body: (story.content as string) ?? "",
+          imageUrl: (story.heroImageUrl as string) ?? "",
+          videoUrl: "",
           values: (story.values as { title: string; description: string }[]) ?? [{ title: "", description: "" }],
-          metaTitle: (story.metaTitle as string) ?? "",
-          metaDescription: (story.metaDescription as string) ?? "",
+          metaTitle: "",
+          metaDescription: "",
         });
       }
       setLoaded(true);
@@ -41,7 +42,13 @@ export default function BrandStoryPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await adminApi.updateBrandStory(form);
+      await adminApi.updateBrandStory({
+        title: form.heading,
+        subtitle: form.subheading,
+        content: form.body,
+        heroImageUrl: form.imageUrl,
+        values: form.values,
+      });
     } catch { /* ignore */ } finally {
       setSaving(false);
     }
@@ -85,16 +92,10 @@ export default function BrandStoryPage() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs text-neutral-500 mb-1">Image URL</label>
-            <input value={form.imageUrl}
-              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+            <MediaPicker value={form.imageUrl} onChange={(url: string) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="brand-story" />
           </div>
           <div>
-            <label className="block text-xs text-neutral-500 mb-1">Video URL</label>
-            <input value={form.videoUrl}
-              onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+            <MediaPicker value={form.videoUrl} onChange={(url: string) => setForm({ ...form, videoUrl: url })} label="Video URL" folder="brand-story" accept="video/mp4,video/webm,video/quicktime" />
           </div>
         </div>
 

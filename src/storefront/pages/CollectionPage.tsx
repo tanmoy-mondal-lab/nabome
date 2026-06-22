@@ -72,7 +72,7 @@ export default function CollectionPage() {
         {heroImage && <meta property="og:image" content={img(heroImage, { width: 1200, height: 630 })} />}
 
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:site" content="@nabome" />
+        <meta name="twitter:site" content="@নবME" />
         <meta name="twitter:title" content={`${collection.name as string} — নবME`} />
         <meta name="twitter:description" content={(collection.description as string)?.slice(0, 160)} />
         {heroImage && <meta name="twitter:image" content={img(heroImage, { width: 1200, height: 630 })} />}

@@ -17,10 +17,10 @@ async function main() {
     process.exit(1);
   }
 
-  // Check if any super_admin already exists
-  const existingAdmin = await prisma.profile.findFirst({ where: { role: "super_admin" } });
+  // Check if any admin already exists
+  const existingAdmin = await prisma.profile.findFirst({ where: { role: "admin" } });
   if (existingAdmin) {
-    console.log(`Super admin already exists: ${existingAdmin.email}`);
+    console.log(`Admin already exists: ${existingAdmin.email}`);
     console.log("Skipping creation.");
     process.exit(0);
   }
@@ -42,7 +42,7 @@ async function main() {
     email,
     password,
     email_confirm: true,
-    user_metadata: { role: "super_admin", first_name: "Admin" },
+    user_metadata: { role: "admin", first_name: "Admin" },
   });
 
   if (authError) {
@@ -61,7 +61,7 @@ async function main() {
       data: {
         id: authData.user.id,
         email,
-        role: "super_admin",
+        role: "admin",
         firstName: "Admin",
       },
     });
@@ -71,7 +71,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`Super admin created: ${email} (${authData.user.id})`);
+  console.log(`Admin created: ${email} (${authData.user.id})`);
   await prisma.$disconnect();
 }
 

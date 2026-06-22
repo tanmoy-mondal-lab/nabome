@@ -35,7 +35,7 @@ async function handleList(): Promise<Response> {
         parent: { select: { id: true, name: true } },
         children: { select: { id: true, name: true, slug: true } },
         subcategories: { orderBy: { sortOrder: "asc" } },
-        _count: { select: { products: true } },
+        _count: { select: { products: true, children: true } },
       },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     });
@@ -62,13 +62,13 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
         slug: finalSlug,
         description: description ?? null,
         imageUrl: imageUrl ?? null,
-        parentId: parentId ?? null,
+        parentId: parentId || null,
         sortOrder: sortOrder ?? 0,
         isActive: isActive ?? true,
         metaTitle: metaTitle ?? null,
         metaDesc: metaDesc ?? null,
       },
-      include: { _count: { select: { products: true } } },
+      include: { _count: { select: { products: true, children: true } }, parent: { select: { id: true, name: true } } },
     });
 
     // Also create subcategory if parentId is provided and no subcategory table entry needed
@@ -108,7 +108,7 @@ async function handleUpdate(categoryId: string, req: Request, ctx: RequestContex
     const category = await prisma.category.update({
       where: { id: categoryId },
       data: data as never,
-      include: { _count: { select: { products: true } } },
+      include: { _count: { select: { products: true, children: true } }, parent: { select: { id: true, name: true } } },
     });
 
     logAction(ctx.userId, "admin.category.update", {
@@ -131,10 +131,13 @@ async function handleDelete(categoryId: string, req: Request, ctx: RequestContex
       return badRequest(`Cannot delete category: ${productCount} products are assigned to it. Move them first.`);
     }
 
-    await prisma.category.update({
-      where: { id: categoryId },
-      data: { isActive: false },
-    });
+    const subCount = await prisma.category.count({ where: { parentId: categoryId } });
+    if (subCount > 0) {
+      return badRequest(`Cannot delete category: ${subCount} subcategories are assigned to it. Remove them first.`);
+    }
+
+    await prisma.category.delete({ where: { id: categoryId } });
+
     logAction(ctx.userId, "admin.category.delete", {
       entity: "category",
       entityId: categoryId,
@@ -142,7 +145,7 @@ async function handleDelete(categoryId: string, req: Request, ctx: RequestContex
       ...extractRequestMeta(req),
     });
 
-    return success({ message: "Category deactivated" });
+    return success({ message: "Category deleted" });
   } catch (err) {
     return serverError(err);
   }

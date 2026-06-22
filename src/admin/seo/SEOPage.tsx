@@ -1,3 +1,4 @@
+import { MediaPicker } from "../common/MediaPicker";
 import { useEffect, useState } from "react";
 import { adminApi } from "../../lib/api/admin";
 
@@ -78,12 +79,9 @@ export default function SEOPage() {
               onChange={(e) => setForm({ ...form, globalMetaTitle: e.target.value })}
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <div>
-            <label className="block text-xs text-neutral-500 mb-1">OG Image URL</label>
-            <input value={form.ogImage}
-              onChange={(e) => setForm({ ...form, ogImage: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
-          </div>
+            <div>
+              <MediaPicker value={form.ogImage} onChange={(url) => setForm({ ...form, ogImage: url })} label="OG Image URL" folder="seo" />
+            </div>
         </div>
         <div>
           <label className="block text-xs text-neutral-500 mb-1">Global Meta Description</label>

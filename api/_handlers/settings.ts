@@ -11,8 +11,22 @@ export async function handleSettingsRequest(
   switch (action) {
     case "public":
       return handlePublic();
+    case "homepage":
+      return handleHomepage();
     default:
       return badRequest("Unknown action");
+  }
+}
+
+async function handleHomepage(): Promise<Response> {
+  try {
+    const sections = await prisma.homepageSection.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: "asc" },
+    });
+    return success({ sections });
+  } catch (err) {
+    return serverError(err);
   }
 }
 
@@ -35,6 +49,8 @@ async function handlePublic(): Promise<Response> {
           contactPhone: true,
           address: true,
           theme: true,
+          seo: true,
+          preferences: true,
         },
       }),
       prisma.socialMediaLink.findMany({
@@ -46,7 +62,7 @@ async function handlePublic(): Promise<Response> {
 
     if (!settings) {
       return success({
-        siteName: "NABOME",
+        siteName: "নবME",
         tagline: "Premium Fashion Destination",
         currency: "INR",
         socialLinks,

@@ -19,16 +19,16 @@ export default function AdminDashboardPage() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Link to="/" className="font-display text-xl tracking-widest text-accent-gold">
-              NABOME
+              নবME
             </Link>
             <span className="text-[10px] uppercase tracking-widest text-neutral-500 bg-neutral-800 px-2 py-0.5 rounded">
               Admin
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/" className="text-xs text-neutral-400 hover:text-white transition-colors">
+            <a href="/" target="_blank" rel="noopener noreferrer" className="text-xs text-neutral-400 hover:text-white transition-colors">
               View Site
-            </Link>
+            </a>
             <span className="text-sm text-neutral-400">{user?.firstName}</span>
             <button onClick={handleLogout} className="text-xs text-red-400 hover:text-red-300">
               Sign Out
@@ -63,7 +63,7 @@ export default function AdminDashboardPage() {
         {/* Main content */}
         <main className="flex-1 p-8">
           <h1 className="font-display text-3xl text-white mb-8">Dashboard</h1>
-          <p className="text-neutral-400">Welcome to the NABOME admin panel.</p>
+          <p className="text-neutral-400">Welcome to the নবME admin panel.</p>
 
           {/* Quick stats placeholder */}
           <div className="grid grid-cols-4 gap-6 mt-8">

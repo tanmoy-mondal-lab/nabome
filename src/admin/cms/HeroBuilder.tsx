@@ -1,0 +1,307 @@
+import { useEffect, useState, useCallback, useRef } from "react";
+import { adminApi } from "../../lib/api/admin";
+import { Modal } from "../common/Modal";
+import { EmptyState } from "../common/EmptyState";
+import { SafeImage } from "../../components/SafeImage";
+import { Plus, Edit3, Trash2, Film, Play, GripVertical, ChevronUp, ChevronDown, Volume2, VolumeX } from "lucide-react";
+
+interface HeroSlide {
+  id: string;
+  videoUrl: string;
+  posterUrl: string;
+  title: string;
+  subtitle: string;
+  ctaText: string;
+  ctaUrl: string;
+  soundEnabled: boolean;
+}
+
+interface HeroConfig {
+  slides: HeroSlide[];
+  interval: number;
+}
+
+export default function HeroBuilder() {
+  const [config, setConfig] = useState<HeroConfig>({ slides: [], interval: 7000 });
+  const [sectionId, setSectionId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [form, setForm] = useState<HeroSlide>({
+    id: "", videoUrl: "", posterUrl: "", title: "", subtitle: "", ctaText: "", ctaUrl: "", soundEnabled: true,
+  });
+  const fileRef = useRef<HTMLInputElement>(null);
+  const posterRef = useRef<HTMLInputElement>(null);
+  const [uploadingFor, setUploadingFor] = useState<"video" | "poster" | null>(null);
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await adminApi.getHomepageSections();
+      const sections = (res.sections as Array<Record<string, unknown>>) ?? [];
+      const heroSection = sections.find((s) => s.sectionType === "hero_slider");
+      if (heroSection) {
+        setSectionId(heroSection.id as string);
+        const content = heroSection.content as HeroConfig | null;
+        setConfig(content ?? { slides: [], interval: 7000 });
+      } else {
+        setConfig({ slides: [], interval: 7000 });
+        setSectionId(null);
+      }
+    } catch (error) {
+      console.error("Failed to fetch hero sections:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  const saveConfig = async (newConfig: HeroConfig) => {
+    setSaving(true);
+    try {
+      if (sectionId) {
+        await adminApi.updateHomeSection(sectionId, {
+          sectionType: "hero_slider",
+          title: "Hero Banner",
+          content: newConfig,
+          isActive: true,
+        });
+      } else {
+        const res = await adminApi.createHomeSection({
+          sectionType: "hero_slider",
+          title: "Hero Banner",
+          content: newConfig,
+          isActive: true,
+        });
+        const created = res as { id: string } | undefined;
+        if (created?.id) setSectionId(created.id);
+      }
+      setConfig(newConfig);
+    } catch { /* ignore */ } finally {
+      setSaving(false);
+    }
+  };
+
+  const openCreate = () => {
+    setEditIdx(null);
+    setForm({ id: crypto.randomUUID(), videoUrl: "", posterUrl: "", title: "", subtitle: "", ctaText: "Shop Now", ctaUrl: "/shop", soundEnabled: true });
+    setModalOpen(true);
+  };
+
+  const openEdit = (idx: number) => {
+    setEditIdx(idx);
+    setForm({ ...config.slides[idx] });
+    setModalOpen(true);
+  };
+
+  const handleSaveSlide = async () => {
+    const newSlides = [...config.slides];
+    if (editIdx !== null) {
+      newSlides[editIdx] = form;
+    } else {
+      newSlides.push(form);
+    }
+    await saveConfig({ ...config, slides: newSlides });
+    setModalOpen(false);
+  };
+
+  const handleDelete = async () => {
+    if (deleteConfirm === null) return;
+    const newSlides = config.slides.filter((_, i) => i !== deleteConfirm);
+    await saveConfig({ ...config, slides: newSlides });
+    setDeleteConfirm(null);
+  };
+
+  const moveSlide = async (idx: number, direction: -1 | 1) => {
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= config.slides.length) return;
+    const newSlides = [...config.slides];
+    [newSlides[idx], newSlides[newIdx]] = [newSlides[newIdx], newSlides[idx]];
+    await saveConfig({ ...config, slides: newSlides });
+  };
+
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: "videoUrl" | "posterUrl") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFor(field === "videoUrl" ? "video" : "poster");
+    try {
+      const res = await adminApi.uploadFile(file, "hero-banners");
+      setForm((prev) => ({ ...prev, [field]: res.url }));
+    } catch { /* ignore */ } finally {
+      setUploadingFor(null);
+      if (fileRef.current) fileRef.current.value = "";
+      if (posterRef.current) posterRef.current.value = "";
+    }
+  };
+
+  const updateInterval = async (val: number) => {
+    await saveConfig({ ...config, interval: val });
+  };
+
+  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="font-display text-2xl text-neutral-900">Hero Banner Builder</h1>
+          <p className="text-sm text-neutral-500 mt-1">Manage video & image hero slides for the homepage carousel</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-sm text-neutral-500">
+            <span className="text-xs">Interval (ms):</span>
+            <input type="number" value={config.interval}
+              onChange={(e) => updateInterval(Number(e.target.value))}
+              className="w-20 px-2 py-1.5 text-sm border border-neutral-200 rounded focus:outline-none" />
+          </div>
+          <button onClick={openCreate}
+            className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-neutral-800">
+            <Plus size={16} /> Add Slide
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 mb-4 text-xs text-neutral-500 bg-amber-50 border border-amber-200 rounded px-4 py-2">
+        <Film size={14} className="text-amber-500" />
+        Upload MP4/WebM videos as hero backgrounds. Each slide auto-advances after the interval. Customers can toggle sound on/off.
+      </div>
+
+      {config.slides.length === 0 ? (
+        <div className="bg-white border border-neutral-200 rounded">
+          <EmptyState icon={Film} title="No hero slides"
+            description="Add video or image slides to create a stunning homepage hero carousel"
+            action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm">Add Slide</button>}
+          />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {config.slides.map((slide, i) => (
+            <div key={slide.id} className="bg-white border border-neutral-200 rounded overflow-hidden">
+              <div className="flex gap-4 p-4">
+                <div className="flex flex-col items-center gap-1 pt-1">
+                  <button onClick={() => moveSlide(i, -1)} disabled={i === 0}
+                    className="p-0.5 text-neutral-300 hover:text-neutral-600 disabled:opacity-30"><ChevronUp size={14} /></button>
+                  <span className="text-xs font-mono text-neutral-400">#{i + 1}</span>
+                  <button onClick={() => moveSlide(i, 1)} disabled={i === config.slides.length - 1}
+                    className="p-0.5 text-neutral-300 hover:text-neutral-600 disabled:opacity-30"><ChevronDown size={14} /></button>
+                </div>
+                <div className="w-32 h-20 bg-neutral-100 rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
+                  {slide.videoUrl ? (
+                    <video src={slide.videoUrl} className="w-full h-full object-cover" muted />
+                  ) : slide.posterUrl ? (
+                    <SafeImage src={slide.posterUrl} alt="" className="w-full h-full object-cover" useTransform={false} />
+                  ) : (
+                    <Film size={24} className="text-neutral-300" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium text-sm text-neutral-900 truncate">{slide.title || "Untitled"}</span>
+                    {slide.soundEnabled ? <Volume2 size={12} className="text-neutral-400" /> : <VolumeX size={12} className="text-neutral-300" />}
+                  </div>
+                  {slide.subtitle && <p className="text-xs text-neutral-500 truncate">{slide.subtitle}</p>}
+                  <div className="flex items-center gap-2 mt-1.5 text-[10px] text-neutral-400">
+                    {slide.ctaText && <span>CTA: {slide.ctaText}</span>}
+                    {slide.ctaUrl && <span>→ {slide.ctaUrl}</span>}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => openEdit(i)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded">
+                    <Edit3 size={14} />
+                  </button>
+                  <button onClick={() => setDeleteConfirm(i)} className="p-1.5 text-red-400 hover:text-red-600 rounded">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)}
+        title={editIdx !== null ? "Edit Slide" : "New Slide"} size="lg">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs text-neutral-500 mb-1">Title</label>
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Summer Collection 2024" className={inputClass} />
+          </div>
+          <div>
+            <label className="block text-xs text-neutral-500 mb-1">Subtitle</label>
+            <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
+              placeholder="Discover the new arrivals" className={inputClass} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Video URL *</label>
+              <div className="flex gap-2">
+                <input value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
+                  placeholder="https://res.cloudinary.com/…/video.mp4" className={`flex-1 ${inputClass}`} />
+                <button onClick={() => fileRef.current?.click()}
+                  className="shrink-0 px-3 py-2 text-xs border border-neutral-200 rounded hover:bg-neutral-50">
+                  {uploadingFor === "video" ? "…" : "Upload"}
+                </button>
+              </div>
+              <input ref={fileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden"
+                onChange={(e) => handleVideoUpload(e, "videoUrl")} />
+            </div>
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Poster Image URL</label>
+              <div className="flex gap-2">
+                <input value={form.posterUrl} onChange={(e) => setForm({ ...form, posterUrl: e.target.value })}
+                  placeholder="Fallback image URL" className={`flex-1 ${inputClass}`} />
+                <button onClick={() => posterRef.current?.click()}
+                  className="shrink-0 px-3 py-2 text-xs border border-neutral-200 rounded hover:bg-neutral-50">
+                  {uploadingFor === "poster" ? "…" : "Upload"}
+                </button>
+              </div>
+              <input ref={posterRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => handleVideoUpload(e, "posterUrl")} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">CTA Text</label>
+              <input value={form.ctaText} onChange={(e) => setForm({ ...form, ctaText: e.target.value })}
+                placeholder="Shop Now" className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">CTA Link</label>
+              <input value={form.ctaUrl} onChange={(e) => setForm({ ...form, ctaUrl: e.target.value })}
+                placeholder="/collections/summer" className={inputClass} />
+            </div>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={form.soundEnabled}
+              onChange={(e) => setForm({ ...form, soundEnabled: e.target.checked })} className="accent-brand-500" />
+            <span className="text-xs text-neutral-600">Enable sound by default (customer can toggle)</span>
+          </label>
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+            <button onClick={handleSaveSlide} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">Save Slide</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={deleteConfirm !== null} onClose={() => setDeleteConfirm(null)} title="Delete Slide" size="sm">
+        <p className="text-sm text-neutral-600 mb-6">Delete this hero slide?</p>
+        <div className="flex justify-end gap-2">
+          <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+          <button onClick={handleDelete} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
+        </div>
+      </Modal>
+    </div>
+  );
+}

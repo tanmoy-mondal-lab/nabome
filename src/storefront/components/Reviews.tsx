@@ -6,6 +6,7 @@ import { StarRating } from "./StarRating";
 import { useAuthStore } from "../../stores/auth-store";
 import { cn } from "../../lib/utils/cn";
 import { formatDate } from "../../lib/utils/format";
+import { SafeImage } from "../../components/SafeImage";
 
 interface ReviewsProps {
   productId: string;
@@ -132,7 +133,7 @@ export function Reviews({ productId, slug }: ReviewsProps) {
                   <div className="flex gap-2 mt-3">
                     {(review.images as string[]).map((img, i) => (
                       <div key={i} className="w-16 h-16 rounded overflow-hidden bg-neutral-50">
-                        <img src={img} alt="" className="w-full h-full object-cover" />
+                        <SafeImage src={img} alt="" className="w-full h-full object-cover" />
                       </div>
                     ))}
                   </div>

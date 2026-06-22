@@ -25,7 +25,9 @@ export default function CMSPagesPage() {
     try {
       const res = await adminApi.getPages();
       setPages((res.pages as CMSPage[]) ?? []);
-    } catch { /* ignore */ } finally {
+    } catch (error) {
+      console.error("Failed to fetch CMS pages:", error);
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -46,7 +48,14 @@ export default function CMSPagesPage() {
 
   const handleSave = async () => {
     try {
-      const payload = { ...form, content: form.content || "<!-- content -->" };
+      const payload = {
+        title: form.title,
+        slug: form.slug,
+        content: form.content || "<!-- content -->",
+        metaTitle: form.metaTitle,
+        metaDesc: form.metaDescription,
+        isPublished: form.status === "published",
+      };
       if (editItem) {
         await adminApi.updatePage(editItem.id, payload);
       } else {
@@ -54,7 +63,9 @@ export default function CMSPagesPage() {
       }
       setModalOpen(false);
       fetch();
-    } catch { /* ignore */ }
+    } catch (error) {
+      console.error("Failed to save CMS page:", error);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -62,7 +73,9 @@ export default function CMSPagesPage() {
     try {
       await adminApi.deletePage(id);
       fetch();
-    } catch { /* ignore */ }
+    } catch (error) {
+      console.error("Failed to delete CMS page:", error);
+    }
   };
 
   if (loading) {

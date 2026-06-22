@@ -105,7 +105,7 @@ function generateInvoiceHTML(order: Record<string, unknown>): string {
   <div class="invoice">
     <div class="header">
       <div>
-        <h1>NABOME</h1>
+        <h1>নবME</h1>
         <div style="font-size: 13px; color: #a0aec0; margin-top: 4px;">Premium Fashion</div>
       </div>
       <div class="meta">
@@ -159,12 +159,12 @@ function generateInvoiceHTML(order: Record<string, unknown>): string {
       ${o.giftMessage ? `<div style="margin-top: 8px; padding: 12px; background: #f0fff4; border-radius: 8px; font-size: 13px;"><strong>Gift Message:</strong> ${o.giftMessage}</div>` : ""}
 
       <div class="payment-info">
-        <strong>Thank you for shopping with Nabome!</strong><br>
+        <strong>Thank you for shopping with নবME!</strong><br>
         If you have any questions about this invoice, please contact our support team.
       </div>
     </div>
     <div class="footer">
-      <p>Nabome — Premium Fashion E-Commerce</p>
+      <p>নবME — Premium Fashion E-Commerce</p>
       <p>This is a computer-generated invoice and does not require a physical signature.</p>
     </div>
   </div>

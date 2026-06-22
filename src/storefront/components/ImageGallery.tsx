@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../../lib/utils/cn";
+import { SafeImage } from "../../components/SafeImage";
 import { img } from "../../lib/seo";
 
 const VIDEO_EXTS = [".mp4", ".webm", ".mov", ".avi"];
@@ -67,7 +68,7 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
               i === activeIndex ? "border-brand-500" : "border-transparent hover:border-neutral-300"
             )}
           >
-            <img src={img(image.url, { width: 80 })} alt={image.altText ?? ""} loading="lazy" className="w-full h-full object-cover" />
+            <SafeImage src={image.url} alt={image.altText ?? ""} className="w-full h-full object-cover" />
           </button>
         ))}
       </div>

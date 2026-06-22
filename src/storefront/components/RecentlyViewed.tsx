@@ -13,7 +13,7 @@ export function RecentlyViewed() {
 
   useEffect(() => {
     if (!slugs.length) return;
-    Promise.all(slugs.map((s) => api.get("/api/products", { params: { action: "detail", slug: s } })
+    Promise.all(slugs.map((s) => api.get(`/api/products/${s}`)
       .then((res) => (res as Record<string, unknown>).product as Record<string, unknown>)
       .catch(() => null)))
       .then((results) => setProducts(results.filter(Boolean) as Record<string, unknown>[]));

@@ -1,0 +1,30 @@
+import { prisma } from "../../_lib/prisma";
+import { success, badRequest, serverError } from "../../_lib/response";
+import type { RequestContext } from "../../_lib/types";
+import { requireAdmin } from "../../_lib/auth";
+
+export async function handleAdminAbandonedCartRequest(req: Request, _ctx: RequestContext, _params: string[], action: string): Promise<Response> {
+  const adminGuard = requireAdmin(_ctx);
+  if (adminGuard) return adminGuard;
+  switch (action) {
+    case "list": return handleList(req);
+    default: return badRequest("Unknown action");
+  }
+}
+
+async function handleList(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  const page = parseInt(url.searchParams.get("page") ?? "1");
+  const limit = parseInt(url.searchParams.get("limit") ?? "25");
+  const minAge = parseInt(url.searchParams.get("minAge") ?? "60");
+  const cutoff = new Date(Date.now() - minAge * 60 * 1000);
+  const [items, total] = await Promise.all([
+    prisma.cart.findMany({
+      where: { updatedAt: { lte: cutoff } },
+      include: { profile: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } }, items: { include: { variant: { select: { id: true, sku: true, price: true, product: { select: { name: true } } } } } } },
+      orderBy: { updatedAt: "desc" }, skip: (page - 1) * limit, take: limit,
+    }),
+    prisma.cart.count({ where: { updatedAt: { lte: cutoff } } }),
+  ]);
+  return success({ carts: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
+}

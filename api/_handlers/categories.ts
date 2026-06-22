@@ -21,15 +21,23 @@ export async function handleCategoryRequest(
 async function handleList(): Promise<Response> {
   try {
     const categories = await prisma.category.findMany({
-      where: { isActive: true },
+      where: { isActive: true, parentId: null },
       include: {
-        children: true,
-        subcategories: { where: { isActive: true }, orderBy: { sortOrder: "asc" } },
         _count: { select: { products: true } },
       },
       orderBy: { sortOrder: "asc" },
     });
-    return success({ categories });
+
+    const flat = categories.map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      slug: cat.slug,
+      parentId: null,
+      imageUrl: cat.imageUrl,
+      productCount: cat._count.products,
+    }));
+
+    return success({ categories: flat });
   } catch (err) {
     return serverError(err);
   }

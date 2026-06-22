@@ -364,7 +364,7 @@ export interface ThemeFooterConfig {
 export interface NavigationMenu {
   id: string;
   name: string;
-  location: "header_main" | "header_top" | "header_mobile" | "footer";
+  location: "header" | "footer" | "mobile" | "sidebar";
   items: NavigationItem[];
   isActive: boolean;
   createdAt: string;

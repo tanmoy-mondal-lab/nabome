@@ -3,7 +3,8 @@ import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
-import { Mail, Phone, MapPin, ShoppingBag } from "lucide-react";
+import { SafeImage } from "../../components/SafeImage";
+import { Mail, Phone, ShoppingBag, Edit3, ShieldCheck, Clock, UserCheck } from "lucide-react";
 
 interface Customer {
   id: string;
@@ -11,19 +12,32 @@ interface Customer {
   lastName: string;
   email: string;
   phone: string;
+  avatarUrl?: string;
+  role?: string;
   isActive: boolean;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  marketingOptIn?: boolean;
+  lastLoginAt?: string;
+  loginCount?: number;
   createdAt: string;
   _count: { orders: number };
 }
 
 interface CustomerDetail extends Customer {
+  addresses?: unknown[];
   orders: { id: string; orderNumber: string; total: number; status: string; createdAt: string }[];
+  lifetimeValue?: number;
+  updatedAt?: string;
+  _count: { orders: number; reviews: number; wishlistItems: number };
 }
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<CustomerDetail | null>(null);
+  const [editTarget, setEditTarget] = useState<Customer | null>(null);
+  const [editForm, setEditForm] = useState({ firstName: "", lastName: "", email: "", phone: "", isActive: true, role: "customer", marketingOptIn: false, avatarUrl: "" });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -34,7 +48,7 @@ export default function CustomersPage() {
       setCustomers((res.customers as Customer[]) ?? []);
       const pag = res.pagination as { totalPages?: number } | undefined;
       setTotalPages(pag?.totalPages ?? 1);
-    } catch { /* ignore */ } finally {
+    } catch (e) { console.error("Failed to fetch customers", e); } finally {
       setLoading(false);
     }
   }, [page]);
@@ -45,26 +59,54 @@ export default function CustomersPage() {
     try {
       const res = await adminApi.getCustomer(c.id);
       setSelected(res.customer as CustomerDetail);
-    } catch { /* ignore */ }
+    } catch (e) { console.error("Failed to fetch customer detail", e); }
+  };
+
+  const openEdit = (c: Customer) => {
+    setEditTarget(c);
+    setEditForm({ firstName: c.firstName, lastName: c.lastName, email: c.email, phone: c.phone ?? "", isActive: c.isActive, role: c.role ?? "customer", marketingOptIn: c.marketingOptIn ?? false, avatarUrl: c.avatarUrl ?? "" });
+  };
+
+  const handleEditSave = async () => {
+    if (!editTarget) return;
+    try {
+      await adminApi.updateCustomer(editTarget.id, editForm);
+      setEditTarget(null);
+      fetch();
+    } catch (e) { alert("Failed to update customer"); console.error(e); }
   };
 
   const columns = [
     { key: "name", label: "Customer", sortable: true,
       render: (c: Customer) => (
-        <div>
-          <p className="font-medium text-neutral-900">{c.firstName} {c.lastName}</p>
-          <p className="text-xs text-neutral-400">{c.email}</p>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-xs font-medium text-neutral-500 shrink-0">
+            {c.avatarUrl ? <SafeImage src={c.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" useTransform={false} /> : `${c.firstName[0]}${c.lastName[0]}`}
+          </div>
+          <div>
+            <p className="font-medium text-neutral-900">{c.firstName} {c.lastName}</p>
+            <p className="text-xs text-neutral-400">{c.email}</p>
+          </div>
         </div>
       ),
     },
     { key: "phone", label: "Phone",
       render: (c: Customer) => <span className="text-sm text-neutral-500">{c.phone || "—"}</span>,
     },
+    { key: "role", label: "Role",
+      render: (c: Customer) => <span className="text-xs px-2 py-0.5 rounded bg-neutral-100 text-neutral-600 capitalize">{c.role ?? "customer"}</span>,
+    },
     { key: "isActive", label: "Status",
       render: (c: Customer) => <StatusBadge status={c.isActive ? "active" : "inactive"} />,
     },
+    { key: "emailVerified", label: "Verified",
+      render: (c: Customer) => <span className={`text-xs ${c.emailVerified ? "text-green-600" : "text-neutral-300"}`}>{c.emailVerified ? "Yes" : "No"}</span>,
+    },
     { key: "_count", label: "Orders",
       render: (c: Customer) => <span className="text-sm text-neutral-500">{c._count?.orders ?? 0}</span>,
+    },
+    { key: "lastLoginAt", label: "Last Login",
+      render: (c: Customer) => <span className="text-xs text-neutral-400">{c.lastLoginAt ? new Date(c.lastLoginAt).toLocaleDateString() : "—"}</span>,
     },
     { key: "createdAt", label: "Joined", sortable: true,
       render: (c: Customer) => (
@@ -92,24 +134,33 @@ export default function CustomersPage() {
         searchPlaceholder="Search customers…"
         onRowClick={viewDetail}
         emptyMessage="No customers yet"
+        actions={(c) => (
+          <button onClick={(e) => { e.stopPropagation(); openEdit(c as Customer); }} className="p-1.5 text-neutral-400 hover:text-neutral-600">
+            <Edit3 size={14} />
+          </button>
+        )}
       />
 
       <Modal open={!!selected} onClose={() => setSelected(null)} title="Customer Details" size="lg">
         {selected && (
           <div className="space-y-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-brand-100 rounded-full flex items-center justify-center text-brand-700 font-display text-xl">
-                {selected.firstName[0]}{selected.lastName[0]}
+              <div className="w-14 h-14 bg-neutral-100 rounded-full flex items-center justify-center text-neutral-700 font-display text-xl">
+                {selected.avatarUrl ? <SafeImage src={selected.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" useTransform={false} /> : `${selected.firstName[0]}${selected.lastName[0]}`}
               </div>
               <div>
                 <h3 className="font-medium text-lg text-neutral-900">{selected.firstName} {selected.lastName}</h3>
-                <StatusBadge status={selected.isActive ? "active" : "inactive"} />
+                <div className="flex gap-2 mt-1">
+                  <StatusBadge status={selected.isActive ? "active" : "inactive"} />
+                  <span className="text-xs px-2 py-0.5 rounded bg-neutral-100 text-neutral-600 capitalize">{selected.role}</span>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="flex items-center gap-2 text-sm text-neutral-600">
                 <Mail size={14} className="shrink-0 text-neutral-400" /> {selected.email}
+                {selected.emailVerified && <UserCheck size={12} className="text-green-500" />}
               </div>
               <div className="flex items-center gap-2 text-sm text-neutral-600">
                 <Phone size={14} className="shrink-0 text-neutral-400" /> {selected.phone || "—"}
@@ -117,7 +168,32 @@ export default function CustomersPage() {
               <div className="flex items-center gap-2 text-sm text-neutral-600">
                 <ShoppingBag size={14} className="shrink-0 text-neutral-400" /> {selected._count?.orders ?? 0} orders
               </div>
+              <div className="flex items-center gap-2 text-sm text-neutral-600">
+                <Clock size={14} className="shrink-0 text-neutral-400" /> Last login: {selected.lastLoginAt ? new Date(selected.lastLoginAt).toLocaleDateString() : "—"}
+              </div>
             </div>
+
+            <div className="grid grid-cols-3 gap-3 text-center text-xs">
+              <div className="bg-neutral-50 rounded p-3"><span className="block text-lg font-medium text-neutral-900">₹{(selected.lifetimeValue ?? 0).toLocaleString()}</span>Lifetime Value</div>
+              <div className="bg-neutral-50 rounded p-3"><span className="block text-lg font-medium text-neutral-900">{selected._count?.reviews ?? 0}</span>Reviews</div>
+              <div className="bg-neutral-50 rounded p-3"><span className="block text-lg font-medium text-neutral-900">{selected._count?.wishlistItems ?? 0}</span>Wishlist</div>
+            </div>
+
+            {selected.addresses && selected.addresses.length > 0 && (
+              <div>
+                <h4 className="font-medium text-sm text-neutral-900 mb-3">Addresses ({selected.addresses.length})</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(selected.addresses as Array<Record<string, unknown>>).map((a, i) => (
+                    <div key={i} className="p-3 bg-neutral-50 rounded text-xs text-neutral-600">
+                      <p className="font-medium text-neutral-900">{String(a.label ?? "") || `Address ${i + 1}`}</p>
+                      <p>{String(a.line1 ?? "")}{a.line2 ? `, ${String(a.line2)}` : ""}</p>
+                      <p>{String(a.city ?? "")}, {String(a.state ?? "")} — {String(a.pincode ?? "")}</p>
+                      {Boolean(a.isDefault) && <span className="text-green-600">Default</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
               <h4 className="font-medium text-sm text-neutral-900 mb-3">Order History</h4>
@@ -142,6 +218,42 @@ export default function CustomersPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Edit Customer">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="block text-xs text-neutral-500 mb-1">First Name</label><input value={editForm.firstName} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+            <div><label className="block text-xs text-neutral-500 mb-1">Last Name</label><input value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+          </div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Email</label><input value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Phone</label><input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Avatar URL</label><input value={editForm.avatarUrl} onChange={(e) => setEditForm({ ...editForm, avatarUrl: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Role</label>
+              <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} className="w-full px-3 py-2 text-sm border rounded">
+                <option value="customer">Customer</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Status</label>
+              <select value={editForm.isActive ? "active" : "inactive"} onChange={(e) => setEditForm({ ...editForm, isActive: e.target.value === "active" })} className="w-full px-3 py-2 text-sm border rounded">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={editForm.marketingOptIn} onChange={(e) => setEditForm({ ...editForm, marketingOptIn: e.target.checked })} className="rounded border-neutral-300" />
+            <span className="text-sm text-neutral-700">Marketing Opt-In</span>
+          </label>
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={() => setEditTarget(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+            <button onClick={handleEditSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium hover:bg-neutral-800">Save</button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

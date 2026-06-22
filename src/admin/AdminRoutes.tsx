@@ -33,6 +33,30 @@ import SizeGuidesPage from "./size-guides/SizeGuidesPage";
 import LabelsPage from "./labels/LabelsPage";
 import SubcategoriesPage from "./subcategories/SubcategoriesPage";
 import InventoryPage from "./inventory/InventoryPage";
+import CouponsPage from "./coupons/CouponsPage";
+import ReviewsPage from "./reviews/ReviewsPage";
+import NewsletterPage from "./newsletter/NewsletterPage";
+import ContactsPage from "./contacts/ContactsPage";
+import AnnouncementsPage from "./announcements/AnnouncementsPage";
+import ImportExportPage from "./import-export/ImportExportPage";
+import SearchIndexPage from "./search/SearchIndexPage";
+import SocialLinksPage from "./social/SocialLinksPage";
+import HeroBuilder from "./cms/HeroBuilder";
+import SupportTicketsPage from "./support/SupportTicketsPage";
+import SupportTicketDetailPage from "./support/SupportTicketDetailPage";
+import FAQPage from "./faq/FAQPage";
+import NotificationsPage from "./notifications/NotificationsPage";
+import WebhookEventsPage from "./webhooks/WebhookEventsPage";
+import PageTemplatesPage from "./templates/PageTemplatesPage";
+import CampaignsPage from "./campaigns/CampaignsPage";
+import CouponRedemptionsPage from "./coupon-redemptions/CouponRedemptionsPage";
+import AbandonedCartsPage from "./abandoned-carts/AbandonedCartsPage";
+import AuditLogPage from "./audit-log/AuditLogPage";
+import WishlistsPage from "./wishlists/WishlistsPage";
+import ProductAttributesPage from "./product-attributes/ProductAttributesPage";
+import AddressesPage from "./addresses/AddressesPage";
+import SessionsPage from "./sessions/SessionsPage";
+import LoginAttemptsPage from "./login-attempts/LoginAttemptsPage";
 
 export default function AdminRoutes() {
   return (
@@ -61,8 +85,10 @@ export default function AdminRoutes() {
 
         {/* CMS Routes */}
         <Route path="cms/pages" element={<CMSPagesPage />} />
+        <Route path="cms/page-builder/new" element={<PageBuilderDemo />} />
         <Route path="cms/page-builder/:id" element={<PageBuilderDemo />} />
         <Route path="cms/homepage" element={<HomepageBuilder />} />
+        <Route path="cms/hero-builder" element={<HeroBuilder />} />
         <Route path="cms/navigation" element={<NavigationBuilder />} />
         <Route path="cms/header" element={<HeaderBuilder />} />
         <Route path="cms/footer" element={<FooterBuilder />} />
@@ -76,6 +102,29 @@ export default function AdminRoutes() {
         <Route path="theme/builder" element={<ThemeBuilder />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="coupons" element={<CouponsPage />} />
+        <Route path="reviews" element={<ReviewsPage />} />
+        <Route path="newsletter" element={<NewsletterPage />} />
+        <Route path="contacts" element={<ContactsPage />} />
+        <Route path="announcements" element={<AnnouncementsPage />} />
+        <Route path="import-export" element={<ImportExportPage />} />
+        <Route path="search-index" element={<SearchIndexPage />} />
+        <Route path="social-links" element={<SocialLinksPage />} />
+        <Route path="support" element={<SupportTicketsPage />} />
+        <Route path="support/:id" element={<SupportTicketDetailPage />} />
+        <Route path="faq" element={<FAQPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="webhooks" element={<WebhookEventsPage />} />
+        <Route path="page-templates" element={<PageTemplatesPage />} />
+        <Route path="campaigns" element={<CampaignsPage />} />
+        <Route path="coupon-redemptions" element={<CouponRedemptionsPage />} />
+        <Route path="abandoned-carts" element={<AbandonedCartsPage />} />
+        <Route path="audit-log" element={<AuditLogPage />} />
+        <Route path="wishlists" element={<WishlistsPage />} />
+        <Route path="product-attributes" element={<ProductAttributesPage />} />
+        <Route path="addresses" element={<AddressesPage />} />
+        <Route path="sessions" element={<SessionsPage />} />
+        <Route path="login-attempts" element={<LoginAttemptsPage />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>
     </Routes>

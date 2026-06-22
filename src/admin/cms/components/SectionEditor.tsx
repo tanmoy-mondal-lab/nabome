@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { sectionRegistry } from "../../../cms/core/section-registry";
 import { type PageSection, type SectionType, type SectionField } from "../../../cms/core/cms-types";
+import { MediaPicker } from "../../common/MediaPicker";
 
 interface SectionEditorProps {
   section: PageSection;
@@ -132,21 +133,12 @@ function FieldRenderer({
     case "image":
       return (
         <div>
-          <label className="block text-xs text-neutral-500 mb-1">{field.label}</label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={String(value ?? "")}
-              onChange={(e) => onChange(field.key, e.target.value)}
-              placeholder="Image URL"
-              className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-            {!!value && (
-              <div className="w-10 h-10 bg-neutral-100 rounded overflow-hidden shrink-0">
-                <img src={String(value)} alt="" className="w-full h-full object-cover" />
-              </div>
-            )}
-          </div>
+          <MediaPicker
+            value={String(value ?? "")}
+            onChange={(url: string) => onChange(field.key, url)}
+            label={field.label}
+            folder="page-builder"
+          />
         </div>
       );
 

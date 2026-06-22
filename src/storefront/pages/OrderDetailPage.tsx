@@ -6,6 +6,7 @@ import { formatPrice } from "../../lib/utils/format";
 import { formatDate } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
+import { SafeImage } from "../../components/SafeImage";
 
 interface Order {
   id: string;
@@ -173,7 +174,7 @@ export default function OrderDetailPage() {
             <div className="divide-y">
               {(order.items || []).map((item) => (
                 <div key={item.id} className="flex gap-4 p-4">
-                  <img src={item.image || "/placeholder.svg"} alt={item.name} className="w-20 h-24 object-cover bg-neutral-100 shrink-0 rounded" />
+                  <SafeImage src={item.image || "/placeholder.svg"} alt={item.name} className="w-20 h-24 object-cover bg-neutral-100 shrink-0 rounded" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-neutral-900">{item.name}</p>
                     {item.size && <p className="text-xs text-neutral-400">Size: {item.size}</p>}

@@ -6,7 +6,10 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText,
   Image, Percent, BarChart3, Settings, Megaphone, Menu, X,
   Search, ChevronDown, LogOut, Palette, BarChart4, BookOpen,
-  PackageSearch, RotateCcw, Truck,
+  PackageSearch, RotateCcw, Truck, Tag, MessageSquare, Mail,
+  MessageCircle, Link2, Download, Activity, FileJson,
+  Target, Receipt, ShoppingBag, ClipboardList, Heart,
+  SlidersHorizontal, MapPin, Clock, ShieldAlert,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -32,6 +35,7 @@ const NAV_ITEMS = [
       { label: "CMS Pages", href: "/admin/cms/pages" },
       { label: "Page Builder", href: "/admin/cms/page-builder/new" },
       { label: "Homepage Builder", href: "/admin/cms/homepage" },
+      { label: "Hero Slides", href: "/admin/cms/hero-builder" },
       { label: "Header Builder", href: "/admin/cms/header" },
       { label: "Navigation", href: "/admin/cms/navigation" },
       { label: "Footer Builder", href: "/admin/cms/footer" },
@@ -42,11 +46,45 @@ const NAV_ITEMS = [
   { label: "Lookbooks", icon: BookOpen, href: "/admin/lookbooks" },
   { label: "Media Library", icon: Image, href: "/admin/media" },
   { label: "Marketing", icon: Percent, href: "/admin/marketing" },
+  { label: "Coupons", icon: Tag, href: "/admin/coupons" },
+  { label: "Announcements", icon: Megaphone, href: "/admin/announcements" },
+  { label: "Reviews", icon: MessageSquare, href: "/admin/reviews" },
   { label: "SEO", icon: Search, href: "/admin/seo" },
+  { label: "Search Index", icon: Search, href: "/admin/search-index" },
+  { label: "Import / Export", icon: Download, href: "/admin/import-export" },
+  {
+    label: "Support", icon: MessageCircle, children: [
+      { label: "Tickets", href: "/admin/support" },
+      { label: "FAQ", href: "/admin/faq" },
+    ],
+  },
+  {
+    label: "Management", icon: Users, children: [
+      { label: "Newsletter", href: "/admin/newsletter" },
+      { label: "Contact Submissions", href: "/admin/contacts" },
+      { label: "Social Links", href: "/admin/social-links" },
+      { label: "Notifications", href: "/admin/notifications" },
+    ],
+  },
+  { label: "Webhooks", icon: Activity, href: "/admin/webhooks" },
+  { label: "Page Templates", icon: FileJson, href: "/admin/page-templates" },
   { label: "Theme", icon: Palette, href: "/admin/theme", children: [
     { label: "Theme Settings", href: "/admin/theme" },
     { label: "Theme Builder", href: "/admin/theme/builder" },
   ]},
+  { label: "Coupon Redemptions", icon: Receipt, href: "/admin/coupon-redemptions" },
+  { label: "Abandoned Carts", icon: ShoppingBag, href: "/admin/abandoned-carts" },
+  { label: "Campaigns", icon: Target, href: "/admin/campaigns" },
+  {
+    label: "System", icon: Settings, children: [
+      { label: "Audit Log", href: "/admin/audit-log" },
+      { label: "Sessions", href: "/admin/sessions" },
+      { label: "Login Attempts", href: "/admin/login-attempts" },
+    ],
+  },
+  { label: "Wishlists", icon: Heart, href: "/admin/wishlists" },
+  { label: "Product Attributes", icon: SlidersHorizontal, href: "/admin/product-attributes" },
+  { label: "Addresses", icon: MapPin, href: "/admin/addresses" },
   { label: "Analytics", icon: BarChart4, href: "/admin/analytics" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
@@ -57,7 +95,7 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(["Products", "Content"]);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(["Products", "Content", "Management", "Support", "System"]);
 
   const toggleMenu = (label: string) => {
     setExpandedMenus((prev) =>
@@ -86,7 +124,7 @@ export default function AdminLayout() {
       <aside className={`fixed top-0 left-0 z-50 h-full w-72 bg-neutral-900 text-white transform transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-center justify-between px-6 h-16 border-b border-neutral-700">
           <Link to="/admin" className="font-display text-xl tracking-widest text-accent-gold">
-            NABOME
+            নবME
           </Link>
           <span className="text-[10px] uppercase tracking-widest text-neutral-500 bg-neutral-800 px-2 py-0.5 rounded">
             Admin
@@ -166,9 +204,9 @@ export default function AdminLayout() {
             </div>
 
             <div className="flex items-center gap-4">
-              <Link to="/" className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors">
+              <a href="/" target="_blank" rel="noopener noreferrer" className="text-xs text-neutral-400 hover:text-neutral-600 transition-colors">
                 View Site
-              </Link>
+              </a>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600"

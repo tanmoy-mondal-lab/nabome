@@ -56,10 +56,10 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-10">
             <Link to="/" className="font-display text-3xl tracking-widest text-brand-500">
-              NABOME
+              নবME
             </Link>
             <h1 className="mt-6 font-display text-2xl text-neutral-900">Create an account</h1>
-            <p className="mt-2 text-sm text-neutral-500">Join the NABOME family</p>
+            <p className="mt-2 text-sm text-neutral-500">Join the নবME family</p>
           </div>
 
           {displayError && (

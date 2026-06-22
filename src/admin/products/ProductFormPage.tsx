@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { adminApi } from "../../lib/api/admin";
-import { ArrowLeft, Save, Plus, Trash2, GripVertical, Calendar } from "lucide-react";
+import { ArrowLeft, Save, Plus, Trash2, GripVertical, Calendar, Upload, Film } from "lucide-react";
+import { MediaPicker } from "../common/MediaPicker";
+import { SafeImage } from "../../components/SafeImage";
 
 export default function ProductFormPage() {
   const { id } = useParams();
@@ -18,13 +20,15 @@ export default function ProductFormPage() {
   const [form, setForm] = useState({
     name: "", slug: "", description: "", shortDescription: "", categoryId: "", subcategoryId: "",
     collectionId: "", brandId: "", sizeGuideId: "", material: "", careInstructions: "",
-    basePrice: 0, compareAtPrice: 0, costPrice: 0, salePrice: 0, currency: "INR",
+    basePrice: 0, compareAtPrice: 0, costPrice: 0, salePrice: 0, discountPercent: 0, currency: "INR",
     gender: "unisex", isActive: false, isFeatured: false, isNew: false, sortOrder: 0,
-    metaTitle: "", metaDesc: "", scheduledPublishAt: "", scheduledArchiveAt: "",
+    metaTitle: "", metaDesc: "", scheduledPublishAt: "", scheduledArchiveAt: "", sizeChartUrl: "",
   });
   const [variants, setVariants] = useState<Record<string, unknown>[]>([]);
   const [images, setImages] = useState<Record<string, unknown>[]>([]);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const videoFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     Promise.all([
@@ -51,12 +55,14 @@ export default function ProductFormPage() {
           material: p.material as string ?? "", careInstructions: p.careInstructions as string ?? "",
           basePrice: Number(p.basePrice ?? 0), compareAtPrice: Number(p.compareAtPrice ?? 0),
           costPrice: Number(p.costPrice ?? 0), salePrice: Number(p.salePrice ?? 0),
+          discountPercent: Number(p.discountPercent ?? 0),
           currency: p.currency as string ?? "INR", gender: p.gender as string ?? "unisex",
           isActive: p.isActive as boolean ?? false, isFeatured: p.isFeatured as boolean ?? false,
           isNew: p.isNew as boolean ?? false, sortOrder: p.sortOrder as number ?? 0,
           metaTitle: p.metaTitle as string ?? "", metaDesc: p.metaDesc as string ?? "",
           scheduledPublishAt: (p.scheduledPublishAt as string) ?? "",
           scheduledArchiveAt: (p.scheduledArchiveAt as string) ?? "",
+          sizeChartUrl: (p.sizeChartUrl as string) ?? "",
         });
         setVariants(p.variants as Record<string, unknown>[] ?? []);
         setImages(p.images as Record<string, unknown>[] ?? []);
@@ -72,13 +78,25 @@ export default function ProductFormPage() {
       const data = { ...form };
       if (data.scheduledPublishAt) data.scheduledPublishAt = new Date(data.scheduledPublishAt).toISOString();
       if (data.scheduledArchiveAt) data.scheduledArchiveAt = new Date(data.scheduledArchiveAt).toISOString();
+      let res: unknown;
       if (isEdit) {
         await adminApi.updateProduct(id!, data);
         if (selectedLabels.length > 0) await adminApi.assignLabels(id!, selectedLabels);
       } else {
-        const res = await adminApi.createProduct(data);
+        res = await adminApi.createProduct(data);
         const newId = (res as Record<string, { id: string }>).product?.id ?? (res as Record<string, string>).id;
         if (newId && selectedLabels.length > 0) await adminApi.assignLabels(newId, selectedLabels);
+      }
+      const productId = isEdit ? id! : (res as Record<string, { id: string }>).product?.id ?? (res as Record<string, string>).id;
+      if (productId && images.length > 0) {
+        await Promise.all(images.map((img, index) =>
+          adminApi.addProductImage(productId, {
+            url: img.url as string,
+            publicId: (img as Record<string, unknown>).publicId as string | undefined,
+            altText: (img.altText as string) ?? "",
+            isPrimary: index === 0,
+          })
+        ));
       }
       navigate("/admin/products");
     } catch (e) {
@@ -87,7 +105,7 @@ export default function ProductFormPage() {
   }
 
   function addVariant() {
-    setVariants([...variants, { sku: "", size: "M", color: "", colorHex: "#000000", priceAdjustment: 0, stock: 0, isActive: true, id: `new-${Date.now()}` }]);
+    setVariants([...variants, { sku: "", size: "M", color: "", colorHex: "#000000", priceAdjustment: 0, stock: 0, weight: 0, isActive: true, id: `new-${Date.now()}` }]);
   }
 
   function updateVariant(idx: number, field: string, value: unknown) {
@@ -100,9 +118,14 @@ export default function ProductFormPage() {
     setVariants(variants.filter((_, i) => i !== idx));
   }
 
-  function addImage() {
-    const url = window.prompt("Image URL:");
-    if (url) setImages([...images, { url, isPrimary: images.length === 0, sortOrder: images.length }]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  function addImage(file?: File) {
+    if (file) {
+      adminApi.uploadFile(file, "products").then((res) => {
+        const altText = window.prompt("Alt text (optional):") ?? "";
+        setImages((prev) => [...prev, { url: res.url, publicId: res.publicId, altText, isPrimary: prev.length === 0, sortOrder: prev.length }]);
+      }).catch(() => {});
+    }
   }
 
   function setPrimary(idx: number) {
@@ -111,6 +134,19 @@ export default function ProductFormPage() {
 
   function removeImage(idx: number) {
     setImages(images.filter((_, i) => i !== idx));
+  }
+
+  async function handleVideoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingMedia(true);
+    try {
+      const res = await adminApi.uploadFile(file, "product-videos", file.name);
+      setImages([...images, { url: res.url, isPrimary: images.length === 0, sortOrder: images.length, type: "video" }]);
+    } catch { /* ignore */ } finally {
+      setUploadingMedia(false);
+      if (videoFileRef.current) videoFileRef.current.value = "";
+    }
   }
 
   const filteredSubs = subcategories.filter((s) => !form.categoryId || (s.categoryId as string) === form.categoryId);
@@ -151,6 +187,7 @@ export default function ProductFormPage() {
               <div><label className="block text-xs text-neutral-500 mb-1">Sale Price (₹)</label><input type="number" value={form.salePrice} onChange={(e) => setForm({ ...form, salePrice: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 text-sm border rounded" /></div>
               <div><label className="block text-xs text-neutral-500 mb-1">Compare At (₹)</label><input type="number" value={form.compareAtPrice} onChange={(e) => setForm({ ...form, compareAtPrice: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 text-sm border rounded" /></div>
               <div><label className="block text-xs text-neutral-500 mb-1">Cost Price (₹)</label><input type="number" value={form.costPrice} onChange={(e) => setForm({ ...form, costPrice: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+              <div><label className="block text-xs text-neutral-500 mb-1">Discount %</label><input type="number" value={form.discountPercent} onChange={(e) => setForm({ ...form, discountPercent: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 text-sm border rounded" /></div>
               <div><label className="block text-xs text-neutral-500 mb-1">Currency</label><select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} className="w-full px-3 py-2 text-sm border rounded"><option value="INR">INR</option><option value="USD">USD</option><option value="EUR">EUR</option></select></div>
             </div>
           </section>
@@ -159,36 +196,64 @@ export default function ProductFormPage() {
             <h2 className="font-medium text-sm text-neutral-900 uppercase tracking-wider">Variants</h2>
             {variants.length === 0 && <p className="text-xs text-neutral-400">No variants yet. This product will be treated as a simple (non-variable) product.</p>}
             {variants.map((v, i) => (
-              <div key={v.id as string} className="grid grid-cols-7 gap-2 items-end p-3 bg-neutral-50 rounded">
+              <div key={v.id as string} className="grid grid-cols-9 gap-2 items-end p-3 bg-neutral-50 rounded">
                 <div><label className="block text-xs text-neutral-400 mb-1">SKU</label><input value={v.sku as string} onChange={(e) => updateVariant(i, "sku", e.target.value)} className="w-full px-2 py-1.5 text-xs border rounded" /></div>
                 <div><label className="block text-xs text-neutral-400 mb-1">Size</label><select value={v.size as string} onChange={(e) => updateVariant(i, "size", e.target.value)} className="w-full px-2 py-1.5 text-xs border rounded"><option value="XS">XS</option><option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option><option value="3XL">3XL</option><option value="One Size">One Size</option></select></div>
                 <div><label className="block text-xs text-neutral-400 mb-1">Color</label><input value={v.color as string} onChange={(e) => updateVariant(i, "color", e.target.value)} className="w-full px-2 py-1.5 text-xs border rounded" /></div>
                 <div><label className="block text-xs text-neutral-400 mb-1">Hex</label><input type="color" value={v.colorHex as string ?? "#000000"} onChange={(e) => updateVariant(i, "colorHex", e.target.value)} className="w-full h-[30px] border rounded cursor-pointer" /></div>
                 <div><label className="block text-xs text-neutral-400 mb-1">Price Adj.</label><input type="number" value={v.priceAdjustment as number} onChange={(e) => updateVariant(i, "priceAdjustment", parseFloat(e.target.value) || 0)} className="w-full px-2 py-1.5 text-xs border rounded" /></div>
                 <div><label className="block text-xs text-neutral-400 mb-1">Stock</label><input type="number" value={v.stock as number} onChange={(e) => updateVariant(i, "stock", parseInt(e.target.value) || 0)} className="w-full px-2 py-1.5 text-xs border rounded" /></div>
+                <div><label className="block text-xs text-neutral-400 mb-1">Weight</label><input type="number" value={v.weight as number ?? 0} onChange={(e) => updateVariant(i, "weight", parseFloat(e.target.value) || 0)} className="w-full px-2 py-1.5 text-xs border rounded" step="0.1" /></div>
+                <div><label className="block text-xs text-neutral-400 mb-1">Active</label><input type="checkbox" checked={(v.isActive as boolean) ?? true} onChange={(e) => updateVariant(i, "isActive", e.target.checked)} className="mt-5 block" /></div>
                 <button onClick={() => removeVariant(i)} className="p-1.5 text-neutral-300 hover:text-red-500 mt-5"><Trash2 className="w-4 h-4" /></button>
               </div>
             ))}
             <button onClick={addVariant} className="flex items-center gap-2 text-sm text-neutral-600 hover:text-neutral-900"><Plus className="w-4 h-4" /> Add Variant</button>
           </section>
 
-          {images.length > 0 && (
-            <section className="bg-white border border-neutral-200 rounded p-6 space-y-4">
-              <h2 className="font-medium text-sm text-neutral-900 uppercase tracking-wider">Images</h2>
-              <div className="grid grid-cols-4 gap-3">
-                {images.map((img, i) => (
-                  <div key={i} className="relative group aspect-[3/4] bg-neutral-100 rounded overflow-hidden border-2" style={{ borderColor: img.isPrimary ? "#1B2A4A" : "transparent" }}>
-                    <img src={img.url as string} alt="" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                      {!img.isPrimary && <button onClick={() => setPrimary(i)} className="bg-white text-xs px-2 py-1 rounded shadow">Primary</button>}
-                      <button onClick={() => removeImage(i)} className="bg-red-500 text-white text-xs px-2 py-1 rounded shadow">Remove</button>
-                    </div>
-                    {img.isPrimary as boolean && <span className="absolute top-1 left-1 bg-neutral-900 text-white text-[10px] px-1.5 py-0.5 rounded">Primary</span>}
-                  </div>
-                ))}
+          <section className="bg-white border border-neutral-200 rounded p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-medium text-sm text-neutral-900 uppercase tracking-wider">Media</h2>
+              <div className="flex gap-2">
+                <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-1.5 text-xs text-neutral-600 hover:text-neutral-900 border border-neutral-200 px-3 py-1.5 rounded">
+                  <Plus size={12} /> Add Image
+                </button>
+                <button onClick={() => videoFileRef.current?.click()} disabled={uploadingMedia}
+                  className="flex items-center gap-1.5 text-xs text-neutral-600 hover:text-neutral-900 border border-neutral-200 px-3 py-1.5 rounded disabled:opacity-50">
+                  <Film size={12} /> {uploadingMedia ? "Uploading…" : "Upload Video"}
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) addImage(f); if (fileInputRef.current) fileInputRef.current.value = ""; }} />
+                <input ref={videoFileRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={handleVideoUpload} />
               </div>
-            </section>
-          )}
+            </div>
+            {images.length > 0 ? (
+              <div className="grid grid-cols-4 gap-3">
+                {images.map((img, i) => {
+                  const isVideo = (img.type as string) === "video" || (img.url as string).match(/\.(mp4|webm|mov|avi)(\?|$)/i);
+                  return (
+                    <div key={i} className="relative group aspect-[3/4] bg-neutral-100 rounded overflow-hidden border-2" style={{ borderColor: img.isPrimary ? "#1B2A4A" : "transparent" }}>
+                      {isVideo ? (
+                        <div className="relative w-full h-full bg-neutral-900">
+                          <video src={img.url as string} className="w-full h-full object-cover opacity-80" />
+                          <Film size={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/60" />
+                        </div>
+                      ) : (
+                        <SafeImage src={img.url as string} alt="" className="w-full h-full object-cover" useTransform={false} />
+                      )}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                        {!img.isPrimary && <button onClick={() => setPrimary(i)} className="bg-white text-xs px-2 py-1 rounded shadow">Primary</button>}
+                        <button onClick={() => removeImage(i)} className="bg-red-500 text-white text-xs px-2 py-1 rounded shadow">Remove</button>
+                      </div>
+                      {img.isPrimary as boolean && <span className="absolute top-1 left-1 bg-neutral-900 text-white text-[10px] px-1.5 py-0.5 rounded">Primary</span>}
+                      {isVideo && <span className="absolute top-1 right-1 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1"><Film size={8} /> Video</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-neutral-400">No media yet. Add images or upload videos for this product.</p>
+            )}
+          </section>
         </div>
 
         <div className="space-y-6">
@@ -232,6 +297,7 @@ export default function ProductFormPage() {
             <h2 className="font-medium text-sm text-neutral-900 uppercase tracking-wider">Details</h2>
             <div><label className="block text-xs text-neutral-500 mb-1">Material</label><input value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" placeholder="e.g., 100% Organic Cotton" /></div>
             <div><label className="block text-xs text-neutral-500 mb-1">Care Instructions</label><textarea value={form.careInstructions} onChange={(e) => setForm({ ...form, careInstructions: e.target.value })} rows={2} className="w-full px-3 py-2 text-sm border rounded" /></div>
+            <div><MediaPicker value={form.sizeChartUrl} onChange={(url: string) => setForm({ ...form, sizeChartUrl: url })} label="Size Chart URL" folder="size-guides" placeholder="URL to external size chart" /></div>
           </section>
 
           <section className="bg-white border border-neutral-200 rounded p-6 space-y-4">

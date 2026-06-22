@@ -34,7 +34,8 @@ export default function LabelsPage() {
       if (edit) await adminApi.updateLabel(edit.id as string, form);
       else await adminApi.createLabel(form);
     } else {
-      if (!edit) await adminApi.createTag(form);
+      if (edit) await adminApi.updateTag(edit.id as string, form);
+      else await adminApi.createTag(form);
     }
     setShowModal(false); load();
   }
@@ -79,6 +80,7 @@ export default function LabelsPage() {
           { key: "slug", label: "Slug" },
           { key: "_count", label: "Products", render: (item) => <span className="text-xs bg-neutral-100 px-2 py-1 rounded">{(((item as Record<string, unknown>)._count as Record<string, number>)?.products ?? 0)}</span> },
         ]} data={tags} isLoading={loading} actions={(row) => <>
+          <button onClick={() => openEdit(row as Record<string, unknown>)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><Edit3 className="w-4 h-4" /></button>
           <button onClick={() => handleDelete((row as Record<string, unknown>).id as string)} className="p-1.5 text-neutral-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
         </>} />)}
 
@@ -86,6 +88,7 @@ export default function LabelsPage() {
         <div className="space-y-4">
           <div><label className="block text-xs text-neutral-500 mb-1">Name *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
           {activeTab === "labels" && <div><label className="block text-xs text-neutral-500 mb-1">Color</label><div className="flex gap-2 items-center"><input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className="w-10 h-10 rounded border cursor-pointer" /><span className="text-xs text-neutral-400">{form.color}</span></div></div>}
+          <div className="text-[10px] text-neutral-400">Slug is auto-generated from name</div>
         </div>
         <div className="flex justify-end gap-2 pt-4 border-t mt-4">
           <button onClick={() => setShowModal(false)} type="button" className="px-4 py-2 text-sm border border-neutral-200 rounded text-neutral-600 hover:bg-neutral-50">Cancel</button>

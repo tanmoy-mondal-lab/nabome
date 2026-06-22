@@ -1,9 +1,10 @@
 import { prisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { slugify } from "../../../src/lib/utils/format";
-import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { requireAdmin } from "../../_lib/auth";
+import { logAction, extractRequestMeta } from "../../_lib/audit";
+import { destroyCloudinaryAsset, destroyCloudinaryAssets } from "../../_lib/cloudinary";
+import { slugify } from "../../../src/lib/utils/format";
 
 const productInclude = {
   category: { select: { id: true, name: true, slug: true } },
@@ -74,6 +75,9 @@ async function handleList(req: Request): Promise<Response> {
         where: where as never,
         include: {
           category: { select: { name: true } },
+          subcategory: { select: { name: true } },
+          collection: { select: { name: true } },
+          brand: { select: { name: true, logoUrl: true } },
           images: { take: 1, where: { isPrimary: true } },
           variants: { select: { stock: true, sku: true } },
           _count: { select: { orderItems: true } },
@@ -214,6 +218,10 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
 
 async function handleDelete(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
+    const images = await prisma.productImage.findMany({ where: { productId }, select: { publicId: true } });
+    const publicIds = images.map((i) => i.publicId).filter(Boolean) as string[];
+    await destroyCloudinaryAssets(publicIds);
+    await prisma.productImage.deleteMany({ where: { productId } });
     await prisma.product.update({
       where: { id: productId },
       data: { isActive: false },
@@ -283,7 +291,7 @@ async function handleUpdateVariants(productId: string, req: Request): Promise<Re
 
 async function handleAddImage(productId: string, req: Request): Promise<Response> {
   const body = await req.json();
-  const { url, altText, variantId, sortOrder, isPrimary } = body;
+  const { url, publicId, altText, variantId, sortOrder, isPrimary } = body;
 
   if (!url) return badRequest("Image URL is required");
 
@@ -299,6 +307,7 @@ async function handleAddImage(productId: string, req: Request): Promise<Response
       data: {
         productId,
         url,
+        publicId: publicId ?? null,
         altText: altText ?? null,
         variantId: variantId ?? null,
         sortOrder: sortOrder ?? 0,
@@ -314,9 +323,10 @@ async function handleAddImage(productId: string, req: Request): Promise<Response
 
 async function handleDeleteImage(productId: string, imageId: string): Promise<Response> {
   try {
-    await prisma.productImage.delete({
-      where: { id: imageId, productId },
-    });
+    const image = await prisma.productImage.findUnique({ where: { id: imageId, productId } });
+    if (!image) return notFound("Image not found");
+    if (image.publicId) await destroyCloudinaryAsset(image.publicId);
+    await prisma.productImage.delete({ where: { id: imageId, productId } });
     return success({ message: "Image deleted" });
   } catch (err) {
     return notFound("Image not found");

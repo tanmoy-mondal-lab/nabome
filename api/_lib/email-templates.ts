@@ -1,6 +1,7 @@
 export type EmailType =
   | "welcome"
   | "email_verification"
+  | "email_change"
   | "order_confirmation"
   | "payment_success"
   | "payment_failure"
@@ -243,19 +244,23 @@ ${button(`https://www.nabome.online/account/orders/${data.orderId || ""}`, "Revi
 }
 
 function passwordReset(data: Record<string, unknown>): EmailTemplate {
-  const resetLink = data.resetLink as string;
+  const firstName = (data.firstName as string) || "there";
+  const verificationCode = data.verificationCode as string;
 
-  const body = `<h1 style="font-size:20px;font-weight:700;margin:0 0 4px">Reset Your Password</h1>
+  const body = `<h1 style="font-size:22px;font-weight:700;margin:0 0 8px">Reset Your Password, ${firstName}!</h1>
 <p style="color:${BRAND.textMuted};font-size:14px;margin:0 0 24px">We received a request to reset the password for your নবME account.</p>
 
-${button(resetLink, "Reset Password")}
+<div style="background:${BRAND.bgColor};border-radius:6px;padding:24px;margin-bottom:24px;text-align:center">
+<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:${BRAND.textDark}">Use the verification code below to reset your password:</p>
+<div style="background:#ffffff;border:2px dashed ${BRAND.primaryColor};border-radius:8px;padding:16px;margin:0 auto;display:inline-block;font-size:32px;font-weight:700;letter-spacing:8px;color:${BRAND.primaryColor};font-family:'Courier New',monospace">${verificationCode}</div>
+</div>
 
-<p style="font-size:13px;color:${BRAND.textMuted};margin-top:24px">If you did not request a password reset, you can safely ignore this email. The link will expire in 1 hour.</p>
-<p style="font-size:13px;color:${BRAND.textMuted}">For security, please do not share this link with anyone.</p>`;
+<p style="font-size:13px;color:${BRAND.textMuted};line-height:1.5;margin:0 0 8px">This code will expire in 10 minutes.</p>
+<p style="font-size:12px;color:${BRAND.textMuted};line-height:1.5;margin:0">If you did not request a password reset, you can safely ignore this email.</p>`;
 
   return {
     subject: "Reset Your নবME Password",
-    preview: "Password reset link for your নবME account.",
+    preview: `${firstName}, your password reset code: ${verificationCode}`,
     html: baseLayout(body),
     notificationEvent: "password_reset",
   };
@@ -382,6 +387,29 @@ ${button("https://www.nabome.online/products", "Shop Now")}
   };
 }
 
+function emailChangeVerification(data: Record<string, unknown>): EmailTemplate {
+  const firstName = (data.firstName as string) || "there";
+  const verificationCode = data.verificationCode as string;
+
+  const body = `<h1 style="font-size:22px;font-weight:700;margin:0 0 8px">Confirm Your New Email, ${firstName}!</h1>
+<p style="color:${BRAND.textMuted};font-size:14px;margin:0 0 24px">You've requested to update the email address associated with your নবME account.</p>
+
+<div style="background:${BRAND.bgColor};border-radius:6px;padding:24px;margin-bottom:24px;text-align:center">
+<p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:${BRAND.textDark}">Use the verification code below to confirm your new email:</p>
+<div style="background:#ffffff;border:2px dashed ${BRAND.primaryColor};border-radius:8px;padding:16px;margin:0 auto;display:inline-block;font-size:32px;font-weight:700;letter-spacing:8px;color:${BRAND.primaryColor};font-family:'Courier New',monospace">${verificationCode}</div>
+</div>
+
+<p style="font-size:13px;color:${BRAND.textMuted};line-height:1.5;margin:0 0 8px">This code will expire in 10 minutes.</p>
+<p style="font-size:12px;color:${BRAND.textMuted};line-height:1.5;margin:0">If you didn't request this change, please ignore this email or contact support.</p>`;
+
+  return {
+    subject: "Confirm Your New Email — নবME",
+    preview: `${firstName}, your email change verification code: ${verificationCode}`,
+    html: baseLayout(body),
+    notificationEvent: "email_change",
+  };
+}
+
 function emailVerification(data: Record<string, unknown>): EmailTemplate {
   const firstName = (data.firstName as string) || "there";
   const verificationCode = data.verificationCode as string;
@@ -410,6 +438,7 @@ function emailVerification(data: Record<string, unknown>): EmailTemplate {
 const TEMPLATES: Record<EmailType, (data: Record<string, unknown>) => EmailTemplate> = {
   welcome: welcomeEmail,
   email_verification: emailVerification,
+  email_change: emailChangeVerification,
   order_confirmation: orderConfirmation,
   payment_success: paymentSuccess,
   payment_failure: paymentFailure,

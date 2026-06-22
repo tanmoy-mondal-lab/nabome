@@ -32,7 +32,7 @@ export const adminApi = {
   deleteProduct: (id: string) => api.delete<{ message: string }>(`/admin/products/${id}`),
   updateProductVariants: (id: string, variants: unknown[]) =>
     api.put<{ variants: unknown[] }>(`/admin/products/${id}/variants`, { variants }),
-  addProductImage: (id: string, data: { url: string; altText?: string; isPrimary?: boolean; variantId?: string }) =>
+  addProductImage: (id: string, data: { url: string; publicId?: string; altText?: string; isPrimary?: boolean; variantId?: string }) =>
     api.post<unknown>(`/admin/products/${id}/images`, data),
   deleteProductImage: (productId: string, imageId: string) =>
     api.delete(`/admin/products/${productId}/images/${imageId}`),
@@ -59,6 +59,7 @@ export const adminApi = {
   getCustomers: (params?: Record<string, string | number | undefined>) =>
     api.get<{ customers: unknown[]; pagination: unknown }>("/admin/customers", { params }),
   getCustomer: (id: string) => api.get<{ customer: unknown }>(`/admin/customers/${id}`),
+  updateCustomer: (id: string, data: unknown) => api.put<{ customer: unknown }>(`/admin/customers/${id}`, data),
 
   // CMS Pages
   getPages: () => api.get<{ pages: unknown[] }>("/admin/cms/pages"),
@@ -128,8 +129,10 @@ export const adminApi = {
   // Media
   getMedia: (params?: Record<string, string | number | undefined>) =>
     api.get<{ assets: unknown[]; folders: unknown[]; pagination: unknown }>("/admin/media", { params }),
-  createMedia: (data: { url: string; type?: string; altText?: string; folder?: string; tags?: string[] }) =>
+  createMedia: (data: { url: string; publicId?: string; type?: string; altText?: string; folder?: string; tags?: string[]; width?: number | null; height?: number | null; fileSize?: number | null; mimeType?: string }) =>
     api.post<unknown>("/admin/media", data),
+  updateMedia: (id: string, data: { altText?: string; folder?: string }) =>
+    api.put<unknown>(`/admin/media/${id}`, data),
   deleteMedia: (id: string) => api.delete<{ message: string }>(`/admin/media/${id}`),
 
   // Contact Submissions
@@ -178,7 +181,15 @@ export const adminApi = {
   },
 
   // Enhanced Lookbook
+  getLookbooks: () => api.get<{ lookbooks: unknown[] }>("/admin/lookbooks"),
   getLookbook: (id: string) => api.get<{ lookbook: unknown }>(`/admin/lookbooks/${id}`),
+  createLookbook: (data: unknown) => api.post<unknown>("/admin/lookbooks", data),
+  updateLookbook: (id: string, data: unknown) => api.put<unknown>(`/admin/lookbooks/${id}`, data),
+  deleteLookbook: (id: string) => api.delete<{ message: string }>(`/admin/lookbooks/${id}`),
+  addLookbookItem: (lookbookId: string, data: unknown) =>
+    api.post<unknown>(`/admin/lookbooks/${lookbookId}/items`, data),
+  removeLookbookItem: (lookbookId: string, itemId: string) =>
+    api.delete<{ message: string }>(`/admin/lookbooks/${lookbookId}/items/${itemId}`),
   updateLookbookItem: (lookbookId: string, itemId: string, data: unknown) =>
     api.put<unknown>(`/admin/lookbooks/${lookbookId}/items/${itemId}`, data),
   reorderLookbookItems: (lookbookId: string, order: { id: string; sortOrder: number }[]) =>
@@ -213,6 +224,7 @@ export const adminApi = {
   // Tags
   getTags: () => api.get<{ tags: unknown[] }>("/admin/product-tags"),
   createTag: (data: unknown) => api.post<unknown>("/admin/product-tags", data),
+  updateTag: (id: string, data: unknown) => api.put<unknown>(`/admin/product-tags/${id}`, data),
   deleteTag: (id: string) => api.delete<{ message: string }>(`/admin/product-tags/${id}`),
 
   // Assign labels/tags to product
@@ -260,10 +272,12 @@ export const adminApi = {
     api.put<{ archived: number }>("/admin/products/bulk/delete", { ids }),
 
   // Upload
-  uploadFile: (file: File) => {
+  uploadFile: (file: File, folder?: string, altText?: string) => {
     const formData = new FormData();
     formData.append("file", file);
-    return api.post<{ url: string; publicId: string; width: number; height: number }>("/upload", formData, {
+    if (folder) formData.append("folder", folder);
+    if (altText) formData.append("altText", altText);
+    return api.post<{ url: string; publicId: string; width: number; height: number; format: string; bytes: number; type: string; mimeType: string; folder: string }>("/upload", formData, {
       headers: {} as Record<string, string>,
     });
   },
@@ -331,7 +345,62 @@ export const adminApi = {
   updateFaq: (id: string, data: unknown) => api.put<unknown>(`/admin/faq/${id}`, data),
   deleteFaq: (id: string) => api.delete<{ message: string }>(`/admin/faq/${id}`),
 
+  // Webhook Events
+  getWebhookEvents: (params?: Record<string, string | number | undefined>) =>
+    api.get<{ events: unknown[]; pagination: unknown }>("/admin/webhooks/events", { params }),
+  reprocessWebhookEvent: (id: string) =>
+    api.post<unknown>(`/admin/webhooks/reprocess/${id}`),
+  reconcileWebhookOrder: (orderId: string) =>
+    api.post<unknown>(`/admin/webhooks/reconcile/${orderId}`),
+
   // Invoices
   getOrderInvoice: (orderId: string) => api.get<{ html: string }>(`/admin/orders/${orderId}/invoice`),
   generateOrderInvoice: (orderId: string) => api.post<{ order: unknown }>(`/admin/orders/${orderId}/invoice/generate`),
+
+  // ─── Campaigns ───
+  getCampaigns: () => api.get<{ campaigns: unknown[] }>("/admin/campaigns"),
+  getCampaign: (id: string) => api.get<{ campaign: unknown }>(`/admin/campaigns/${id}`),
+  createCampaign: (data: unknown) => api.post<{ campaign: unknown }>("/admin/campaigns", data),
+  updateCampaign: (id: string, data: unknown) => api.put<{ campaign: unknown }>(`/admin/campaigns/${id}`, data),
+  deleteCampaign: (id: string) => api.delete<{ message: string }>(`/admin/campaigns/${id}`),
+
+  // ─── Coupon Redemptions ───
+  getCouponRedemptions: (params?: Record<string, string | number | undefined>) =>
+    api.get<{ redemptions: unknown[]; pagination: unknown }>("/admin/coupon-redemptions", { params }),
+
+  // ─── Abandoned Carts ───
+  getAbandonedCarts: (params?: Record<string, string | number | undefined>) =>
+    api.get<{ carts: unknown[]; pagination: unknown }>("/admin/abandoned-carts", { params }),
+
+  // ─── Audit Log ───
+  getAuditLog: (params?: Record<string, string | number | undefined>) =>
+    api.get<{ logs: unknown[]; pagination: unknown }>("/admin/audit-log", { params }),
+
+  // ─── Wishlists ───
+  getWishlists: (params?: Record<string, string | number | undefined>) =>
+    api.get<{ wishlistItems: unknown[]; pagination: unknown }>("/admin/wishlists", { params }),
+
+  // ─── Product Attributes ───
+  getProductAttributes: (productId: string) =>
+    api.get<{ attributes: unknown[] }>(`/admin/product-attributes/${productId}`),
+  createProductAttribute: (productId: string, data: unknown) =>
+    api.post<{ attribute: unknown }>(`/admin/product-attributes/${productId}`, data),
+  updateProductAttribute: (id: string, data: unknown) =>
+    api.put<{ attribute: unknown }>(`/admin/product-attributes/${id}`, data),
+  deleteProductAttribute: (id: string) =>
+    api.delete<{ message: string }>(`/admin/product-attributes/${id}`),
+
+  // ─── Addresses ───
+  getAddresses: (params?: Record<string, string | number | undefined>) =>
+    api.get<{ addresses: unknown[]; pagination: unknown }>("/admin/addresses", { params }),
+
+  // ─── Sessions ───
+  getSessions: (params?: Record<string, string | number | undefined>) =>
+    api.get<{ sessions: unknown[]; pagination: unknown }>("/admin/sessions", { params }),
+  revokeSession: (id: string) =>
+    api.delete<{ message: string }>(`/admin/sessions/${id}`),
+
+  // ─── Login Attempts ───
+  getLoginAttempts: (params?: Record<string, string | number | undefined>) =>
+    api.get<{ attempts: unknown[]; pagination: unknown }>("/admin/login-attempts", { params }),
 };

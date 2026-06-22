@@ -4,12 +4,17 @@ import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
+import { SafeImage } from "../../components/SafeImage";
 import { Edit3, Trash2, Plus, Download, Upload, Copy, CheckCircle, Filter } from "lucide-react";
 
 interface Product {
   id: string; name: string; slug: string; status: string; basePrice: number; salePrice?: number; stock: number;
-  category?: { name: string }; images: { url: string }[]; _count: { variants: number };
+  category?: { name: string }; subcategory?: { name: string }; collection?: { name: string }; brand?: { name: string; logoUrl?: string };
+  images: { url: string }[]; _count: { variants: number };
   isActive: boolean; isFeatured: boolean; isNew: boolean; gender: string;
+  compareAtPrice?: number; costPrice?: number; discountPercent?: number; currency?: string;
+  material?: string; careInstructions?: string; sortOrder?: number;
+  createdAt?: string; updatedAt?: string;
 }
 
 export default function ProductsPage() {
@@ -80,7 +85,7 @@ export default function ProductsPage() {
       render: (p: Product) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-neutral-100 rounded overflow-hidden shrink-0">
-            {p.images?.[0] ? <img src={p.images[0].url} alt="" className="w-full h-full object-cover" /> : null}
+            {p.images?.[0] ? <SafeImage src={p.images[0].url} alt="" className="w-full h-full object-cover" useTransform={false} /> : null}
           </div>
           <div>
             <p className="font-medium text-neutral-900">{p.name}</p>
@@ -90,12 +95,22 @@ export default function ProductsPage() {
       ),
     },
     { key: "category", label: "Category", render: (p: Product) => <span className="text-sm text-neutral-500">{p.category?.name ?? "—"}</span> },
+    { key: "subcategory", label: "Subcategory", render: (p: Product) => <span className="text-sm text-neutral-500">{p.subcategory?.name ?? "—"}</span> },
+    { key: "collection", label: "Collection", render: (p: Product) => <span className="text-sm text-neutral-500">{p.collection?.name ?? "—"}</span> },
+    { key: "brand", label: "Brand", render: (p: Product) => p.brand?.name ? <span className="text-sm text-neutral-500">{p.brand.name}</span> : <span className="text-sm text-neutral-300">—</span> },
     { key: "basePrice", label: "Price", sortable: true, render: (p: Product) => (
-      <div><span className="font-medium">₹{p.basePrice?.toLocaleString()}</span>{p.salePrice ? <span className="text-xs text-red-500 ml-1 line-through">₹{p.salePrice.toLocaleString()}</span> : null}</div>
+      <div><span className="font-medium">₹{p.basePrice?.toLocaleString()}</span>{p.salePrice ? <span className="text-xs text-red-500 ml-1 line-through">₹{p.salePrice.toLocaleString()}</span> : null}
+      {p.compareAtPrice ? <span className="text-xs text-neutral-400 ml-1 line-through">₹{p.compareAtPrice.toLocaleString()}</span> : null}
+      {p.costPrice ? <span className="text-[10px] text-neutral-300 ml-1">cost: ₹{p.costPrice.toLocaleString()}</span> : null}
+      </div>
     )},
     { key: "stock", label: "Stock", sortable: true, render: (p: Product) => (
       <span className={`text-sm ${p.stock === 0 ? "text-red-600 font-medium" : p.stock <= 5 ? "text-amber-600 font-medium" : "text-neutral-500"}`}>{p.stock === 0 ? "OOS" : p.stock}</span>
     )},
+    { key: "material", label: "Material", render: (p: Product) => <span className="text-xs text-neutral-500">{p.material ?? "—"}</span> },
+    { key: "currency", label: "Currency", render: (p: Product) => <span className="text-xs text-neutral-500">{p.currency ?? "INR"}</span> },
+    { key: "sortOrder", label: "Order", render: (p: Product) => <span className="text-xs text-neutral-400">{p.sortOrder ?? 0}</span> },
+    { key: "createdAt", label: "Created", render: (p: Product) => <span className="text-xs text-neutral-400">{p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "—"}</span> },
     { key: "isActive", label: "Status", render: (p: Product) => <StatusBadge status={p.isActive ? "published" : "draft"} /> },
   ];
 

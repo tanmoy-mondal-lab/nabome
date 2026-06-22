@@ -13,13 +13,19 @@ export function Footer() {
   const [subscribed, setSubscribed] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      api.get("/api/settings", { params: { action: "public" } }),
-      api.get("/api/cms", { params: { action: "footer" } }),
-    ]).then(([s, f]) => {
-      setSettings(s as Record<string, unknown>);
-      setFooterSections(((f as Record<string, unknown>).sections ?? []) as Record<string, unknown>[]);
-    }).catch(() => {});
+    api.get("/api/settings", { params: { action: "public" } })
+      .then((s) => setSettings(s as Record<string, unknown>))
+      .catch(() => {});
+    api.get("/api/cms/footer")
+      .then((f) => setFooterSections(((f as Record<string, unknown>).sections ?? []) as Record<string, unknown>[]))
+      .catch(() => {});
+    const onSettingsUpdate = () => {
+      api.get("/api/settings", { params: { action: "public" } })
+        .then((s) => setSettings(s as Record<string, unknown>))
+        .catch(() => {});
+    };
+    window.addEventListener("settings:updated", onSettingsUpdate);
+    return () => window.removeEventListener("settings:updated", onSettingsUpdate);
   }, []);
 
   async function handleNewsletter(e: React.FormEvent) {
@@ -50,8 +56,8 @@ export function Footer() {
       <div className="border-b border-white/5">
         <div className="container-wide py-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
-            <p className="text-xs tracking-[0.2em] uppercase text-accent-goldLight mb-1">Stay Connected</p>
-            <p className="text-lg font-display text-white">Join the নবME Inner Circle</p>
+            <p className="text-xs tracking-[0.2em] uppercase text-accent-goldLight mb-1">{(settings.preferences as Record<string, unknown>)?.newsletterTitle as string || "Stay Connected"}</p>
+            <p className="text-lg font-display text-white">{(settings.preferences as Record<string, unknown>)?.newsletterSubtitle as string || "Join the নবME Inner Circle"}</p>
           </div>
           <form onSubmit={handleNewsletter} className="flex w-full max-w-md border-b border-white/20">
             <input
@@ -71,7 +77,7 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-6 gap-10">
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-2">
-            <Link to="/" className="font-display text-xl tracking-[0.3em] text-white">নবME</Link>
+            <Link to="/" className="font-display text-xl tracking-[0.3em] text-white">{(settings.siteName as string) || "নবME"}</Link>
             <p className="text-sm text-neutral-500 mt-4 leading-relaxed max-w-xs">
               {(settings.tagline as string) || "Premium fashion for the discerning individual. Curated collections delivered worldwide."}
             </p>
@@ -94,20 +100,29 @@ export function Footer() {
           {/* Link Columns */}
           {columns.map((col, i) => (
             <div key={i} className="col-span-1">
-              {col.map((section) => (
-                <div key={section.id as string} className={i > 0 || col.indexOf(section) > 0 ? "mt-8 first:mt-0" : ""}>
-                  <h4 className="text-xs uppercase tracking-[0.15em] text-white font-medium mb-5">
-                    {section.title as string}
-                  </h4>
-                  {(section.links as { label: string; url: string }[])?.map((link, j) => (
-                    <Link key={j} to={link.url}
-                      className="block text-sm text-neutral-400 hover:text-white py-1.5 transition-colors duration-200"
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-                </div>
-              ))}
+              {col.map((section) => {
+                const contentType = section.contentType as string;
+                const content = section.content as Record<string, unknown> | null;
+                const links = contentType === "links" ? (content?.links as { label: string; url: string }[] ?? []) : [];
+                const text = contentType === "text" ? (content?.text as string ?? "") : "";
+                return (
+                  <div key={section.id as string} className={i > 0 || col.indexOf(section) > 0 ? "mt-8 first:mt-0" : ""}>
+                    <h4 className="text-xs uppercase tracking-[0.15em] text-white font-medium mb-5">
+                      {section.title as string}
+                    </h4>
+                    {contentType === "links" && links.map((link, j) => (
+                      <Link key={j} to={link.url}
+                        className="block text-sm text-neutral-400 hover:text-white py-1.5 transition-colors duration-200"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                    {contentType === "text" && (
+                      <p className="text-sm text-neutral-400 leading-relaxed">{text}</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ))}
 
@@ -115,11 +130,8 @@ export function Footer() {
           <div className="col-span-2 md:col-span-1">
             <h4 className="text-xs uppercase tracking-[0.15em] text-white font-medium mb-5">Contact</h4>
             <div className="space-y-3 text-sm text-neutral-400">
-              <p>hello@nabome.com</p>
-              <p>+91 1800 123 4567</p>
-              <p className="text-xs leading-relaxed mt-2">
-                Mon–Sat, 10 AM – 7 PM IST
-              </p>
+              <p>{(settings.contactEmail as string) || "hello@নবME.com"}</p>
+              <p>{(settings.contactPhone as string) || "+91 1800 123 4567"}</p>
             </div>
           </div>
         </div>
@@ -129,13 +141,22 @@ export function Footer() {
       <div className="border-t border-white/5">
         <div className="container-wide py-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-neutral-600">
-            &copy; {new Date().getFullYear()} নবME. All rights reserved.
+            &copy; {new Date().getFullYear()} {(settings.siteName as string) || "নবME"}. All rights reserved.
           </p>
           <div className="flex items-center gap-6 text-xs text-neutral-500">
-            <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-            <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
-            <Link to="/faq" className="hover:text-white transition-colors">FAQ</Link>
-            <Link to="/shipping" className="hover:text-white transition-colors">Shipping & Returns</Link>
+            {((settings.preferences as Record<string, unknown>)?.footerLinks as { label: string; url: string }[])?.length
+              ? ((settings.preferences as Record<string, unknown>)?.footerLinks as { label: string; url: string }[]).map((link) => (
+                <Link key={link.url} to={link.url} className="hover:text-white transition-colors">{link.label}</Link>
+              ))
+              : (
+                <>
+                  <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+                  <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
+                  <Link to="/faq" className="hover:text-white transition-colors">FAQ</Link>
+                  <Link to="/shipping" className="hover:text-white transition-colors">Shipping & Returns</Link>
+                </>
+              )
+            }
           </div>
           <button onClick={scrollToTop}
             className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-white transition-colors"

@@ -4,7 +4,32 @@ import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { Edit3, Trash2, Plus, BookOpen } from "lucide-react";
-import { type Lookbook } from "../../cms/core/cms-types";
+
+interface LookbookItem {
+  id: string;
+  title: string;
+  description?: string;
+  imageUrl?: string;
+  linkUrl?: string;
+  sortOrder: number;
+}
+
+interface Lookbook {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  story?: string;
+  season?: string;
+  year?: number;
+  featuredImage?: string;
+  layout?: string;
+  status: string;
+  tags?: string[];
+  items?: LookbookItem[];
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function LookbooksPage() {
   const [lookbooks, setLookbooks] = useState<Lookbook[]>([]);
@@ -14,26 +39,8 @@ export default function LookbooksPage() {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await adminApi.getPages();
-      const all = (res.pages as Array<Record<string, unknown>>) ?? [];
-      const filtered = all.filter((p) => p.type === "lookbook");
-      setLookbooks(filtered.map((p) => ({
-        id: p.id as string,
-        title: p.title as string,
-        slug: p.slug as string,
-        description: "",
-        story: "",
-        season: (p as Record<string, string>).season ?? "",
-        year: new Date().getFullYear(),
-        featuredImage: "",
-        layout: "grid" as const,
-        status: (p.status as Lookbook["status"]) ?? "draft",
-        tags: [],
-        items: [],
-        seo: {} as Lookbook["seo"],
-        createdAt: p.createdAt as string,
-        updatedAt: p.updatedAt as string,
-      })));
+      const res = await adminApi.getLookbooks();
+      setLookbooks((res.lookbooks as Lookbook[]) ?? []);
     } catch { /* ignore */ } finally {
       setLoading(false);
     }
@@ -44,7 +51,7 @@ export default function LookbooksPage() {
   const handleDelete = async (id: string) => {
     if (!window.confirm("Delete this lookbook?")) return;
     try {
-      await adminApi.deletePage(id);
+      await adminApi.deleteLookbook(id);
       fetch();
     } catch { /* ignore */ }
   };
@@ -55,7 +62,11 @@ export default function LookbooksPage() {
       render: (l: Lookbook) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-neutral-100 rounded overflow-hidden shrink-0 flex items-center justify-center">
-            <BookOpen size={16} className="text-neutral-400" />
+            {l.featuredImage ? (
+              <img src={l.featuredImage} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <BookOpen size={16} className="text-neutral-400" />
+            )}
           </div>
           <div>
             <p className="font-medium text-neutral-900">{l.title}</p>

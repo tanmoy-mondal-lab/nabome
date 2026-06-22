@@ -1,18 +1,22 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { api } from "../../lib/api/client";
 import { ProductCard } from "../components/ProductCard";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { PriceDisplay } from "../components/PriceDisplay";
 import { ShoppingBag } from "lucide-react";
+import { SafeImage } from "../../components/SafeImage";
 import { useCartStore } from "../stores/cart-store";
+import { useAuthStore } from "../../stores/auth-store";
 
 export default function LookbookDetailPage() {
   const { slug } = useParams<{ slug: string }>();
+  const navigate = useNavigate();
   const [lookbook, setLookbook] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(true);
   const addItem = useCartStore((s) => s.addItem);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
     if (!slug) return;
@@ -64,7 +68,7 @@ export default function LookbookDetailPage() {
                 {type === "video" ? (
                   <video src={item.videoUrl as string} controls autoPlay muted loop className="w-full rounded" />
                 ) : (
-                  <img src={item.imageUrl as string} alt={item.caption as string || ""} className="w-full rounded" />
+                  <SafeImage src={item.imageUrl as string} alt={item.caption as string || ""} className="w-full rounded" />
                 )}
                 {!!item.caption && <p className="text-sm text-neutral-500 mt-3 text-center italic">{item.caption as string}</p>}
               </motion.div>
@@ -75,7 +79,7 @@ export default function LookbookDetailPage() {
             const image = item.imageUrl as string;
             return (
               <div key={item.id as string}>
-                {image && <img src={image} alt="" className="w-full rounded mb-6" />}
+                {image && <SafeImage src={image} alt="" className="w-full rounded mb-6" />}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                   {products.map((p) => (
                     <ProductCard key={p.id as string} product={p} />
@@ -84,6 +88,10 @@ export default function LookbookDetailPage() {
                 <div className="text-center mt-6">
                   <button
                     onClick={() => {
+                      if (!isAuthenticated) {
+                        navigate("/auth/login", { state: { from: window.location.pathname } });
+                        return;
+                      }
                       products.forEach((p) => {
                         const images = (p.images as { url: string }[]) ?? [];
                         const variants = (p.variants as Record<string, unknown>[]) ?? [];

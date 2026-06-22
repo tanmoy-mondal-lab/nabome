@@ -22,10 +22,12 @@ interface ShippingZone {
   countries: string[];
   states: string[];
   pincodes: string[];
+  isActive: boolean;
+  sortOrder: number;
   rates: ShippingRate[];
 }
 
-const emptyZone = { name: "", countries: [], states: [], pincodes: [] };
+const emptyZone = { name: "", countries: [], states: [], pincodes: [], isActive: true, sortOrder: 0 };
 const emptyRate = {
   name: "", method: "standard", minOrderValue: null, maxOrderValue: null,
   baseRate: 0, perKgRate: null, freeAbove: null,
@@ -58,7 +60,7 @@ export default function ShippingZonesPage() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const openAddZone = () => {
-    setEditingZone({ name: "", countries: [], states: [], pincodes: [] });
+    setEditingZone({ name: "", countries: [], states: [], pincodes: [], isActive: true, sortOrder: 0 });
     setZoneInputs({ countries: "", states: "", pincodes: "" });
     setEditingZoneId(null);
     setZoneModalOpen(true);
@@ -70,6 +72,8 @@ export default function ShippingZonesPage() {
       countries: zone.countries,
       states: zone.states,
       pincodes: zone.pincodes,
+      isActive: zone.isActive,
+      sortOrder: zone.sortOrder,
     });
     setZoneInputs({
       countries: zone.countries.join(", "),
@@ -88,6 +92,8 @@ export default function ShippingZonesPage() {
         countries: zoneInputs.countries.split(",").map((s) => s.trim()).filter(Boolean),
         states: zoneInputs.states.split(",").map((s) => s.trim()).filter(Boolean),
         pincodes: zoneInputs.pincodes.split(",").map((s) => s.trim()).filter(Boolean),
+        isActive: editingZone.isActive ?? true,
+        sortOrder: editingZone.sortOrder ?? 0,
       };
       if (editingZoneId) {
         await adminApi.updateShippingZone(editingZoneId, data);
@@ -186,11 +192,15 @@ export default function ShippingZonesPage() {
               {/* Zone Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
                 <div>
-                  <h3 className="font-medium text-neutral-900">{zone.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-medium text-neutral-900">{zone.name}</h3>
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${zone.isActive !== false ? "bg-green-100 text-green-700" : "bg-neutral-100 text-neutral-500"}`}>{zone.isActive !== false ? "Active" : "Inactive"}</span>
+                  </div>
                   <p className="text-xs text-neutral-500 mt-0.5">
                     {zone.countries.join(", ") || "All countries"}
                     {zone.states.length > 0 && ` · ${zone.states.length} states`}
                     {zone.pincodes.length > 0 && ` · ${zone.pincodes.length} pincodes`}
+                    {zone.sortOrder > 0 && ` · Order ${zone.sortOrder}`}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -306,6 +316,22 @@ export default function ShippingZonesPage() {
               placeholder="400001, 110001, 560001"
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Sort Order</label>
+              <input type="number" min={0} value={editingZone.sortOrder ?? 0}
+                onChange={(e) => setEditingZone({ ...editingZone, sortOrder: Number(e.target.value) })}
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            </div>
+            <div className="flex items-end pb-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={editingZone.isActive ?? true}
+                  onChange={(e) => setEditingZone({ ...editingZone, isActive: e.target.checked })}
+                  className="accent-brand-500" />
+                <span className="text-xs text-neutral-600">Active</span>
+              </label>
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setZoneModalOpen(false)} className="px-4 py-2 text-sm font-medium border border-neutral-200 rounded hover:bg-neutral-50">

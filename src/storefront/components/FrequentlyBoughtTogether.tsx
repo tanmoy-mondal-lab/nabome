@@ -1,6 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import { useCartStore } from "../stores/cart-store";
+import { useAuthStore } from "../../stores/auth-store";
 import { PriceDisplay } from "./PriceDisplay";
 import { formatPrice } from "../../lib/utils/format";
+import { SafeImage } from "../../components/SafeImage";
 
 interface FrequentlyBoughtTogetherProps {
   products: Record<string, unknown>[];
@@ -9,6 +12,8 @@ interface FrequentlyBoughtTogetherProps {
 
 export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBoughtTogetherProps) {
   const addItem = useCartStore((s) => s.addItem);
+  const navigate = useNavigate();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   if (!products.length) return null;
 
   const mainPrice = Number(mainProduct.basePrice ?? 0);
@@ -17,6 +22,10 @@ export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBo
   const bundlePrice = total - discount;
 
   function handleAddAll() {
+    if (!isAuthenticated) {
+      navigate("/auth/login", { state: { from: window.location.pathname } });
+      return;
+    }
     const all = [mainProduct, ...products];
     all.forEach((p) => {
       const images = (p.images as { url: string }[]) ?? [];
@@ -50,7 +59,7 @@ export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBo
           return (
             <div key={i} className="flex items-center gap-2">
               {i > 0 && <span className="text-neutral-300 text-lg">+</span>}
-              <img src={images[0]?.url || "/placeholder.svg"} alt={p.name as string} className="w-16 h-20 object-cover bg-neutral-100" />
+              <SafeImage src={images[0]?.url || "/placeholder.svg"} alt={p.name as string} className="w-16 h-20 object-cover bg-neutral-100" />
             </div>
           );
         })}

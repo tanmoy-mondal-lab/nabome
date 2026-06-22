@@ -118,7 +118,8 @@ async function request<T>(
 ): Promise<T> {
   const { body, params, ...fetchOptions } = options;
 
-  const url = new URL(`${BASE_URL}${endpoint}`, window.location.origin);
+  const cleanEndpoint = endpoint.startsWith("/api") ? endpoint : `${BASE_URL}${endpoint}`;
+  const url = new URL(cleanEndpoint, window.location.origin);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== "") {

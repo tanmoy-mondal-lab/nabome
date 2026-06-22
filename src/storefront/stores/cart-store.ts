@@ -23,12 +23,14 @@ interface CartState {
   couponCode: string | null;
   discount: number;
   discountType: "percentage" | "fixed" | null;
+  justAdded: string | null;
   addItem: (item: Omit<CartItem, "id">) => void;
   removeItem: (variantId: string) => void;
   updateQuantity: (variantId: string, quantity: number) => void;
   clearCart: () => void;
   applyCoupon: (code: string, discount: number, type: "percentage" | "fixed") => void;
   removeCoupon: () => void;
+  clearJustAdded: () => void;
   itemCount: () => number;
   subtotal: () => number;
   discountAmount: () => number;
@@ -42,6 +44,7 @@ export const useCartStore = create<CartState>()(
       couponCode: null,
       discount: 0,
       discountType: null,
+      justAdded: null,
 
       addItem: (item) => {
         const items = get().items;
@@ -53,10 +56,16 @@ export const useCartStore = create<CartState>()(
                 ? { ...i, quantity: Math.min(i.quantity + item.quantity, i.maxQuantity) }
                 : i
             ),
+            justAdded: item.variantId,
           });
         } else {
-          set({ items: [...items, { ...item, id: crypto.randomUUID() }] });
+          set({
+            items: [...items, { ...item, id: crypto.randomUUID() }],
+            justAdded: item.variantId,
+          });
         }
+        // Clear the "just added" indicator after 2s
+        setTimeout(() => get().clearJustAdded(), 2000);
       },
 
       removeItem: (variantId) => {
@@ -64,7 +73,10 @@ export const useCartStore = create<CartState>()(
       },
 
       updateQuantity: (variantId, quantity) => {
-        if (quantity < 1) return;
+        if (quantity < 1) {
+          get().removeItem(variantId);
+          return;
+        }
         set({
           items: get().items.map((i) =>
             i.variantId === variantId ? { ...i, quantity: Math.min(quantity, i.maxQuantity) } : i
@@ -77,6 +89,8 @@ export const useCartStore = create<CartState>()(
       applyCoupon: (code, discount, type) => set({ couponCode: code, discount, discountType: type }),
 
       removeCoupon: () => set({ couponCode: null, discount: 0, discountType: null }),
+
+      clearJustAdded: () => set({ justAdded: null }),
 
       itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
 

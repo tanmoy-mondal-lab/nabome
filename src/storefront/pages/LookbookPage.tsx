@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { api } from "../../lib/api/client";
 import { Breadcrumbs } from "../components/Breadcrumbs";
+import { SafeImage } from "../../components/SafeImage";
 
 export default function LookbookPage() {
   const [lookbooks, setLookbooks] = useState<Record<string, unknown>[]>([]);
@@ -38,7 +39,7 @@ export default function LookbookPage() {
               <motion.div key={lb.id as string} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
                 <Link to={`/lookbooks/${lb.slug}`} className="group block">
                   <div className="aspect-[4/5] bg-neutral-100 overflow-hidden relative">
-                    {cover && <img src={cover} alt={lb.title as string} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />}
+                    {cover && <SafeImage src={cover} alt={lb.title as string} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-6">
                       {season && <p className="text-accent-gold text-xs tracking-[0.2em] uppercase mb-2">{season}{year ? ` ${year}` : ""}</p>}

@@ -3,6 +3,8 @@ import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { StatusBadge } from "../common/StatusBadge";
 import { EmptyState } from "../common/EmptyState";
+import { MediaPicker } from "../common/MediaPicker";
+import { SafeImage } from "../../components/SafeImage";
 import { Edit3, Trash2, Plus, Images } from "lucide-react";
 
 interface Banner {
@@ -35,7 +37,9 @@ export default function BannersPage() {
       setBanners(extracted.length ? extracted : [
         { id: "1", title: "Summer Collection", subtitle: "Discover the new arrivals", imageUrl: "", linkUrl: "/shop", position: "hero", isActive: true },
       ]);
-    } catch { /* ignore */ } finally {
+    } catch (error) {
+      console.error("Failed to fetch banner sections:", error);
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -92,7 +96,7 @@ export default function BannersPage() {
             <div key={banner.id} className="bg-white border border-neutral-200 rounded overflow-hidden group">
               <div className="aspect-[16/9] bg-neutral-100 relative">
                 {banner.imageUrl ? (
-                  <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover" />
+                  <SafeImage src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover" useTransform={false} />
                 ) : (
                   <div className="flex items-center justify-center h-full text-neutral-300"><Images size={32} /></div>
                 )}
@@ -136,9 +140,7 @@ export default function BannersPage() {
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
           </div>
           <div>
-            <label className="block text-xs text-neutral-500 mb-1">Image URL *</label>
-            <input required value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+            <MediaPicker value={form.imageUrl} onChange={(url: string) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="banners" />
           </div>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Link URL</label>

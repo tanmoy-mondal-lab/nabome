@@ -7,7 +7,7 @@ import { Edit3, Trash2, Plus, LayoutList } from "lucide-react";
 interface FooterSection {
   id: string;
   title: string;
-  type: string;
+  contentType: string;
   content: string;
   sortOrder: number;
   isActive: boolean;
@@ -18,27 +18,29 @@ export default function FooterBuilder() {
   const [sections, setSections] = useState<FooterSection[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<FooterSection | null>(null);
-  const [form, setForm] = useState({ title: "", type: "links", content: "", isActive: true, linksRaw: "[]" });
+  const [form, setForm] = useState({ title: "", contentType: "links", content: "", isActive: true, linksRaw: "[]" });
 
   const fetch = useCallback(async () => {
     try {
       const res = await adminApi.getFooterSections();
       setSections((res.sections as FooterSection[]) ?? []);
-    } catch { /* ignore */ }
+    } catch (error) {
+      console.error("Failed to fetch footer sections:", error);
+    }
   }, []);
 
   useEffect(() => { fetch(); }, [fetch]);
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ title: "", type: "links", content: "", isActive: true, linksRaw: "[]" });
+    setForm({ title: "", contentType: "links", content: "", isActive: true, linksRaw: "[]" });
     setModalOpen(true);
   };
 
   const openEdit = (sec: FooterSection) => {
     setEditItem(sec);
     setForm({
-      title: sec.title, type: sec.type, content: sec.content ?? "",
+      title: sec.title, contentType: sec.contentType, content: typeof sec.content === 'object' ? JSON.stringify(sec.content) : (sec.content ?? ""),
       isActive: sec.isActive, linksRaw: JSON.stringify(sec.links ?? [], null, 2),
     });
     setModalOpen(true);
@@ -47,7 +49,10 @@ export default function FooterBuilder() {
   const handleSave = async () => {
     try {
       const links = JSON.parse(form.linksRaw || "[]");
-      const payload = { ...form, links, sortOrder: editItem?.sortOrder ?? sections.length };
+      const payload: Record<string, unknown> = {
+        title: form.title, contentType: form.contentType, content: form.linksRaw ? { links } : form.content,
+        isActive: form.isActive, sortOrder: editItem?.sortOrder ?? sections.length,
+      };
       if (editItem) {
         await adminApi.updateFooterSection(editItem.id, payload);
       } else {
@@ -91,7 +96,7 @@ export default function FooterBuilder() {
             <div key={sec.id} className="bg-white border border-neutral-200 rounded p-4 flex items-center justify-between">
               <div>
                 <h3 className="font-medium text-sm text-neutral-900">{sec.title}</h3>
-                <p className="text-xs text-neutral-500 capitalize">{sec.type} · {sec.links?.length ?? 0} links</p>
+                <p className="text-xs text-neutral-500 capitalize">{sec.contentType} · {(sec as unknown as { links?: [] }).links?.length ?? 0} links</p>
               </div>
               <div className="flex items-center gap-1">
                 <button onClick={() => openEdit(sec)} className="p-2 hover:bg-neutral-100 rounded text-neutral-400">
@@ -117,8 +122,8 @@ export default function FooterBuilder() {
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Type</label>
-              <select value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value })}
+              <select value={form.contentType}
+                onChange={(e) => setForm({ ...form, contentType: e.target.value })}
                 className="w-full px-3 py-2 text-sm border border-neutral-200 rounded">
                 <option value="links">Links</option>
                 <option value="text">Text/About</option>

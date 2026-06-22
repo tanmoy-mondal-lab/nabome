@@ -1,10 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { PasswordInput } from "../components/PasswordInput";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const email = searchParams.get("email") || "";
+  const code = searchParams.get("code") || "";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -12,6 +15,11 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!email || !code) {
+      setValidationError("Missing email or verification code. Please start over.");
+      return;
+    }
 
     if (password.length < 8) {
       setValidationError("Password must be at least 8 characters");
@@ -23,7 +31,7 @@ export default function ResetPasswordPage() {
     }
 
     try {
-      await resetPassword(password);
+      await resetPassword(email, code, password);
       navigate("/auth/login", { state: { reset: true } });
     } catch {
       // Error set by hook
@@ -37,7 +45,7 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <Link to="/" className="font-display text-3xl tracking-widest text-brand-500">
-            NABOME
+            নবME
           </Link>
           <h1 className="mt-6 font-display text-2xl text-neutral-900">Reset your password</h1>
           <p className="mt-2 text-sm text-neutral-500">Choose a new password for your account</p>

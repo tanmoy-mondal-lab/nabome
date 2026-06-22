@@ -6,6 +6,7 @@ import { customerApi } from "../../lib/api/customer";
 import { formatPrice } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
+import { SafeImage } from "../../components/SafeImage";
 
 const returnReasons = [
   { value: "wrong_item", label: "Wrong item received" },
@@ -142,7 +143,7 @@ export default function ReturnRequestPage() {
                     }}
                     className="accent-neutral-900"
                   />
-                  <img src={item.image || "/placeholder.svg"} alt={item.name} className="w-14 h-18 object-cover bg-neutral-100 shrink-0 rounded" />
+                  <SafeImage src={item.image || "/placeholder.svg"} alt={item.name} className="w-14 h-18 object-cover bg-neutral-100 shrink-0 rounded" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-neutral-900">{item.name}</p>
                     {item.size && <p className="text-xs text-neutral-400">Size: {item.size}</p>}
@@ -198,7 +199,7 @@ export default function ReturnRequestPage() {
               <div className="grid grid-cols-4 gap-3">
                 {evidenceImages.map((img, i) => (
                   <div key={i} className="relative aspect-square bg-neutral-100 border rounded">
-                    <img src={img} alt="" className="w-full h-full object-cover rounded" />
+                    <SafeImage src={img} alt="" className="w-full h-full object-cover rounded" />
                     <button onClick={() => removeImage(i)} className="absolute top-1 right-1 w-5 h-5 bg-black/50 text-white rounded-full flex items-center justify-center">
                       <X className="w-3 h-3" />
                     </button>

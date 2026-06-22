@@ -30,7 +30,7 @@ export interface AuthResponse {
 export interface UserProfile {
   id: string;
   email: string;
-  role: "customer" | "super_admin";
+  role: "customer" | "admin";
   firstName: string;
   lastName: string | null;
   phone: string | null;
@@ -86,8 +86,11 @@ export const authApi = {
   forgotPassword: (email: string) =>
     api.post<{ message: string }>("/auth/forgot-password", { email }),
 
-  resetPassword: (password: string) =>
-    api.post<{ message: string }>("/auth/reset-password", { password }),
+  verifyResetCode: (email: string, code: string) =>
+    api.post<{ message: string }>("/auth/verify-reset-code", { email, code }),
+
+  resetPassword: (email: string, code: string, password: string) =>
+    api.post<{ message: string }>("/auth/reset-password", { email, code, password }),
 
   changePassword: (currentPassword: string, newPassword: string) =>
     api.post<{ message: string }>("/auth/change-password", { currentPassword, newPassword }),
@@ -103,4 +106,10 @@ export const authApi = {
 
   resendVerification: (email: string) =>
     api.post<{ message: string }>("/auth/resend-verification", { email }),
+
+  changeEmail: (newEmail: string) =>
+    api.post<{ message: string }>("/auth/change-email", { newEmail }),
+
+  verifyEmailChange: (code: string) =>
+    api.post<{ message: string }>("/auth/verify-email-change", { code }),
 };

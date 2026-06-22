@@ -23,9 +23,9 @@ interface Coupon {
 
 interface Announcement {
   id: string;
-  message: string;
+  text: string;
   linkUrl: string;
-  linkLabel: string;
+  linkText: string;
   position: string;
   isActive: boolean;
 }
@@ -46,7 +46,7 @@ export default function MarketingPage() {
 
   // Announcement form
   const [annForm, setAnnForm] = useState({
-    message: "", linkUrl: "", linkLabel: "", position: "top", isActive: true,
+    text: "", linkUrl: "", linkText: "", position: "top", isActive: true,
   });
   const [editAnn, setEditAnn] = useState<Announcement | null>(null);
 
@@ -106,13 +106,13 @@ export default function MarketingPage() {
   // Announcement handlers
   const openAnnCreate = () => {
     setEditAnn(null);
-    setAnnForm({ message: "", linkUrl: "", linkLabel: "", position: "top", isActive: true });
+    setAnnForm({ text: "", linkUrl: "", linkText: "", position: "top", isActive: true });
     setModalOpen(true);
   };
 
   const openAnnEdit = (a: Announcement) => {
     setEditAnn(a);
-    setAnnForm({ message: a.message, linkUrl: a.linkUrl ?? "", linkLabel: a.linkLabel ?? "", position: a.position, isActive: a.isActive });
+    setAnnForm({ text: a.text, linkUrl: a.linkUrl ?? "", linkText: a.linkText ?? "", position: a.position, isActive: a.isActive });
     setModalOpen(true);
   };
 
@@ -301,8 +301,8 @@ export default function MarketingPage() {
               {announcements.map((a) => (
                 <div key={a.id} className="bg-white border border-neutral-200 rounded p-4 flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-neutral-900 truncate">{a.message}</p>
-                    <p className="text-xs text-neutral-400 capitalize">{a.position} · {a.linkLabel || "No link"}</p>
+                    <p className="text-sm font-medium text-neutral-900 truncate">{a.text}</p>
+                    <p className="text-xs text-neutral-400 capitalize">{a.position} · {a.linkText || "No link"}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <StatusBadge status={a.isActive ? "active" : "inactive"} />
@@ -319,15 +319,15 @@ export default function MarketingPage() {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs text-neutral-500 mb-1">Message *</label>
-                <input required value={annForm.message}
-                  onChange={(e) => setAnnForm({ ...annForm, message: e.target.value })}
+                <input required value={annForm.text}
+                  onChange={(e) => setAnnForm({ ...annForm, text: e.target.value })}
                   className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-neutral-500 mb-1">Link Label</label>
-                  <input value={annForm.linkLabel}
-                    onChange={(e) => setAnnForm({ ...annForm, linkLabel: e.target.value })}
+                  <input value={annForm.linkText}
+                    onChange={(e) => setAnnForm({ ...annForm, linkText: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
                 </div>
                 <div>

@@ -53,12 +53,15 @@ export async function handleAuthRequest(
     case "updateMe":         return handleUpdateMe(req, ctx);
     case "refresh":          return handleRefresh(req);
     case "forgotPassword":   return handleForgotPassword(req);
+    case "verifyResetCode":  return handleVerifyResetCode(req);
     case "resetPassword":    return handleResetPassword(req);
     case "changePassword":   return handleChangePassword(req, ctx);
     case "sessions":         return handleSessions(req, ctx);
     case "deleteSession":    return handleDeleteSession(req, ctx, params[0]);
     case "verifyEmail":      return handleVerifyEmail(req);
     case "resendVerification": return handleResendVerification(req);
+    case "changeEmail":      return handleChangeEmail(req, ctx);
+    case "verifyEmailChange": return handleVerifyEmailChange(req, ctx);
     default:
       return badRequest("Unknown auth action");
   }
@@ -567,7 +570,147 @@ async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Respon
   }
 }
 
-// ─── FORGOT PASSWORD ───
+// ─── CHANGE EMAIL (initiate) ───
+
+async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+
+  const body = await req.json();
+  const { newEmail } = body;
+
+  if (!newEmail || typeof newEmail !== "string") {
+    return badRequest("New email is required");
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(newEmail)) {
+    return badRequest("Invalid email format");
+  }
+
+  const normalizedEmail = newEmail.toLowerCase().trim();
+
+  // Check new email is not already taken by another profile
+  const existing = await prisma.profile.findUnique({
+    where: { email: normalizedEmail },
+    select: { id: true },
+  });
+
+  if (existing) {
+    return badRequest("This email is already in use");
+  }
+
+  // Generate 6-digit verification code
+  const pendingEmailToken = generateVerificationCode();
+  const pendingEmailTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  // Store pending email info
+  await prisma.profile.update({
+    where: { id: ctx.userId },
+    data: {
+      pendingEmail: normalizedEmail,
+      pendingEmailToken,
+      pendingEmailTokenExpiresAt,
+    },
+  });
+
+  console.log(`[EMAIL CHANGE CODE] User ${ctx.userId}: ${normalizedEmail} -> ${pendingEmailToken}`);
+
+  // Send verification code to the new email
+  const profile = await prisma.profile.findUnique({
+    where: { id: ctx.userId },
+    select: { firstName: true, email: true },
+  });
+
+  try {
+    await sendEmailNotification("email_change", {
+      email: normalizedEmail,
+      firstName: profile?.firstName || "there",
+      verificationCode: pendingEmailToken,
+    }, { profileId: ctx.userId });
+  } catch (emailErr) {
+    console.error("[EMAIL] Failed to send email change code:", (emailErr as Error).message);
+  }
+
+  return success({ message: "Verification code sent to your new email address" });
+}
+
+// ─── VERIFY EMAIL CHANGE ───
+
+async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+
+  const body = await req.json();
+  const { code } = body;
+
+  if (!code || !/^\d{6}$/.test(code)) {
+    return badRequest("Verification code must be a 6-digit number");
+  }
+
+  const profile = await prisma.profile.findUnique({
+    where: { id: ctx.userId },
+    select: {
+      id: true,
+      email: true,
+      pendingEmail: true,
+      pendingEmailToken: true,
+      pendingEmailTokenExpiresAt: true,
+    },
+  });
+
+  if (!profile) {
+    return unauthorized("Profile not found");
+  }
+
+  if (!profile.pendingEmail || !profile.pendingEmailToken) {
+    return badRequest("No pending email change. Request a change first.");
+  }
+
+  if (profile.pendingEmailToken !== code) {
+    return badRequest("Invalid verification code");
+  }
+
+  if (profile.pendingEmailTokenExpiresAt && profile.pendingEmailTokenExpiresAt < new Date()) {
+    return badRequest("Verification code has expired. Request a new one.");
+  }
+
+  const newEmail = profile.pendingEmail;
+
+  // Update email in Supabase Auth
+  try {
+    const supabase = getAdminClient();
+    const { error: supabaseError } = await supabase.auth.admin.updateUserById(ctx.userId, {
+      email: newEmail,
+      email_confirm: true,
+    });
+
+    if (supabaseError) {
+      console.error("[EMAIL CHANGE] Supabase update failed:", supabaseError.message);
+      return serverError(new Error("Failed to update email. Please try again."));
+    }
+  } catch (err) {
+    console.error("[EMAIL CHANGE] Supabase error:", err);
+    return serverError(new Error("Failed to update email. Please try again."));
+  }
+
+  // Update email in Prisma profile and clear pending fields
+  await prisma.profile.update({
+    where: { id: ctx.userId },
+    data: {
+      email: newEmail,
+      pendingEmail: null,
+      pendingEmailToken: null,
+      pendingEmailTokenExpiresAt: null,
+    },
+  });
+
+  logAction(ctx.userId, "auth.email_changed", {
+    metadata: { oldEmail: profile.email, newEmail },
+  });
+
+  return success({ message: "Email updated successfully" });
+}
+
+// ─── FORGOT PASSWORD (send 6-digit code) ───
 
 async function handleForgotPassword(req: Request): Promise<Response> {
   const body = await req.json();
@@ -575,72 +718,135 @@ async function handleForgotPassword(req: Request): Promise<Response> {
 
   if (!email) return badRequest("Email is required");
 
-  const siteUrl = process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "";
+  const normalizedEmail = email.toLowerCase().trim();
 
-  // Generate reset link using admin client (does not send Supabase email)
-  const supabase = getAdminClient();
-  const { data, error } = await supabase.auth.admin.generateLink({
-    type: "recovery",
-    email,
+  const profile = await prisma.profile.findUnique({
+    where: { email: normalizedEmail },
+    select: { id: true, firstName: true, email: true },
   });
 
-  if (error || !data.properties?.action_link) {
-    // Fallback: don't reveal whether account exists
-    return success({ message: "If an account exists with this email, a password reset link has been sent." });
+  if (!profile) {
+    return success({ message: "If an account exists with this email, a verification code has been sent." });
   }
 
-  const resetLink = data.properties.action_link;
+  // Generate 6-digit code
+  const resetPasswordToken = generateVerificationCode();
+  const resetPasswordTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-  // Send branded password reset email via Resend
+  await prisma.profile.update({
+    where: { id: profile.id },
+    data: { resetPasswordToken, resetPasswordTokenExpiresAt },
+  });
+
+  console.log(`[RESET CODE] ${normalizedEmail}: ${resetPasswordToken}`);
+
   try {
     await sendEmailNotification("password_reset", {
-      email,
-      resetLink,
-    });
+      email: normalizedEmail,
+      firstName: profile.firstName,
+      verificationCode: resetPasswordToken,
+    }, { profileId: profile.id });
   } catch (mailErr) {
     console.error("[EMAIL] Failed to send password reset:", (mailErr as Error).message);
   }
 
-  return success({ message: "If an account exists with this email, a password reset link has been sent." });
+  return success({ message: "If an account exists with this email, a verification code has been sent." });
+}
+
+// ─── VERIFY RESET CODE ───
+
+async function handleVerifyResetCode(req: Request): Promise<Response> {
+  const body = await req.json();
+  const { email, code } = body;
+
+  if (!email || !code) {
+    return badRequest("Email and verification code are required");
+  }
+
+  if (!/^\d{6}$/.test(code)) {
+    return badRequest("Verification code must be a 6-digit number");
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const profile = await prisma.profile.findFirst({
+    where: { email: normalizedEmail, resetPasswordToken: code },
+    select: { id: true, email: true, resetPasswordTokenExpiresAt: true },
+  });
+
+  if (!profile) {
+    return badRequest("Invalid verification code");
+  }
+
+  if (profile.resetPasswordTokenExpiresAt && profile.resetPasswordTokenExpiresAt < new Date()) {
+    return badRequest("Verification code has expired. Request a new one.");
+  }
+
+  return success({ message: "Code verified successfully" });
 }
 
 // ─── RESET PASSWORD ───
 
 async function handleResetPassword(req: Request): Promise<Response> {
   const body = await req.json();
-  const { password } = body;
+  const { email, code, password } = body;
 
-  if (!password || password.length < 8) {
+  if (!email || !code || !password) {
+    return badRequest("Email, verification code, and new password are required");
+  }
+
+  if (!/^\d{6}$/.test(code)) {
+    return badRequest("Verification code must be a 6-digit number");
+  }
+
+  if (password.length < 8) {
     return badRequest("Password must be at least 8 characters");
   }
 
-  // Supabase requires the access token from the reset link to be in the Authorization header
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return unauthorized("Missing or invalid reset token");
+  const normalizedEmail = email.toLowerCase().trim();
+
+  const profile = await prisma.profile.findFirst({
+    where: { email: normalizedEmail, resetPasswordToken: code },
+    select: { id: true, resetPasswordTokenExpiresAt: true },
+  });
+
+  if (!profile) {
+    return badRequest("Invalid verification code");
   }
 
-  const anonClient = getAnonClient();
-  const { data: userData, error } = await anonClient.auth.updateUser({ password });
+  if (profile.resetPasswordTokenExpiresAt && profile.resetPasswordTokenExpiresAt < new Date()) {
+    return badRequest("Verification code has expired. Request a new one.");
+  }
 
-  if (error) return badRequest(error.message);
+  // Update password via Supabase admin API
+  const supabase = getAdminClient();
+  const { error: updateError } = await supabase.auth.admin.updateUserById(profile.id, {
+    password,
+  });
 
-  // Invalidate all sessions after password reset (force re-login)
-  if (userData?.user?.id) {
-    try {
-      const adminClient = getAdminClient();
-      await adminClient.auth.admin.signOut(userData.user.id);
-      await prisma.authSession.updateMany({
-        where: { profileId: userData.user.id, isActive: true },
-        data: { isActive: false },
-      }).catch(() => {});
-    } catch {
-      // Non-critical
-    }
+  if (updateError) return badRequest(updateError.message);
+
+  // Clear reset token and invalidate sessions
+  await prisma.profile.update({
+    where: { id: profile.id },
+    data: {
+      resetPasswordToken: null,
+      resetPasswordTokenExpiresAt: null,
+    },
+  });
+
+  try {
+    await supabase.auth.admin.signOut(profile.id);
+    await prisma.authSession.updateMany({
+      where: { profileId: profile.id, isActive: true },
+      data: { isActive: false },
+    }).catch(() => {});
+  } catch {
+    // Non-critical
   }
 
   logAction(null, "auth.password_reset", {
-    metadata: {},
+    metadata: { email: normalizedEmail },
     ...extractRequestMeta(req),
   });
 

@@ -1,22 +1,28 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, ShoppingBag, Eye } from "lucide-react";
 import { PriceDisplay } from "./PriceDisplay";
 import { cn } from "../../lib/utils/cn";
-import { img } from "../../lib/seo";
+import { SafeImage } from "../../components/SafeImage";
+import { useWishlist } from "../hooks/useWishlist";
+import { useCartStore } from "../stores/cart-store";
+import { useAuthStore } from "../../stores/auth-store";
 
 interface ProductCardProps {
   product: Record<string, unknown>;
-  onAddToCart?: () => void;
-  onToggleWishlist?: () => void;
   onQuickView?: () => void;
-  isInWishlist?: boolean;
   view?: "grid" | "list";
 }
 
-export function ProductCard({ product, onAddToCart, onToggleWishlist, onQuickView, isInWishlist, view = "grid" }: ProductCardProps) {
+export function ProductCard({ product, onQuickView, view = "grid" }: ProductCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const navigate = useNavigate();
+  const { add: addToWishlist, remove: removeFromWishlist, isInWishlist } = useWishlist();
+  const addItem = useCartStore((s) => s.addItem);
+  const justAdded = useCartStore((s) => s.justAdded);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
   const name = product.name as string;
   const slug = product.slug as string;
   const price = Number(product.basePrice ?? 0);
@@ -31,11 +37,50 @@ export function ProductCard({ product, onAddToCart, onToggleWishlist, onQuickVie
   const colors = [...new Set(variants.map((v) => v.colorHex as string).filter(Boolean))];
   const discount = compareAtPrice && compareAtPrice > price ? Math.round((1 - price / compareAtPrice) * 100) : 0;
 
+  const defaultVariant = variants[0];
+  const inWishlist = defaultVariant ? isInWishlist(defaultVariant.id as string) : false;
+
+  function handleToggleWishlist(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!defaultVariant) return;
+    if (inWishlist) {
+      removeFromWishlist(defaultVariant.id as string);
+    } else {
+      addToWishlist(defaultVariant.id as string);
+    }
+  }
+
+  function handleAddToCart(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!defaultVariant) return;
+    if (!isAuthenticated) {
+      navigate("/auth/login", { state: { from: window.location.pathname } });
+      return;
+    }
+    addItem({
+      productId: product.id as string,
+      variantId: defaultVariant.id as string,
+      name: product.name as string,
+      slug: product.slug as string,
+      sku: (defaultVariant.sku as string) || "",
+      size: (defaultVariant.size as string) || "One Size",
+      color: (defaultVariant.color as string) || "",
+      colorHex: (defaultVariant.colorHex as string) || "",
+      image: primaryImage || "",
+      price: price + Number(defaultVariant.priceAdjustment ?? 0),
+      compareAtPrice: compareAtPrice,
+      quantity: 1,
+      maxQuantity: (defaultVariant.stock as number) || 99,
+    });
+  }
+
   if (view === "list") {
     return (
       <div className="premium-card flex gap-6 p-4 group">
         <Link to={`/products/${slug}`} className="w-32 h-44 shrink-0 bg-neutral-50 overflow-hidden">
-          <img src={primaryImage || "/placeholder.svg"} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-luxe-out group-hover:scale-105" />
+          <SafeImage src={primaryImage || "/placeholder.svg"} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-luxe-out group-hover:scale-105" />
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-2">
@@ -43,17 +88,17 @@ export function ProductCard({ product, onAddToCart, onToggleWishlist, onQuickVie
               {gender && <p className="text-caption tracking-fashion text-neutral-400 mb-1">{gender}</p>}
               <Link to={`/products/${slug}`} className="text-body-sm font-medium text-neutral-900 hover:text-brand-500 transition-colors line-clamp-1">{name}</Link>
             </div>
-            <button onClick={onToggleWishlist} className={cn("p-1.5 shrink-0 transition-colors", isInWishlist ? "text-red-500" : "text-neutral-300 hover:text-red-400")}>
-              <Heart className="w-4 h-4" fill={isInWishlist ? "currentColor" : "none"} />
+            <button onClick={handleToggleWishlist} className={cn("p-1.5 shrink-0 transition-colors", inWishlist ? "text-red-500" : "text-neutral-300 hover:text-red-400")}>
+              <Heart className="w-4 h-4" fill={inWishlist ? "currentColor" : "none"} />
             </button>
           </div>
           <PriceDisplay price={price} compareAtPrice={compareAtPrice} />
           <p className="text-body-xs text-neutral-500 mt-1 line-clamp-2">{product.shortDescription as string}</p>
           <div className="flex items-center gap-3 mt-3">
-            <button onClick={onAddToCart} className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 text-caption uppercase tracking-fashion hover:bg-neutral-800 transition-colors">
+            <button onClick={handleAddToCart} className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 text-caption uppercase tracking-fashion hover:bg-neutral-800 transition-colors">
               <ShoppingBag className="w-3.5 h-3.5" /> Add to Cart
             </button>
-            <button onClick={onQuickView} className="flex items-center gap-1 text-caption tracking-fashion uppercase text-neutral-500 hover:text-neutral-900 transition-colors">
+            <button onClick={(e) => { e.preventDefault(); onQuickView?.(); }} className="flex items-center gap-1 text-caption tracking-fashion uppercase text-neutral-500 hover:text-neutral-900 transition-colors">
               <Eye className="w-3.5 h-3.5" /> Quick View
             </button>
           </div>
@@ -69,14 +114,13 @@ export function ProductCard({ product, onAddToCart, onToggleWishlist, onQuickVie
     >
         <Link to={`/products/${slug}`} className="block aspect-[3/4] bg-neutral-50 overflow-hidden relative">
           {!imageLoaded && <div className="absolute inset-0 bg-neutral-100 animate-pulse" />}
-          <img
-            src={img(primaryImage, { width: 400 })} alt={name}
-            loading="lazy"
+          <SafeImage
+            src={primaryImage} alt={name}
             onLoad={() => setImageLoaded(true)}
             className={cn("w-full h-full object-cover transition-all duration-700 ease-luxe-out group-hover:scale-105", imageLoaded ? "opacity-100" : "opacity-0")}
           />
           {hoverImage && (
-            <img src={img(hoverImage, { width: 400 })} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-luxe-out" />
+            <SafeImage src={hoverImage} alt="" className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-luxe-out" />
           )}
 
         {discount > 0 && (
@@ -90,13 +134,13 @@ export function ProductCard({ product, onAddToCart, onToggleWishlist, onQuickVie
         )}
 
         <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <button onClick={(e) => { e.preventDefault(); onQuickView?.(); }} className="w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-subtle transition-all duration-200 text-neutral-600" aria-label="Quick view">
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onQuickView?.(); }} className="w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-subtle transition-all duration-200 text-neutral-600" aria-label="Quick view">
             <Eye className="w-4 h-4" />
           </button>
-          <button onClick={(e) => { e.preventDefault(); onToggleWishlist?.(); }} className={cn("w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-subtle transition-all duration-200 relative", isInWishlist ? "text-red-500" : "text-neutral-600")} aria-label="Toggle wishlist">
+          <button onClick={handleToggleWishlist} className={cn("w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-subtle transition-all duration-200", inWishlist ? "text-red-500" : "text-neutral-600")} aria-label="Toggle wishlist">
             <AnimatePresence mode="wait">
-              {isInWishlist ? (
-                <motion.span key="filled" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="absolute inset-0 flex items-center justify-center">
+              {inWishlist ? (
+                <motion.span key="filled" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex items-center justify-center">
                   <Heart className="w-4 h-4" fill="currentColor" />
                 </motion.span>
               ) : (
@@ -131,8 +175,29 @@ export function ProductCard({ product, onAddToCart, onToggleWishlist, onQuickVie
       </div>
 
       <div className="px-3 pb-3 pt-2">
-        <button onClick={onAddToCart} className="w-full py-2.5 bg-neutral-900 text-white text-caption uppercase tracking-wider opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 ease-luxe-out hover:bg-neutral-800 flex items-center justify-center gap-2">
-          <ShoppingBag className="w-3.5 h-3.5" /> Add to Cart
+        <button
+          onClick={handleAddToCart}
+          disabled={!defaultVariant}
+          className={cn(
+            "w-full py-2.5 text-caption uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300 ease-luxe-out",
+            justAdded === defaultVariant?.id
+              ? "bg-green-600 text-white opacity-100 translate-y-0"
+              : "bg-neutral-900 text-white opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 hover:bg-neutral-800",
+            !defaultVariant && "hidden"
+          )}
+        >
+          {justAdded === defaultVariant?.id ? (
+            <>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Added
+            </>
+          ) : (
+            <>
+              <ShoppingBag className="w-3.5 h-3.5" /> Add to Cart
+            </>
+          )}
         </button>
       </div>
     </motion.div>

@@ -54,7 +54,7 @@ export default function LoginPage() {
     try {
       const user = await login({ email, password });
       toast(`Welcome back, ${user.firstName}`, "success");
-      if (user.role === "super_admin") {
+        if (user.role === "admin") {
         navigate("/admin", { replace: true });
       } else {
         navigate(from, { replace: true });
@@ -71,7 +71,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           <div className="text-center mb-10">
             <Link to="/" className="font-display text-3xl tracking-widest text-brand-500">
-              NABOME
+              নবME
             </Link>
             <h1 className="mt-6 font-display text-2xl text-neutral-900">Welcome back</h1>
             <p className="mt-2 text-sm text-neutral-500">Sign in to your account</p>

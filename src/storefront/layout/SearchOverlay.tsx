@@ -5,7 +5,7 @@ import { Search, X, TrendingUp, Clock, Sparkles } from "lucide-react";
 import { useUIStore } from "../stores/ui-store";
 import { useSearch } from "../hooks/useProducts";
 import { api } from "../../lib/api/client";
-import { img } from "../../lib/seo";
+import { SafeImage } from "../../components/SafeImage";
 
 const TRENDING = ["Summer Dresses", "Linen Shirts", "Leather Bags", "Sneakers", "Silk Scarves"];
 
@@ -135,7 +135,7 @@ export function SearchOverlay() {
                     return (
                       <Link key={p.id as string} to={`/products/${p.slug}`} onClick={closeSearch} className="group premium-card p-3 shadow-subtle hover:shadow-card transition-shadow">
                         <div className="aspect-[3/4] bg-neutral-50 mb-2 overflow-hidden rounded">
-                          <img src={img(images[0]?.url, { width: 200 })} alt={p.name as string} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <SafeImage src={images[0]?.url} alt={p.name as string} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         </div>
                         <p className="text-sm font-medium text-neutral-900 truncate">{p.name as string}</p>
                         <p className="text-sm text-brand-600">₹{Number(p.basePrice).toLocaleString("en-IN")}</p>

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Modal } from "../common/Modal";
+import { SafeImage } from "../../components/SafeImage";
 import { Plus, X, Move, Crosshair } from "lucide-react";
+import { MediaPicker } from "../common/MediaPicker";
 import { type ShopTheLook, type ShopTheLookProduct } from "../../cms/core/cms-types";
 
 interface ShopTheLookManagerProps {
@@ -73,10 +75,7 @@ export default function ShopTheLookManager({ lookId, onSave, onClose }: ShopTheL
             className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
-          <label className="block text-xs text-neutral-500 mb-1">Look Image URL</label>
-          <input value={form.image}
-            onChange={(e) => setForm({ ...form, image: e.target.value })}
-            className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
+          <MediaPicker value={form.image} onChange={(url) => setForm({ ...form, image: url })} label="Look Image URL" folder="lookbooks" />
         </div>
       </div>
       <div>
@@ -98,12 +97,13 @@ export default function ShopTheLookManager({ lookId, onSave, onClose }: ShopTheL
         {form.image ? (
           <div className="relative bg-neutral-100 rounded overflow-hidden border border-neutral-200"
             style={{ maxHeight: "500px" }}>
-            <img
+            <SafeImage
               src={form.image}
               alt={form.name}
               className="w-full h-auto"
               onLoad={() => setImageLoaded(true)}
               crossOrigin="anonymous"
+              useTransform={false}
             />
             {imageLoaded && form.products.map((product, idx) => (
               <button

@@ -43,14 +43,13 @@ export const useAuthStore = create<AuthState>()(
           refreshToken,
           expiresAt,
           isAuthenticated: true,
-          isAdmin: user.role === "super_admin",
-          isLoading: false,
+          isAdmin: user.role === "admin",
         }),
 
       setUser: (user) =>
         set({
           user,
-          isAdmin: user.role === "super_admin",
+          isAdmin: user.role === "admin",
         }),
 
       setTokens: (accessToken, refreshToken, expiresAt) =>

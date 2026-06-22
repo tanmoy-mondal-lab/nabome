@@ -16,7 +16,7 @@ export default function DashboardPage() {
     try {
       const res = await adminApi.getDashboard();
       setData(res);
-    } catch { /* ignored */ } finally {
+    } catch (e) { console.error("Failed to fetch dashboard", e); } finally {
       setLoading(false);
     }
   }, []);

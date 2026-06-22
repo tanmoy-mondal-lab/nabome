@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ShoppingBag } from "lucide-react";
 import { PriceDisplay } from "./PriceDisplay";
+import { SafeImage } from "../../components/SafeImage";
 
 interface Hotspot {
   x: number;
@@ -23,7 +24,7 @@ export function ShopTheLook({ image, hotspots, title }: ShopTheLookProps) {
     <div className="relative">
       {title && <h3 className="text-lg font-display text-neutral-900 mb-4">{title}</h3>}
       <div className="relative">
-        <img src={image} alt={title || "Shop the look"} className="w-full object-cover" />
+        <SafeImage src={image} alt={title || "Shop the look"} className="w-full object-cover" />
         {hotspots.map((h, i) => (
           <div
             key={i}
@@ -47,7 +48,7 @@ export function ShopTheLook({ image, hotspots, title }: ShopTheLookProps) {
                   className="absolute left-1/2 -translate-x-1/2 top-10 w-56 bg-white shadow-xl rounded p-3 z-10"
                 >
                   <div className="flex gap-3">
-                    <img src={((h.product.images as { url: string }[])?.[0]?.url) || "/placeholder.svg"} alt="" className="w-16 h-20 object-cover bg-neutral-50" />
+                    <SafeImage src={((h.product.images as { url: string }[])?.[0]?.url) || "/placeholder.svg"} alt="" className="w-16 h-20 object-cover bg-neutral-50" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-neutral-900 truncate">{h.product.name as string}</p>
                       <PriceDisplay price={Number(h.product.basePrice ?? 0)} compareAtPrice={h.product.compareAtPrice ? Number(h.product.compareAtPrice) : null} size="sm" className="mt-1" />

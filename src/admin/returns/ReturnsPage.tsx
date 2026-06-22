@@ -9,12 +9,15 @@ import { RotateCcw, Clock, CheckCircle, XCircle, Banknote } from "lucide-react";
 
 interface ReturnEntry {
   id: string;
-  returnNumber: string;
-  orderNumber: string;
   reason: string;
+  reasonDetail?: string;
   status: string;
+  adminNote?: string;
+  evidenceImages: string[];
   createdAt: string;
-  customer: { firstName: string; lastName: string; email: string };
+  profile?: { id: string; firstName: string; lastName: string; email: string };
+  order?: { orderNumber: string; total: number };
+  refund?: { id: string; amount: number; status: string };
   orderId: string;
 }
 
@@ -90,26 +93,26 @@ export default function ReturnsPage() {
 
   const columns = [
     {
-      key: "returnNumber", label: "Return ID",
-      render: (r: ReturnEntry) => <span className="font-medium text-neutral-900">#{r.returnNumber}</span>,
+      key: "id", label: "Return ID",
+      render: (r: ReturnEntry) => <span className="font-medium text-neutral-900">#{r.id.slice(0, 8)}</span>,
     },
     {
       key: "orderNumber", label: "Order #",
-      render: (r: ReturnEntry) => <span className="text-neutral-600">#{r.orderNumber}</span>,
+      render: (r: ReturnEntry) => <span className="text-neutral-600">#{r.order?.orderNumber ?? "—"}</span>,
     },
     {
-      key: "customer", label: "Customer",
+      key: "profile", label: "Customer",
       render: (r: ReturnEntry) => (
         <div>
-          <p className="text-sm text-neutral-900">{r.customer?.firstName} {r.customer?.lastName}</p>
-          <p className="text-xs text-neutral-400">{r.customer?.email}</p>
+          <p className="text-sm text-neutral-900">{r.profile?.firstName} {r.profile?.lastName}</p>
+          <p className="text-xs text-neutral-400">{r.profile?.email}</p>
         </div>
       ),
     },
     {
       key: "reason", label: "Reason",
       render: (r: ReturnEntry) => (
-        <span className="text-sm text-neutral-600 max-w-[200px] truncate block">{r.reason}</span>
+        <span className="text-sm text-neutral-600 max-w-[200px] truncate block">{r.reason.replace(/_/g, " ")}</span>
       ),
     },
     {
@@ -193,7 +196,7 @@ export default function ReturnsPage() {
         <div className="space-y-4">
           {selectedReturn && (
             <p className="text-sm text-neutral-600">
-              {actionType === "approve" ? "Approve" : "Reject"} return #{selectedReturn.returnNumber} for order #{selectedReturn.orderNumber}?
+              {actionType === "approve" ? "Approve" : "Reject"} return #{selectedReturn.id.slice(0, 8)} for order #{selectedReturn.order?.orderNumber ?? "—"}?
             </p>
           )}
           <div>

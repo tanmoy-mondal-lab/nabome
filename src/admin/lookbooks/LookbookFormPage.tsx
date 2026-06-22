@@ -3,7 +3,20 @@ import { useParams, useNavigate } from "react-router-dom";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { Plus, X, GripVertical, Image, Link, Package } from "lucide-react";
-import { type LookbookItem, type Lookbook } from "../../cms/core/cms-types";
+import { MediaPicker } from "../common/MediaPicker";
+
+interface LookbookItem {
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  mediaUrl?: string;
+  linkUrl?: string;
+  linkText?: string;
+  productId?: string;
+  position: number;
+  aspectRatio?: number;
+}
 
 export default function LookbookFormPage() {
   const { id } = useParams();
@@ -12,8 +25,8 @@ export default function LookbookFormPage() {
 
   const [form, setForm] = useState({
     title: "", slug: "", description: "", story: "", season: "",
-    year: new Date().getFullYear(), featuredImage: "", layout: "grid" as Lookbook["layout"],
-    status: "draft" as Lookbook["status"], tags: "",
+    year: new Date().getFullYear(), featuredImage: "", layout: "grid",
+    status: "draft", tags: "",
     metaTitle: "", metaDescription: "",
   });
   const [items, setItems] = useState<LookbookItem[]>([]);
@@ -22,29 +35,28 @@ export default function LookbookFormPage() {
 
   useEffect(() => {
     if (isEdit) {
-      adminApi.getPage(id!).then((res) => {
-        const p = res.page as Record<string, unknown>;
-        const data = p.content as Record<string, unknown> ?? {};
+      adminApi.getLookbook(id!).then((res) => {
+        const lb = res.lookbook as Record<string, unknown>;
         setForm({
-          title: p.title as string ?? "",
-          slug: p.slug as string ?? "",
-          description: data.description as string ?? "",
-          story: data.story as string ?? "",
-          season: data.season as string ?? "",
-          year: (data.year as number) ?? new Date().getFullYear(),
-          featuredImage: data.featuredImage as string ?? "",
-          layout: (data.layout as Lookbook["layout"]) ?? "grid",
-          status: (p.status as Lookbook["status"]) ?? "draft",
-          tags: Array.isArray(data.tags) ? (data.tags as string[]).join(", ") : "",
-          metaTitle: (p as Record<string, string>).metaTitle ?? "",
-          metaDescription: (p as Record<string, string>).metaDescription ?? "",
+          title: (lb.title as string) ?? "",
+          slug: (lb.slug as string) ?? "",
+          description: (lb.description as string) ?? "",
+          story: (lb.story as string) ?? "",
+          season: (lb.season as string) ?? "",
+          year: (lb.year as number) ?? new Date().getFullYear(),
+          featuredImage: (lb.featuredImage as string) ?? "",
+          layout: (lb.layout as string) ?? "grid",
+          status: (lb.status as string) ?? "draft",
+          tags: Array.isArray(lb.tags) ? (lb.tags as string[]).join(", ") : "",
+          metaTitle: (lb.metaTitle as string) ?? "",
+          metaDescription: (lb.metaDescription as string) ?? "",
         });
-        setItems((data.items as LookbookItem[]) ?? []);
+        setItems((lb.items as LookbookItem[]) ?? []);
       }).catch(() => navigate("/admin/lookbooks"));
     }
   }, [id, isEdit, navigate]);
 
-  const addItem = (type: LookbookItem["type"]) => {
+  const addItem = (type: string) => {
     const newItem: LookbookItem = {
       id: crypto.randomUUID?.() ?? `${Date.now()}`,
       type,
@@ -69,20 +81,22 @@ export default function LookbookFormPage() {
       const payload = {
         title: form.title,
         slug: form.slug,
-        type: "lookbook",
+        description: form.description,
+        story: form.story,
+        season: form.season,
+        year: form.year,
+        featuredImage: form.featuredImage,
+        layout: form.layout,
         status: form.status,
-        content: {
-          ...form,
-          tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-          items,
-        },
+        tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
         metaTitle: form.metaTitle,
         metaDescription: form.metaDescription,
+        items,
       };
       if (isEdit) {
-        await adminApi.updatePage(id!, payload);
+        await adminApi.updateLookbook(id!, payload);
       } else {
-        await adminApi.createPage(payload);
+        await adminApi.createLookbook(payload);
       }
       navigate("/admin/lookbooks");
     } catch { /* ignore */ } finally {
@@ -141,7 +155,7 @@ export default function LookbookFormPage() {
               <div>
                 <label className="block text-xs text-neutral-500 mb-1">Layout</label>
                 <select value={form.layout}
-                  onChange={(e) => setForm({ ...form, layout: e.target.value as Lookbook["layout"] })}
+                  onChange={(e) => setForm({ ...form, layout: e.target.value })}
                   className="w-full px-3 py-2 text-sm border border-neutral-200 rounded">
                   <option value="grid">Grid</option>
                   <option value="masonry">Masonry</option>
@@ -225,12 +239,13 @@ export default function LookbookFormPage() {
                         </button>
                       </div>
                       {item.type !== "text" && (
-                        <input placeholder={item.type === "video" ? "Video URL" : "Image URL"} value={item.mediaUrl}
-                          onChange={(e) => updateItem(idx, "mediaUrl", e.target.value)}
-                          className="w-full px-2 py-1 text-xs border border-neutral-200 rounded" />
+                        <MediaPicker value={item.mediaUrl ?? ""} onChange={(url: string) => updateItem(idx, "mediaUrl", url)}
+                          folder={item.type === "video" ? "lookbooks/video" : "lookbooks"}
+                          accept={item.type === "video" ? "video/mp4,video/webm,video/quicktime" : "image/*"}
+                          placeholder={item.type === "video" ? "Video URL" : "Image URL"} />
                       )}
                       {item.type === "text" && (
-                        <textarea rows={3} placeholder="Content…" value={item.description}
+                        <textarea rows={3} placeholder="Content…" value={item.description ?? ""}
                           onChange={(e) => updateItem(idx, "description", e.target.value)}
                           className="w-full px-2 py-1 text-xs border border-neutral-200 rounded" />
                       )}
@@ -262,7 +277,7 @@ export default function LookbookFormPage() {
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Status</label>
               <select value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value as Lookbook["status"] })}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
                 className="w-full px-3 py-2 text-sm border border-neutral-200 rounded">
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
@@ -271,10 +286,7 @@ export default function LookbookFormPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-neutral-500 mb-1">Featured Image URL</label>
-              <input value={form.featuredImage}
-                onChange={(e) => setForm({ ...form, featuredImage: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
+              <MediaPicker value={form.featuredImage} onChange={(url: string) => setForm({ ...form, featuredImage: url })} label="Featured Image URL" folder="lookbooks" />
             </div>
           </section>
 

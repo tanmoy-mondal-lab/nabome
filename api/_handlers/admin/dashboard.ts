@@ -40,7 +40,7 @@ async function handleOverview(): Promise<Response> {
     ] = await Promise.all([
       prisma.product.count({ where: { isActive: true } }),
       prisma.order.count(),
-      prisma.profile.count({ where: { role: "customer" } }),
+      prisma.profile.count(),
       prisma.order.aggregate({
         _sum: { total: true },
         where: { paymentStatus: "paid" },
@@ -68,10 +68,9 @@ async function handleOverview(): Promise<Response> {
       }),
       prisma.review.count({ where: { isApproved: false } }),
       prisma.profile.findMany({
-        where: { role: "customer" },
         orderBy: { createdAt: "desc" },
         take: 10,
-        select: { id: true, firstName: true, lastName: true, email: true, createdAt: true },
+        select: { id: true, firstName: true, lastName: true, email: true, role: true, createdAt: true },
       }),
     ]);
 

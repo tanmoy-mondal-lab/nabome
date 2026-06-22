@@ -1,4 +1,4 @@
-export const SITE_NAME = "NABOME";
+export const SITE_NAME = "নবME";
 export const SITE_DESCRIPTION = "Premium Fashion Destination";
 export const CURRENCY = "INR";
 export const DEFAULT_COUNTRY = "India";

@@ -69,7 +69,7 @@ export const AUTH_ROUTES = (
 
 export const ADMIN_ROUTES = (
   <Route
-    path="admin"
+    path="admin/*"
     element={
       <AdminRoute>
         <AdminRoutes />

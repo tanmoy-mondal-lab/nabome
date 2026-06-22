@@ -7,6 +7,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useAuthStore } from "../stores/auth-store";
 import { authApi, type LoginRequest, type RegisterRequest } from "../lib/api/auth";
 import { ApiError } from "../lib/api/client";
+import { useCartStore } from "../storefront/stores/cart-store";
 
 const REFRESH_MARGIN_SECONDS = 60;
 
@@ -61,6 +62,7 @@ export function useAuth() {
       setError(null);
       try {
         const res = await authApi.login(data);
+        useCartStore.getState().clearCart();
         store.setAuth(res.user, res.session.accessToken, res.session.refreshToken, res.session.expiresAt);
         return res.user;
       } catch (err) {
@@ -93,6 +95,7 @@ export function useAuth() {
     } catch {
       // Proceed even if API call fails
     }
+    useCartStore.getState().clearCart();
     store.clearAuth();
   }, [store]);
 
@@ -112,16 +115,27 @@ export function useAuth() {
     try {
       return await authApi.forgotPassword(email);
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Failed to send reset email";
+      const message = err instanceof ApiError ? err.message : "Failed to send reset code";
       setError(message);
       throw err;
     }
   }, []);
 
-  const resetPassword = useCallback(async (password: string) => {
+  const verifyResetCode = useCallback(async (email: string, code: string) => {
     setError(null);
     try {
-      return await authApi.resetPassword(password);
+      return await authApi.verifyResetCode(email, code);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Invalid verification code";
+      setError(message);
+      throw err;
+    }
+  }, []);
+
+  const resetPassword = useCallback(async (email: string, code: string, password: string) => {
+    setError(null);
+    try {
+      return await authApi.resetPassword(email, code, password);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to reset password";
       setError(message);
@@ -168,6 +182,7 @@ export function useAuth() {
     logout,
     resendVerification,
     forgotPassword,
+    verifyResetCode,
     resetPassword,
     changePassword,
     updateProfile,

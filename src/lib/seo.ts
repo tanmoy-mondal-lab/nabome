@@ -1,4 +1,4 @@
-const SITE_URL = "https://www.nabome.online";
+const SITE_URL = "https://www.নবME.online";
 const SITE_NAME = "নবME — Premium Fashion";
 
 export function canonical(url: string): string {

@@ -1,3 +1,4 @@
+import { MediaPicker } from "../common/MediaPicker";
 import { useEffect, useState } from "react";
 import { adminApi } from "../../lib/api/admin";
 
@@ -65,16 +66,10 @@ export default function ThemePage() {
         <div className="bg-white border border-neutral-200 rounded p-6 space-y-4">
           <h2 className="font-medium text-sm text-neutral-900">Branding</h2>
           <div>
-            <label className="block text-xs text-neutral-500 mb-1">Logo URL</label>
-            <input value={form.logoUrl}
-              onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+            <MediaPicker value={form.logoUrl} onChange={(url) => setForm({ ...form, logoUrl: url })} label="Logo URL" folder="branding" />
           </div>
           <div>
-            <label className="block text-xs text-neutral-500 mb-1">Favicon URL</label>
-            <input value={form.faviconUrl}
-              onChange={(e) => setForm({ ...form, faviconUrl: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
+            <MediaPicker value={form.faviconUrl} onChange={(url) => setForm({ ...form, faviconUrl: url })} label="Favicon URL" folder="branding" accept="image/png,image/x-icon,image/svg+xml" />
           </div>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Font Family</label>

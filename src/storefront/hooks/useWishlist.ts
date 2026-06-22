@@ -20,13 +20,35 @@ export function useWishlist() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const add = async (variantId: string) => {
-    await api.post("/api/wishlist", { variantId });
-    await fetch();
+    // Optimistic: add immediately if not already present
+    const alreadyExists = items.some((i) => (i.variantId as string) === variantId);
+    if (alreadyExists) return;
+
+    // Optimistically add a placeholder
+    const placeholder = { variantId, _optimistic: true };
+    setItems((prev) => [placeholder, ...prev]);
+
+    try {
+      await api.post("/api/wishlist", { variantId });
+      // Re-fetch to get full data with product info
+      await fetch();
+    } catch {
+      // Rollback on error
+      setItems((prev) => prev.filter((i) => (i.variantId as string) !== variantId));
+    }
   };
 
   const remove = async (variantId: string) => {
-    await api.delete("/api/wishlist", { params: { variantId } });
+    // Optimistic: remove immediately
+    const previous = items;
     setItems((prev) => prev.filter((i) => (i.variantId as string) !== variantId));
+
+    try {
+      await api.delete(`/api/wishlist/${variantId}`);
+    } catch {
+      // Rollback on error
+      setItems(previous);
+    }
   };
 
   const isInWishlist = (variantId: string) => items.some((i) => (i.variantId as string) === variantId);

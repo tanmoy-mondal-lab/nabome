@@ -1,3 +1,4 @@
+import { MediaPicker } from "../common/MediaPicker";
 import { useState, useEffect } from "react";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
@@ -11,7 +12,7 @@ export default function SubcategoriesPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [edit, setEdit] = useState<Record<string, unknown> | null>(null);
-  const [form, setForm] = useState({ name: "", categoryId: "", description: "", imageUrl: "", sortOrder: 0 });
+  const [form, setForm] = useState({ name: "", slug: "", categoryId: "", description: "", imageUrl: "", sortOrder: 0, isActive: true });
 
   useEffect(() => {
     Promise.all([adminApi.getSubcategories(), adminApi.getCategories()]).then(([s, c]) => {
@@ -19,13 +20,15 @@ export default function SubcategoriesPage() {
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  function openCreate() { setEdit(null); setForm({ name: "", categoryId: "", description: "", imageUrl: "", sortOrder: 0 }); setShowModal(true); }
+  function openCreate() { setEdit(null); setForm({ name: "", slug: "", categoryId: "", description: "", imageUrl: "", sortOrder: 0, isActive: true }); setShowModal(true); }
 
   function openEdit(sub: Record<string, unknown>) {
     setEdit(sub);
     setForm({
-      name: sub.name as string ?? "", categoryId: (sub.categoryId as string) ?? (sub.category as Record<string, unknown>)?.id as string ?? "",
-      description: sub.description as string ?? "", imageUrl: sub.imageUrl as string ?? "", sortOrder: (sub.sortOrder as number) ?? 0,
+      name: sub.name as string ?? "", slug: sub.slug as string ?? "",
+      categoryId: (sub.categoryId as string) ?? (sub.category as Record<string, unknown>)?.id as string ?? "",
+      description: sub.description as string ?? "", imageUrl: sub.imageUrl as string ?? "",
+      sortOrder: (sub.sortOrder as number) ?? 0, isActive: (sub.isActive as boolean) ?? true,
     });
     setShowModal(true);
   }
@@ -67,11 +70,18 @@ export default function SubcategoriesPage() {
 
       <Modal open={showModal} title={edit ? "Edit Subcategory" : "Create Subcategory"} onClose={() => setShowModal(false)}>
         <div className="space-y-4">
-          <div><label className="block text-xs text-neutral-500 mb-1">Name *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div><label className="block text-xs text-neutral-500 mb-1">Name *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value, slug: edit ? form.slug : e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+            <div><label className="block text-xs text-neutral-500 mb-1">Slug</label><input value={form.slug} onChange={(e) => setForm({ ...form, slug: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+          </div>
           <div><label className="block text-xs text-neutral-500 mb-1">Parent Category *</label><select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className="w-full px-3 py-2 text-sm border rounded"><option value="">Select...</option>{(categories as Record<string, unknown>[]).map((c) => <option key={c.id as string} value={c.id as string}>{c.name as string}</option>)}</select></div>
           <div><label className="block text-xs text-neutral-500 mb-1">Description</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 text-sm border rounded" /></div>
-          <div><label className="block text-xs text-neutral-500 mb-1">Image URL</label><input value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+          <div><MediaPicker value={form.imageUrl} onChange={(url) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="categories" /></div>
           <div><label className="block text-xs text-neutral-500 mb-1">Sort Order</label><input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="rounded border-neutral-300" />
+            <span className="text-sm text-neutral-700">Active</span>
+          </label>
         </div>
         <div className="flex justify-end gap-2 pt-4 border-t mt-4">
           <button onClick={() => setShowModal(false)} type="button" className="px-4 py-2 text-sm border border-neutral-200 rounded text-neutral-600 hover:bg-neutral-50">Cancel</button>

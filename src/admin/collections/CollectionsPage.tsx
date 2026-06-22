@@ -1,7 +1,9 @@
+import { MediaPicker } from "../common/MediaPicker";
 import { useEffect, useState, useCallback } from "react";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
+import { SafeImage } from "../../components/SafeImage";
 import { Edit3, Trash2, Plus, LayoutGrid } from "lucide-react";
 
 interface Collection {
@@ -10,9 +12,14 @@ interface Collection {
   slug: string;
   description: string;
   isActive: boolean;
+  isFeatured?: boolean;
   sortOrder: number;
+  startDate?: string;
+  endDate?: string;
+  metaTitle?: string;
+  metaDesc?: string;
+  heroImageUrl?: string;
   _count: { products: number };
-  image?: { url: string };
 }
 
 export default function CollectionsPage() {
@@ -20,7 +27,7 @@ export default function CollectionsPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Collection | null>(null);
-  const [form, setForm] = useState({ name: "", slug: "", description: "", isActive: true, sortOrder: 0, imageUrl: "" });
+  const [form, setForm] = useState({ name: "", slug: "", description: "", isActive: true, isFeatured: false, sortOrder: 0, imageUrl: "", startDate: "", endDate: "", metaTitle: "", metaDesc: "" });
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -36,7 +43,7 @@ export default function CollectionsPage() {
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ name: "", slug: "", description: "", isActive: true, sortOrder: 0, imageUrl: "" });
+    setForm({ name: "", slug: "", description: "", isActive: true, isFeatured: false, sortOrder: 0, imageUrl: "", startDate: "", endDate: "", metaTitle: "", metaDesc: "" });
     setModalOpen(true);
   };
 
@@ -44,15 +51,16 @@ export default function CollectionsPage() {
     setEditItem(col);
     setForm({
       name: col.name, slug: col.slug, description: col.description ?? "",
-      isActive: col.isActive, sortOrder: col.sortOrder,
-      imageUrl: col.image?.url ?? "",
+      isActive: col.isActive, isFeatured: col.isFeatured ?? false, sortOrder: col.sortOrder,
+      imageUrl: col.heroImageUrl ?? "", startDate: col.startDate ? col.startDate.slice(0, 16) : "",
+      endDate: col.endDate ? col.endDate.slice(0, 16) : "", metaTitle: col.metaTitle ?? "", metaDesc: col.metaDesc ?? "",
     });
     setModalOpen(true);
   };
 
   const handleSave = async () => {
     try {
-      const payload = { ...form, image: form.imageUrl ? { url: form.imageUrl } : undefined };
+      const payload = { ...form, heroImageUrl: form.imageUrl || undefined, image: undefined };
       if (editItem) {
         await adminApi.updateCollection(editItem.id, payload);
       } else {
@@ -112,8 +120,8 @@ export default function CollectionsPage() {
           {collections.map((col) => (
             <div key={col.id} className="bg-white border border-neutral-200 rounded overflow-hidden group">
               <div className="aspect-[16/9] bg-neutral-100 relative">
-                {col.image?.url ? (
-                  <img src={col.image.url} alt={col.name} className="w-full h-full object-cover" />
+                {col.heroImageUrl ? (
+                  <SafeImage src={col.heroImageUrl} alt={col.name} className="w-full h-full object-cover" useTransform={false} />
                 ) : (
                   <div className="flex items-center justify-center h-full text-neutral-300">
                     <LayoutGrid size={32} />
@@ -131,14 +139,18 @@ export default function CollectionsPage() {
               <div className="p-4">
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium text-sm text-neutral-900">{col.name}</h3>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${
-                    col.isActive ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
-                  }`}>
-                    {col.isActive ? "Active" : "Inactive"}
-                  </span>
+                  <div className="flex gap-1">
+                    {col.isFeatured && <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">Featured</span>}
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${
+                      col.isActive ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
+                    }`}>
+                      {col.isActive ? "Active" : "Inactive"}
+                    </span>
+                  </div>
                 </div>
                 <p className="text-xs text-neutral-400 mt-1">
                   {col._count?.products ?? 0} products · Order {col.sortOrder}
+                  {col.startDate && <> · {new Date(col.startDate).toLocaleDateString()}{col.endDate ? ` — ${new Date(col.endDate).toLocaleDateString()}` : ""}</>}
                 </p>
               </div>
             </div>
@@ -167,29 +179,50 @@ export default function CollectionsPage() {
             </div>
           </div>
           <div>
-            <label className="block text-xs text-neutral-500 mb-1">Image URL</label>
-            <input
-              value={form.imageUrl}
-              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
+            <MediaPicker value={form.imageUrl} onChange={(url) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="collections" />
           </div>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Description</label>
             <textarea
-              rows={3} value={form.description}
+              rows={2} value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox" checked={form.isActive}
-              onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-              className="accent-brand-500"
-            />
-            <span className="text-xs text-neutral-600">Active</span>
-          </label>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Start Date</label>
+              <input type="datetime-local" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                className="w-full px-3 py-2 text-sm border rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">End Date</label>
+              <input type="datetime-local" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                className="w-full px-3 py-2 text-sm border rounded" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Meta Title</label>
+              <input value={form.metaTitle} onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
+                className="w-full px-3 py-2 text-sm border rounded" />
+            </div>
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Meta Description</label>
+              <input value={form.metaDesc} onChange={(e) => setForm({ ...form, metaDesc: e.target.value })}
+                className="w-full px-3 py-2 text-sm border rounded" />
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="accent-brand-500" />
+              <span className="text-xs text-neutral-600">Active</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.isFeatured} onChange={(e) => setForm({ ...form, isFeatured: e.target.checked })} className="accent-brand-500" />
+              <span className="text-xs text-neutral-600">Featured</span>
+            </label>
+          </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
             <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">

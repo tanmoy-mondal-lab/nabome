@@ -11,12 +11,21 @@ export function MobileNav() {
   const { isMobileMenuOpen, closeMobileMenu } = useUIStore();
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
-  const [menus, setMenus] = useState<{ label: string; url?: string; children?: { label: string; url?: string }[] }[]>([]);
+  const [menus, setMenus] = useState<{ label: string; link?: string; url?: string; children?: { label: string; link?: string; url?: string }[] }[]>([]);
+  const [settings, setSettings] = useState<Record<string, unknown>>({});
   const [expanded, setExpanded] = useState<string[]>([]);
 
   useEffect(() => {
-    api.get("/api/cms", { params: { action: "navigation" } })
-      .then((res) => setMenus(((res as Record<string, unknown>).menus ?? []) as typeof menus))
+    api.get("/api/cms/navigation")
+      .then((res) => {
+        const navData = res as { menus: Array<{ location: string } & Record<string, unknown>> };
+        const mobileMenu = navData.menus?.find((m) => m.location === "mobile");
+        const allItems = (mobileMenu?.items ?? navData.menus?.[0]?.items ?? []) as typeof menus;
+        setMenus(allItems);
+      })
+      .catch(() => {});
+    api.get("/api/settings", { params: { action: "public" } })
+      .then((s) => setSettings(s as Record<string, unknown>))
       .catch(() => {});
   }, []);
 
@@ -35,7 +44,7 @@ export function MobileNav() {
             className="fixed top-0 left-0 bottom-0 z-50 w-80 bg-white shadow-elevated"
           >
             <div className="flex items-center justify-between px-6 h-16 border-b border-neutral-100">
-              <span className="font-display text-xl tracking-widest">নবME</span>
+              <span className="font-display text-xl tracking-widest">{(settings.siteName as string) || "নবME"}</span>
               <button onClick={closeMobileMenu} className="p-1 hover:text-neutral-600 transition-colors"><X className="w-5 h-5" /></button>
             </div>
 
@@ -56,7 +65,7 @@ export function MobileNav() {
                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                               <div className="ml-4 space-y-1 pb-2">
                                 {menu.children!.map((child) => (
-                                  <Link key={child.label} to={child.url || "#"} onClick={closeMobileMenu} className="block px-4 py-2 text-sm text-neutral-500 hover:text-brand-500 tracking-fashion">
+                                  <Link key={child.label} to={(child.link || child.url) as string || "#"} onClick={closeMobileMenu} className="block px-4 py-2 text-sm text-neutral-500 hover:text-brand-500 tracking-fashion">
                                     {child.label}
                                   </Link>
                                 ))}
@@ -66,7 +75,7 @@ export function MobileNav() {
                         </AnimatePresence>
                       </>
                     ) : (
-                      <Link to={menu.url || "#"} onClick={closeMobileMenu} className="block px-4 py-3 text-sm text-neutral-700 hover:text-brand-500 tracking-fashion">
+                      <Link to={(menu.link || menu.url) as string || "#"} onClick={closeMobileMenu} className="block px-4 py-3 text-sm text-neutral-700 hover:text-brand-500 tracking-fashion">
                         {menu.label}
                       </Link>
                     )}

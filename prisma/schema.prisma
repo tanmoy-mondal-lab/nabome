@@ -22,7 +22,7 @@ datasource db {
 
 enum UserRole {
   customer
-  super_admin
+  admin
 }
 
 enum Gender {
@@ -75,6 +75,7 @@ enum SectionType {
   instagram_feed
   banner_promo
   product_grid
+  trust_bar
   custom_html
 }
 
@@ -183,6 +184,11 @@ model Profile {
   emailVerified Boolean   @default(false) @map("email_verified")
   verificationToken String? @map("verification_token") @db.VarChar(255)
   verificationTokenExpiresAt DateTime? @map("verification_token_expires_at") @db.Timestamptz
+  pendingEmail String? @map("pending_email") @db.VarChar(255)
+  pendingEmailToken String? @map("pending_email_token") @db.VarChar(255)
+  pendingEmailTokenExpiresAt DateTime? @map("pending_email_token_expires_at") @db.Timestamptz
+  resetPasswordToken String? @map("reset_password_token") @db.VarChar(255)
+  resetPasswordTokenExpiresAt DateTime? @map("reset_password_token_expires_at") @db.Timestamptz
   lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz
   loginCount    Int       @default(0) @map("login_count")
   preferences   Json?     @db.JsonB
@@ -521,6 +527,7 @@ model ProductImage {
   productId String  @map("product_id") @db.Uuid
   variantId String? @map("variant_id") @db.Uuid
   url       String  @db.Text
+  publicId  String? @map("public_id") @db.VarChar(500)
   altText   String? @map("alt_text") @db.VarChar(500)
   sortOrder Int     @default(0) @map("sort_order")
   isPrimary Boolean @default(false) @map("is_primary")
@@ -1044,6 +1051,7 @@ model Review {
 model MediaAsset {
   id        String    @id @default(uuid()) @db.Uuid
   url       String    @db.Text
+  publicId  String?   @map("public_id") @db.VarChar(500)
   altText   String?   @map("alt_text") @db.VarChar(500)
   width     Int?      @map("width")
   height    Int?      @map("height")
@@ -1084,6 +1092,8 @@ model SiteSetting {
   googleAnalyticsId        String? @map("google_analytics_id") @db.VarChar(50)
   facebookPixelId          String? @map("facebook_pixel_id") @db.VarChar(50)
   theme                    Json?   @map("theme") @db.JsonB
+  seo                      Json?   @map("seo") @db.JsonB
+  preferences              Json?   @map("preferences") @db.JsonB
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @updatedAt @map("updated_at")
 

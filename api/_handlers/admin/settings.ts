@@ -53,6 +53,7 @@ async function handleUpdate(req: Request, ctx: RequestContext): Promise<Response
       "shippingInfo", "returnPolicy", "aboutUs",
       "contactEmail", "contactPhone", "address",
       "googleAnalyticsId", "facebookPixelId",
+      "seo", "preferences",
       "theme",
     ];
     for (const field of fields) {
@@ -66,7 +67,7 @@ async function handleUpdate(req: Request, ctx: RequestContext): Promise<Response
         data: data as never,
       });
     } else {
-      const createData = { siteName: body.siteName ?? "NABOME", ...data } as never;
+      const createData = { siteName: body.siteName ?? "নবME", ...data } as never;
       settings = await prisma.siteSetting.create({ data: createData });
     }
 

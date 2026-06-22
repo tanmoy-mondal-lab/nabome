@@ -17,6 +17,8 @@ export async function handleAdminCustomerRequest(
       return handleList(req);
     case "detail":
       return handleDetail(params[0]);
+    case "update":
+      return handleUpdate(params[0], req);
     default:
       return badRequest("Unknown action");
   }
@@ -28,11 +30,12 @@ async function handleList(req: Request): Promise<Response> {
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
   const search = url.searchParams.get("search");
 
-  const where: Record<string, unknown> = { role: "customer" };
+  const where: Record<string, unknown> = {};
   if (search) {
     where.OR = [
       { firstName: { contains: search, mode: "insensitive" } },
       { lastName: { contains: search, mode: "insensitive" } },
+      { email: { contains: search, mode: "insensitive" } },
     ];
   }
 
@@ -46,9 +49,11 @@ async function handleList(req: Request): Promise<Response> {
           id: true,
           firstName: true,
           lastName: true,
+          email: true,
           phone: true,
           avatarUrl: true,
           isActive: true,
+          role: true,
           createdAt: true,
           _count: { select: { orders: true } },
         },
@@ -76,9 +81,16 @@ async function handleDetail(customerId: string): Promise<Response> {
         id: true,
         firstName: true,
         lastName: true,
+        email: true,
         phone: true,
         avatarUrl: true,
+        role: true,
         isActive: true,
+        emailVerified: true,
+        phoneVerified: true,
+        marketingOptIn: true,
+        lastLoginAt: true,
+        loginCount: true,
         createdAt: true,
         updatedAt: true,
         addresses: true,
@@ -100,7 +112,6 @@ async function handleDetail(customerId: string): Promise<Response> {
 
     if (!customer) return notFound("Customer not found");
 
-    // Calculate lifetime value
     const lifetimeValue = await prisma.order.aggregate({
       _sum: { total: true },
       where: { profileId: customerId, paymentStatus: "paid" },
@@ -112,6 +123,47 @@ async function handleDetail(customerId: string): Promise<Response> {
         lifetimeValue: lifetimeValue._sum.total ?? 0,
       },
     });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleUpdate(customerId: string, req: Request): Promise<Response> {
+  const body = await req.json();
+
+  try {
+    const existing = await prisma.profile.findUnique({ where: { id: customerId } });
+    if (!existing) return notFound("Customer not found");
+
+    const data: Record<string, unknown> = {};
+    const fields = ["firstName", "lastName", "email", "phone", "avatarUrl", "isActive", "role", "marketingOptIn"];
+    for (const f of fields) {
+      if (body[f] !== undefined) data[f] = body[f];
+    }
+
+    const customer = await prisma.profile.update({
+      where: { id: customerId },
+      data: data as never,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        avatarUrl: true,
+        role: true,
+        isActive: true,
+        emailVerified: true,
+        phoneVerified: true,
+        marketingOptIn: true,
+        lastLoginAt: true,
+        loginCount: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return success({ customer });
   } catch (err) {
     return serverError(err);
   }

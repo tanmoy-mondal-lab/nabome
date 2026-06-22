@@ -22,7 +22,7 @@ export interface AuthOptions {
   /** Require authentication */
   required?: boolean;
   /** Require specific role */
-  role?: "customer" | "super_admin";
+  role?: "customer" | "admin";
   /** Apply rate limiting */
   rateLimit?: boolean;
   /** Rate limit key prefix (default: endpoint path) */

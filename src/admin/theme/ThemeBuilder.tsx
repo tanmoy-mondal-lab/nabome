@@ -1,3 +1,4 @@
+import { MediaPicker } from "../common/MediaPicker";
 import { useEffect, useState, useCallback } from "react";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
@@ -11,7 +12,7 @@ const DEFAULT_THEME: Theme = {
   isActive: true, isSystem: false, previewImage: "",
   branding: {
     logo: "", logoLight: "", logoDark: "", logoMobile: "",
-    favicon: "", brandName: "NABOME", brandDescription: "", brandTagline: "",
+    favicon: "", brandName: "নবME", brandDescription: "", brandTagline: "",
   },
   design: {
     colors: {
@@ -199,28 +200,16 @@ export default function ThemeBuilder() {
                 <h2 className="font-medium text-sm text-neutral-900 mb-4">Brand Identity</h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs text-neutral-500 mb-1">Logo URL (Light)</label>
-                    <input value={activeTheme.branding.logo}
-                      onChange={(e) => updateTheme("branding.logo", e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
+                    <MediaPicker value={activeTheme.branding.logo} onChange={(url) => updateTheme("branding.logo", url)} label="Logo URL (Light)" folder="branding" />
                   </div>
                   <div>
-                    <label className="block text-xs text-neutral-500 mb-1">Logo URL (Dark)</label>
-                    <input value={activeTheme.branding.logoDark}
-                      onChange={(e) => updateTheme("branding.logoDark", e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
+                    <MediaPicker value={activeTheme.branding.logoDark} onChange={(url) => updateTheme("branding.logoDark", url)} label="Logo URL (Dark)" folder="branding" />
                   </div>
                   <div>
-                    <label className="block text-xs text-neutral-500 mb-1">Logo URL (Mobile)</label>
-                    <input value={activeTheme.branding.logoMobile}
-                      onChange={(e) => updateTheme("branding.logoMobile", e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
+                    <MediaPicker value={activeTheme.branding.logoMobile} onChange={(url) => updateTheme("branding.logoMobile", url)} label="Logo URL (Mobile)" folder="branding" />
                   </div>
                   <div>
-                    <label className="block text-xs text-neutral-500 mb-1">Favicon URL</label>
-                    <input value={activeTheme.branding.favicon}
-                      onChange={(e) => updateTheme("branding.favicon", e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
+                    <MediaPicker value={activeTheme.branding.favicon} onChange={(url) => updateTheme("branding.favicon", url)} label="Favicon URL" folder="branding" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

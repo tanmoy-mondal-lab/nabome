@@ -3,40 +3,34 @@ import { useParams, useNavigate } from "react-router-dom";
 import { adminApi } from "../../lib/api/admin";
 import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
+import { SafeImage } from "../../components/SafeImage";
 import { ArrowLeft, CheckCircle, XCircle, Package, Banknote } from "lucide-react";
-
-interface EvidenceImage {
-  url: string;
-  altText?: string;
-}
-
-interface ReturnTimelineEntry {
-  id: string;
-  status: string;
-  note: string | null;
-  createdAt: string;
-}
 
 interface ReturnDetail {
   id: string;
-  returnNumber: string;
-  orderNumber: string;
-  orderId: string;
   reason: string;
+  reasonDetail: string | null;
   status: string;
-  customerNote: string | null;
+  evidenceImages: string[];
   adminNote: string | null;
   createdAt: string;
-  customer: { firstName: string; lastName: string; email: string; phone?: string };
-  evidence: EvidenceImage[];
-  timeline: ReturnTimelineEntry[];
+  profile?: { id: string; firstName: string; lastName: string; email: string; phone?: string };
+  order?: { id: string; orderNumber: string; total: number; items?: Array<{ id: string; name: string }> };
   refund?: {
     id: string;
     amount: number;
     status: string;
+    type: string;
+    notes: string | null;
     createdAt: string;
-    note?: string;
+    processedAt: string | null;
   };
+  timeline?: Array<{
+    id: string;
+    status: string;
+    note: string | null;
+    createdAt: string;
+  }>;
 }
 
 export default function ReturnDetailPage() {
@@ -53,19 +47,26 @@ export default function ReturnDetailPage() {
   useEffect(() => {
     if (!id) return;
     adminApi.getReturn(id).then((res) => {
-      setReturnDetail(res.returnRequest as ReturnDetail);
+      const data = (res as unknown as { return: ReturnDetail }).return;
+      if (data) setReturnDetail(data);
     }).catch(() => {
       navigate("/admin/returns");
     }).finally(() => setLoading(false));
   }, [id, navigate]);
+
+  const reload = async () => {
+    if (!id) return;
+    const res = await adminApi.getReturn(id);
+    const data = (res as unknown as { return: ReturnDetail }).return;
+    if (data) setReturnDetail(data);
+  };
 
   const handleApprove = async () => {
     if (!id) return;
     setActionLoading(true);
     try {
       await adminApi.approveReturn(id, adminNote ? { adminNote } : undefined);
-      const res = await adminApi.getReturn(id);
-      setReturnDetail(res.returnRequest as ReturnDetail);
+      await reload();
       setAdminNote("");
     } catch { /* ignore */ } finally {
       setActionLoading(false);
@@ -77,8 +78,7 @@ export default function ReturnDetailPage() {
     setActionLoading(true);
     try {
       await adminApi.rejectReturn(id, { adminNote });
-      const res = await adminApi.getReturn(id);
-      setReturnDetail(res.returnRequest as ReturnDetail);
+      await reload();
       setAdminNote("");
     } catch { /* ignore */ } finally {
       setActionLoading(false);
@@ -90,8 +90,7 @@ export default function ReturnDetailPage() {
     setActionLoading(true);
     try {
       await adminApi.receiveReturn(id);
-      const res = await adminApi.getReturn(id);
-      setReturnDetail(res.returnRequest as ReturnDetail);
+      await reload();
     } catch { /* ignore */ } finally {
       setActionLoading(false);
     }
@@ -102,14 +101,13 @@ export default function ReturnDetailPage() {
     setActionLoading(true);
     try {
       await adminApi.createRefund({
-        orderId: returnDetail.orderId,
+        orderId: returnDetail.order!.id,
         returnRequestId: id,
         amount: refundAmount,
-        type: "refund",
+        type: refundAmount >= (returnDetail.order?.total ?? 0) ? "full" : "partial",
         notes: refundNote || undefined,
       });
-      const res = await adminApi.getReturn(id);
-      setReturnDetail(res.returnRequest as ReturnDetail);
+      await reload();
       setRefundModalOpen(false);
     } catch { /* ignore */ } finally {
       setActionLoading(false);
@@ -129,7 +127,11 @@ export default function ReturnDetailPage() {
   const canApprove = returnDetail.status === "pending";
   const canReject = returnDetail.status === "pending";
   const canMarkReceived = returnDetail.status === "approved";
-  const canCreateRefund = returnDetail.status === "received" && !returnDetail.refund;
+  const refundPending = returnDetail.refund?.status === "pending";
+  const refundProcessing = returnDetail.refund?.status === "processing";
+  const canProcessRefund = refundPending;
+  const canCompleteRefund = refundProcessing;
+  const canFailRefund = refundPending || refundProcessing;
 
   return (
     <div>
@@ -139,9 +141,9 @@ export default function ReturnDetailPage() {
 
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="font-display text-2xl text-neutral-900">Return #{returnDetail.returnNumber}</h1>
+          <h1 className="font-display text-2xl text-neutral-900">Return #{returnDetail.id.slice(0, 8)}</h1>
           <p className="text-sm text-neutral-500 mt-1">
-            Order #{returnDetail.orderNumber} · {new Date(returnDetail.createdAt).toLocaleDateString("en-IN", { dateStyle: "long" })}
+            Order #{returnDetail.order?.orderNumber ?? "—"} · {new Date(returnDetail.createdAt).toLocaleDateString("en-IN", { dateStyle: "long" })}
           </p>
         </div>
         <StatusBadge status={returnDetail.status} />
@@ -156,41 +158,41 @@ export default function ReturnDetailPage() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-neutral-500">Customer</span>
-                <p className="text-neutral-900">{returnDetail.customer?.firstName} {returnDetail.customer?.lastName}</p>
-                <p className="text-neutral-400 text-xs">{returnDetail.customer?.email}</p>
+                <p className="text-neutral-900">{returnDetail.profile?.firstName} {returnDetail.profile?.lastName}</p>
+                <p className="text-neutral-400 text-xs">{returnDetail.profile?.email}</p>
               </div>
               <div>
                 <span className="text-neutral-500">Order</span>
                 <p className="text-neutral-900">
                   <button
-                    onClick={() => navigate(`/admin/orders/${returnDetail.orderId}`)}
+                    onClick={() => navigate(`/admin/orders/${returnDetail.order?.id}`)}
                     className="text-brand-600 hover:underline"
                   >
-                    #{returnDetail.orderNumber}
+                    #{returnDetail.order?.orderNumber}
                   </button>
                 </p>
               </div>
               <div className="col-span-2">
                 <span className="text-neutral-500">Reason</span>
-                <p className="text-neutral-900 mt-0.5">{returnDetail.reason}</p>
+                <p className="text-neutral-900 mt-0.5 capitalize">{returnDetail.reason.replace(/_/g, " ")}</p>
               </div>
-              {returnDetail.customerNote && (
+              {returnDetail.reasonDetail && (
                 <div className="col-span-2">
                   <span className="text-neutral-500">Customer Note</span>
-                  <p className="text-neutral-900 mt-0.5">{returnDetail.customerNote}</p>
+                  <p className="text-neutral-900 mt-0.5">{returnDetail.reasonDetail}</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Evidence Images */}
-          {returnDetail.evidence && returnDetail.evidence.length > 0 && (
+          {returnDetail.evidenceImages && returnDetail.evidenceImages.length > 0 && (
             <div className="bg-white border border-neutral-200 rounded p-6">
               <h3 className="font-medium text-sm text-neutral-900 mb-4">Evidence Images</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {returnDetail.evidence.map((img, i) => (
+                {returnDetail.evidenceImages.map((url, i) => (
                   <div key={i} className="aspect-square bg-neutral-100 rounded overflow-hidden">
-                    <img src={img.url} alt={img.altText ?? ""} className="w-full h-full object-cover" />
+                    <SafeImage src={url} alt={`Evidence ${i + 1}`} className="w-full h-full object-cover" useTransform={false} />
                   </div>
                 ))}
               </div>
@@ -199,25 +201,36 @@ export default function ReturnDetailPage() {
 
           {/* Status Timeline */}
           <div className="bg-white border border-neutral-200 rounded p-6">
-            <h3 className="font-medium text-sm text-neutral-900 mb-4">Timeline</h3>
-            {returnDetail.timeline && returnDetail.timeline.length > 0 ? (
-              <ol className="relative border-l border-neutral-200 ml-2 space-y-4">
-                {returnDetail.timeline.map((entry) => (
-                  <li key={entry.id} className="ml-6">
-                    <div className="absolute -left-[9px] mt-1 w-4 h-4 bg-white border-2 border-neutral-300 rounded-full" />
-                    <div className="text-sm">
-                      <p className="font-medium text-neutral-900 capitalize">{entry.status.replace(/_/g, " ")}</p>
-                      {entry.note && <p className="text-neutral-500 text-xs mt-0.5">{entry.note}</p>}
-                      <p className="text-neutral-400 text-xs mt-0.5">
-                        {new Date(entry.createdAt).toLocaleString("en-IN")}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="text-sm text-neutral-400">No timeline entries</p>
-            )}
+            <h3 className="font-medium text-sm text-neutral-900 mb-4">Status History</h3>
+            <ol className="relative border-l border-neutral-200 ml-2 space-y-4">
+              {returnDetail.createdAt && (
+                <li className="ml-6">
+                  <div className="absolute -left-[9px] mt-1 w-4 h-4 bg-white border-2 border-neutral-300 rounded-full" />
+                  <div className="text-sm">
+                    <p className="font-medium text-neutral-900 capitalize">Return Requested</p>
+                    <p className="text-neutral-400 text-xs">{new Date(returnDetail.createdAt).toLocaleString("en-IN")}</p>
+                  </div>
+                </li>
+              )}
+              {returnDetail.adminNote && (
+                <li className="ml-6">
+                  <div className="absolute -left-[9px] mt-1 w-4 h-4 bg-white border-2 border-neutral-300 rounded-full" />
+                  <div className="text-sm">
+                    <p className="font-medium text-neutral-900 capitalize">{returnDetail.status.replace(/_/g, " ")}</p>
+                    <p className="text-neutral-500 text-xs mt-0.5">{returnDetail.adminNote}</p>
+                  </div>
+                </li>
+              )}
+              {returnDetail.refund?.processedAt && (
+                <li className="ml-6">
+                  <div className="absolute -left-[9px] mt-1 w-4 h-4 bg-white border-2 border-neutral-300 rounded-full" />
+                  <div className="text-sm">
+                    <p className="font-medium text-neutral-900 capitalize">Refund {returnDetail.refund.status}</p>
+                    <p className="text-neutral-400 text-xs">{new Date(returnDetail.refund.processedAt).toLocaleString("en-IN")}</p>
+                  </div>
+                </li>
+              )}
+            </ol>
           </div>
 
           {/* Refund Section */}
@@ -227,20 +240,24 @@ export default function ReturnDetailPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-neutral-500">Amount</span>
-                  <p className="text-lg font-medium text-neutral-900">₹{returnDetail.refund.amount.toLocaleString()}</p>
+                  <p className="text-lg font-medium text-neutral-900">₹{Number(returnDetail.refund.amount).toLocaleString()}</p>
                 </div>
                 <div>
                   <span className="text-neutral-500">Status</span>
                   <p className="mt-1"><StatusBadge status={returnDetail.refund.status} /></p>
                 </div>
                 <div>
-                  <span className="text-neutral-500">Date</span>
+                  <span className="text-neutral-500">Type</span>
+                  <p className="mt-1 capitalize text-neutral-900">{returnDetail.refund.type}</p>
+                </div>
+                <div>
+                  <span className="text-neutral-500">Created</span>
                   <p className="text-neutral-900">{new Date(returnDetail.refund.createdAt).toLocaleDateString("en-IN")}</p>
                 </div>
-                {returnDetail.refund.note && (
+                {returnDetail.refund.notes && (
                   <div className="col-span-2">
                     <span className="text-neutral-500">Note</span>
-                    <p className="text-neutral-900">{returnDetail.refund.note}</p>
+                    <p className="text-neutral-900">{returnDetail.refund.notes}</p>
                   </div>
                 )}
               </div>
@@ -299,20 +316,62 @@ export default function ReturnDetailPage() {
                   <Package size={14} /> Mark as Received
                 </button>
               )}
-              {canCreateRefund && (
+              {canProcessRefund && (
                 <button
-                  onClick={() => {
-                    setRefundAmount(0);
-                    setRefundNote("");
-                    setRefundModalOpen(true);
+                  onClick={async () => {
+                    if (!returnDetail.refund) return;
+                    setActionLoading(true);
+                    try {
+                      await adminApi.processRefund(returnDetail.refund.id);
+                      await reload();
+                    } catch { /* ignore */ } finally {
+                      setActionLoading(false);
+                    }
                   }}
-                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded hover:bg-neutral-800"
+                  disabled={actionLoading}
+                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50"
                 >
-                  <Banknote size={14} /> Create Refund
+                  <Banknote size={14} /> Process Refund
                 </button>
               )}
-              {returnDetail.status === "refunded" && (
-                <p className="text-xs text-green-600 text-center">Return has been refunded</p>
+              {canCompleteRefund && (
+                <button
+                  onClick={async () => {
+                    if (!returnDetail.refund) return;
+                    setActionLoading(true);
+                    try {
+                      await adminApi.completeRefund(returnDetail.refund.id);
+                      await reload();
+                    } catch { /* ignore */ } finally {
+                      setActionLoading(false);
+                    }
+                  }}
+                  disabled={actionLoading}
+                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                >
+                  <CheckCircle size={14} /> Complete Refund
+                </button>
+              )}
+              {canFailRefund && (
+                <button
+                  onClick={async () => {
+                    if (!returnDetail.refund) return;
+                    setActionLoading(true);
+                    try {
+                      await adminApi.failRefund(returnDetail.refund.id);
+                      await reload();
+                    } catch { /* ignore */ } finally {
+                      setActionLoading(false);
+                    }
+                  }}
+                  disabled={actionLoading}
+                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                  <XCircle size={14} /> Fail Refund
+                </button>
+              )}
+              {returnDetail.refund?.status === "completed" && (
+                <p className="text-xs text-green-600 text-center">Refund completed</p>
               )}
             </div>
           </div>
@@ -321,10 +380,10 @@ export default function ReturnDetailPage() {
           <div className="bg-white border border-neutral-200 rounded p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-2">Order</h3>
             <button
-              onClick={() => navigate(`/admin/orders/${returnDetail.orderId}`)}
+              onClick={() => navigate(`/admin/orders/${returnDetail.order?.id}`)}
               className="text-sm text-brand-600 hover:underline"
             >
-              View Order #{returnDetail.orderNumber} →
+              View Order #{returnDetail.order?.orderNumber ?? "—"} →
             </button>
           </div>
         </div>
@@ -334,7 +393,7 @@ export default function ReturnDetailPage() {
       <Modal open={refundModalOpen} onClose={() => setRefundModalOpen(false)} title="Create Refund" size="sm">
         <div className="space-y-4">
           <p className="text-sm text-neutral-600">
-            Create a refund for return #{returnDetail?.returnNumber}
+            Create a refund for return #{returnDetail?.id.slice(0, 8)} (Order total: ₹{Number(returnDetail?.order?.total ?? 0).toLocaleString()})
           </p>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Refund Amount (₹)</label>
@@ -343,6 +402,7 @@ export default function ReturnDetailPage() {
               value={refundAmount}
               onChange={(e) => setRefundAmount(Number(e.target.value))}
               min={0}
+              max={Number(returnDetail?.order?.total ?? 0)}
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
