@@ -3,6 +3,7 @@ import { success, badRequest, notFound, serverError, created } from "../../_lib/
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
 import { requireAdmin } from "../../_lib/auth";
+import { toNull } from "../../_lib/sanitize";
 
 export async function handleAdminLookbookRequest(
   req: Request,
@@ -150,7 +151,7 @@ async function handleAddItem(lookbookId: string, req: Request): Promise<Response
       data: {
         lookbookId,
         imageUrl,
-        productId: productId ?? null,
+        productId: toNull(productId),
         hotspotX: hotspotX ? parseFloat(String(hotspotX)) : null,
         hotspotY: hotspotY ? parseFloat(String(hotspotY)) : null,
         caption: caption ?? null,
@@ -169,7 +170,7 @@ async function handleUpdateItem(lookbookId: string, itemId: string, req: Request
     const data: Record<string, unknown> = {};
     const fields = ["imageUrl", "productId", "caption", "sortOrder"];
     for (const field of fields) {
-      if (body[field] !== undefined) data[field] = body[field];
+      if (body[field] !== undefined) data[field] = field === "productId" ? toNull(body[field]) : body[field];
     }
     if (body.hotspotX !== undefined) data.hotspotX = parseFloat(String(body.hotspotX));
     if (body.hotspotY !== undefined) data.hotspotY = parseFloat(String(body.hotspotY));

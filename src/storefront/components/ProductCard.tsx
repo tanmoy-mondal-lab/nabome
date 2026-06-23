@@ -25,7 +25,9 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
 
   const name = product.name as string;
   const slug = product.slug as string;
-  const price = Number(product.basePrice ?? 0);
+  const basePrice = Number(product.basePrice ?? 0);
+  const salePrice = product.salePrice ? Number(product.salePrice) : null;
+  const price = salePrice && salePrice > 0 ? salePrice : basePrice;
   const compareAtPrice = product.compareAtPrice ? Number(product.compareAtPrice) : null;
   const images = (product.images as { url: string }[]) ?? [];
   const primaryImage = images[0]?.url;

@@ -5,6 +5,7 @@ import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { SafeImage } from "../../components/SafeImage";
 import { Edit3, Trash2, Plus, LayoutGrid } from "lucide-react";
+import { formatDate } from "../../lib/utils/format";
 
 interface Collection {
   id: string;
@@ -72,7 +73,6 @@ export default function CollectionsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this collection?")) return;
     try {
       await adminApi.deleteCollection(id);
       fetch();
@@ -96,20 +96,20 @@ export default function CollectionsPage() {
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-neutral-800"
+          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors"
         >
           <Plus size={16} /> Add Collection
         </button>
       </div>
 
       {collections.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
+        <div className="bg-white border border-neutral-200 rounded-lg">
           <EmptyState
             icon={LayoutGrid}
             title="No collections yet"
             description="Group products into themed collections"
             action={
-              <button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm">
+              <button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm transition-colors">
                 Create Collection
               </button>
             }
@@ -118,7 +118,7 @@ export default function CollectionsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {collections.map((col) => (
-            <div key={col.id} className="bg-white border border-neutral-200 rounded overflow-hidden group">
+            <div key={col.id} className="bg-white border border-neutral-200 rounded-lg overflow-hidden group">
               <div className="aspect-[16/9] bg-neutral-100 relative">
                 {col.heroImageUrl ? (
                   <SafeImage src={col.heroImageUrl} alt={col.name} className="w-full h-full object-cover" useTransform={false} />
@@ -150,7 +150,7 @@ export default function CollectionsPage() {
                 </div>
                 <p className="text-xs text-neutral-400 mt-1">
                   {col._count?.products ?? 0} products · Order {col.sortOrder}
-                  {col.startDate && <> · {new Date(col.startDate).toLocaleDateString()}{col.endDate ? ` — ${new Date(col.endDate).toLocaleDateString()}` : ""}</>}
+                  {col.startDate && <> · {formatDate(col.startDate)}{col.endDate ? ` — ${formatDate(col.endDate)}` : ""}</>}
                 </p>
               </div>
             </div>
@@ -166,7 +166,7 @@ export default function CollectionsPage() {
               <input
                 required value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value, slug: editItem ? form.slug : e.target.value.toLowerCase().replace(/\s+/g, "-") })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
               />
             </div>
             <div>
@@ -174,7 +174,7 @@ export default function CollectionsPage() {
               <input
                 type="number" value={form.sortOrder}
                 onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
               />
             </div>
           </div>
@@ -186,31 +186,31 @@ export default function CollectionsPage() {
             <textarea
               rows={2} value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Start Date</label>
               <input type="datetime-local" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                className="w-full px-3 py-2 text-sm border rounded" />
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">End Date</label>
               <input type="datetime-local" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                className="w-full px-3 py-2 text-sm border rounded" />
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Meta Title</label>
               <input value={form.metaTitle} onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
-                className="w-full px-3 py-2 text-sm border rounded" />
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Meta Description</label>
               <input value={form.metaDesc} onChange={(e) => setForm({ ...form, metaDesc: e.target.value })}
-                className="w-full px-3 py-2 text-sm border rounded" />
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
           </div>
           <div className="flex gap-4">
@@ -224,8 +224,8 @@ export default function CollectionsPage() {
             </label>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">
+            <button onClick={() => setModalOpen(false)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">
               {editItem ? "Update" : "Create"}
             </button>
           </div>

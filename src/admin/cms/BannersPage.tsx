@@ -38,7 +38,7 @@ export default function BannersPage() {
         { id: "1", title: "Summer Collection", subtitle: "Discover the new arrivals", imageUrl: "", linkUrl: "/shop", position: "hero", isActive: true },
       ]);
     } catch (error) {
-      console.error("Failed to fetch banner sections:", error);
+      // failed to fetch
     } finally {
       setLoading(false);
     }

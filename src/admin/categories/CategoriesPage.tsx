@@ -67,15 +67,16 @@ export default function CategoriesPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const data = { ...form, parentId: form.parentId || null };
       if (editItem) {
-        await adminApi.updateCategory(editItem.id, form);
+        await adminApi.updateCategory(editItem.id, data);
       } else {
-        await adminApi.createCategory(form);
+        await adminApi.createCategory(data);
       }
       setModalOpen(false);
       fetch();
     } catch (err) {
-      console.error("Failed to save category:", err);
+      // failed to save
     } finally {
       setSaving(false);
     }
@@ -83,7 +84,6 @@ export default function CategoriesPage() {
 
   const handleDelete = async (id: string) => {
     setDeleteError(null);
-    if (!window.confirm("Delete this category? This cannot be undone.")) return;
     try {
       await adminApi.deleteCategory(id);
       fetch();
@@ -133,7 +133,7 @@ export default function CategoriesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search categories..."
-            className="w-full pl-10 pr-4 py-2.5 text-sm border border-neutral-200 focus:outline-none focus:border-neutral-400 transition-colors"
+            className="w-full pl-10 pr-4 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
           />
         </div>
       </div>
@@ -199,7 +199,7 @@ export default function CategoriesPage() {
                   ...form, name: e.target.value,
                   slug: editItem ? form.slug : e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
                 })}
-                className="w-full px-3 py-2.5 text-sm border border-neutral-200 focus:outline-none focus:border-neutral-400 transition-colors"
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
                 placeholder="e.g. Women, Men, Accessories"
               />
             </div>
@@ -208,7 +208,7 @@ export default function CategoriesPage() {
               <input
                 value={form.slug}
                 onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm border border-neutral-200 focus:outline-none focus:border-neutral-400 transition-colors"
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
                 placeholder="auto-generated"
               />
             </div>
@@ -219,7 +219,7 @@ export default function CategoriesPage() {
               <label className="block text-[10px] font-medium uppercase tracking-[0.15em] text-neutral-500 mb-1.5">Sort Order</label>
               <input type="number" value={form.sortOrder}
                 onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2.5 text-sm border border-neutral-200 focus:outline-none focus:border-neutral-400 transition-colors"
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
               />
             </div>
             <div>
@@ -232,7 +232,7 @@ export default function CategoriesPage() {
             <select
               value={form.parentId}
               onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-              className="w-full px-3 py-2.5 text-sm border border-neutral-200 focus:outline-none focus:border-neutral-400 transition-colors"
+              className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
             >
               <option value="">None (top level)</option>
               {categories.filter((c) => c.id !== editItem?.id).map((c) => (
@@ -246,7 +246,7 @@ export default function CategoriesPage() {
             <textarea
               rows={3} value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full px-3 py-2.5 text-sm border border-neutral-200 focus:outline-none focus:border-neutral-400 transition-colors resize-none"
+              className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors resize-none"
               placeholder="Optional description for SEO"
             />
           </div>
@@ -255,14 +255,14 @@ export default function CategoriesPage() {
             <div>
               <label className="block text-[10px] font-medium uppercase tracking-[0.15em] text-neutral-500 mb-1.5">Meta Title</label>
               <input value={form.metaTitle} onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm border border-neutral-200 focus:outline-none focus:border-neutral-400 transition-colors"
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
                 placeholder="SEO title"
               />
             </div>
             <div>
               <label className="block text-[10px] font-medium uppercase tracking-[0.15em] text-neutral-500 mb-1.5">Meta Description</label>
               <input value={form.metaDesc} onChange={(e) => setForm({ ...form, metaDesc: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm border border-neutral-200 focus:outline-none focus:border-neutral-400 transition-colors"
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
                 placeholder="SEO description"
               />
             </div>

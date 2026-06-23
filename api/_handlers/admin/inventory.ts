@@ -25,10 +25,14 @@ export async function handleAdminInventoryRequest(
 
 async function handleOverview(): Promise<Response> {
   try {
+    // Read low stock threshold from site settings
+    const siteSettings = await prisma.siteSetting.findFirst();
+    const lowStockThreshold = (siteSettings?.preferences as Record<string, unknown> | null)?.lowStockThreshold as number ?? 5;
+
     const [totalVariants, totalStock, lowStockCount, outOfStockCount, recentMovements, recentAlerts] = await Promise.all([
       prisma.productVariant.count({ where: { isActive: true } }),
       prisma.productVariant.aggregate({ _sum: { stock: true }, where: { isActive: true } }),
-      prisma.productVariant.count({ where: { stock: { gt: 0, lte: 5 }, isActive: true } }),
+      prisma.productVariant.count({ where: { stock: { gt: 0, lte: lowStockThreshold }, isActive: true } }),
       prisma.productVariant.count({ where: { stock: 0, isActive: true } }),
       prisma.inventoryMovement.findMany({
         take: 20,
@@ -86,6 +90,10 @@ async function handleAdjustVariant(variantId: string, req: Request): Promise<Res
   if (typeof quantityChange !== "number" || quantityChange === 0) return badRequest("quantityChange must be a non-zero number");
 
   try {
+    // Read low stock threshold from site settings
+    const siteSettings = await prisma.siteSetting.findFirst();
+    const lowStockThreshold = (siteSettings?.preferences as Record<string, unknown> | null)?.lowStockThreshold as number ?? 5;
+
     const variant = await prisma.productVariant.findUnique({ where: { id: variantId } });
     if (!variant) return notFound("Variant not found");
     const newStock = variant.stock + quantityChange;
@@ -102,10 +110,10 @@ async function handleAdjustVariant(variantId: string, req: Request): Promise<Res
     ]);
 
     // Create alert if stock is low
-    if (newStock <= 5 && newStock > 0) {
+    if (newStock <= lowStockThreshold && newStock > 0) {
       await prisma.inventoryAlert.create({
         data: {
-          variantId, type: "low_stock", currentStock: newStock, threshold: 5,
+          variantId, type: "low_stock", currentStock: newStock, threshold: lowStockThreshold,
           message: `Low stock: "${variant.sku}" (${variant.size}/${variant.color}) — only ${newStock} left`,
         },
       }).catch(() => {});

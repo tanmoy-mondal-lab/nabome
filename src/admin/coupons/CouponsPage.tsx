@@ -3,6 +3,7 @@ import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { StatusBadge } from "../common/StatusBadge";
+import { formatPrice, formatDate } from "../../lib/utils/format";
 import { Plus, Edit3, Trash2, Percent } from "lucide-react";
 
 interface Coupon {
@@ -104,7 +105,7 @@ export default function CouponsPage() {
     } catch { /* ignore */ }
   };
 
-  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
+  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors";
 
   if (loading) {
     return (
@@ -122,19 +123,19 @@ export default function CouponsPage() {
           <p className="text-sm text-neutral-500 mt-1">Create and manage promotional coupon codes</p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-neutral-800">
+          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">
           <Plus size={16} /> Add Coupon
         </button>
       </div>
 
       {coupons.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
+        <div className="bg-white border border-neutral-200 rounded-lg">
           <EmptyState icon={Percent} title="No coupons yet"
-            action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm">Create Coupon</button>}
+            action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm transition-colors">Create Coupon</button>}
           />
         </div>
       ) : (
-        <div className="bg-white border border-neutral-200 rounded overflow-hidden">
+        <div className="bg-white border border-neutral-200 rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-200 bg-neutral-50">
@@ -157,17 +158,17 @@ export default function CouponsPage() {
                     <td className="px-4 py-3 font-mono text-sm font-medium text-neutral-900">{c.code}</td>
                     <td className="px-4 py-3 capitalize text-neutral-500">{c.discountType}</td>
                     <td className="px-4 py-3 text-neutral-900">
-                      {c.discountType === "percentage" ? `${c.discountValue}%` : `₹${c.discountValue.toLocaleString()}`}
+                      {c.discountType === "percentage" ? `${c.discountValue}%` : formatPrice(c.discountValue ?? 0)}
                     </td>
-                    <td className="px-4 py-3 text-neutral-500">{c.minOrderValue ? `₹${c.minOrderValue.toLocaleString()}` : "—"}</td>
-                    <td className="px-4 py-3 text-neutral-500">{c.maxDiscount ? `₹${c.maxDiscount.toLocaleString()}` : "—"}</td>
+                    <td className="px-4 py-3 text-neutral-500">{c.minOrderValue ? formatPrice(c.minOrderValue) : "—"}</td>
+                    <td className="px-4 py-3 text-neutral-500">{c.maxDiscount ? formatPrice(c.maxDiscount) : "—"}</td>
                     <td className="px-4 py-3 text-neutral-500">
                       {c.usedCount}{c.usageLimit ? ` / ${c.usageLimit}` : ""}
                     </td>
                     <td className="px-4 py-3 text-neutral-500">{c.perUserLimit}</td>
                     <td className="px-4 py-3 text-neutral-500 capitalize">{c.applicableGender ?? "All"}</td>
                     <td className="px-4 py-3 text-neutral-500">
-                      {c.endDate ? new Date(c.endDate).toLocaleDateString() : "Never"}
+                      {c.endDate ? formatDate(c.endDate) : "Never"}
                     </td>
                     <td className="px-4 py-3"><StatusBadge status={c.isActive ? "active" : "inactive"} /></td>
                   <td className="px-4 py-3 text-right">
@@ -266,8 +267,8 @@ export default function CouponsPage() {
             <span className="text-xs text-neutral-600">Active</span>
           </label>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">Save</button>
+            <button onClick={() => setModalOpen(false)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">Save</button>
           </div>
         </div>
       </Modal>
@@ -275,8 +276,8 @@ export default function CouponsPage() {
       <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Coupon" size="sm">
         <p className="text-sm text-neutral-600 mb-6">Are you sure you want to delete this coupon? This cannot be undone.</p>
         <div className="flex justify-end gap-2">
-          <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-          <button onClick={() => handleDelete(deleteConfirm!)} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
+          <button onClick={() => setDeleteConfirm(null)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+          <button onClick={() => handleDelete(deleteConfirm!)} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">Delete</button>
         </div>
       </Modal>
     </div>

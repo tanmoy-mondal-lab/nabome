@@ -3,6 +3,7 @@ import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { StatusBadge } from "../common/StatusBadge";
 import { EmptyState } from "../common/EmptyState";
+import { formatPrice, formatDate } from "../../lib/utils/format";
 import { Edit3, Trash2, Plus, Percent, Bell } from "lucide-react";
 
 // ─── Coupons ───
@@ -96,7 +97,6 @@ export default function MarketingPage() {
   };
 
   const handleCouponDelete = async (id: string) => {
-    if (!window.confirm("Delete this coupon?")) return;
     try {
       await adminApi.deleteCoupon(id);
       fetch();
@@ -129,7 +129,6 @@ export default function MarketingPage() {
   };
 
   const handleAnnDelete = async (id: string) => {
-    if (!window.confirm("Delete this announcement?")) return;
     try {
       await adminApi.deleteAnnouncement(id);
       fetch();
@@ -197,10 +196,10 @@ export default function MarketingPage() {
                   {coupons.map((c) => (
                     <tr key={c.id} className="border-b border-neutral-50">
                       <td className="px-4 py-3 font-mono font-medium text-neutral-900">{c.code}</td>
-                      <td className="px-4 py-3">{c.discountType === "percentage" ? `${c.discountValue}%` : `₹${c.discountValue}`}</td>
+                      <td className="px-4 py-3">{c.discountType === "percentage" ? `${c.discountValue}%` : formatPrice(c.discountValue ?? 0)}</td>
                       <td className="px-4 py-3 text-neutral-500">{c.usedCount}/{c.usageLimit || "∞"}</td>
                       <td className="px-4 py-3 text-neutral-500">
-                        {c.endDate ? new Date(c.endDate).toLocaleDateString("en-IN") : "Never"}
+                        {c.endDate ? formatDate(c.endDate) : "Never"}
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={c.isActive ? "active" : "inactive"} /></td>
                       <td className="px-4 py-3 text-right">

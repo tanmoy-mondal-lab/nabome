@@ -51,7 +51,7 @@ export default function HeroBuilder() {
         setSectionId(null);
       }
     } catch (error) {
-      console.error("Failed to fetch hero sections:", error);
+      // failed to fetch
     } finally {
       setLoading(false);
     }

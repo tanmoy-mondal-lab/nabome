@@ -37,7 +37,7 @@ export default function BrandsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (window.confirm("Archive this brand?")) { await adminApi.deleteBrand(id); load(); }
+    await adminApi.deleteBrand(id); load();
   }
 
   const filtered = (brands as Record<string, unknown>[]).filter((b) => !search || ((b.name as string) ?? "").toLowerCase().includes(search.toLowerCase()));
@@ -49,17 +49,17 @@ export default function BrandsPage() {
           <h1 className="text-xl font-display text-neutral-900">Brands</h1>
           <p className="text-sm text-neutral-500 mt-1">Manage product brands</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 text-sm font-medium rounded hover:bg-neutral-800">
+        <button onClick={openCreate} className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors">
           <Plus className="w-4 h-4" /> Add Brand
         </button>
       </div>
 
       <div className="relative max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search brands..." className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-neutral-900" />
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search brands..." className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
       </div>
 
-      {filtered.length === 0 && !loading ? <EmptyState title="No brands found" description="Add your first brand to get started." action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 text-sm rounded">Add Brand</button>} />
+      {filtered.length === 0 && !loading ? <EmptyState title="No brands found" description="Add your first brand to get started." action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 text-sm rounded-lg transition-colors">Add Brand</button>} />
         : <DataTable columns={[
           { key: "name", label: "Name", sortable: true },
           { key: "slug", label: "Slug" },
@@ -74,20 +74,20 @@ export default function BrandsPage() {
 
       <Modal open={showModal} title={edit ? "Edit Brand" : "Create Brand"} onClose={() => setShowModal(false)}>
         <div className="space-y-4">
-          <div><label className="block text-xs text-neutral-500 mb-1">Name *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-neutral-900" /></div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Name *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
           <div className="text-[10px] text-neutral-400 -mt-2">Slug will be auto-generated from name</div>
-          <div><label className="block text-xs text-neutral-500 mb-1">Description</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-neutral-900" /></div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Description</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
           <div><MediaPicker value={form.logoUrl} onChange={(url) => setForm({ ...form, logoUrl: url })} label="Logo URL" folder="brands" /></div>
-          <div><label className="block text-xs text-neutral-500 mb-1">Website URL</label><input value={form.websiteUrl} onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })} className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-neutral-900" /></div>
-          <div><label className="block text-xs text-neutral-500 mb-1">Sort Order</label><input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-neutral-900" /></div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Website URL</label><input value={form.websiteUrl} onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Sort Order</label><input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="rounded border-neutral-300" />
             <span className="text-sm text-neutral-700">Active</span>
           </label>
         </div>
         <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-          <button onClick={() => setShowModal(false)} type="button" className="px-4 py-2 text-sm border border-neutral-200 rounded text-neutral-600 hover:bg-neutral-50">Cancel</button>
-          <button onClick={handleSave} type="button" className="px-4 py-2 text-sm bg-neutral-900 text-white rounded hover:bg-neutral-800">Save</button>
+          <button onClick={() => setShowModal(false)} type="button" className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+          <button onClick={handleSave} type="button" className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">Save</button>
         </div>
       </Modal>
     </div>

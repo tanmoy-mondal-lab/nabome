@@ -17,7 +17,7 @@ export default function SubcategoriesPage() {
   useEffect(() => {
     Promise.all([adminApi.getSubcategories(), adminApi.getCategories()]).then(([s, c]) => {
       setSubs(s.subcategories ?? []); setCategories(c.categories ?? []);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => { /* non-critical: data will show as empty */ }).finally(() => setLoading(false));
   }, []);
 
   function openCreate() { setEdit(null); setForm({ name: "", slug: "", categoryId: "", description: "", imageUrl: "", sortOrder: 0, isActive: true }); setShowModal(true); }
@@ -34,14 +34,16 @@ export default function SubcategoriesPage() {
   }
 
   async function handleSave() {
-    if (edit) await adminApi.updateSubcategory(edit.id as string, form);
-    else await adminApi.createSubcategory(form);
+    if (!form.categoryId) return;
+    const data = { ...form };
+    if (edit) await adminApi.updateSubcategory(edit.id as string, data);
+    else await adminApi.createSubcategory(data);
     setShowModal(false);
     const s = await adminApi.getSubcategories(); setSubs(s.subcategories ?? []);
   }
 
   async function handleDelete(id: string) {
-    if (window.confirm("Archive this subcategory?")) { await adminApi.deleteSubcategory(id); setSubs((subs as Record<string, unknown>[]).filter((s) => s.id !== id)); }
+    await adminApi.deleteSubcategory(id); setSubs((subs as Record<string, unknown>[]).filter((s) => s.id !== id));
   }
 
   return (

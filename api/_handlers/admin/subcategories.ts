@@ -3,6 +3,7 @@ import { success, badRequest, notFound, serverError, created } from "../../_lib/
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
 import { requireAdmin } from "../../_lib/auth";
+import { toNull } from "../../_lib/sanitize";
 
 export async function handleAdminSubcategoryRequest(
   req: Request, ctx: RequestContext, params: string[], action: string
@@ -41,7 +42,7 @@ async function handleCreate(req: Request): Promise<Response> {
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
   try {
     const sub = await prisma.subcategory.create({
-      data: { name, slug: finalSlug, categoryId, description, imageUrl, sortOrder: sortOrder ?? 0 },
+      data: { name, slug: finalSlug, categoryId: toNull(categoryId), description, imageUrl, sortOrder: sortOrder ?? 0 },
     });
     return created(sub);
   } catch (err) { return serverError(err); }
@@ -52,7 +53,7 @@ async function handleUpdate(id: string, req: Request): Promise<Response> {
   try {
     const data: Record<string, unknown> = {};
     const fields = ["name", "categoryId", "description", "imageUrl", "sortOrder", "isActive"];
-    for (const f of fields) { if (body[f] !== undefined) data[f] = body[f]; }
+    for (const f of fields) { if (body[f] !== undefined) data[f] = f === "categoryId" ? toNull(body[f]) : body[f]; }
     if (body.name) data.slug = slugify(body.name);
     const sub = await prisma.subcategory.update({ where: { id }, data: data as never });
     return success(sub);

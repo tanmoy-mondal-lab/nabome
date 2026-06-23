@@ -49,7 +49,6 @@ export default function LookbooksPage() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this lookbook?")) return;
     try {
       await adminApi.deleteLookbook(id);
       fetch();

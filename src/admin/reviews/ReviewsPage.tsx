@@ -3,6 +3,7 @@ import { adminApi } from "../../lib/api/admin";
 import { EmptyState } from "../common/EmptyState";
 import { StatusBadge } from "../common/StatusBadge";
 import { MessageSquare, CheckCircle, XCircle, Star } from "lucide-react";
+import { formatDate } from "../../lib/utils/format";
 
 interface Review {
   id: string;
@@ -93,7 +94,7 @@ export default function ReviewsPage() {
                           className={s <= r.rating ? "text-yellow-400 fill-yellow-400" : "text-neutral-200"} />
                       ))}
                     </div>
-                    <span className="text-xs text-neutral-400">{new Date(r.createdAt).toLocaleDateString()}</span>
+                    <span className="text-xs text-neutral-400">{formatDate(r.createdAt)}</span>
                     <StatusBadge status={r.isApproved ? "approved" : "pending"} />
                   </div>
                   {r.title && <p className="font-medium text-sm text-neutral-900 mb-1">{r.title}</p>}

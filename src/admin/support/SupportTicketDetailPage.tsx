@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { adminApi } from "../../lib/api/admin";
 import { StatusBadge } from "../common/StatusBadge";
 import { ArrowLeft, Send } from "lucide-react";
+import { formatDateTime } from "../../lib/utils/format";
 
 interface Reply {
   id: string;
@@ -83,7 +84,7 @@ export default function SupportTicketDetailPage() {
         <div>
           <h1 className="font-display text-2xl text-neutral-900">{ticket.subject}</h1>
           <p className="text-sm text-neutral-500 mt-1">
-            {ticket.name} &lt;{ticket.email}&gt; · {new Date(ticket.createdAt).toLocaleString()}
+            {ticket.name} &lt;{ticket.email}&gt; · {formatDateTime(ticket.createdAt)}
             {ticket.order && <> · Order #{ticket.order.orderNumber}</>}
           </p>
         </div>
@@ -108,7 +109,7 @@ export default function SupportTicketDetailPage() {
               </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-neutral-900">{ticket.name}</p>
-                <p className="text-xs text-neutral-400 mt-0.5">{new Date(ticket.createdAt).toLocaleString()}</p>
+                <p className="text-xs text-neutral-400 mt-0.5">{formatDateTime(ticket.createdAt)}</p>
                 <p className="text-sm text-neutral-700 mt-2 whitespace-pre-wrap">{ticket.message}</p>
               </div>
             </div>
@@ -125,7 +126,7 @@ export default function SupportTicketDetailPage() {
                     {reply.isStaff ? "Staff" : ticket.name}
                     {reply.isStaff && <span className="ml-2 text-xs px-1.5 py-0.5 bg-brand-100 text-brand-700 rounded">Staff</span>}
                   </p>
-                  <p className="text-xs text-neutral-400 mt-0.5">{new Date(reply.createdAt).toLocaleString()}</p>
+                  <p className="text-xs text-neutral-400 mt-0.5">{formatDateTime(reply.createdAt)}</p>
                   <p className="text-sm text-neutral-700 mt-2 whitespace-pre-wrap">{reply.message}</p>
                 </div>
               </div>

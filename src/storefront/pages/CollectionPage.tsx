@@ -24,8 +24,8 @@ export default function CollectionPage() {
     if (!slug) return;
     setLoading(true);
     Promise.all([
-      api.get("/api/collections", { params: { action: "detail", slug } }),
-      api.get("/api/products", { params: { action: "list", collection: slug, limit: 50 } }),
+      api.get(`/api/collections/${slug}`),
+      api.get("/api/products", { params: { collection: slug, limit: 50 } }),
     ])
       .then(([colRes, prodRes]) => {
         setCollection((colRes as Record<string, unknown>).collection as Record<string, unknown> ?? null);

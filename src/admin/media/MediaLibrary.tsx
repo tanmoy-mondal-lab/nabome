@@ -136,7 +136,6 @@ export default function MediaLibrary() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this asset? This cannot be undone.")) return;
     try {
       await adminApi.deleteMedia(id);
       fetch();

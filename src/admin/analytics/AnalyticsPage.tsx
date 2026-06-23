@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { adminApi } from "../../lib/api/admin";
 import { StatsCard } from "../common/StatsCard";
+import { formatPrice, formatCompactPrice } from "../../lib/utils/format";
 import {
   ShoppingCart, Users, IndianRupee, TrendingUp, Eye,
   MapPin, Globe, Building2, Home, Hash, ChevronDown, ChevronRight,
@@ -118,9 +119,9 @@ function SalesTab({ data }: { data: SalesData | null }) {
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatsCard label="Total Revenue" value={`₹${(data?.totalRevenue ?? 0).toLocaleString()}`} icon={IndianRupee} changeType="positive" />
+        <StatsCard label="Total Revenue" value={formatPrice(data?.totalRevenue ?? 0)} icon={IndianRupee} changeType="positive" />
         <StatsCard label="Orders" value={data?.totalOrders ?? 0} icon={ShoppingCart} />
-        <StatsCard label="Avg. Order Value" value={`₹${Math.round(data?.averageOrderValue ?? 0).toLocaleString()}`} icon={TrendingUp} />
+        <StatsCard label="Avg. Order Value" value={formatPrice(Math.round(data?.averageOrderValue ?? 0))} icon={TrendingUp} />
         <StatsCard label="Conversion Rate" value={`${(data?.conversionRate ?? 0).toFixed(1)}%`} icon={Eye} />
       </div>
 
@@ -175,7 +176,7 @@ function SalesTab({ data }: { data: SalesData | null }) {
                     <p className="text-sm text-neutral-900 truncate max-w-[200px]">{p.name}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium">₹{p.revenue?.toLocaleString()}</p>
+                    <p className="text-sm font-medium">{formatPrice(p.revenue ?? 0)}</p>
                     <p className="text-xs text-neutral-400">{p.orders} orders</p>
                   </div>
                 </div>

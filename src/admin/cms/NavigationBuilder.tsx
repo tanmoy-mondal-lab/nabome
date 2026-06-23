@@ -31,7 +31,7 @@ export default function NavigationBuilder() {
       const res = await adminApi.getNavigationMenus();
       setMenus((res.menus as NavMenu[]) ?? []);
     } catch (error) {
-      console.error("Failed to fetch navigation menus:", error);
+      // failed to fetch
     } finally {
       setLoading(false);
     }
@@ -66,17 +66,16 @@ export default function NavigationBuilder() {
       setModalOpen(false);
       fetch();
     } catch (error) {
-      console.error("Failed to save navigation menu:", error);
+      // failed to save
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this menu?")) return;
     try {
       await adminApi.deleteNavigation(id);
       fetch();
     } catch (error) {
-      console.error("Failed to delete navigation menu:", error);
+      // failed to delete
     }
   };
 

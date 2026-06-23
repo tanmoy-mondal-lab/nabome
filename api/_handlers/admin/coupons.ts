@@ -15,7 +15,7 @@ export async function handleAdminCouponRequest(
 
   switch (action) {
     case "list":
-      return handleList();
+      return handleList(req);
     case "create":
       return handleCreate(req, ctx);
     case "update":
@@ -27,13 +27,26 @@ export async function handleAdminCouponRequest(
   }
 }
 
-async function handleList(): Promise<Response> {
+async function handleList(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  const page = parseInt(url.searchParams.get("page") ?? "1");
+  const limit = parseInt(url.searchParams.get("limit") ?? "50");
+  const skip = (page - 1) * limit;
+
   try {
-    const coupons = await prisma.coupon.findMany({
-      include: { _count: { select: { redemptions: true } } },
-      orderBy: { createdAt: "desc" },
+    const [coupons, total] = await Promise.all([
+      prisma.coupon.findMany({
+        include: { _count: { select: { redemptions: true } } },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.coupon.count(),
+    ]);
+    return success({
+      coupons,
+      pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) },
     });
-    return success({ coupons });
   } catch (err) {
     return serverError(err);
   }

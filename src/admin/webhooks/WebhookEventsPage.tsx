@@ -3,6 +3,7 @@ import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { RefreshCw } from "lucide-react";
+import { formatDateTime } from "../../lib/utils/format";
 
 interface WebhookEvent {
   id: string;
@@ -73,7 +74,7 @@ export default function WebhookEventsPage() {
     },
     {
       key: "createdAt", label: "Received",
-      render: (e: WebhookEvent) => <span className="text-sm text-neutral-500">{new Date(e.createdAt).toLocaleString()}</span>,
+      render: (e: WebhookEvent) => <span className="text-sm text-neutral-500">{formatDateTime(e.createdAt)}</span>,
     },
     {
       key: "actions", label: "",

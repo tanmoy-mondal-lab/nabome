@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
+import { formatDate } from "../../lib/utils/format";
 
 interface SupportTicket {
   id: string;
@@ -77,7 +78,7 @@ export default function SupportTicketsPage() {
     },
     {
       key: "createdAt", label: "Date",
-      render: (t: SupportTicket) => <span className="text-sm text-neutral-500">{new Date(t.createdAt).toLocaleDateString()}</span>,
+      render: (t: SupportTicket) => <span className="text-sm text-neutral-500">{formatDate(t.createdAt)}</span>,
     },
   ];
 

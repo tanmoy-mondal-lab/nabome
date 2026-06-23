@@ -4,6 +4,7 @@ import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { Mail, Trash2, Download } from "lucide-react";
 import { StatusBadge } from "../common/StatusBadge";
+import { formatDate } from "../../lib/utils/format";
 
 interface Subscriber {
   id: string;
@@ -91,7 +92,7 @@ export default function NewsletterPage() {
                 <tr key={s.id} className="border-b border-neutral-100 hover:bg-neutral-50">
                   <td className="px-4 py-3 text-neutral-900">{s.email}</td>
                   <td className="px-4 py-3"><StatusBadge status={s.isActive !== false ? "active" : "inactive"} /></td>
-                  <td className="px-4 py-3 text-neutral-500">{new Date(s.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-3 text-neutral-500">{formatDate(s.createdAt)}</td>
                   <td className="px-4 py-3 text-right">
                     <button onClick={() => setDeleteConfirm(s.id)} className="p-1.5 text-red-400 hover:text-red-600 rounded">
                       <Trash2 size={14} />

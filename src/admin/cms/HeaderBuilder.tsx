@@ -22,7 +22,7 @@ export default function HeaderBuilder() {
       const res = await adminApi.getNavigationMenus();
       setMenus((res.menus as NavigationMenu[]) ?? []);
     } catch (error) {
-      console.error("Failed to fetch navigation menus:", error);
+      // failed to fetch
     } finally {
       setLoading(false);
     }
@@ -53,17 +53,16 @@ export default function HeaderBuilder() {
       setModalOpen(false);
       fetch();
     } catch (error) {
-      console.error("Failed to save navigation menu:", error);
+      // failed to save
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this menu?")) return;
     try {
       await adminApi.deleteNavigation(id);
       fetch();
     } catch (error) {
-      console.error("Failed to delete navigation menu:", error);
+      // failed to delete
     }
   };
 

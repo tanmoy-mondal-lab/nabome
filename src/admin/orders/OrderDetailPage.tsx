@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { adminApi } from "../../lib/api/admin";
 import { StatusBadge } from "../common/StatusBadge";
 import { SafeImage } from "../../components/SafeImage";
+import { formatPrice, formatDateTime, formatDate } from "../../lib/utils/format";
 import { ArrowLeft, FileText, CheckCircle, Circle, Clock, User, CreditCard, RotateCcw, Bell, LifeBuoy } from "lucide-react";
 
 interface OrderItem {
@@ -169,7 +170,7 @@ export default function OrderDetailPage() {
         <div>
           <h1 className="font-display text-2xl text-neutral-900">Order #{order.orderNumber}</h1>
           <p className="text-sm text-neutral-500 mt-1">
-            Placed {new Date(order.createdAt).toLocaleDateString("en-IN", { dateStyle: "long" })}
+            Placed {formatDate(order.createdAt)}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -177,7 +178,7 @@ export default function OrderDetailPage() {
           <StatusBadge status={order.paymentStatus} />
           <button
             onClick={handleGenerateInvoice}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-neutral-200 rounded hover:bg-neutral-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors"
           >
             <FileText size={14} /> Generate Invoice
           </button>
@@ -211,7 +212,7 @@ export default function OrderDetailPage() {
       {activeTab === "Details" && (
         <div className="space-y-6">
           {/* Order Progress Timeline */}
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="bg-white border border-neutral-200 rounded-lg p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-4">Order Progress</h3>
             <div className="flex items-center gap-1 mb-6 overflow-x-auto pb-2">
               {ALL_STATUSES.map((s, i) => {
@@ -238,7 +239,7 @@ export default function OrderDetailPage() {
                 <select
                   value={order.status}
                   onChange={(e) => handleStatusChange(e.target.value)}
-                  className="w-full max-w-xs px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none"
+                  className="w-full max-w-xs px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
                 >
                   {ALL_STATUSES.map((s) => (
                     <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
@@ -251,14 +252,14 @@ export default function OrderDetailPage() {
                   value={statusNote}
                   onChange={(e) => setStatusNote(e.target.value)}
                   placeholder="Reason for status change…"
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none"
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
                 />
               </div>
             </div>
           </div>
 
           {/* Items */}
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="bg-white border border-neutral-200 rounded-lg p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-4">Items ({order.items?.length ?? 0})</h3>
             <div className="space-y-3">
               {order.items?.map((item) => (
@@ -271,28 +272,28 @@ export default function OrderDetailPage() {
                     <p className="text-xs text-neutral-500">
                       {item.variant?.size && `${item.variant.size} / `}{item.variant?.color && `${item.variant.color} · `}SKU: {item.variant?.sku ?? "N/A"}
                     </p>
-                    <p className="text-xs text-neutral-500">Qty: {item.quantity} × ₹{item.unitPrice?.toLocaleString()}</p>
+                    <p className="text-xs text-neutral-500">Qty: {item.quantity} × {formatPrice(item.unitPrice ?? 0)}</p>
                   </div>
-                  <p className="text-sm font-medium shrink-0">₹{(item.totalPrice ?? item.quantity * item.unitPrice).toLocaleString()}</p>
+                  <p className="text-sm font-medium shrink-0">{formatPrice((item.totalPrice ?? item.quantity * item.unitPrice) ?? 0)}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Internal Notes */}
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="bg-white border border-neutral-200 rounded-lg p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-3">Internal Notes</h3>
             <textarea
               value={internalNote}
               onChange={(e) => setInternalNote(e.target.value)}
               rows={3}
               placeholder="Add internal notes about this order…"
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none"
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors resize-none"
             />
             <button
               onClick={handleSaveNote}
               disabled={savingNote}
-              className="mt-2 px-4 py-1.5 text-xs font-medium bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50"
+              className="mt-2 px-4 py-1.5 text-xs font-medium bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50"
             >
               {savingNote ? "Saving…" : "Save Note"}
             </button>
@@ -300,23 +301,23 @@ export default function OrderDetailPage() {
 
           {/* Additional Info */}
           {(order.giftMessage || order.invoiceUrl || order.shippedAt || order.deliveredAt || order.cancellationReason) && (
-            <div className="bg-white border border-neutral-200 rounded p-6">
+            <div className="bg-white border border-neutral-200 rounded-lg p-6">
               <h3 className="font-medium text-sm text-neutral-900 mb-4">Additional Info</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {order.giftMessage && <div><span className="text-neutral-500">Gift Message</span><p className="text-neutral-900 mt-0.5">{order.giftMessage}</p></div>}
                 {order.invoiceUrl && <div><span className="text-neutral-500">Invoice</span><p className="mt-0.5"><a href={order.invoiceUrl} target="_blank" className="text-brand-600 underline">View Invoice</a></p></div>}
-                {order.shippedAt && <div><span className="text-neutral-500">Shipped At</span><p className="text-neutral-900 mt-0.5">{new Date(order.shippedAt).toLocaleString()}</p></div>}
-                {order.deliveredAt && <div><span className="text-neutral-500">Delivered At</span><p className="text-neutral-900 mt-0.5">{new Date(order.deliveredAt).toLocaleString()}</p></div>}
-                {order.cancelledAt && <div><span className="text-neutral-500">Cancelled At</span><p className="text-neutral-900 mt-0.5">{new Date(order.cancelledAt).toLocaleString()}</p></div>}
+                {order.shippedAt && <div><span className="text-neutral-500">Shipped At</span><p className="text-neutral-900 mt-0.5">{formatDateTime(order.shippedAt)}</p></div>}
+                {order.deliveredAt && <div><span className="text-neutral-500">Delivered At</span><p className="text-neutral-900 mt-0.5">{formatDateTime(order.deliveredAt)}</p></div>}
+                {order.cancelledAt && <div><span className="text-neutral-500">Cancelled At</span><p className="text-neutral-900 mt-0.5">{formatDateTime(order.cancelledAt)}</p></div>}
                 {order.cancellationReason && <div className="col-span-2"><span className="text-neutral-500">Cancellation Reason</span><p className="text-neutral-900 mt-0.5">{order.cancellationReason}</p></div>}
-                {order.refundedAt && <div><span className="text-neutral-500">Refunded At</span><p className="text-neutral-900 mt-0.5">{new Date(order.refundedAt).toLocaleString()}</p></div>}
-                {order.returnRequestedAt && <div><span className="text-neutral-500">Return Requested</span><p className="text-neutral-900 mt-0.5">{new Date(order.returnRequestedAt).toLocaleString()}</p></div>}
+                {order.refundedAt && <div><span className="text-neutral-500">Refunded At</span><p className="text-neutral-900 mt-0.5">{formatDateTime(order.refundedAt)}</p></div>}
+                {order.returnRequestedAt && <div><span className="text-neutral-500">Return Requested</span><p className="text-neutral-900 mt-0.5">{formatDateTime(order.returnRequestedAt)}</p></div>}
               </div>
             </div>
           )}
 
           {/* Timeline */}
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="bg-white border border-neutral-200 rounded-lg p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-4">Status Timeline</h3>
             {timeline.length === 0 ? (
               <p className="text-sm text-neutral-400">No status changes recorded</p>
@@ -329,7 +330,7 @@ export default function OrderDetailPage() {
                       <p className="font-medium text-neutral-900 capitalize">{entry.status.replace(/_/g, " ")}</p>
                       {entry.note && <p className="text-neutral-500 text-xs mt-0.5">{entry.note}</p>}
                       <p className="text-neutral-400 text-xs mt-0.5">
-                        {new Date(entry.createdAt).toLocaleString("en-IN")}
+                        {formatDateTime(entry.createdAt)}
                         {entry.createdBy ? ` by ${entry.createdBy}` : ""}
                       </p>
                     </div>
@@ -344,7 +345,7 @@ export default function OrderDetailPage() {
       {/* ──────── Customer Tab ──────── */}
       {activeTab === "Customer" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="bg-white border border-neutral-200 rounded-lg p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-4">Customer Information</h3>
             <div className="space-y-3 text-sm">
               <div>
@@ -361,7 +362,7 @@ export default function OrderDetailPage() {
               </div>
             </div>
           </div>
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="bg-white border border-neutral-200 rounded-lg p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-4">Shipping Address</h3>
             {order.shippingAddress ? (
               <div className="text-sm text-neutral-600 space-y-1">
@@ -375,7 +376,7 @@ export default function OrderDetailPage() {
               <p className="text-sm text-neutral-400">No shipping address</p>
             )}
           </div>
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="bg-white border border-neutral-200 rounded-lg p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-4">Billing Address</h3>
             {order.billingAddress ? (
               <div className="text-sm text-neutral-600 space-y-1">
@@ -395,30 +396,30 @@ export default function OrderDetailPage() {
       {/* ──────── Payments Tab ──────── */}
       {activeTab === "Payments" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="bg-white border border-neutral-200 rounded-lg p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-4">Payment Summary</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-neutral-500">Subtotal</span>
-                <span>{order.currency ? `${order.currency} ` : "₹"}{order.subtotal?.toLocaleString()}</span>
+                <span>{formatPrice(order.subtotal ?? 0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500">Shipping</span>
-                <span>{order.currency ? `${order.currency} ` : "₹"}{order.shippingCost?.toLocaleString()}</span>
+                <span>{formatPrice(order.shippingCost ?? 0)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500">Tax</span>
-                <span>{order.currency ? `${order.currency} ` : "₹"}{order.tax?.toLocaleString()}</span>
+                <span>{formatPrice(order.tax ?? 0)}</span>
               </div>
               {order.discountAmount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-green-600">Discount {order.couponCode ? `(${order.couponCode})` : ""}</span>
-                  <span className="text-green-600">-{order.currency ? `${order.currency} ` : "₹"}{order.discountAmount?.toLocaleString()}</span>
+                  <span className="text-green-600">-{formatPrice(order.discountAmount ?? 0)}</span>
                 </div>
               )}
               <div className="border-t pt-2 flex justify-between font-medium">
                 <span>Total</span>
-                <span>{order.currency ? `${order.currency} ` : "₹"}{order.total?.toLocaleString()}</span>
+                <span>{formatPrice(order.total ?? 0)}</span>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-neutral-100 space-y-2">
@@ -435,7 +436,7 @@ export default function OrderDetailPage() {
             </div>
           </div>
           <div className="space-y-4">
-            <div className="bg-white border border-neutral-200 rounded p-6">
+            <div className="bg-white border border-neutral-200 rounded-lg p-6">
               <h3 className="font-medium text-sm text-neutral-900 mb-3">Transaction Details</h3>
               <div className="space-y-2 text-sm">
                 {order.transactionId ? (
@@ -452,7 +453,7 @@ export default function OrderDetailPage() {
                 )}
               </div>
             </div>
-            <div className="bg-white border border-neutral-200 rounded p-6">
+            <div className="bg-white border border-neutral-200 rounded-lg p-6">
               <h3 className="font-medium text-sm text-neutral-900 mb-3">Refunds</h3>
               {order.returnRequests?.some((r) => r.refund) ? (
                 <div className="space-y-2">
@@ -460,7 +461,7 @@ export default function OrderDetailPage() {
                     <div key={r.id} className="p-2 bg-neutral-50 rounded text-sm">
                       <div className="flex justify-between">
                         <span className="text-neutral-500">Amount</span>
-                        <span className="font-medium">₹{r.refund!.amount.toLocaleString()}</span>
+                        <span className="font-medium">{formatPrice(r.refund!.amount ?? 0)}</span>
                       </div>
                       <div className="flex justify-between mt-1">
                         <span className="text-neutral-500">Status</span>
@@ -480,7 +481,7 @@ export default function OrderDetailPage() {
       {/* ──────── Returns & Refunds Tab ──────── */}
       {activeTab === "Returns & Refunds" && (
         <div className="space-y-6">
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="bg-white border border-neutral-200 rounded-lg p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-4">Return Requests</h3>
             {order.returnRequests && order.returnRequests.length > 0 ? (
               <div className="space-y-3">
@@ -494,10 +495,10 @@ export default function OrderDetailPage() {
                       </div>
                       <StatusBadge status={r.status} />
                     </div>
-                    <p className="text-xs text-neutral-400 mt-2">Created {new Date(r.createdAt).toLocaleDateString()}</p>
+                    <p className="text-xs text-neutral-400 mt-2">Created {formatDate(r.createdAt)}</p>
                     {r.refund && (
                       <div className="mt-2 pt-2 border-t border-neutral-200 flex justify-between text-xs">
-                        <span>Refund: ₹{r.refund.amount.toLocaleString()}</span>
+                        <span>Refund: {formatPrice(r.refund.amount ?? 0)}</span>
                         <StatusBadge status={r.refund.status} />
                       </div>
                     )}
@@ -521,7 +522,7 @@ export default function OrderDetailPage() {
 
       {/* ──────── Notifications Tab ──────── */}
       {activeTab === "Notifications" && (
-        <div className="bg-white border border-neutral-200 rounded p-6">
+        <div className="bg-white border border-neutral-200 rounded-lg p-6">
           <h3 className="font-medium text-sm text-neutral-900 mb-4">Notifications</h3>
           {order.notifications && order.notifications.length > 0 ? (
             <div className="space-y-3">
@@ -537,7 +538,7 @@ export default function OrderDetailPage() {
                     </div>
                     <StatusBadge status={n.type} />
                   </div>
-                  <p className="text-xs text-neutral-400 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                  <p className="text-xs text-neutral-400 mt-1">{formatDateTime(n.createdAt)}</p>
                 </div>
               ))}
             </div>
@@ -549,7 +550,7 @@ export default function OrderDetailPage() {
 
       {/* ──────── Support Tab ──────── */}
       {activeTab === "Support" && (
-        <div className="bg-white border border-neutral-200 rounded p-6">
+        <div className="bg-white border border-neutral-200 rounded-lg p-6">
           <h3 className="font-medium text-sm text-neutral-900 mb-4">Linked Support Tickets</h3>
           {order.supportTickets && order.supportTickets.length > 0 ? (
             <div className="space-y-3">
@@ -562,7 +563,7 @@ export default function OrderDetailPage() {
                       <span className={`text-xs px-1.5 py-0.5 rounded capitalize ${t.priority === "urgent" ? "bg-red-100 text-red-700" : t.priority === "high" ? "bg-orange-100 text-orange-700" : t.priority === "medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}>{t.priority}</span>
                     </div>
                   </div>
-                  <span className="text-xs text-neutral-400">{new Date(t.createdAt).toLocaleDateString()}</span>
+                  <span className="text-xs text-neutral-400">{formatDate(t.createdAt)}</span>
                 </div>
               ))}
             </div>

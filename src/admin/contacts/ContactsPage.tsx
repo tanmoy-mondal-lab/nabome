@@ -4,6 +4,7 @@ import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { StatusBadge } from "../common/StatusBadge";
 import { MessageCircle, Trash2, Mail, MailOpen, Eye } from "lucide-react";
+import { formatDate, formatDateTime } from "../../lib/utils/format";
 
 interface Submission {
   id: string;
@@ -93,7 +94,7 @@ export default function ContactsPage() {
                   <div className="flex items-center gap-2 mb-1">
                     {!s.isRead && <span className="w-2 h-2 rounded-full bg-brand-500 flex-shrink-0" />}
                     <span className="font-medium text-sm text-neutral-900 truncate">{s.name}</span>
-                    <span className="text-xs text-neutral-400">{new Date(s.createdAt).toLocaleDateString()}</span>
+                    <span className="text-xs text-neutral-400">{formatDate(s.createdAt)}</span>
                   </div>
                   <p className="text-sm text-neutral-600 truncate">{s.subject}</p>
                   <p className="text-xs text-neutral-400 mt-0.5 truncate">{s.email}{s.phone ? ` · ${s.phone}` : ""}</p>
@@ -125,7 +126,7 @@ export default function ContactsPage() {
               </div>
               <div>
                 <label className="block text-xs text-neutral-500 mb-1">Date</label>
-                <p className="text-sm text-neutral-900">{new Date(detailItem.createdAt).toLocaleString()}</p>
+                <p className="text-sm text-neutral-900">{formatDateTime(detailItem.createdAt)}</p>
               </div>
               <div>
                 <label className="block text-xs text-neutral-500 mb-1">Email</label>

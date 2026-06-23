@@ -101,6 +101,20 @@ async function handleSales(req: Request): Promise<Response> {
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
     const conversionRate = totalCustomers > 0 ? Math.round((paidOrders / totalCustomers) * 1000) / 10 : 0;
 
+    // Guard: if no paid orders in period, return early with empty time series
+    if (totalOrders === 0) {
+      return success({
+        totalRevenue: 0,
+        totalOrders: 0,
+        averageOrderValue: 0,
+        totalCustomers,
+        conversionRate,
+        topProducts: [],
+        revenueByPeriod: [],
+        ordersByPeriod: [],
+      });
+    }
+
     // Revenue by period
     const revenueMap = new Map<string, number>();
     const ordersByPeriodMap = new Map<string, number>();
@@ -180,14 +194,18 @@ async function handleProducts(): Promise<Response> {
       where: { isActive: true },
     });
 
+    // Read low stock threshold from site settings
+    const siteSettings = await prisma.siteSetting.findFirst();
+    const lowStockThreshold = (siteSettings?.preferences as Record<string, unknown> | null)?.lowStockThreshold as number ?? 5;
+
     const lowStock = await prisma.productVariant.count({
-      where: { stock: { lte: 5 }, isActive: true },
+      where: { stock: { lte: lowStockThreshold }, isActive: true },
     });
     const outOfStock = await prisma.productVariant.count({
       where: { stock: 0, isActive: true },
     });
     const inStock = await prisma.productVariant.count({
-      where: { stock: { gt: 5 }, isActive: true },
+      where: { stock: { gt: lowStockThreshold }, isActive: true },
     });
 
     return success({
@@ -273,6 +291,7 @@ async function handleDeliveryAddresses(req: Request): Promise<Response> {
           },
         },
       },
+      take: 10000,
     });
 
     const countryMap = new Map<string, number>();

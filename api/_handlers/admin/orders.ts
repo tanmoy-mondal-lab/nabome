@@ -116,11 +116,13 @@ async function handleStats(): Promise<Response> {
       "cancelled", "returned", "refunded",
     ];
 
-    const statusCounts = await Promise.all(
-      statuses.map((s) =>
-        prisma.order.count({ where: { status: s as never } })
-      )
-    );
+    const grouped = await prisma.order.groupBy({
+      by: ["status"],
+      _count: { id: true },
+      where: { status: { in: statuses as never } },
+    });
+    const statusMap = new Map(grouped.map((g) => [g.status, g._count.id]));
+    const statusCounts = statuses.map((s) => statusMap.get(s) ?? 0);
 
     const [returnRequestCount, refundRequestCount] = await Promise.all([
       prisma.returnRequest.count(),
@@ -244,26 +246,28 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
       // If cancelled, restore stock
       if (status === "cancelled") {
         const items = await tx.orderItem.findMany({ where: { orderId } });
-        for (const item of items) {
-          if (item.variantId) {
-            await tx.productVariant.update({
-              where: { id: item.variantId },
-              data: {
-                stock: { increment: item.quantity },
-                reservedStock: { decrement: item.quantity },
-              },
-            });
-
-            await tx.inventoryMovement.create({
-              data: {
-                variantId: item.variantId,
-                quantityChange: item.quantity,
-                stockAfter: item.quantity,
-                reason: "cancellation",
-                referenceId: order.orderNumber,
-              },
-            });
-          }
+        const variantItems = items.filter((item) => item.variantId);
+        if (variantItems.length) {
+          await Promise.all(
+            variantItems.map((item) =>
+              tx.productVariant.update({
+                where: { id: item.variantId! },
+                data: {
+                  stock: { increment: item.quantity },
+                  reservedStock: { decrement: item.quantity },
+                },
+              })
+            )
+          );
+          await tx.inventoryMovement.createMany({
+            data: variantItems.map((item) => ({
+              variantId: item.variantId!,
+              quantityChange: item.quantity,
+              stockAfter: item.quantity,
+              reason: "cancellation",
+              referenceId: order.orderNumber,
+            })),
+          });
         }
       }
 

@@ -5,6 +5,7 @@ import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { Bell, Edit3 } from "lucide-react";
+import { formatDate } from "../../lib/utils/format";
 
 interface NotificationEntry {
   id: string;
@@ -85,7 +86,7 @@ export default function NotificationsPage() {
     { key: "type", label: "Type", render: (n: NotificationEntry) => <StatusBadge status={n.type} /> },
     { key: "channel", label: "Channel", render: (n: NotificationEntry) => <span className="text-xs capitalize px-1.5 py-0.5 rounded bg-neutral-100">{n.channel}</span> },
     { key: "isRead", label: "Read", render: (n: NotificationEntry) => <span className={`text-xs ${n.isRead ? "text-green-600" : "text-orange-600 font-medium"}`}>{n.isRead ? "Yes" : "No"}</span> },
-    { key: "createdAt", label: "Date", render: (n: NotificationEntry) => <span className="text-sm text-neutral-500">{new Date(n.createdAt).toLocaleDateString()}</span> },
+    { key: "createdAt", label: "Date", render: (n: NotificationEntry) => <span className="text-sm text-neutral-500">{formatDate(n.createdAt)}</span> },
   ];
 
   return (

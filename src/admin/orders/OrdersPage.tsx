@@ -4,6 +4,7 @@ import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { StatsCard } from "../common/StatsCard";
+import { formatPrice, formatDate } from "../../lib/utils/format";
 import {
   ShoppingCart, Clock, Package, Truck, CheckCircle,
   RotateCcw, Banknote, Search, X,
@@ -23,7 +24,7 @@ interface Order {
   currency?: string;
   paymentMethod?: string;
   createdAt: string;
-  customer: { firstName: string; lastName: string; email: string };
+  profile: { firstName: string; lastName: string; email: string };
   _count: { items: number };
 }
 
@@ -69,10 +70,10 @@ export default function OrdersPage() {
     try {
       const res = await adminApi.getOrderStats();
       setStats((res as unknown as OrderStats) ?? null);
-    } catch { /* ignore */ }
+    } catch { /* stats are non-critical, ignore */ }
   }, []);
 
-  const fetch = useCallback(async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
       const statusKey = STATUS_MAP[activeTab];
@@ -85,14 +86,14 @@ export default function OrdersPage() {
       setOrders((res.orders as Order[]) ?? []);
       const pag = res.pagination as { totalPages?: number } | undefined;
       setTotalPages(pag?.totalPages ?? 1);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical, keep existing data */ } finally {
       setLoading(false);
     }
   }, [page, activeTab, searchQuery, dateFrom, dateTo]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
   useEffect(() => { setPage(1); }, [activeTab, searchQuery, dateFrom, dateTo]);
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const statCards = stats
     ? [
@@ -114,8 +115,8 @@ export default function OrdersPage() {
       key: "customer", label: "Customer",
       render: (o: Order) => (
         <div>
-          <p className="text-sm text-neutral-900">{(o as unknown as { profile?: { firstName: string; lastName: string; email: string } })?.profile?.firstName} {(o as unknown as { profile?: { firstName: string; lastName: string; email: string } })?.profile?.lastName}</p>
-          <p className="text-xs text-neutral-400">{(o as unknown as { profile?: { firstName: string; lastName: string; email: string } })?.profile?.email}</p>
+          <p className="text-sm text-neutral-900">{o.profile?.firstName} {o.profile?.lastName}</p>
+          <p className="text-xs text-neutral-400">{o.profile?.email}</p>
         </div>
       ),
     },
@@ -125,11 +126,11 @@ export default function OrdersPage() {
     },
     {
       key: "subtotal", label: "Subtotal",
-      render: (o: Order) => <span className="text-sm text-neutral-500">₹{o.subtotal?.toLocaleString() ?? "—"}</span>,
+      render: (o: Order) => <span className="text-sm text-neutral-500">{o.subtotal != null ? formatPrice(o.subtotal) : "—"}</span>,
     },
     {
       key: "discount", label: "Disc.",
-      render: (o: Order) => o.discount ? <span className="text-xs text-green-600">-₹{o.discount.toLocaleString()}{o.couponCode ? ` (${o.couponCode})` : ""}</span> : <span className="text-xs text-neutral-300">—</span>,
+      render: (o: Order) => o.discount ? <span className="text-xs text-green-600">-{formatPrice(o.discount)}{o.couponCode ? ` (${o.couponCode})` : ""}</span> : <span className="text-xs text-neutral-300">—</span>,
     },
     {
       key: "status", label: "Status",
@@ -145,7 +146,7 @@ export default function OrdersPage() {
     },
     {
       key: "total", label: "Total", sortable: true,
-      render: (o: Order) => <span className="font-medium">₹{o.total?.toLocaleString()}</span>,
+      render: (o: Order) => <span className="font-medium">{formatPrice(o.total ?? 0)}</span>,
     },
     {
       key: "currency", label: "Curr.",
@@ -153,11 +154,7 @@ export default function OrdersPage() {
     },
     {
       key: "createdAt", label: "Date", sortable: true,
-      render: (o: Order) => (
-        <span className="text-sm text-neutral-500">
-          {new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-        </span>
-      ),
+      render: (o: Order) => <span className="text-sm text-neutral-500">{formatDate(o.createdAt)}</span>,
     },
   ];
 

@@ -4,6 +4,7 @@ import { adminApi } from "../../lib/api/admin";
 import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
 import { SafeImage } from "../../components/SafeImage";
+import { formatPrice, formatDate, formatDateTime } from "../../lib/utils/format";
 import { ArrowLeft, CheckCircle, XCircle, Package, Banknote } from "lucide-react";
 
 interface ReturnDetail {
@@ -143,7 +144,7 @@ export default function ReturnDetailPage() {
         <div>
           <h1 className="font-display text-2xl text-neutral-900">Return #{returnDetail.id.slice(0, 8)}</h1>
           <p className="text-sm text-neutral-500 mt-1">
-            Order #{returnDetail.order?.orderNumber ?? "—"} · {new Date(returnDetail.createdAt).toLocaleDateString("en-IN", { dateStyle: "long" })}
+            Order #{returnDetail.order?.orderNumber ?? "—"} · {formatDate(returnDetail.createdAt)}
           </p>
         </div>
         <StatusBadge status={returnDetail.status} />
@@ -208,7 +209,7 @@ export default function ReturnDetailPage() {
                   <div className="absolute -left-[9px] mt-1 w-4 h-4 bg-white border-2 border-neutral-300 rounded-full" />
                   <div className="text-sm">
                     <p className="font-medium text-neutral-900 capitalize">Return Requested</p>
-                    <p className="text-neutral-400 text-xs">{new Date(returnDetail.createdAt).toLocaleString("en-IN")}</p>
+                    <p className="text-neutral-400 text-xs">{formatDateTime(returnDetail.createdAt)}</p>
                   </div>
                 </li>
               )}
@@ -226,7 +227,7 @@ export default function ReturnDetailPage() {
                   <div className="absolute -left-[9px] mt-1 w-4 h-4 bg-white border-2 border-neutral-300 rounded-full" />
                   <div className="text-sm">
                     <p className="font-medium text-neutral-900 capitalize">Refund {returnDetail.refund.status}</p>
-                    <p className="text-neutral-400 text-xs">{new Date(returnDetail.refund.processedAt).toLocaleString("en-IN")}</p>
+                    <p className="text-neutral-400 text-xs">{formatDateTime(returnDetail.refund.processedAt)}</p>
                   </div>
                 </li>
               )}
@@ -240,7 +241,7 @@ export default function ReturnDetailPage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="text-neutral-500">Amount</span>
-                  <p className="text-lg font-medium text-neutral-900">₹{Number(returnDetail.refund.amount).toLocaleString()}</p>
+                  <p className="text-lg font-medium text-neutral-900">{formatPrice(returnDetail.refund.amount ?? 0)}</p>
                 </div>
                 <div>
                   <span className="text-neutral-500">Status</span>
@@ -252,7 +253,7 @@ export default function ReturnDetailPage() {
                 </div>
                 <div>
                   <span className="text-neutral-500">Created</span>
-                  <p className="text-neutral-900">{new Date(returnDetail.refund.createdAt).toLocaleDateString("en-IN")}</p>
+                  <p className="text-neutral-900">{formatDate(returnDetail.refund.createdAt)}</p>
                 </div>
                 {returnDetail.refund.notes && (
                   <div className="col-span-2">
@@ -393,7 +394,7 @@ export default function ReturnDetailPage() {
       <Modal open={refundModalOpen} onClose={() => setRefundModalOpen(false)} title="Create Refund" size="sm">
         <div className="space-y-4">
           <p className="text-sm text-neutral-600">
-            Create a refund for return #{returnDetail?.id.slice(0, 8)} (Order total: ₹{Number(returnDetail?.order?.total ?? 0).toLocaleString()})
+            Create a refund for return #{returnDetail?.id.slice(0, 8)} (Order total: {formatPrice(Number(returnDetail?.order?.total ?? 0))})
           </p>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Refund Amount (₹)</label>

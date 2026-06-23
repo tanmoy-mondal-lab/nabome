@@ -3,6 +3,7 @@ import { adminApi } from "../../lib/api/admin";
 import { StatusBadge } from "../common/StatusBadge";
 import { EmptyState } from "../common/EmptyState";
 import { ShieldAlert, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { formatDateTime } from "../../lib/utils/format";
 
 interface LoginAttempt {
   id: string;
@@ -42,11 +43,6 @@ export default function LoginAttemptsPage() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
-
-  const formatDate = (d: string) => {
-    const dt = new Date(d);
-    return dt.toLocaleDateString() + " " + dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
 
   if (loading) {
     return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>;
@@ -103,7 +99,7 @@ export default function LoginAttemptsPage() {
                   <td className="px-4 py-3 text-neutral-500 font-mono text-xs">{a.ipAddress ?? "—"}</td>
                   <td className="px-4 py-3 text-neutral-500 max-w-[200px] truncate" title={a.userAgent ?? undefined}>{a.userAgent ?? "—"}</td>
                   <td className="px-4 py-3 text-neutral-500 max-w-[200px] truncate text-xs" title={a.failureReason ?? undefined}>{a.failureReason ?? "—"}</td>
-                  <td className="px-4 py-3 text-neutral-500 whitespace-nowrap text-xs">{formatDate(a.createdAt)}</td>
+                  <td className="px-4 py-3 text-neutral-500 whitespace-nowrap text-xs">{formatDateTime(a.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

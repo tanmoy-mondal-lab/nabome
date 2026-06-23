@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
+import { formatPrice } from "../../lib/utils/format";
 import { Plus, Edit2, Trash2, Truck } from "lucide-react";
 
 interface ShippingRate {
@@ -173,14 +174,14 @@ export default function ShippingZonesPage() {
         </div>
         <button
           onClick={openAddZone}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded hover:bg-neutral-800"
+          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors"
         >
           <Plus size={16} /> Add Zone
         </button>
       </div>
 
       {zones.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded p-12 text-center">
+        <div className="bg-white border border-neutral-200 rounded-lg p-12 text-center">
           <Truck size={40} className="text-neutral-300 mx-auto mb-4" />
           <p className="font-display text-lg text-neutral-500">No shipping zones</p>
           <p className="text-sm text-neutral-400 mt-1">Add your first shipping zone to get started</p>
@@ -188,7 +189,7 @@ export default function ShippingZonesPage() {
       ) : (
         <div className="space-y-4">
           {zones.map((zone) => (
-            <div key={zone.id} className="bg-white border border-neutral-200 rounded">
+            <div key={zone.id} className="bg-white border border-neutral-200 rounded-lg">
               {/* Zone Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
                 <div>
@@ -206,19 +207,19 @@ export default function ShippingZonesPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => openAddRate(zone.id)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-neutral-200 rounded hover:bg-neutral-50"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors"
                   >
                     <Plus size={12} /> Add Rate
                   </button>
                   <button
                     onClick={() => openEditZone(zone)}
-                    className="p-1.5 text-neutral-400 hover:text-neutral-600"
+                    className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
                   >
                     <Edit2 size={14} />
                   </button>
                   <button
                     onClick={() => setDeleteConfirm(zone.id)}
-                    className="p-1.5 text-neutral-400 hover:text-red-600"
+                    className="p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-neutral-100 transition-colors"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -247,11 +248,11 @@ export default function ShippingZonesPage() {
                         <tr key={rate.id} className="border-b border-neutral-50 hover:bg-neutral-50">
                           <td className="px-6 py-3 font-medium text-neutral-900">{rate.name}</td>
                           <td className="px-6 py-3 capitalize text-neutral-600">{rate.method.replace(/_/g, " ")}</td>
-                          <td className="px-6 py-3 text-neutral-600">{rate.minOrderValue ? `₹${rate.minOrderValue}` : "—"}</td>
-                          <td className="px-6 py-3 text-neutral-600">{rate.maxOrderValue ? `₹${rate.maxOrderValue}` : "—"}</td>
-                          <td className="px-6 py-3 text-neutral-900">₹{rate.baseRate}</td>
-                          <td className="px-6 py-3 text-neutral-600">{rate.perKgRate ? `₹${rate.perKgRate}` : "—"}</td>
-                          <td className="px-6 py-3 text-neutral-600">{rate.freeAbove ? `₹${rate.freeAbove}` : "—"}</td>
+                          <td className="px-6 py-3 text-neutral-600">{rate.minOrderValue ? formatPrice(rate.minOrderValue) : "—"}</td>
+                          <td className="px-6 py-3 text-neutral-600">{rate.maxOrderValue ? formatPrice(rate.maxOrderValue) : "—"}</td>
+                          <td className="px-6 py-3 text-neutral-900">{formatPrice(rate.baseRate ?? 0)}</td>
+                          <td className="px-6 py-3 text-neutral-600">{rate.perKgRate ? formatPrice(rate.perKgRate) : "—"}</td>
+                          <td className="px-6 py-3 text-neutral-600">{rate.freeAbove ? formatPrice(rate.freeAbove) : "—"}</td>
                           <td className="px-6 py-3 text-neutral-600">
                             {rate.estimatedDaysMin && rate.estimatedDaysMax
                               ? `${rate.estimatedDaysMin}-${rate.estimatedDaysMax}`
@@ -260,7 +261,7 @@ export default function ShippingZonesPage() {
                           <td className="px-6 py-3">
                             <button
                               onClick={() => openEditRate(zone.id, rate)}
-                              className="p-1 text-neutral-400 hover:text-neutral-600"
+                              className="p-1 rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
                             >
                               <Edit2 size={13} />
                             </button>
@@ -287,7 +288,7 @@ export default function ShippingZonesPage() {
               value={editingZone.name}
               onChange={(e) => setEditingZone({ ...editingZone, name: e.target.value })}
               placeholder="e.g. Domestic, International"
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
             />
           </div>
           <div>
@@ -296,7 +297,7 @@ export default function ShippingZonesPage() {
               value={zoneInputs.countries}
               onChange={(e) => setZoneInputs({ ...zoneInputs, countries: e.target.value })}
               placeholder="India, USA, UK"
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
             />
           </div>
           <div>
@@ -305,7 +306,7 @@ export default function ShippingZonesPage() {
               value={zoneInputs.states}
               onChange={(e) => setZoneInputs({ ...zoneInputs, states: e.target.value })}
               placeholder="Maharashtra, Delhi, Karnataka"
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
             />
           </div>
           <div>
@@ -314,7 +315,7 @@ export default function ShippingZonesPage() {
               value={zoneInputs.pincodes}
               onChange={(e) => setZoneInputs({ ...zoneInputs, pincodes: e.target.value })}
               placeholder="400001, 110001, 560001"
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -322,7 +323,7 @@ export default function ShippingZonesPage() {
               <label className="block text-xs text-neutral-500 mb-1">Sort Order</label>
               <input type="number" min={0} value={editingZone.sortOrder ?? 0}
                 onChange={(e) => setEditingZone({ ...editingZone, sortOrder: Number(e.target.value) })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div className="flex items-end pb-2">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -334,10 +335,10 @@ export default function ShippingZonesPage() {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setZoneModalOpen(false)} className="px-4 py-2 text-sm font-medium border border-neutral-200 rounded hover:bg-neutral-50">
+            <button onClick={() => setZoneModalOpen(false)} className="px-4 py-2 text-sm font-medium border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors">
               Cancel
             </button>
-            <button onClick={saveZone} disabled={saving || !editingZone.name.trim()} className="px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50">
+            <button onClick={saveZone} disabled={saving || !editingZone.name.trim()} className="px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50">
               {saving ? "Saving…" : editingZoneId ? "Update Zone" : "Create Zone"}
             </button>
           </div>
@@ -354,7 +355,7 @@ export default function ShippingZonesPage() {
                 value={editingRate.name as string}
                 onChange={(e) => setEditingRate({ ...editingRate, name: e.target.value })}
                 placeholder="e.g. Standard, Express"
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
               />
             </div>
             <div>
@@ -362,7 +363,7 @@ export default function ShippingZonesPage() {
               <select
                 value={editingRate.method as string}
                 onChange={(e) => setEditingRate({ ...editingRate, method: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none"
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
               >
                 <option value="standard">Standard</option>
                 <option value="express">Express</option>
@@ -380,7 +381,7 @@ export default function ShippingZonesPage() {
                 value={(editingRate.baseRate as number) ?? 0}
                 onChange={(e) => setEditingRate({ ...editingRate, baseRate: Number(e.target.value) })}
                 min={0}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
               />
             </div>
             <div>
@@ -391,7 +392,7 @@ export default function ShippingZonesPage() {
                 onChange={(e) => setEditingRate({ ...editingRate, perKgRate: e.target.value ? Number(e.target.value) : null })}
                 min={0}
                 placeholder="Optional"
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
               />
             </div>
           </div>
@@ -404,7 +405,7 @@ export default function ShippingZonesPage() {
                 onChange={(e) => setEditingRate({ ...editingRate, minOrderValue: e.target.value ? Number(e.target.value) : null })}
                 min={0}
                 placeholder="Optional"
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
               />
             </div>
             <div>
@@ -415,7 +416,7 @@ export default function ShippingZonesPage() {
                 onChange={(e) => setEditingRate({ ...editingRate, maxOrderValue: e.target.value ? Number(e.target.value) : null })}
                 min={0}
                 placeholder="Optional"
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
               />
             </div>
           </div>
@@ -428,7 +429,7 @@ export default function ShippingZonesPage() {
                 onChange={(e) => setEditingRate({ ...editingRate, freeAbove: e.target.value ? Number(e.target.value) : null })}
                 min={0}
                 placeholder="Optional"
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
               />
             </div>
             <div>
@@ -440,7 +441,7 @@ export default function ShippingZonesPage() {
                   onChange={(e) => setEditingRate({ ...editingRate, estimatedDaysMin: e.target.value ? Number(e.target.value) : null })}
                   min={0}
                   placeholder="Min"
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
                 />
                 <span className="text-neutral-400">to</span>
                 <input
@@ -449,16 +450,16 @@ export default function ShippingZonesPage() {
                   onChange={(e) => setEditingRate({ ...editingRate, estimatedDaysMax: e.target.value ? Number(e.target.value) : null })}
                   min={0}
                   placeholder="Max"
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
                 />
               </div>
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setRateModalOpen(false)} className="px-4 py-2 text-sm font-medium border border-neutral-200 rounded hover:bg-neutral-50">
+            <button onClick={() => setRateModalOpen(false)} className="px-4 py-2 text-sm font-medium border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors">
               Cancel
             </button>
-            <button onClick={saveRate} disabled={saving || !editingRate.name} className="px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50">
+            <button onClick={saveRate} disabled={saving || !editingRate.name} className="px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50">
               {saving ? "Saving…" : editingRateId ? "Update Rate" : "Add Rate"}
             </button>
           </div>
@@ -470,12 +471,12 @@ export default function ShippingZonesPage() {
         <div className="space-y-4">
           <p className="text-sm text-neutral-600">Are you sure you want to delete this shipping zone? This action cannot be undone.</p>
           <div className="flex justify-end gap-2">
-            <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm font-medium border border-neutral-200 rounded hover:bg-neutral-50">
+            <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm font-medium border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors">
               Cancel
             </button>
             <button
               onClick={() => deleteConfirm && deleteZone(deleteConfirm)}
-              className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded hover:bg-red-700"
+              className="px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               Delete
             </button>

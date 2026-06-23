@@ -3,6 +3,7 @@ import { success, badRequest, notFound, serverError, created } from "../../_lib/
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
 import { requireAdmin } from "../../_lib/auth";
+import { toNull } from "../../_lib/sanitize";
 
 export async function handleAdminSizeGuideRequest(
   req: Request,
@@ -50,7 +51,7 @@ async function handleCreate(req: Request): Promise<Response> {
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
   try {
     const guide = await prisma.sizeGuide.create({
-      data: { name, slug: finalSlug, description, categoryId, type: type ?? "clothing", unit: unit ?? "inches", imageUrl, measurements },
+      data: { name, slug: finalSlug, description, categoryId: toNull(categoryId), type: type ?? "clothing", unit: unit ?? "inches", imageUrl, measurements },
     });
     return created(guide);
   } catch (err) { return serverError(err); }
@@ -61,7 +62,7 @@ async function handleUpdate(id: string, req: Request): Promise<Response> {
   try {
     const fields = ["name", "description", "categoryId", "type", "unit", "imageUrl", "measurements", "isActive"];
     const data: Record<string, unknown> = {};
-    for (const f of fields) { if (body[f] !== undefined) data[f] = body[f]; }
+    for (const f of fields) { if (body[f] !== undefined) data[f] = f === "categoryId" ? toNull(body[f]) : body[f]; }
     if (body.name) data.slug = slugify(body.name);
     const guide = await prisma.sizeGuide.update({ where: { id }, data: data as never });
     return success(guide);

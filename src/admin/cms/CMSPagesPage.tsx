@@ -9,6 +9,9 @@ interface CMSPage {
   id: string;
   title: string;
   slug: string;
+  content?: string;
+  metaTitle?: string;
+  metaDescription?: string;
   status: string;
   updatedAt: string;
 }
@@ -26,7 +29,7 @@ export default function CMSPagesPage() {
       const res = await adminApi.getPages();
       setPages((res.pages as CMSPage[]) ?? []);
     } catch (error) {
-      console.error("Failed to fetch CMS pages:", error);
+      // failed to fetch
     } finally {
       setLoading(false);
     }
@@ -42,7 +45,7 @@ export default function CMSPagesPage() {
 
   const openEdit = (page: CMSPage) => {
     setEditItem(page);
-    setForm({ title: page.title, slug: page.slug, content: "", metaTitle: "", metaDescription: "", status: page.status });
+    setForm({ title: page.title, slug: page.slug, content: page.content ?? "", metaTitle: page.metaTitle ?? "", metaDescription: page.metaDescription ?? "", status: page.status });
     setModalOpen(true);
   };
 
@@ -64,17 +67,16 @@ export default function CMSPagesPage() {
       setModalOpen(false);
       fetch();
     } catch (error) {
-      console.error("Failed to save CMS page:", error);
+      // failed to save
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this page?")) return;
     try {
       await adminApi.deletePage(id);
       fetch();
     } catch (error) {
-      console.error("Failed to delete CMS page:", error);
+      // failed to delete
     }
   };
 

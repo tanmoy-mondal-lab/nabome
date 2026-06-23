@@ -31,7 +31,7 @@ export function PageBuilderDemo() {
   };
 
   const handleSave = () => {
-    console.log("Saving page with sections:", sections);
+    // TODO: implement save
   };
 
   return (

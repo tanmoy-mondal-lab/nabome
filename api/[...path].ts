@@ -615,7 +615,6 @@ export async function OPTIONS(request: Request): Promise<Response> {
 async function handleRequest(method: string, request: Request): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname;
-  console.log(`[ROUTER] ${method} ${path}`);
 
   // Rate limiting
   const key = calculateKey(request, path);

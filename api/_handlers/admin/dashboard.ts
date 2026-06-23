@@ -26,6 +26,10 @@ async function handleOverview(): Promise<Response> {
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+    // Get low stock threshold from site settings
+    const siteSettings = await prisma.siteSetting.findFirst();
+    const lowStockThreshold = (siteSettings?.preferences as Record<string, unknown> | null)?.lowStockThreshold as number ?? 5;
+
     const [
       totalProducts,
       totalOrders,
@@ -64,7 +68,7 @@ async function handleOverview(): Promise<Response> {
         where: { createdAt: { gte: startOfMonth } },
       }),
       prisma.productVariant.count({
-        where: { stock: { lte: 5 }, isActive: true },
+        where: { stock: { lte: lowStockThreshold }, isActive: true },
       }),
       prisma.review.count({ where: { isApproved: false } }),
       prisma.profile.findMany({
@@ -80,16 +84,35 @@ async function handleOverview(): Promise<Response> {
       _count: true,
     });
 
-    // Sales by day (last 30 days)
-    const dailySales = await prisma.order.groupBy({
-      by: ["createdAt"],
+    // Sales by day (last 30 days) — fetch paid orders and group by day
+    const paidOrders = await prisma.order.findMany({
       where: {
         paymentStatus: "paid",
         createdAt: { gte: thirtyDaysAgo },
       },
-      _sum: { total: true },
-      _count: true,
+      select: { createdAt: true, total: true },
     });
+
+    const salesByDay = new Map<string, { revenue: number; orders: number }>();
+    for (const order of paidOrders) {
+      const day = order.createdAt.toISOString().split("T")[0];
+      const existing = salesByDay.get(day) ?? { revenue: 0, orders: 0 };
+      existing.revenue += Number(order.total);
+      existing.orders += 1;
+      salesByDay.set(day, existing);
+    }
+
+    // Fill in missing days with zero values
+    const dailySales: { date: string; revenue: number; orders: number }[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const day = d.toISOString().split("T")[0];
+      dailySales.push({
+        date: day,
+        revenue: salesByDay.get(day)?.revenue ?? 0,
+        orders: salesByDay.get(day)?.orders ?? 0,
+      });
+    }
 
     return success({
       stats: {
@@ -108,11 +131,7 @@ async function handleOverview(): Promise<Response> {
       })),
       recentOrders,
       recentCustomers,
-      dailySales: dailySales.map((d) => ({
-        date: d.createdAt,
-        revenue: d._sum.total ?? 0,
-        orders: d._count,
-      })),
+      dailySales,
     });
   } catch (err) {
     return serverError(err);

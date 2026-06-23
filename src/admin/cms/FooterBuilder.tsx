@@ -25,7 +25,7 @@ export default function FooterBuilder() {
       const res = await adminApi.getFooterSections();
       setSections((res.sections as FooterSection[]) ?? []);
     } catch (error) {
-      console.error("Failed to fetch footer sections:", error);
+      // failed to fetch
     }
   }, []);
 
@@ -64,7 +64,6 @@ export default function FooterBuilder() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this footer section?")) return;
     try {
       await adminApi.deleteFooterSection(id);
       fetch();

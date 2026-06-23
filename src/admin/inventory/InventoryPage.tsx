@@ -5,24 +5,28 @@ import { Modal } from "../common/Modal";
 import { StatsCard } from "../common/StatsCard";
 import { EmptyState } from "../common/EmptyState";
 import { Package, AlertTriangle, XCircle, CheckCircle, PackageSearch, Search } from "lucide-react";
+import { formatDate } from "../../lib/utils/format";
 
 export default function InventoryPage() {
   const [overview, setOverview] = useState<{ stats: Record<string, number>; recentMovements: unknown[]; alerts: unknown[] } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"overview" | "alerts" | "history">("overview");
   const [search, setSearch] = useState("");
   const [showAdjust, setShowAdjust] = useState(false);
   const [adjustVariant, setAdjustVariant] = useState<Record<string, unknown> | null>(null);
   const [adjustForm, setAdjustForm] = useState({ quantityChange: 0, reason: "", note: "" });
+  const [adjustError, setAdjustError] = useState<string | null>(null);
 
   useEffect(() => { load(); }, []);
 
   async function load() {
     setLoading(true);
+    setError(null);
     try {
       const o = await adminApi.getInventoryOverview();
       setOverview({ stats: o.stats as Record<string, number>, recentMovements: o.recentMovements as unknown[], alerts: o.alerts as unknown[] });
-    } catch {}
+    } catch (err) { setError(`Failed to load inventory data: ${(err as Error).message ?? "Unknown error"}`); }
     setLoading(false);
   }
 
@@ -34,12 +38,17 @@ export default function InventoryPage() {
 
   async function handleAdjust() {
     if (!adjustVariant) return;
-    await adminApi.adjustVariantStock(adjustVariant.id as string, adjustForm);
-    setShowAdjust(false); load();
+    setAdjustError(null);
+    try {
+      await adminApi.adjustVariantStock(adjustVariant.id as string, adjustForm);
+      setShowAdjust(false); load();
+    } catch (err) { setAdjustError(`Failed to adjust stock: ${(err as Error).message ?? "Unknown error"}`); }
   }
 
   async function handleResolveAlert(alertId: string) {
-    await adminApi.resolveAlert(alertId); load();
+    try {
+      await adminApi.resolveAlert(alertId); load();
+    } catch { /* non-critical, ignore */ }
   }
 
   const stats = overview?.stats;
@@ -59,12 +68,19 @@ export default function InventoryPage() {
         <p className="text-sm text-neutral-500 mt-1">Manage stock levels, view movements, and resolve alerts</p>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatsCard icon={PackageSearch} label="Total Variants" value={stats?.totalVariants ?? 0} />
         <StatsCard icon={PackageSearch} label="Total Stock" value={stats?.totalStock ?? 0} />
         <StatsCard icon={AlertTriangle} label="Low Stock" value={stats?.lowStockCount ?? 0} />
         <StatsCard icon={XCircle} label="Out of Stock" value={stats?.outOfStockCount ?? 0} />
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded p-4 text-sm text-red-700">
+          {error}
+          <button onClick={load} className="ml-3 underline hover:text-red-900">Retry</button>
+        </div>
+      )}
 
       <div className="flex gap-1 border-b">
         {([{ key: "overview", label: "Overview" }, { key: "alerts", label: "Alerts" }, { key: "history", label: "History" }] as const).map((t) => (
@@ -103,7 +119,7 @@ export default function InventoryPage() {
       {tab === "history" && (
         movements.length === 0 ? <EmptyState title="No movements yet" description="Stock adjustments will appear here." />
           : <DataTable columns={[
-            { key: "createdAt", label: "Date", render: (item) => new Date((item as Record<string, unknown>).createdAt as string).toLocaleDateString() },
+            { key: "createdAt", label: "Date", render: (item) => formatDate((item as Record<string, unknown>).createdAt as string) },
             { key: "variant", label: "Variant", render: (item) => {
               const variant = (item as Record<string, unknown>).variant as Record<string, unknown> ?? {};
               const product = variant.product as Record<string, unknown> ?? {};
@@ -115,8 +131,9 @@ export default function InventoryPage() {
             { key: "note", label: "Note" },
           ]} data={movements as Record<string, unknown>[]} isLoading={loading} />)}
 
-      <Modal open={showAdjust && !!adjustVariant} title={`Adjust Stock: ${adjustVariant?.sku ?? ""}`} onClose={() => setShowAdjust(false)}>
+      <Modal open={showAdjust && !!adjustVariant} title={`Adjust Stock: ${adjustVariant?.sku ?? ""}`} onClose={() => { setShowAdjust(false); setAdjustError(null); }}>
         <div className="space-y-4">
+          {adjustError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{adjustError}</p>}
           <p className="text-xs text-neutral-500">Current stock: <strong className="text-neutral-900">{adjustVariant?.stock as number ?? 0}</strong> | Size: {adjustVariant?.size as string ?? ""} | Color: {adjustVariant?.color as string ?? ""}</p>
           <div><label className="block text-xs text-neutral-500 mb-1">Quantity Change *</label><input type="number" value={adjustForm.quantityChange} onChange={(e) => setAdjustForm({ ...adjustForm, quantityChange: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 text-sm border rounded" placeholder="Use positive to add, negative to subtract" /></div>
           <div><label className="block text-xs text-neutral-500 mb-1">Reason *</label><select value={adjustForm.reason} onChange={(e) => setAdjustForm({ ...adjustForm, reason: e.target.value })} className="w-full px-3 py-2 text-sm border rounded">

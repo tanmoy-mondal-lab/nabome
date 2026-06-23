@@ -8,11 +8,10 @@ const productInclude = {
   collection: { select: { id: true, name: true, slug: true } },
   brand: { select: { id: true, name: true, slug: true, logoUrl: true } },
   images: { orderBy: { sortOrder: "asc" as const } },
-  variants: { where: { isActive: true }, include: { inventoryAlerts: { where: { isResolved: false }, take: 1 } } },
+  variants: { where: { isActive: true }, include: { images: { orderBy: { sortOrder: "asc" as const } } } },
   attributes: true,
   productTags: { include: { tag: true } },
   productLabels: { include: { label: true } },
-  relatedTo: { include: { target: { select: { id: true, name: true, slug: true, basePrice: true, images: { where: { isPrimary: true }, take: 1, select: { url: true } } } } } },
   _count: { select: { reviews: true } },
 };
 
@@ -22,6 +21,7 @@ const productListSelect = {
   slug: true,
   shortDescription: true,
   basePrice: true,
+  salePrice: true,
   compareAtPrice: true,
   currency: true,
   gender: true,
@@ -31,6 +31,7 @@ const productListSelect = {
   createdAt: true,
   category: { select: { id: true, name: true, slug: true } },
   collection: { select: { id: true, name: true, slug: true } },
+  brand: { select: { id: true, name: true, slug: true, logoUrl: true } },
   images: {
     where: { isPrimary: true },
     take: 1,
@@ -38,7 +39,7 @@ const productListSelect = {
   },
   variants: {
     where: { isActive: true },
-    select: { id: true, size: true, color: true, colorHex: true, stock: true, priceAdjustment: true },
+    select: { id: true, size: true, color: true, colorHex: true, stock: true, reservedStock: true, priceAdjustment: true },
   },
   productLabels: {
     include: { label: { select: { name: true, slug: true, color: true } } },
@@ -273,7 +274,21 @@ async function handleDetail(slug: string): Promise<Response> {
 
     if (!product) return notFound("Product not found");
 
-    return success({ product });
+    // Fetch related products separately to avoid self-referential M2M complexity
+    const relatedRecords = await prisma.relatedProduct.findMany({
+      where: { sourceId: product.id },
+      include: {
+        target: {
+          select: {
+            id: true, name: true, slug: true, basePrice: true, salePrice: true,
+            images: { where: { isPrimary: true }, take: 1 },
+          },
+        },
+      },
+    });
+    const relatedProducts = relatedRecords.map((r) => r.target);
+
+    return success({ product: { ...product, relatedProducts } });
   } catch (err) {
     return serverError(err);
   }
@@ -290,7 +305,11 @@ async function handleVariants(slug: string): Promise<Response> {
 
     const variants = await prisma.productVariant.findMany({
       where: { productId: product.id, isActive: true },
-      include: { images: { orderBy: { sortOrder: "asc" as const } } },
+      select: {
+        id: true, size: true, color: true, colorHex: true,
+        stock: true, reservedStock: true, priceAdjustment: true,
+        images: { orderBy: { sortOrder: "asc" as const } },
+      },
       orderBy: [{ color: "asc" as const }, { size: "asc" as const }],
     });
 

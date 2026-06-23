@@ -4,6 +4,7 @@ import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
 import { SafeImage } from "../../components/SafeImage";
+import { formatPrice, formatDate } from "../../lib/utils/format";
 import { Mail, Phone, ShoppingBag, Edit3, ShieldCheck, Clock, UserCheck } from "lucide-react";
 
 interface Customer {
@@ -41,25 +42,27 @@ export default function CustomersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const fetch = useCallback(async () => {
+  const [editError, setEditError] = useState<string | null>(null);
+
+  const fetchCustomers = useCallback(async () => {
     setLoading(true);
     try {
       const res = await adminApi.getCustomers({ page, limit: 20 });
       setCustomers((res.customers as Customer[]) ?? []);
       const pag = res.pagination as { totalPages?: number } | undefined;
       setTotalPages(pag?.totalPages ?? 1);
-    } catch (e) { console.error("Failed to fetch customers", e); } finally {
+    } catch { /* non-critical, keep existing data */ } finally {
       setLoading(false);
     }
   }, [page]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
   const viewDetail = async (c: Customer) => {
     try {
       const res = await adminApi.getCustomer(c.id);
       setSelected(res.customer as CustomerDetail);
-    } catch (e) { console.error("Failed to fetch customer detail", e); }
+    } catch { /* non-critical, keep existing data */ }
   };
 
   const openEdit = (c: Customer) => {
@@ -69,11 +72,12 @@ export default function CustomersPage() {
 
   const handleEditSave = async () => {
     if (!editTarget) return;
+    setEditError(null);
     try {
       await adminApi.updateCustomer(editTarget.id, editForm);
       setEditTarget(null);
-      fetch();
-    } catch (e) { alert("Failed to update customer"); console.error(e); }
+      fetchCustomers();
+    } catch (err) { setEditError(`Failed to update customer: ${(err as Error).message ?? "Unknown error"}`); }
   };
 
   const columns = [
@@ -106,14 +110,10 @@ export default function CustomersPage() {
       render: (c: Customer) => <span className="text-sm text-neutral-500">{c._count?.orders ?? 0}</span>,
     },
     { key: "lastLoginAt", label: "Last Login",
-      render: (c: Customer) => <span className="text-xs text-neutral-400">{c.lastLoginAt ? new Date(c.lastLoginAt).toLocaleDateString() : "—"}</span>,
+      render: (c: Customer) => <span className="text-xs text-neutral-400">{c.lastLoginAt ? formatDate(c.lastLoginAt) : "—"}</span>,
     },
     { key: "createdAt", label: "Joined", sortable: true,
-      render: (c: Customer) => (
-        <span className="text-sm text-neutral-500">
-          {new Date(c.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-        </span>
-      ),
+      render: (c: Customer) => <span className="text-sm text-neutral-500">{formatDate(c.createdAt)}</span>,
     },
   ];
 
@@ -169,12 +169,12 @@ export default function CustomersPage() {
                 <ShoppingBag size={14} className="shrink-0 text-neutral-400" /> {selected._count?.orders ?? 0} orders
               </div>
               <div className="flex items-center gap-2 text-sm text-neutral-600">
-                <Clock size={14} className="shrink-0 text-neutral-400" /> Last login: {selected.lastLoginAt ? new Date(selected.lastLoginAt).toLocaleDateString() : "—"}
+                <Clock size={14} className="shrink-0 text-neutral-400" /> Last login: {selected.lastLoginAt ? formatDate(selected.lastLoginAt) : "—"}
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3 text-center text-xs">
-              <div className="bg-neutral-50 rounded p-3"><span className="block text-lg font-medium text-neutral-900">₹{(selected.lifetimeValue ?? 0).toLocaleString()}</span>Lifetime Value</div>
+              <div className="bg-neutral-50 rounded p-3"><span className="block text-lg font-medium text-neutral-900">{formatPrice(selected.lifetimeValue ?? 0)}</span>Lifetime Value</div>
               <div className="bg-neutral-50 rounded p-3"><span className="block text-lg font-medium text-neutral-900">{selected._count?.reviews ?? 0}</span>Reviews</div>
               <div className="bg-neutral-50 rounded p-3"><span className="block text-lg font-medium text-neutral-900">{selected._count?.wishlistItems ?? 0}</span>Wishlist</div>
             </div>
@@ -203,10 +203,10 @@ export default function CustomersPage() {
                     <div key={o.id} className="flex items-center justify-between p-3 bg-neutral-50 rounded text-sm">
                       <div>
                         <span className="font-medium text-neutral-900">#{o.orderNumber}</span>
-                        <span className="text-neutral-400 ml-2">· {new Date(o.createdAt).toLocaleDateString()}</span>
+                        <span className="text-neutral-400 ml-2">· {formatDate(o.createdAt)}</span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="font-medium">₹{o.total?.toLocaleString()}</span>
+                        <span className="font-medium">{formatPrice(o.total ?? 0)}</span>
                         <StatusBadge status={o.status} />
                       </div>
                     </div>
@@ -220,26 +220,27 @@ export default function CustomersPage() {
         )}
       </Modal>
 
-      <Modal open={!!editTarget} onClose={() => setEditTarget(null)} title="Edit Customer">
+      <Modal open={!!editTarget} onClose={() => { setEditTarget(null); setEditError(null); }} title="Edit Customer">
         <div className="space-y-4">
+          {editError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{editError}</p>}
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="block text-xs text-neutral-500 mb-1">First Name</label><input value={editForm.firstName} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
-            <div><label className="block text-xs text-neutral-500 mb-1">Last Name</label><input value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+            <div><label className="block text-xs text-neutral-500 mb-1">First Name</label><input value={editForm.firstName} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
+            <div><label className="block text-xs text-neutral-500 mb-1">Last Name</label><input value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
           </div>
-          <div><label className="block text-xs text-neutral-500 mb-1">Email</label><input value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
-          <div><label className="block text-xs text-neutral-500 mb-1">Phone</label><input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
-          <div><label className="block text-xs text-neutral-500 mb-1">Avatar URL</label><input value={editForm.avatarUrl} onChange={(e) => setEditForm({ ...editForm, avatarUrl: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Email</label><input value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Phone</label><input value={editForm.phone} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Avatar URL</label><input value={editForm.avatarUrl} onChange={(e) => setEditForm({ ...editForm, avatarUrl: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Role</label>
-              <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} className="w-full px-3 py-2 text-sm border rounded">
+              <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors">
                 <option value="customer">Customer</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Status</label>
-              <select value={editForm.isActive ? "active" : "inactive"} onChange={(e) => setEditForm({ ...editForm, isActive: e.target.value === "active" })} className="w-full px-3 py-2 text-sm border rounded">
+              <select value={editForm.isActive ? "active" : "inactive"} onChange={(e) => setEditForm({ ...editForm, isActive: e.target.value === "active" })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors">
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
@@ -250,8 +251,8 @@ export default function CustomersPage() {
             <span className="text-sm text-neutral-700">Marketing Opt-In</span>
           </label>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setEditTarget(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleEditSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium hover:bg-neutral-800">Save</button>
+            <button onClick={() => setEditTarget(null)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+            <button onClick={handleEditSave} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">Save</button>
           </div>
         </div>
       </Modal>

@@ -53,7 +53,7 @@ export function DataTable<T>({
 
   if (isLoading) {
     return (
-      <div className="bg-white border border-neutral-200 rounded">
+      <div className="bg-white border border-neutral-200 rounded-xl">
         <div className="p-8 text-center">
           <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
@@ -62,7 +62,7 @@ export function DataTable<T>({
   }
 
   return (
-    <div className="bg-white border border-neutral-200 rounded">
+    <div className="bg-white border border-neutral-200 rounded-xl">
       {/* Search */}
       {onSearch && (
         <div className="p-4 border-b border-neutral-100">
@@ -72,7 +72,7 @@ export function DataTable<T>({
               type="text"
               placeholder={searchPlaceholder}
               onChange={(e) => onSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full pl-10 pr-4 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
             />
           </div>
         </div>
@@ -141,14 +141,14 @@ export function DataTable<T>({
             <button
               disabled={page <= 1}
               onClick={() => onPageChange?.(page - 1)}
-              className="p-1.5 rounded hover:bg-neutral-100 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-lg hover:bg-neutral-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft size={16} />
             </button>
             <button
               disabled={page >= totalPages}
               onClick={() => onPageChange?.(page + 1)}
-              className="p-1.5 rounded hover:bg-neutral-100 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-1.5 rounded-lg hover:bg-neutral-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight size={16} />
             </button>

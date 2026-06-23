@@ -113,7 +113,7 @@ export default function HomepageBuilder() {
       const res = await adminApi.getHomepageSections();
       setSections((res.sections as HomeSection[]) ?? []);
     } catch (error) {
-      console.error("Failed to fetch homepage sections:", error);
+      // failed to fetch
     } finally {
       setLoading(false);
     }
@@ -228,19 +228,18 @@ export default function HomepageBuilder() {
       setModalOpen(false);
       fetch();
     } catch (error) {
-      console.error("Failed to save homepage section:", error);
+      // failed to save
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Delete this section?")) return;
     try {
       await adminApi.deleteHomeSection(id);
       fetch();
     } catch (error) {
-      console.error("Failed to delete homepage section:", error);
+      // failed to delete
     }
   };
 
@@ -249,7 +248,7 @@ export default function HomepageBuilder() {
       await adminApi.updateHomeSection(sec.id, { ...sec, isActive: !sec.isActive });
       fetch();
     } catch (error) {
-      console.error("Failed to toggle homepage section visibility:", error);
+      // failed to toggle
     }
   };
 
@@ -270,7 +269,6 @@ export default function HomepageBuilder() {
       const order = reordered.map((s, i) => ({ id: s.id, sortOrder: i }));
       await adminApi.reorderHomeSections(order);
     } catch (error) {
-      console.error("Failed to save section order:", error);
       // Revert on error
       fetch();
     } finally {

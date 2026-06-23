@@ -4,6 +4,7 @@ import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { StatusBadge } from "../common/StatusBadge";
 import { Plus, Edit3, Trash2, Megaphone } from "lucide-react";
+import { formatDate } from "../../lib/utils/format";
 
 interface Announcement {
   id: string;
@@ -133,9 +134,9 @@ export default function AnnouncementsPage() {
                       <div className="flex items-center gap-3 text-xs text-neutral-400">
                         {a.linkText && a.linkUrl && <span>Link: {a.linkText}</span>}
                         {a.bgColor && <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>Color: <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 2, backgroundColor: a.bgColor }} /></span>}
-                        {a.startDate && <span>From: {new Date(a.startDate).toLocaleDateString()}</span>}
-                        {a.endDate && <span>Until: {new Date(a.endDate).toLocaleDateString()}</span>}
-                        <span>Created: {new Date(a.createdAt).toLocaleDateString()}</span>
+                        {a.startDate && <span>From: {formatDate(a.startDate)}</span>}
+                        {a.endDate && <span>Until: {formatDate(a.endDate)}</span>}
+                        <span>Created: {formatDate(a.createdAt)}</span>
                       </div>
                     </div>
                 <div className="flex items-center gap-1 ml-4">

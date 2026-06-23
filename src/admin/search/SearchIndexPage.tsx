@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { adminApi } from "../../lib/api/admin";
 import { Search, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
+import { formatDateTime } from "../../lib/utils/format";
 
 export default function SearchIndexPage() {
   const [status, setStatus] = useState<{ indexed: boolean; count: number; lastIndexed: string | null } | null>(null);
@@ -82,7 +83,7 @@ export default function SearchIndexPage() {
         <div className="bg-white border border-neutral-200 rounded p-4">
           <p className="text-xs text-neutral-500 mb-1">Last Indexed</p>
           <p className="text-sm font-medium text-neutral-900">
-            {status?.lastIndexed ? new Date(status.lastIndexed).toLocaleString() : "Never"}
+            {status?.lastIndexed ? formatDateTime(status.lastIndexed) : "Never"}
           </p>
         </div>
       </div>

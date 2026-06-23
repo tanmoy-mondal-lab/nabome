@@ -38,7 +38,9 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
 
   const name = product.name as string;
   const slug = product.slug as string;
-  const price = Number(product.basePrice ?? 0);
+  const basePrice = Number(product.basePrice ?? 0);
+  const salePrice = product.salePrice ? Number(product.salePrice) : null;
+  const price = salePrice && salePrice > 0 ? salePrice : basePrice;
   const compareAtPrice = product.compareAtPrice ? Number(product.compareAtPrice) : null;
   const images = (product.images as { url: string }[]) ?? [];
   const variants = (product.variants as Record<string, unknown>[]) ?? [];
@@ -47,7 +49,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
   const colorMap = new Map<string, { hex: string; name: string }>();
   variants.forEach((v) => {
     const hex = v.colorHex as string;
-    const name = v.colorName as string || hex;
+    const name = v.color as string || hex;
     if (hex && !colorMap.has(hex)) {
       colorMap.set(hex, { hex, name });
     }
@@ -62,7 +64,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
   const stock: Record<string, number> = {};
   filteredVariants.forEach((v) => {
     const s = v.size as string;
-    if (s) stock[s] = Number(v.stock ?? v.quantity ?? 0);
+    if (s) stock[s] = Number(v.stock ?? 0);
   });
 
   const selectedVariant = variants.find(
@@ -86,10 +88,10 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
       color: colorOptions.find((c) => c.hex === selectedColor)?.name || selectedColor,
       colorHex: selectedColor,
       image: images[0]?.url || "",
-      price: Number(selectedVariant.price ?? price),
-      compareAtPrice: selectedVariant.compareAtPrice ? Number(selectedVariant.compareAtPrice) : null,
+      price: price + Number(selectedVariant.priceAdjustment ?? 0),
+      compareAtPrice,
       quantity,
-      maxQuantity: Number(selectedVariant.stock ?? selectedVariant.quantity ?? 99),
+      maxQuantity: Number(selectedVariant.stock ?? 99),
     });
     onClose();
   };

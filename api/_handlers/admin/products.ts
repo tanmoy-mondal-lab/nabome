@@ -5,6 +5,7 @@ import { requireAdmin } from "../../_lib/auth";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { destroyCloudinaryAsset, destroyCloudinaryAssets } from "../../_lib/cloudinary";
 import { slugify } from "../../../src/lib/utils/format";
+import { toNull } from "../../_lib/sanitize";
 
 const productInclude = {
   category: { select: { id: true, name: true, slug: true } },
@@ -13,12 +14,10 @@ const productInclude = {
   brand: { select: { id: true, name: true, slug: true, logoUrl: true } },
   sizeGuide: { select: { id: true, name: true } },
   images: { orderBy: { sortOrder: "asc" as const } },
-  variants: { include: { inventoryAlerts: { where: { isResolved: false }, take: 1 } } },
+  variants: { include: { images: { orderBy: { sortOrder: "asc" as const } } } },
   attributes: true,
   productTags: { include: { tag: true } },
   productLabels: { include: { label: true } },
-  relatedTo: { include: { target: { select: { id: true, name: true, slug: true, basePrice: true, salePrice: true, images: { where: { isPrimary: true }, take: 1, select: { url: true } } } } } },
-  relatedFrom: { include: { source: { select: { id: true, name: true, slug: true, basePrice: true, salePrice: true, images: { where: { isPrimary: true }, take: 1, select: { url: true } } } } } },
   _count: { select: { reviews: true, orderItems: true } },
 };
 
@@ -100,7 +99,7 @@ async function handleList(req: Request): Promise<Response> {
 
 async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
-  const { name, description, shortDescription, categoryId, subcategoryId, collectionId, basePrice, compareAtPrice, costPrice, material, careInstructions, isActive, isFeatured, isNew, gender, sortOrder, metaTitle, metaDesc } = body;
+  const { name, description, shortDescription, categoryId, subcategoryId, collectionId, brandId, sizeGuideId, basePrice, salePrice, compareAtPrice, costPrice, discountPercent, material, careInstructions, isActive, isFeatured, isNew, gender, sortOrder, metaTitle, metaDesc } = body;
 
   if (!name || basePrice === undefined) {
     return badRequest("Name and base price are required");
@@ -120,12 +119,16 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
         slug,
         description: description ?? null,
         shortDescription: shortDescription ?? null,
-        categoryId: categoryId ?? null,
-        subcategoryId: subcategoryId ?? null,
-        collectionId: collectionId ?? null,
+        categoryId: toNull(categoryId),
+        subcategoryId: toNull(subcategoryId),
+        collectionId: toNull(collectionId),
+        brandId: toNull(brandId),
+        sizeGuideId: toNull(sizeGuideId),
         basePrice,
-        compareAtPrice: compareAtPrice ?? null,
-        costPrice: costPrice ?? null,
+        salePrice: toNull(salePrice),
+        compareAtPrice: toNull(compareAtPrice),
+        costPrice: toNull(costPrice),
+        discountPercent: toNull(discountPercent),
         material: material ?? null,
         careInstructions: careInstructions ?? null,
         isActive: isActive ?? true,
@@ -176,12 +179,17 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
     const data: Record<string, unknown> = {};
     const updatableFields = [
       "name", "description", "shortDescription", "categoryId", "subcategoryId", "collectionId",
-      "basePrice", "compareAtPrice", "costPrice", "material", "careInstructions", "sizeChartUrl",
+      "brandId", "sizeGuideId", "basePrice", "salePrice", "compareAtPrice", "costPrice", "discountPercent",
+      "material", "careInstructions", "sizeChartUrl",
       "isActive", "isFeatured", "isNew", "gender", "sortOrder", "metaTitle", "metaDesc",
     ];
 
+    const uuidFields = ["categoryId", "subcategoryId", "collectionId", "brandId", "sizeGuideId"];
+
     for (const field of updatableFields) {
-      if (body[field] !== undefined) data[field] = body[field];
+      if (body[field] !== undefined) {
+        data[field] = uuidFields.includes(field) ? toNull(body[field]) : body[field];
+      }
     }
 
     if (body.name && body.name !== existing.name) {
@@ -250,34 +258,28 @@ async function handleUpdateVariants(productId: string, req: Request): Promise<Re
   try {
     const results = [];
     for (const v of variants) {
-      if (v.id) {
+      const variantData = {
+        sku: v.sku,
+        size: v.size,
+        color: v.color,
+        colorHex: v.colorHex ?? null,
+        priceAdjustment: v.priceAdjustment ?? 0,
+        stock: v.stock ?? 0,
+        weight: v.weight ?? null,
+        videoUrl: v.videoUrl ?? null,
+        videoPublicId: v.videoPublicId ?? null,
+        isActive: v.isActive ?? true,
+      };
+
+      if (v.id && !String(v.id).startsWith("new-")) {
         const updated = await prisma.productVariant.update({
           where: { id: v.id, productId },
-          data: {
-            sku: v.sku,
-            size: v.size,
-            color: v.color,
-            colorHex: v.colorHex ?? null,
-            priceAdjustment: v.priceAdjustment ?? 0,
-            stock: v.stock ?? 0,
-            weight: v.weight ?? null,
-            isActive: v.isActive ?? true,
-          },
+          data: variantData,
         });
         results.push(updated);
       } else {
         const created2 = await prisma.productVariant.create({
-          data: {
-            productId,
-            sku: v.sku,
-            size: v.size,
-            color: v.color,
-            colorHex: v.colorHex ?? null,
-            priceAdjustment: v.priceAdjustment ?? 0,
-            stock: v.stock ?? 0,
-            weight: v.weight ?? null,
-            isActive: true,
-          },
+          data: { productId, ...variantData },
         });
         results.push(created2);
       }
@@ -309,7 +311,7 @@ async function handleAddImage(productId: string, req: Request): Promise<Response
         url,
         publicId: publicId ?? null,
         altText: altText ?? null,
-        variantId: variantId ?? null,
+        variantId: toNull(variantId),
         sortOrder: sortOrder ?? 0,
         isPrimary: isPrimary ?? false,
       },
@@ -456,9 +458,9 @@ async function handleBulkCategory(req: Request): Promise<Response> {
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
   try {
     const data: Record<string, unknown> = {};
-    if (categoryId !== undefined) data.categoryId = categoryId;
-    if (subcategoryId !== undefined) data.subcategoryId = subcategoryId;
-    if (collectionId !== undefined) data.collectionId = collectionId;
+    if (categoryId !== undefined) data.categoryId = toNull(categoryId);
+    if (subcategoryId !== undefined) data.subcategoryId = toNull(subcategoryId);
+    if (collectionId !== undefined) data.collectionId = toNull(collectionId);
     const result = await prisma.product.updateMany({
       where: { id: { in: ids } },
       data: data as never,

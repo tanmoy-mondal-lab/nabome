@@ -20,7 +20,7 @@ export default function SizeGuidesPage() {
     Promise.all([adminApi.getSizeGuides(), adminApi.getCategories()]).then(([g, c]) => {
       setGuides(g.sizeGuides ?? []);
       setCategories(c.categories ?? []);
-    }).catch(() => {}).finally(() => setLoading(false));
+    }).catch(() => { /* non-critical: data will show as empty */ }).finally(() => setLoading(false));
   }, []);
 
   function openCreate() {
@@ -62,7 +62,7 @@ export default function SizeGuidesPage() {
   }
 
   async function handleSave() {
-    const data = { ...form, measurements: measurementsArr };
+    const data = { ...form, measurements: measurementsArr, categoryId: form.categoryId || null };
     if (edit) { await adminApi.updateSizeGuide((edit.id as string), data); }
     else { await adminApi.createSizeGuide(data); }
     setShowModal(false);
@@ -71,7 +71,7 @@ export default function SizeGuidesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (window.confirm("Delete this size guide?")) { await adminApi.deleteSizeGuide(id); setGuides((guides as Record<string, unknown>[]).filter((g) => g.id !== id)); }
+    await adminApi.deleteSizeGuide(id); setGuides((guides as Record<string, unknown>[]).filter((g) => g.id !== id));
   }
 
   const filtered = (guides as Record<string, unknown>[]).filter((g) => !search || ((g.name as string) ?? "").toLowerCase().includes(search.toLowerCase()));
@@ -83,17 +83,17 @@ export default function SizeGuidesPage() {
           <h1 className="text-xl font-display text-neutral-900">Size Guides</h1>
           <p className="text-sm text-neutral-500 mt-1">Create and manage size charts for products and categories</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 text-sm font-medium rounded hover:bg-neutral-800">
+        <button onClick={openCreate} className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 text-sm font-medium rounded-lg hover:bg-neutral-800 transition-colors">
           <Plus className="w-4 h-4" /> Add Size Guide
         </button>
       </div>
 
       <div className="relative max-w-xs">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search size guides..." className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-neutral-900" />
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search size guides..." className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
       </div>
 
-      {filtered.length === 0 && !loading ? <EmptyState title="No size guides yet" description="Create size charts for your products and categories." action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 text-sm rounded">Add Size Guide</button>} />
+      {filtered.length === 0 && !loading ? <EmptyState title="No size guides yet" description="Create size charts for your products and categories." action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 text-sm rounded-lg transition-colors">Add Size Guide</button>} />
         : <DataTable columns={[
           { key: "name", label: "Name", sortable: true },
           { key: "type", label: "Type" },
@@ -107,13 +107,13 @@ export default function SizeGuidesPage() {
 
       <Modal open={showModal} title={edit ? "Edit Size Guide" : "Create Size Guide"} onClose={() => setShowModal(false)} size="lg">
         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-          <div><label className="block text-xs text-neutral-500 mb-1">Name *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 text-sm border rounded" /></div>
-          <div><label className="block text-xs text-neutral-500 mb-1">Description</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 text-sm border rounded" /></div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Name *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Description</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="block text-xs text-neutral-500 mb-1">Category</label><select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className="w-full px-3 py-2 text-sm border rounded"><option value="">All Categories</option>{(categories as Record<string, unknown>[]).map((c) => <option key={c.id as string} value={c.id as string}>{c.name as string}</option>)}</select></div>
-            <div><label className="block text-xs text-neutral-500 mb-1">Type</label><select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-3 py-2 text-sm border rounded"><option value="clothing">Clothing</option><option value="shoes">Shoes</option><option value="accessories">Accessories</option><option value="rings">Rings</option></select></div>
+            <div><label className="block text-xs text-neutral-500 mb-1">Category</label><select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"><option value="">All Categories</option>{(categories as Record<string, unknown>[]).map((c) => <option key={c.id as string} value={c.id as string}>{c.name as string}</option>)}</select></div>
+            <div><label className="block text-xs text-neutral-500 mb-1">Type</label><select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"><option value="clothing">Clothing</option><option value="shoes">Shoes</option><option value="accessories">Accessories</option><option value="rings">Rings</option></select></div>
           </div>
-          <div><label className="block text-xs text-neutral-500 mb-1">Unit</label><select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="w-full px-3 py-2 text-sm border rounded"><option value="inches">Inches</option><option value="cm">Centimeters</option><option value="us">US</option><option value="uk">UK</option><option value="eu">EU</option></select></div>
+          <div><label className="block text-xs text-neutral-500 mb-1">Unit</label><select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"><option value="inches">Inches</option><option value="cm">Centimeters</option><option value="us">US</option><option value="uk">UK</option><option value="eu">EU</option></select></div>
           <div><MediaPicker value={form.imageUrl} onChange={(url) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="size-guides" /></div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="rounded border-neutral-300" />
@@ -129,10 +129,10 @@ export default function SizeGuidesPage() {
             {measurementsArr.map((m, i) => (
               <div key={i} className="flex items-start gap-2 mb-2 p-2 bg-neutral-50 rounded">
                 <div className="flex-1 grid grid-cols-4 gap-2">
-                  <input placeholder="Size" value={m.size} onChange={(e) => updateMeasurement(i, "size", e.target.value)} className="px-2 py-1 text-xs border rounded" />
-                  <input placeholder="Bust" value={m.bust ?? ""} onChange={(e) => updateMeasurement(i, "bust", e.target.value)} className="px-2 py-1 text-xs border rounded" />
-                  <input placeholder="Waist" value={m.waist ?? ""} onChange={(e) => updateMeasurement(i, "waist", e.target.value)} className="px-2 py-1 text-xs border rounded" />
-                  <input placeholder="Hips" value={m.hips ?? ""} onChange={(e) => updateMeasurement(i, "hips", e.target.value)} className="px-2 py-1 text-xs border rounded" />
+                  <input placeholder="Size" value={m.size} onChange={(e) => updateMeasurement(i, "size", e.target.value)} className="px-2 py-1 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                  <input placeholder="Bust" value={m.bust ?? ""} onChange={(e) => updateMeasurement(i, "bust", e.target.value)} className="px-2 py-1 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                  <input placeholder="Waist" value={m.waist ?? ""} onChange={(e) => updateMeasurement(i, "waist", e.target.value)} className="px-2 py-1 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                  <input placeholder="Hips" value={m.hips ?? ""} onChange={(e) => updateMeasurement(i, "hips", e.target.value)} className="px-2 py-1 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
                 </div>
                 <button onClick={() => removeMeasurement(i)} className="text-neutral-300 hover:text-red-500 mt-1"><Trash2 className="w-3 h-3" /></button>
               </div>
@@ -140,8 +140,8 @@ export default function SizeGuidesPage() {
           </div>
         </div>
         <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-          <button onClick={() => setShowModal(false)} type="button" className="px-4 py-2 text-sm border border-neutral-200 rounded text-neutral-600 hover:bg-neutral-50">Cancel</button>
-          <button onClick={handleSave} type="button" className="px-4 py-2 text-sm bg-neutral-900 text-white rounded hover:bg-neutral-800">Save</button>
+          <button onClick={() => setShowModal(false)} type="button" className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+          <button onClick={handleSave} type="button" className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">Save</button>
         </div>
       </Modal>
     </div>

@@ -47,9 +47,8 @@ export default function ProductDetailPage() {
         const p = (res as Record<string, unknown>).product as Record<string, unknown>;
         setProduct(p);
         addRecentlyViewed(slug);
-        const relatedTo = (p.relatedTo as { target: Record<string, unknown> }[]) ?? [];
-        const relatedFrom = (p.relatedFrom as { source: Record<string, unknown> }[]) ?? [];
-        setRelated([...relatedTo.map((r) => r.target), ...relatedFrom.map((r) => r.source)]);
+        const relatedProducts = (p.relatedProducts as Record<string, unknown>[]) ?? [];
+        setRelated(relatedProducts);
       }).catch(() => {}).finally(() => setLoading(false));
   }, [slug]);
 
@@ -79,14 +78,16 @@ export default function ProductDetailPage() {
     );
   }
 
-  const images = (product.images as { url: string; altText?: string }[]) ?? [];
+  const allImages = (product.images as { url: string; altText?: string }[]) ?? [];
   const variants = (product.variants as Record<string, unknown>[]) ?? [];
   const sizes = [...new Set(variants.map((v) => v.size as string).filter(Boolean))];
   const colors = [...new Map(variants.filter((v) => v.colorHex).map((v) => [v.colorHex as string, { hex: v.colorHex as string, name: v.color as string }])).values()];
   const brand = product.brand as Record<string, unknown>;
   const category = product.category as Record<string, unknown>;
   const labels = (product.productLabels as { label: Record<string, unknown> }[]) ?? [];
-  const price = Number(product.basePrice ?? 0);
+  const basePrice = Number(product.basePrice ?? 0);
+  const salePrice = product.salePrice ? Number(product.salePrice) : null;
+  const price = salePrice && salePrice > 0 ? salePrice : basePrice;
   const compareAtPrice = product.compareAtPrice ? Number(product.compareAtPrice) : null;
 
   const filteredVariants = variants.filter((v) => !selectedColor || v.colorHex === selectedColor);
@@ -99,6 +100,9 @@ export default function ProductDetailPage() {
     ?? variants[0];
 
   const variantPrice = price + (Number(matchedVariant?.priceAdjustment ?? 0));
+
+  const variantImages = ((matchedVariant as Record<string, unknown>)?.images as { url: string; altText?: string }[]) ?? [];
+  const images = variantImages.length > 0 ? [...variantImages, ...allImages.filter((ai) => !variantImages.some((vi) => vi.url === ai.url))] : allImages;
 
   function handleAddToCart() {
     if (!matchedVariant || !product) return;

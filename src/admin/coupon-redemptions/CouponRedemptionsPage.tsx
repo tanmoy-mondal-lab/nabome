@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { adminApi } from "../../lib/api/admin";
 import { StatusBadge } from "../common/StatusBadge";
 import { EmptyState } from "../common/EmptyState";
+import { formatPrice, formatDateTime } from "../../lib/utils/format";
 import { Receipt, Search } from "lucide-react";
 
 interface Redemption {
@@ -37,12 +38,6 @@ export default function CouponRedemptionsPage() {
   }, [page, search]);
 
   useEffect(() => { fetch(); }, [fetch]);
-
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-
-  const formatCurrency = (n: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
 
   if (loading) {
     return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>;
@@ -91,8 +86,8 @@ export default function CouponRedemptionsPage() {
                     {r.profile.firstName} {r.profile.lastName}
                     <p className="text-xs text-neutral-400">{r.profile.email}</p>
                   </td>
-                  <td className="px-4 py-3 text-right font-medium text-neutral-900">{formatCurrency(r.discountAmount)}</td>
-                  <td className="px-4 py-3 text-neutral-500 whitespace-nowrap">{formatDate(r.createdAt)}</td>
+                  <td className="px-4 py-3 text-right font-medium text-neutral-900">{formatPrice(r.discountAmount)}</td>
+                  <td className="px-4 py-3 text-neutral-500 whitespace-nowrap">{formatDateTime(r.createdAt)}</td>
                 </tr>
               ))}
             </tbody>

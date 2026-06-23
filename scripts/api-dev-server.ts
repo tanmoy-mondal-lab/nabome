@@ -3,7 +3,7 @@ import http from "http";
 const PORT = parseInt(process.env.PORT ?? "3001");
 
 async function loadHandler() {
-  const mod = await import("./[...path].ts");
+  const mod = await import("../api/[...path].ts");
   return mod;
 }
 
