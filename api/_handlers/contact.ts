@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { validateBody, contactSchema, emailSchema } from "../_lib/validate";
@@ -11,20 +11,21 @@ export async function handleContactRequest(
 ): Promise<Response> {
   switch (action) {
     case "contact":
-      return handleContact(req);
+      return handleContact(req, ctx.env);
     case "newsletter":
-      return handleNewsletter(req);
+      return handleNewsletter(req, ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleContact(req: Request): Promise<Response> {
+async function handleContact(req: Request, env: any): Promise<Response> {
   const parsed = await validateBody(req, contactSchema);
   if ("response" in parsed) return parsed.response;
   const { name, email, phone, subject, message } = parsed.data;
 
   try {
+    const prisma = getPrisma(env);
     const submission = await prisma.contactSubmission.create({
       data: {
         name,
@@ -43,7 +44,7 @@ async function handleContact(req: Request): Promise<Response> {
   }
 }
 
-async function handleNewsletter(req: Request): Promise<Response> {
+async function handleNewsletter(req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const email = body?.email;
 
@@ -51,6 +52,7 @@ async function handleNewsletter(req: Request): Promise<Response> {
   if (!parsed.success) return badRequest("Valid email is required");
 
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.newsletterSubscriber.findUnique({
       where: { email: parsed.data },
     });

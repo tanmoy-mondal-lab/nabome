@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
@@ -16,7 +16,7 @@ export async function handleAdminCollectionRequest(
 
   switch (action) {
     case "list":
-      return handleList();
+      return handleList(ctx.env);
     case "create":
       return handleCreate(req, ctx);
     case "update":
@@ -28,8 +28,9 @@ export async function handleAdminCollectionRequest(
   }
 }
 
-async function handleList(): Promise<Response> {
+env: anyasync function handleList(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const collections = await prisma.collection.findMany({
       include: { _count: { select: { products: true } } },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
@@ -40,7 +41,7 @@ async function handleList(): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { name, description, heroImageUrl, isActive, isFeatured, startDate, endDate, sortOrder, metaTitle, metaDesc } = body;
 
@@ -51,6 +52,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
+    const prisma = getPrisma(env);
     const collection = await prisma.collection.create({
       data: {
         name,
@@ -66,7 +68,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
         metaDesc: metaDesc ?? null,
       },
     });
-    logAction(ctx.userId, "admin.collection.create", {
+    logAction(ctx.userId,  ctx.userId, "admin.collection.create", {
       entity: "collection",
       entityId: collection.id,
       metadata: { name: collection.name, slug: collection.slug },
@@ -79,10 +81,11 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   }
 }
 
-async function handleUpdate(collectionId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleUpdate(collectionId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
 
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.collection.findUnique({ where: { id: collectionId } });
     if (!existing) return notFound("Collection not found");
 
@@ -102,7 +105,7 @@ async function handleUpdate(collectionId: string, req: Request, ctx: RequestCont
       where: { id: collectionId },
       data: data as never,
     });
-    logAction(ctx.userId, "admin.collection.update", {
+    logAction(ctx.userId,  ctx.userId, "admin.collection.update", {
       entity: "collection",
       entityId: collectionId,
       metadata: { name: collection.name },
@@ -115,13 +118,14 @@ async function handleUpdate(collectionId: string, req: Request, ctx: RequestCont
   }
 }
 
-async function handleDelete(collectionId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleDelete(collectionId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.collection.update({
       where: { id: collectionId },
       data: { isActive: false },
     });
-    logAction(ctx.userId, "admin.collection.delete", {
+    logAction(ctx.userId,  ctx.userId, "admin.collection.delete", {
       entity: "collection",
       entityId: collectionId,
       metadata: {},

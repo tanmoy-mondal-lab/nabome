@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, notFound, badRequest, unauthorized, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { ORDER_STATUS_FLOW } from "../../src/lib/constants";

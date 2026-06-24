@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
@@ -15,11 +15,11 @@ export async function handleAdminImportExportRequest(
 
   switch (action) {
     case "exportProducts":
-      return handleExportProducts(req);
+      return handleExportProducts(req, ctx.env);
     case "importProducts":
-      return handleImportProducts(req);
+      return handleImportProducts(req, ctx.env);
     case "exportOrders":
-      return handleExportOrders(req);
+      return handleExportOrders(req, ctx.env);
     default:
       return badRequest("Unknown action");
   }
@@ -39,12 +39,13 @@ function toCSV(headers: string[], rows: string[][]): string {
   return [headerLine, ...dataLines].join("\n");
 }
 
-async function handleExportProducts(req: Request): Promise<Response> {
+async function handleExportProducts(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const format = url.searchParams.get("format") ?? "csv";
   const categoryId = url.searchParams.get("categoryId");
 
   try {
+    const prisma = getPrisma(env);
     const where: Record<string, unknown> = {};
     if (categoryId) where.categoryId = categoryId;
 
@@ -101,8 +102,9 @@ async function handleExportProducts(req: Request): Promise<Response> {
   }
 }
 
-async function handleImportProducts(req: Request): Promise<Response> {
+async function handleImportProducts(req: Request, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const contentType = req.headers.get("content-type") ?? "";
     let products: Record<string, unknown>[] = [];
 
@@ -201,12 +203,13 @@ async function handleImportProducts(req: Request): Promise<Response> {
   }
 }
 
-async function handleExportOrders(req: Request): Promise<Response> {
+async function handleExportOrders(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const format = url.searchParams.get("format") ?? "csv";
   const status = url.searchParams.get("status");
 
   try {
+    const prisma = getPrisma(env);
     const where: Record<string, unknown> = {};
     if (status) where.status = status;
 

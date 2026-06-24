@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, unauthorized, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -16,7 +16,7 @@ export async function handleReviewRequest(
   }
 }
 
-async function handleCreate(ctx: RequestContext, req: Request): Promise<Response> {
+async function handleCreate(ctx: RequestContext, req: Request, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   const body = await req.json();

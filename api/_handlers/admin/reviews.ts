@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -14,15 +14,15 @@ export async function handleAdminReviewRequest(
 
   switch (action) {
     case "list":
-      return handleList(req);
+      return handleList(req, ctx.env);
     case "approve":
-      return handleApprove(params[0], req);
+      return handleApprove(params[0], req, ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request): Promise<Response> {
+async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -35,6 +35,7 @@ async function handleList(req: Request): Promise<Response> {
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const [reviews, total] = await Promise.all([
       prisma.review.findMany({
         where: where as never,
@@ -58,11 +59,12 @@ async function handleList(req: Request): Promise<Response> {
   }
 }
 
-async function handleApprove(reviewId: string, req: Request): Promise<Response> {
+async function handleApprove(reviewId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { approved } = body;
 
   try {
+    const prisma = getPrisma(env);
     const review = await prisma.review.findUnique({ where: { id: reviewId } });
     if (!review) return notFound("Review not found");
 

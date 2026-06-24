@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
@@ -15,24 +15,25 @@ export async function handleAdminTemplateRequest(
 
   switch (action) {
     case "list":
-      return handleList();
+      return handleList(ctx.env);
     case "create":
-      return handleCreate(req);
+      return handleCreate(req, ctx.env);
     case "detail":
-      return handleDetail(params[0]);
+      return handleDetail(params[0], ctx.env);
     case "update":
-      return handleUpdate(params[0], req);
+      return handleUpdate(params[0], req, ctx.env);
     case "delete":
-      return handleDelete(params[0]);
+      return handleDelete(params[0], ctx.env);
     case "apply":
-      return handleApply(params[0], req);
+      return handleApply(params[0], req, ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(): Promise<Response> {
+env: anyasync function handleList(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const templates = await prisma.pageTemplate.findMany({
       orderBy: { useCount: "desc" },
     });
@@ -42,8 +43,9 @@ async function handleList(): Promise<Response> {
   }
 }
 
-async function handleDetail(id: string): Promise<Response> {
+async function handleDetail(id: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const template = await prisma.pageTemplate.findUnique({ where: { id } });
     if (!template) return notFound("Template not found");
     return success({ template });
@@ -52,7 +54,7 @@ async function handleDetail(id: string): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request): Promise<Response> {
+async function handleCreate(req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { name, description, category, thumbnail, sections, metadata } = body;
 
@@ -63,6 +65,7 @@ async function handleCreate(req: Request): Promise<Response> {
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
+    const prisma = getPrisma(env);
     const template = await prisma.pageTemplate.create({
       data: {
         name,
@@ -80,9 +83,10 @@ async function handleCreate(req: Request): Promise<Response> {
   }
 }
 
-async function handleUpdate(templateId: string, req: Request): Promise<Response> {
+async function handleUpdate(templateId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.pageTemplate.findUnique({ where: { id: templateId } });
     if (!existing) return notFound("Template not found");
 
@@ -103,8 +107,9 @@ async function handleUpdate(templateId: string, req: Request): Promise<Response>
   }
 }
 
-async function handleDelete(templateId: string): Promise<Response> {
+async function handleDelete(templateId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.pageTemplate.delete({ where: { id: templateId } });
     return success({ message: "Template deleted" });
   } catch (err) {
@@ -112,12 +117,13 @@ async function handleDelete(templateId: string): Promise<Response> {
   }
 }
 
-async function handleApply(templateId: string, req: Request): Promise<Response> {
+async function handleApply(templateId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { pageId } = body;
   if (!pageId) return badRequest("pageId is required");
 
   try {
+    const prisma = getPrisma(env);
     const [template, page] = await Promise.all([
       prisma.pageTemplate.findUnique({ where: { id: templateId } }),
       prisma.staticPage.findUnique({ where: { id: pageId } }),

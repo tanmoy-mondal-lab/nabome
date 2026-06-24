@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -14,13 +14,13 @@ export async function handleAdminAnalyticsRequest(
 
   switch (action) {
     case "sales":
-      return handleSales(req);
+      return handleSales(req, ctx.env);
     case "products":
-      return handleProducts();
+      return handleProducts(ctx.env);
     case "customers":
-      return handleCustomers();
+      return handleCustomers(ctx.env);
     case "deliveryAddresses":
-      return handleDeliveryAddresses(req);
+      return handleDeliveryAddresses(req, ctx.env);
     default:
       return badRequest("Unknown action");
   }
@@ -73,13 +73,14 @@ function getPeriodKey(date: Date, groupBy: string): string {
   }
 }
 
-async function handleSales(req: Request): Promise<Response> {
+async function handleSales(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const periodParam = url.searchParams.get("period") ?? "30d";
   const { days, groupBy } = parsePeriod(periodParam);
   const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
   try {
+    const prisma = getPrisma(env);
     const [orders, totalCustomers, paidOrders] = await Promise.all([
       prisma.order.findMany({
         where: {
@@ -164,10 +165,11 @@ async function handleSales(req: Request): Promise<Response> {
   }
 }
 
-async function handleProducts(): Promise<Response> {
+env: anyasync function handleProducts(ctx.env): Promise<Response> {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   try {
+    const prisma = getPrisma(env);
     const orderItems = await prisma.orderItem.groupBy({
       by: ["productId", "productName"],
       _sum: { quantity: true, totalPrice: true },
@@ -218,11 +220,12 @@ async function handleProducts(): Promise<Response> {
   }
 }
 
-async function handleCustomers(): Promise<Response> {
+env: anyasync function handleCustomers(ctx.env): Promise<Response> {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
   try {
+    const prisma = getPrisma(env);
     const [totalCustomers, newCustomersMonth, newCustomers30d, repeatCustomers] = await Promise.all([
       prisma.profile.count({ where: { role: "customer" } }),
       prisma.profile.count({
@@ -267,13 +270,14 @@ async function handleCustomers(): Promise<Response> {
   }
 }
 
-async function handleDeliveryAddresses(req: Request): Promise<Response> {
+async function handleDeliveryAddresses(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const periodParam = url.searchParams.get("period") ?? "30d";
   const { days } = parsePeriod(periodParam);
   const start = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
   try {
+    const prisma = getPrisma(env);
     const orders = await prisma.order.findMany({
       where: {
         paymentStatus: "paid",

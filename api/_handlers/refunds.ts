@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 

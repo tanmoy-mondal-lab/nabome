@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -15,11 +15,11 @@ export async function handleAdminSettingsRequest(
 
   switch (action) {
     case "get":
-      return handleGet();
+      return handleGet(ctx.env);
     case "update":
       return handleUpdate(req, ctx);
     case "socialLinks":
-      return handleSocialLinksList();
+      return handleSocialLinksList(ctx.env);
     case "createSocialLink":
       return handleCreateSocialLink(req, ctx);
     case "updateSocialLink":
@@ -31,8 +31,9 @@ export async function handleAdminSettingsRequest(
   }
 }
 
-async function handleGet(): Promise<Response> {
+env: anyasync function handleGet(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const settings = await prisma.siteSetting.findFirst();
     return success({ settings });
   } catch (err) {
@@ -40,10 +41,11 @@ async function handleGet(): Promise<Response> {
   }
 }
 
-async function handleUpdate(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleUpdate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
 
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.siteSetting.findFirst();
 
     const data: Record<string, unknown> = {};
@@ -71,7 +73,7 @@ async function handleUpdate(req: Request, ctx: RequestContext): Promise<Response
       settings = await prisma.siteSetting.create({ data: createData });
     }
 
-    logAction(ctx.userId, "admin.settings.update", {
+    logAction(ctx.userId,  ctx.userId, "admin.settings.update", {
       entity: "siteSetting",
       entityId: settings.id,
       metadata: { siteName: settings.siteName },
@@ -83,8 +85,9 @@ async function handleUpdate(req: Request, ctx: RequestContext): Promise<Response
   }
 }
 
-async function handleSocialLinksList(): Promise<Response> {
+env: anyasync function handleSocialLinksList(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const links = await prisma.socialMediaLink.findMany({
       orderBy: { sortOrder: "asc" },
     });
@@ -94,13 +97,14 @@ async function handleSocialLinksList(): Promise<Response> {
   }
 }
 
-async function handleCreateSocialLink(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleCreateSocialLink(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { platform, url, label, icon, isActive, sortOrder } = body;
 
   if (!platform || !url) return badRequest("Platform and URL are required");
 
   try {
+    const prisma = getPrisma(env);
     const link = await prisma.socialMediaLink.create({
       data: {
         platform,
@@ -111,7 +115,7 @@ async function handleCreateSocialLink(req: Request, ctx: RequestContext): Promis
         sortOrder: sortOrder ?? 0,
       },
     });
-    logAction(ctx.userId, "admin.social_links.create", {
+    logAction(ctx.userId,  ctx.userId, "admin.social_links.create", {
       entity: "socialMediaLink",
       entityId: link.id,
       metadata: { platform: link.platform, url: link.url },
@@ -123,10 +127,11 @@ async function handleCreateSocialLink(req: Request, ctx: RequestContext): Promis
   }
 }
 
-async function handleUpdateSocialLink(linkId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleUpdateSocialLink(linkId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
 
   try {
+    const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
     const fields = ["platform", "url", "label", "icon", "isActive", "sortOrder"];
     for (const field of fields) {
@@ -137,7 +142,7 @@ async function handleUpdateSocialLink(linkId: string, req: Request, ctx: Request
       where: { id: linkId },
       data: data as never,
     });
-    logAction(ctx.userId, "admin.social_links.update", {
+    logAction(ctx.userId,  ctx.userId, "admin.social_links.update", {
       entity: "socialMediaLink",
       entityId: link.id,
       metadata: { platform: link.platform },
@@ -149,10 +154,11 @@ async function handleUpdateSocialLink(linkId: string, req: Request, ctx: Request
   }
 }
 
-async function handleDeleteSocialLink(linkId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleDeleteSocialLink(linkId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.socialMediaLink.delete({ where: { id: linkId } });
-    logAction(ctx.userId, "admin.social_links.delete", {
+    logAction(ctx.userId,  ctx.userId, "admin.social_links.delete", {
       entity: "socialMediaLink",
       entityId: linkId,
       ...extractRequestMeta(req),

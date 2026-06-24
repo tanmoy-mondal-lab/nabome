@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { ORDER_STATUS_FLOW } from "../../../src/lib/constants";
@@ -28,23 +28,23 @@ export async function handleAdminOrderRequest(
 
   switch (action) {
     case "list":
-      return handleList(req);
+      return handleList(req, ctx.env);
     case "stats":
-      return handleStats();
+      return handleStats(ctx.env);
     case "detail":
-      return handleDetail(params[0]);
+      return handleDetail(params[0], ctx.env);
     case "updateStatus":
       return handleUpdateStatus(params[0], req, ctx);
     case "internalNotes":
       return handleInternalNotes(params[0], req, ctx);
     case "timeline":
-      return handleTimeline(params[0]);
+      return handleTimeline(params[0], ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request): Promise<Response> {
+async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -108,8 +108,9 @@ async function handleList(req: Request): Promise<Response> {
   }
 }
 
-async function handleStats(): Promise<Response> {
+env: anyasync function handleStats(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const statuses: string[] = [
       "pending", "confirmed", "processing", "packed",
       "shipped", "out_for_delivery", "delivered",
@@ -161,8 +162,9 @@ async function handleStats(): Promise<Response> {
   }
 }
 
-async function handleDetail(orderId: string): Promise<Response> {
+async function handleDetail(orderId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -183,13 +185,14 @@ async function handleDetail(orderId: string): Promise<Response> {
   }
 }
 
-async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { status, note } = body;
 
   if (!status) return badRequest("Status is required");
 
   try {
+    const prisma = getPrisma(env);
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
 
@@ -297,7 +300,7 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
       }
     }
 
-    logAction(ctx.userId, "admin.order.status_change", {
+    logAction(ctx.userId,  ctx.userId, "admin.order.status_change", {
       entity: "order",
       entityId: orderId,
       metadata: { from: order.status, to: status },
@@ -310,13 +313,14 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
   }
 }
 
-async function handleInternalNotes(orderId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleInternalNotes(orderId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { internalNotes } = body;
 
   if (internalNotes === undefined) return badRequest("internalNotes is required");
 
   try {
+    const prisma = getPrisma(env);
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
 
@@ -326,7 +330,7 @@ async function handleInternalNotes(orderId: string, req: Request, ctx: RequestCo
       include: orderInclude,
     });
 
-    logAction(ctx.userId, "admin.order.internal_notes", {
+    logAction(ctx.userId,  ctx.userId, "admin.order.internal_notes", {
       entity: "order",
       entityId: orderId,
       metadata: {},
@@ -339,8 +343,9 @@ async function handleInternalNotes(orderId: string, req: Request, ctx: RequestCo
   }
 }
 
-async function handleTimeline(orderId: string): Promise<Response> {
+async function handleTimeline(orderId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const statusHistory = await prisma.orderStatusHistory.findMany({
       where: { orderId },
       orderBy: { createdAt: "asc" },

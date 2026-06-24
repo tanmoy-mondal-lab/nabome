@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -55,25 +55,26 @@ export async function handleProductRequest(
 ): Promise<Response> {
   switch (action) {
     case "list":
-      return handleList(req);
+      return handleList(req, ctx.env);
     case "featured":
-      return handleFeatured();
+      return handleFeatured(ctx.env);
     case "newArrivals":
-      return handleNewArrivals();
+      return handleNewArrivals(ctx.env);
     case "search":
-      return handleSearch(req);
+      return handleSearch(req, ctx.env);
     case "detail":
-      return handleDetail(params[0]);
+      return handleDetail(params[0], ctx.env);
     case "variants":
-      return handleVariants(params[0]);
+      return handleVariants(params[0], ctx.env);
     case "reviews":
-      return handleProductReviews(params[0]);
+      return handleProductReviews(params[0], ctx.env);
     default:
       return badRequest("Unknown product action");
   }
 }
 
-async function handleList(req: Request): Promise<Response> {
+async function handleList(req: Request, env: any): Promise<Response> {
+  const prisma = getPrisma(env);
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "12");
@@ -179,8 +180,9 @@ async function handleList(req: Request): Promise<Response> {
   }
 }
 
-async function handleFeatured(): Promise<Response> {
+async function handleFeatured(env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const products = await prisma.product.findMany({
       where: { isActive: true, isFeatured: true },
       select: productListSelect,
@@ -193,8 +195,9 @@ async function handleFeatured(): Promise<Response> {
   }
 }
 
-async function handleNewArrivals(): Promise<Response> {
+async function handleNewArrivals(env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const products = await prisma.product.findMany({
       where: { isActive: true, isNew: true },
       select: productListSelect,
@@ -207,7 +210,8 @@ async function handleNewArrivals(): Promise<Response> {
   }
 }
 
-async function handleSearch(req: Request): Promise<Response> {
+async function handleSearch(req: Request, env: any): Promise<Response> {
+  const prisma = getPrisma(env);
   const url = new URL(req.url);
   const q = url.searchParams.get("q");
   const page = parseInt(url.searchParams.get("page") ?? "1");
@@ -265,8 +269,9 @@ async function handleSearch(req: Request): Promise<Response> {
   }
 }
 
-async function handleDetail(slug: string): Promise<Response> {
+async function handleDetail(slug: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const product = await prisma.product.findFirst({
       where: { slug, isActive: true },
       include: productInclude,
@@ -294,8 +299,9 @@ async function handleDetail(slug: string): Promise<Response> {
   }
 }
 
-async function handleVariants(slug: string): Promise<Response> {
+async function handleVariants(slug: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const product = await prisma.product.findFirst({
       where: { slug, isActive: true },
       select: { id: true },
@@ -319,8 +325,9 @@ async function handleVariants(slug: string): Promise<Response> {
   }
 }
 
-async function handleProductReviews(slug: string): Promise<Response> {
+async function handleProductReviews(slug: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const product = await prisma.product.findFirst({
       where: { slug, isActive: true },
       select: { id: true },

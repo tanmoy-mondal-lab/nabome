@@ -23,13 +23,15 @@ const DEFAULTS = {
 let store: Map<string, RateLimitEntry> | null = null;
 let isUsingKV = false;
 
-export function getStore(): Map<string, RateLimitEntry> {
+export function getStore(env?: any): Map<string, RateLimitEntry> | null {
   if (!store) {
     // Check if we're in Cloudflare Workers environment with KV
-    if (typeof process !== "undefined" && process.env?.KV_NAMESPACE) {
+    const kvNamespace = env?.KV_NAMESPACE ?? (typeof process !== "undefined" ? process.env?.KV_NAMESPACE : undefined);
+    if (kvNamespace) {
       isUsingKV = true;
       // Store remains null, will initialize lazily
       console.log("[RATE LIMIT] Using Cloudflare KV for distributed rate limiting");
+      return null;
     } else {
       // Fallback to in-memory map for local development/testing
       store = new Map<string, RateLimitEntry>();
@@ -81,10 +83,11 @@ async function deleteFromKV(key: string): Promise<void> {
 
 export async function checkRateLimit(
   key: string,
-  config: RateLimitConfig = DEFAULTS.auth
+  config: RateLimitConfig = DEFAULTS.auth,
+  env?: any
 ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
   const now = Date.now();
-  const store = getStore();
+  const store = getStore(env);
 
   if (isUsingKV) {
     // KV implementation
@@ -149,9 +152,10 @@ export function rateLimitResponse(message: string, resetAt: number): Response {
 
 export async function withRateLimit(
   key: string,
-  config?: RateLimitConfig
+  config?: RateLimitConfig,
+  env?: any
 ): Promise<Response | null> {
-  const result = await checkRateLimit(key, config);
+  const result = await checkRateLimit(key, config, env);
   if (!result.allowed) {
     return rateLimitResponse(config?.message ?? DEFAULTS.auth.message, result.resetAt);
   }

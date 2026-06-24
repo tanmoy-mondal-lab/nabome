@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -10,16 +10,17 @@ export async function handleLookbookRequest(
 ): Promise<Response> {
   switch (action) {
     case "list":
-      return handleList();
+      return handleList(ctx.env);
     case "detail":
-      return handleDetail(params[0]);
+      return handleDetail(params[0], ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(): Promise<Response> {
+env: anyasync function handleList(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const lookbooks = await prisma.lookbook.findMany({
       where: { isActive: true },
       include: { _count: { select: { items: true } } },
@@ -31,8 +32,9 @@ async function handleList(): Promise<Response> {
   }
 }
 
-async function handleDetail(slug: string): Promise<Response> {
+async function handleDetail(slug: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const lookbook = await prisma.lookbook.findFirst({
       where: { slug, isActive: true },
       include: {

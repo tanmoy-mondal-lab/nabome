@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -7,12 +7,12 @@ export async function handleAdminAbandonedCartRequest(req: Request, _ctx: Reques
   const adminGuard = requireAdmin(_ctx);
   if (adminGuard) return adminGuard;
   switch (action) {
-    case "list": return handleList(req);
+    case "list": return handleList(req, ctx.env);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request): Promise<Response> {
+async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");

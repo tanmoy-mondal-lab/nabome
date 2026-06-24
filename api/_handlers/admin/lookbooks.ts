@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
@@ -16,23 +16,23 @@ export async function handleAdminLookbookRequest(
 
   switch (action) {
     case "list":
-      return handleList();
+      return handleList(ctx.env);
     case "create":
-      return handleCreate(req);
+      return handleCreate(req, ctx.env);
     case "detail":
-      return handleDetail(params[0]);
+      return handleDetail(params[0], ctx.env);
     case "update":
-      return handleUpdate(params[0], req);
+      return handleUpdate(params[0], req, ctx.env);
     case "delete":
-      return handleDelete(params[0]);
+      return handleDelete(params[0], ctx.env);
     case "addItem":
-      return handleAddItem(params[0], req);
+      return handleAddItem(params[0], req, ctx.env);
     case "updateItem":
-      return handleUpdateItem(params[0], params[1], req);
+      return handleUpdateItem(params[0], params[1], req, ctx.env);
     case "removeItem":
-      return handleRemoveItem(params[0], params[1]);
+      return handleRemoveItem(params[0], params[1], ctx.env);
     case "reorderItems":
-      return handleReorderItems(params[0], req);
+      return handleReorderItems(params[0], req, ctx.env);
     default:
       return badRequest("Unknown action");
   }
@@ -45,8 +45,9 @@ function buildInclude() {
   };
 }
 
-async function handleList(): Promise<Response> {
+env: anyasync function handleList(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const lookbooks = await prisma.lookbook.findMany({
       include: buildInclude(),
       orderBy: { sortOrder: "asc" },
@@ -57,8 +58,9 @@ async function handleList(): Promise<Response> {
   }
 }
 
-async function handleDetail(id: string): Promise<Response> {
+async function handleDetail(id: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const lookbook = await prisma.lookbook.findUnique({
       where: { id },
       include: buildInclude(),
@@ -70,7 +72,7 @@ async function handleDetail(id: string): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request): Promise<Response> {
+async function handleCreate(req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { name, description, coverImageUrl, season, year, layout, story, tags, metaTitle, metaDesc, isActive, sortOrder } = body;
 
@@ -81,6 +83,7 @@ async function handleCreate(req: Request): Promise<Response> {
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
+    const prisma = getPrisma(env);
     const lookbook = await prisma.lookbook.create({
       data: {
         name,
@@ -104,9 +107,10 @@ async function handleCreate(req: Request): Promise<Response> {
   }
 }
 
-async function handleUpdate(lookbookId: string, req: Request): Promise<Response> {
+async function handleUpdate(lookbookId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.lookbook.findUnique({ where: { id: lookbookId } });
     if (!existing) return notFound("Lookbook not found");
 
@@ -131,8 +135,9 @@ async function handleUpdate(lookbookId: string, req: Request): Promise<Response>
   }
 }
 
-async function handleDelete(lookbookId: string): Promise<Response> {
+async function handleDelete(lookbookId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.lookbook.delete({ where: { id: lookbookId } });
     return success({ message: "Lookbook deleted" });
   } catch (err) {
@@ -140,13 +145,14 @@ async function handleDelete(lookbookId: string): Promise<Response> {
   }
 }
 
-async function handleAddItem(lookbookId: string, req: Request): Promise<Response> {
+async function handleAddItem(lookbookId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { imageUrl, productId, hotspotX, hotspotY, caption, sortOrder, linkUrl, linkText, type } = body;
 
   if (!imageUrl) return badRequest("Image URL is required");
 
   try {
+    const prisma = getPrisma(env);
     const item = await prisma.lookbookItem.create({
       data: {
         lookbookId,
@@ -164,9 +170,10 @@ async function handleAddItem(lookbookId: string, req: Request): Promise<Response
   }
 }
 
-async function handleUpdateItem(lookbookId: string, itemId: string, req: Request): Promise<Response> {
+async function handleUpdateItem(lookbookId: string, itemId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   try {
+    const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
     const fields = ["imageUrl", "productId", "caption", "sortOrder"];
     for (const field of fields) {
@@ -185,8 +192,9 @@ async function handleUpdateItem(lookbookId: string, itemId: string, req: Request
   }
 }
 
-async function handleRemoveItem(lookbookId: string, itemId: string): Promise<Response> {
+async function handleRemoveItem(lookbookId: string, itemId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.lookbookItem.delete({
       where: { id: itemId, lookbookId },
     });
@@ -196,11 +204,12 @@ async function handleRemoveItem(lookbookId: string, itemId: string): Promise<Res
   }
 }
 
-async function handleReorderItems(lookbookId: string, req: Request): Promise<Response> {
+async function handleReorderItems(lookbookId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { order } = body;
   if (!Array.isArray(order)) return badRequest("Order array is required");
   try {
+    const prisma = getPrisma(env);
     await prisma.$transaction(
       order.map((item: { id: string; sortOrder: number }) =>
         prisma.lookbookItem.update({

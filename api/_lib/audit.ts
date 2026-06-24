@@ -1,4 +1,5 @@
-import { prisma } from "./prisma";
+import { getPrisma } from "./prisma";
+import type { Env } from "./env";
 
 export interface AuditLogOptions {
   entity?: string;
@@ -11,9 +12,11 @@ export interface AuditLogOptions {
 export async function logAction(
   profileId: string | undefined | null,
   action: string,
-  opts: AuditLogOptions = {}
+  opts: AuditLogOptions = {},
+  env?: Env
 ): Promise<void> {
   try {
+    const prisma = getPrisma(env);
     await prisma.userActionLog.create({
       data: {
         profileId: profileId ?? null,

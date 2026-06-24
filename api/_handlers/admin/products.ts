@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -31,27 +31,27 @@ export async function handleAdminProductRequest(
   if (adminGuard) return adminGuard;
 
   switch (action) {
-    case "list": return handleList(req);
+    case "list": return handleList(req, ctx.env);
     case "create": return handleCreate(req, ctx);
-    case "detail": return handleDetail(params[0]);
+    case "detail": return handleDetail(params[0], ctx.env);
     case "update": return handleUpdate(params[0], req, ctx);
     case "delete": return handleDelete(params[0], req, ctx);
     case "duplicate": return handleDuplicate(params[0], req, ctx);
     case "restore": return handleRestore(params[0], req, ctx);
-    case "variants": return handleUpdateVariants(params[0], req);
-    case "addImage": return handleAddImage(params[0], req);
-    case "deleteImage": return handleDeleteImage(params[0], params[1]);
+    case "variants": return handleUpdateVariants(params[0], req, ctx.env);
+    case "addImage": return handleAddImage(params[0], req, ctx.env);
+    case "deleteImage": return handleDeleteImage(params[0], params[1], ctx.env);
     case "bulkStatus": return handleBulkStatus(req, ctx);
-    case "bulkCategory": return handleBulkCategory(req);
+    case "bulkCategory": return handleBulkCategory(req, ctx.env);
     case "bulkDelete": return handleBulkDelete(req, ctx);
     case "permanentDelete": return handlePermanentDelete(params[0], req, ctx);
     case "bulkPermanentDelete": return handleBulkPermanentDelete(req, ctx);
-    case "schedule": return handleSchedule(params[0], req);
+    case "schedule": return handleSchedule(params[0], req, ctx.env);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request): Promise<Response> {
+async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -99,9 +99,10 @@ async function handleList(req: Request): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
+    const prisma = getPrisma(env);
     body = await req.json();
   } catch {
     return badRequest("Invalid JSON body");
@@ -154,7 +155,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
       include: { images: true, variants: true },
     });
 
-    logAction(ctx.userId, "admin.product.create", {
+    logAction(ctx.userId,  ctx.userId, "admin.product.create", {
       entity: "product",
       entityId: product.id,
       metadata: { name: product.name, slug: product.slug },
@@ -167,8 +168,9 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   }
 }
 
-async function handleDetail(productId: string): Promise<Response> {
+async function handleDetail(productId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: productInclude,
@@ -180,9 +182,10 @@ async function handleDetail(productId: string): Promise<Response> {
   }
 }
 
-async function handleUpdate(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleUpdate(productId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
+    const prisma = getPrisma(env);
     body = await req.json();
   } catch {
     return badRequest("Invalid JSON body");
@@ -239,7 +242,7 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
       include: productInclude,
     });
 
-    logAction(ctx.userId, "admin.product.update", {
+    logAction(ctx.userId,  ctx.userId, "admin.product.update", {
       entity: "product",
       entityId: productId,
       metadata: { name: product.name },
@@ -252,8 +255,9 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
   }
 }
 
-async function handleDelete(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleDelete(productId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const images = await prisma.productImage.findMany({ where: { productId }, select: { publicId: true } });
     const publicIds = images.map((i) => i.publicId).filter(Boolean) as string[];
     await destroyCloudinaryAssets(publicIds);
@@ -262,7 +266,7 @@ async function handleDelete(productId: string, req: Request, ctx: RequestContext
       where: { id: productId },
       data: { isActive: false },
     });
-    logAction(ctx.userId, "admin.product.delete", {
+    logAction(ctx.userId,  ctx.userId, "admin.product.delete", {
       entity: "product",
       entityId: productId,
       metadata: {},
@@ -275,9 +279,10 @@ async function handleDelete(productId: string, req: Request, ctx: RequestContext
   }
 }
 
-async function handleUpdateVariants(productId: string, req: Request): Promise<Response> {
+async function handleUpdateVariants(productId: string, req: Request, env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
+    const prisma = getPrisma(env);
     body = await req.json();
   } catch {
     return badRequest("Invalid JSON body");
@@ -339,9 +344,10 @@ async function handleUpdateVariants(productId: string, req: Request): Promise<Re
   }
 }
 
-async function handleAddImage(productId: string, req: Request): Promise<Response> {
+async function handleAddImage(productId: string, req: Request, env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
+    const prisma = getPrisma(env);
     body = await req.json();
   } catch {
     return badRequest("Invalid JSON body");
@@ -376,8 +382,9 @@ async function handleAddImage(productId: string, req: Request): Promise<Response
   }
 }
 
-async function handleDeleteImage(productId: string, imageId: string): Promise<Response> {
+async function handleDeleteImage(productId: string, imageId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const image = await prisma.productImage.findFirst({ where: { id: imageId, productId } });
     if (!image) return notFound("Image not found");
     if (image.publicId) await destroyCloudinaryAsset(image.publicId);
@@ -390,8 +397,9 @@ async function handleDeleteImage(productId: string, imageId: string): Promise<Re
 
 // ─── Duplicate ───
 
-async function handleDuplicate(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleDuplicate(productId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const source = await prisma.product.findUnique({
       where: { id: productId },
       include: { attributes: true, variants: true, productTags: true, productLabels: true },
@@ -451,7 +459,7 @@ async function handleDuplicate(productId: string, req: Request, ctx: RequestCont
       });
     }
 
-    logAction(ctx.userId, "admin.product.duplicate", {
+    logAction(ctx.userId,  ctx.userId, "admin.product.duplicate", {
       entity: "product",
       entityId: product.id,
       metadata: { sourceId: productId, name: product.name },
@@ -464,13 +472,14 @@ async function handleDuplicate(productId: string, req: Request, ctx: RequestCont
 
 // ─── Restore (reactivate) ───
 
-async function handleRestore(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleRestore(productId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const product = await prisma.product.update({
       where: { id: productId },
       data: { isActive: true, publishedAt: new Date() },
     });
-    logAction(ctx.userId, "admin.product.restore", {
+    logAction(ctx.userId,  ctx.userId, "admin.product.restore", {
       entity: "product",
       entityId: productId,
       metadata: { name: product.name },
@@ -486,17 +495,18 @@ async function handleRestore(productId: string, req: Request, ctx: RequestContex
 
 // ─── Bulk Status ───
 
-async function handleBulkStatus(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleBulkStatus(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { ids, status } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
   if (typeof status !== "boolean") return badRequest("status boolean required");
   try {
+    const prisma = getPrisma(env);
     const result = await prisma.product.updateMany({
       where: { id: { in: ids } },
       data: { isActive: status, publishedAt: status ? new Date() : undefined },
     });
-    logAction(ctx.userId, "admin.product.bulk_status", {
+    logAction(ctx.userId,  ctx.userId, "admin.product.bulk_status", {
       entity: "product",
       entityId: ids.join(","),
       metadata: { count: ids.length, status },
@@ -509,11 +519,12 @@ async function handleBulkStatus(req: Request, ctx: RequestContext): Promise<Resp
 
 // ─── Bulk Category ───
 
-async function handleBulkCategory(req: Request): Promise<Response> {
+async function handleBulkCategory(req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { ids, categoryId, subcategoryId, collectionId } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
   try {
+    const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
     if (categoryId !== undefined) data.categoryId = toNull(categoryId);
     if (subcategoryId !== undefined) data.subcategoryId = toNull(subcategoryId);
@@ -528,16 +539,17 @@ async function handleBulkCategory(req: Request): Promise<Response> {
 
 // ─── Bulk Delete ───
 
-async function handleBulkDelete(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleBulkDelete(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { ids } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
   try {
+    const prisma = getPrisma(env);
     const result = await prisma.product.updateMany({
       where: { id: { in: ids }, isActive: true },
       data: { isActive: false },
     });
-    logAction(ctx.userId, "admin.product.bulk_delete", {
+    logAction(ctx.userId,  ctx.userId, "admin.product.bulk_delete", {
       entity: "product",
       entityId: ids.join(","),
       metadata: { count: ids.length },
@@ -550,8 +562,9 @@ async function handleBulkDelete(req: Request, ctx: RequestContext): Promise<Resp
 
 // ─── Permanent Delete (soft-deleted products only) ───
 
-async function handlePermanentDelete(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handlePermanentDelete(productId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const product = await prisma.product.findUnique({
       where: { id: productId },
       select: { id: true, name: true, isActive: true, _count: { select: { orderItems: true } } },
@@ -580,7 +593,7 @@ async function handlePermanentDelete(productId: string, req: Request, ctx: Reque
     // Delete from DB (cascades handle variants, images, tags, labels, etc.)
     await prisma.product.delete({ where: { id: productId } });
 
-    logAction(ctx.userId, "admin.product.permanent_delete", {
+    logAction(ctx.userId,  ctx.userId, "admin.product.permanent_delete", {
       entity: "product",
       entityId: productId,
       metadata: { name: product.name },
@@ -593,12 +606,13 @@ async function handlePermanentDelete(productId: string, req: Request, ctx: Reque
   }
 }
 
-async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleBulkPermanentDelete(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { ids } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
 
   try {
+    const prisma = getPrisma(env);
     // Check for order items across all products
     const orderItemCount = await prisma.orderItem.count({
       where: { productId: { in: ids } },
@@ -624,7 +638,7 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Pro
 
     const result = await prisma.product.deleteMany({ where: { id: { in: ids } } });
 
-    logAction(ctx.userId, "admin.product.bulk_permanent_delete", {
+    logAction(ctx.userId,  ctx.userId, "admin.product.bulk_permanent_delete", {
       entity: "product",
       entityId: ids.join(","),
       metadata: { count: result.count },
@@ -639,9 +653,10 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Pro
 
 // ─── Schedule Publish/Archive ───
 
-async function handleSchedule(productId: string, req: Request): Promise<Response> {
+async function handleSchedule(productId: string, req: Request, env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
+    const prisma = getPrisma(env);
     body = await req.json();
   } catch {
     return badRequest("Invalid JSON body");

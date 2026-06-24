@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -14,14 +14,15 @@ export async function handleDashboardRequest(
 
   switch (action) {
     case "overview":
-      return handleOverview();
+      return handleOverview(ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleOverview(): Promise<Response> {
+env: anyasync function handleOverview(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

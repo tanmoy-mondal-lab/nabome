@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
@@ -16,7 +16,7 @@ export async function handleAdminCategoryRequest(
 
   switch (action) {
     case "list":
-      return handleList();
+      return handleList(ctx.env);
     case "create":
       return handleCreate(req, ctx);
     case "update":
@@ -28,8 +28,9 @@ export async function handleAdminCategoryRequest(
   }
 }
 
-async function handleList(): Promise<Response> {
+env: anyasync function handleList(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const categories = await prisma.category.findMany({
       include: {
         parent: { select: { id: true, name: true } },
@@ -45,7 +46,7 @@ async function handleList(): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { name, description, imageUrl, parentId, sortOrder, isActive, metaTitle, metaDesc } = body;
 
@@ -56,6 +57,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
+    const prisma = getPrisma(env);
     const category = await prisma.category.create({
       data: {
         name,
@@ -74,7 +76,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
     // Also create subcategory if parentId is provided and no subcategory table entry needed
     // The subcategory model exists for finer-grained categorization
 
-    logAction(ctx.userId, "admin.category.create", {
+    logAction(ctx.userId,  ctx.userId, "admin.category.create", {
       entity: "category",
       entityId: category.id,
       metadata: { name: category.name, slug: category.slug },
@@ -87,10 +89,11 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   }
 }
 
-async function handleUpdate(categoryId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleUpdate(categoryId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
 
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.category.findUnique({ where: { id: categoryId } });
     if (!existing) return notFound("Category not found");
 
@@ -111,7 +114,7 @@ async function handleUpdate(categoryId: string, req: Request, ctx: RequestContex
       include: { _count: { select: { products: true, children: true } }, parent: { select: { id: true, name: true } } },
     });
 
-    logAction(ctx.userId, "admin.category.update", {
+    logAction(ctx.userId,  ctx.userId, "admin.category.update", {
       entity: "category",
       entityId: categoryId,
       metadata: { name: category.name },
@@ -124,8 +127,9 @@ async function handleUpdate(categoryId: string, req: Request, ctx: RequestContex
   }
 }
 
-async function handleDelete(categoryId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleDelete(categoryId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const productCount = await prisma.product.count({ where: { categoryId } });
     if (productCount > 0) {
       return badRequest(`Cannot delete category: ${productCount} products are assigned to it. Move them first.`);
@@ -138,7 +142,7 @@ async function handleDelete(categoryId: string, req: Request, ctx: RequestContex
 
     await prisma.category.delete({ where: { id: categoryId } });
 
-    logAction(ctx.userId, "admin.category.delete", {
+    logAction(ctx.userId,  ctx.userId, "admin.category.delete", {
       entity: "category",
       entityId: categoryId,
       metadata: {},

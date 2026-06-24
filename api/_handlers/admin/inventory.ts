@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -13,18 +13,19 @@ export async function handleAdminInventoryRequest(
   if (adminGuard) return adminGuard;
 
   switch (action) {
-    case "overview": return handleOverview();
-    case "productMovements": return handleProductMovements(params[0]);
-    case "variantMovements": return handleVariantMovements(params[0]);
-    case "adjustVariant": return handleAdjustVariant(params[0], req);
-    case "alerts": return handleAlerts(req);
-    case "resolveAlert": return handleResolveAlert(params[0]);
+    case "overview": return handleOverview(ctx.env);
+    case "productMovements": return handleProductMovements(params[0], ctx.env);
+    case "variantMovements": return handleVariantMovements(params[0], ctx.env);
+    case "adjustVariant": return handleAdjustVariant(params[0], req, ctx.env);
+    case "alerts": return handleAlerts(req, ctx.env);
+    case "resolveAlert": return handleResolveAlert(params[0], ctx.env);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleOverview(): Promise<Response> {
+env: anyasync function handleOverview(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     // Read low stock threshold from site settings
     const siteSettings = await prisma.siteSetting.findFirst();
     const lowStockThreshold = (siteSettings?.preferences as Record<string, unknown> | null)?.lowStockThreshold as number ?? 5;
@@ -54,8 +55,9 @@ async function handleOverview(): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleProductMovements(productId: string): Promise<Response> {
+async function handleProductMovements(productId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const variants = await prisma.productVariant.findMany({
       where: { productId },
       select: { id: true, sku: true, size: true, color: true, stock: true },
@@ -70,8 +72,9 @@ async function handleProductMovements(productId: string): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleVariantMovements(variantId: string): Promise<Response> {
+async function handleVariantMovements(variantId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const [, movements] = await Promise.all([
       prisma.productVariant.findUnique({ where: { id: variantId } }),
       prisma.inventoryMovement.findMany({
@@ -83,13 +86,14 @@ async function handleVariantMovements(variantId: string): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleAdjustVariant(variantId: string, req: Request): Promise<Response> {
+async function handleAdjustVariant(variantId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { quantityChange, reason, note } = body;
   if (quantityChange === undefined || !reason) return badRequest("quantityChange and reason are required");
   if (typeof quantityChange !== "number" || quantityChange === 0) return badRequest("quantityChange must be a non-zero number");
 
   try {
+    const prisma = getPrisma(env);
     // Read low stock threshold from site settings
     const siteSettings = await prisma.siteSetting.findFirst();
     const lowStockThreshold = (siteSettings?.preferences as Record<string, unknown> | null)?.lowStockThreshold as number ?? 5;
@@ -130,13 +134,14 @@ async function handleAdjustVariant(variantId: string, req: Request): Promise<Res
   } catch (err) { return serverError(err); }
 }
 
-async function handleAlerts(req: Request): Promise<Response> {
+async function handleAlerts(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const resolved = url.searchParams.get("resolved") === "true";
   const type = url.searchParams.get("type");
   const where: Record<string, unknown> = { isResolved: resolved };
   if (type) where.type = type;
   try {
+    const prisma = getPrisma(env);
     const alerts = await prisma.inventoryAlert.findMany({
       where: where as never,
       orderBy: { createdAt: "desc" as const },
@@ -146,8 +151,9 @@ async function handleAlerts(req: Request): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleResolveAlert(alertId: string): Promise<Response> {
+async function handleResolveAlert(alertId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const alert = await prisma.inventoryAlert.update({
       where: { id: alertId },
       data: { isResolved: true, resolvedAt: new Date() },

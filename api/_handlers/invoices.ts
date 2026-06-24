@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -182,18 +182,19 @@ export async function handleInvoiceRequest(
     case "getInvoice":
       return handleGetInvoice(ctx, params[0]);
     case "getByOrderNumber":
-      return handleGetByOrderNumber(params[0]);
+      return handleGetByOrderNumber(params[0], ctx.env);
     case "adminGetInvoice":
-      return handleAdminGetInvoice(params[0]);
+      return handleAdminGetInvoice(params[0], ctx.env);
     case "adminGenerateInvoice":
-      return handleAdminGenerateInvoice(params[0]);
+      return handleAdminGenerateInvoice(params[0], ctx.env);
     default:
       return notFound();
   }
 }
 
-async function handleGetByOrderNumber(orderNumber: string): Promise<Response> {
+async function handleGetByOrderNumber(orderNumber: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const order = await prisma.order.findUnique({
       where: { orderNumber },
       include: {
@@ -216,10 +217,11 @@ async function handleGetByOrderNumber(orderNumber: string): Promise<Response> {
   }
 }
 
-async function handleGetInvoice(ctx: RequestContext, orderId: string): Promise<Response> {
+async function handleGetInvoice(ctx: RequestContext, orderId: string, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
+    const prisma = getPrisma(env);
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
@@ -245,8 +247,9 @@ async function handleGetInvoice(ctx: RequestContext, orderId: string): Promise<R
   }
 }
 
-async function handleAdminGetInvoice(orderId: string): Promise<Response> {
+async function handleAdminGetInvoice(orderId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -269,8 +272,9 @@ async function handleAdminGetInvoice(orderId: string): Promise<Response> {
   }
 }
 
-async function handleAdminGenerateInvoice(orderId: string): Promise<Response> {
+async function handleAdminGenerateInvoice(orderId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {

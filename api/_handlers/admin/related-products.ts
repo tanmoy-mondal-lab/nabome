@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -13,16 +13,17 @@ export async function handleAdminRelatedProductRequest(
   if (adminGuard) return adminGuard;
 
   switch (action) {
-    case "list": return handleList(params[0]);
-    case "create": return handleCreate(req);
-    case "delete": return handleDelete(params[0]);
-    case "reorder": return handleReorder(params[0], req);
+    case "list": return handleList(params[0], ctx.env);
+    case "create": return handleCreate(req, ctx.env);
+    case "delete": return handleDelete(params[0], ctx.env);
+    case "reorder": return handleReorder(params[0], req, ctx.env);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleList(productId: string): Promise<Response> {
+async function handleList(productId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const [relatedTo, relatedFrom] = await Promise.all([
       prisma.relatedProduct.findMany({
         where: { sourceId: productId },
@@ -41,12 +42,13 @@ async function handleList(productId: string): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleCreate(req: Request): Promise<Response> {
+async function handleCreate(req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { sourceId, targetId, type, sortOrder } = body;
   if (!sourceId || !targetId) return badRequest("sourceId and targetId are required");
   if (sourceId === targetId) return badRequest("Cannot relate a product to itself");
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.relatedProduct.findUnique({
       where: { sourceId_targetId_type: { sourceId, targetId, type: type ?? "related" } },
     });
@@ -59,18 +61,20 @@ async function handleCreate(req: Request): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleDelete(id: string): Promise<Response> {
+async function handleDelete(id: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.relatedProduct.delete({ where: { id } });
     return success({ message: "Relation removed" });
   } catch (err) { return notFound("Relation not found"); }
 }
 
-async function handleReorder(productId: string, req: Request): Promise<Response> {
+async function handleReorder(productId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { order } = body;
   if (!Array.isArray(order)) return badRequest("Order array required");
   try {
+    const prisma = getPrisma(env);
     await prisma.$transaction(
       order.map((item: { id: string; sortOrder: number }) =>
         prisma.relatedProduct.update({ where: { id: item.id }, data: { sortOrder: item.sortOrder } })

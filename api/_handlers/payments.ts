@@ -1,10 +1,10 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, error, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
 
-async function createHMACSHA256(secret: string, data: string): Promise<string> {
+async function createHMACSHA256(secret: string, data: string, env: any): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw", enc.encode(secret),
@@ -54,22 +54,23 @@ export async function handlePaymentRequest(
 
   switch (action) {
     case "verify":
-      return handleVerify(req);
+      return handleVerify(req, ctx.env);
     case "failed":
-      return handleFailed(req);
+      return handleFailed(req, ctx.env);
     case "retry":
-      return handleRetry(req);
+      return handleRetry(req, ctx.env);
     case "refund":
       return handleRefund(req, ctx);
     case "webhook":
-      return handleWebhook(req);
+      return handleWebhook(req, ctx.env);
     default:
       return notFound();
   }
 }
 
-async function handleVerify(req: Request): Promise<Response> {
+async function handleVerify(req: Request, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const body = await req.json();
     const { razorpayPaymentId, razorpayOrderId, razorpaySignature, orderId } = body;
 
@@ -94,7 +95,7 @@ async function handleVerify(req: Request): Promise<Response> {
     if (!order) return notFound("Order not found");
 
     if (order.paymentStatus === "paid") {
-      logAction(null, "payment.verify_duplicate", {
+      logAction(ctx.userId,  null, "payment.verify_duplicate", {
         entity: "order",
         entityId: orderId,
         metadata: { razorpayPaymentId },
@@ -148,7 +149,7 @@ async function handleVerify(req: Request): Promise<Response> {
       console.error("[EMAIL] Failed to send payment success:", (emailErr as Error).message);
     }
 
-    logAction(order.profileId, "payment.verify", {
+    logAction(ctx.userId,  order.profileId, "payment.verify", {
       entity: "order",
       entityId: order.id,
       metadata: { orderNumber: order.orderNumber, razorpayPaymentId },
@@ -161,8 +162,9 @@ async function handleVerify(req: Request): Promise<Response> {
   }
 }
 
-async function handleFailed(req: Request): Promise<Response> {
+async function handleFailed(req: Request, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const body = await req.json();
     const { orderId, errorCode, errorDescription } = body;
 
@@ -204,7 +206,7 @@ async function handleFailed(req: Request): Promise<Response> {
       console.error("[EMAIL] Failed to send payment failure:", (emailErr as Error).message);
     }
 
-    logAction(order.profileId, "payment.failed", {
+    logAction(ctx.userId,  order.profileId, "payment.failed", {
       entity: "order",
       entityId: order.id,
       metadata: { orderNumber: order.orderNumber, errorCode, errorDescription },
@@ -217,8 +219,9 @@ async function handleFailed(req: Request): Promise<Response> {
   }
 }
 
-async function handleRetry(req: Request): Promise<Response> {
+async function handleRetry(req: Request, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const body = await req.json();
     const { orderId } = body;
 
@@ -250,8 +253,9 @@ async function handleRetry(req: Request): Promise<Response> {
   }
 }
 
-async function handleRefund(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleRefund(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const body = await req.json();
     const { orderId, amount, returnRequestId } = body;
 
@@ -354,7 +358,7 @@ async function handleRefund(req: Request, ctx: RequestContext): Promise<Response
       });
     });
 
-    logAction(ctx.userId, "payment.refund", {
+    logAction(ctx.userId,  ctx.userId, "payment.refund", {
       entity: "order",
       entityId: orderId,
       metadata: {
@@ -414,7 +418,7 @@ function roundAmount(amount: unknown): number {
 // WEBHOOK EVENT HANDLERS
 // ─────────────────────────────────────────────────────────────
 
-async function handlePaymentCaptured(event: WebhookEventPayload) {
+async function handlePaymentCaptured(event: WebhookEventPayload, ctx.env) {
   const payment = event.payload.payment?.entity as Record<string, unknown> | undefined;
   if (!payment) throw new Error("Missing payment entity in payload");
 
@@ -481,7 +485,7 @@ async function handlePaymentCaptured(event: WebhookEventPayload) {
   return result;
 }
 
-async function handlePaymentFailed(event: WebhookEventPayload) {
+async function handlePaymentFailed(event: WebhookEventPayload, ctx.env) {
   const payment = event.payload.payment?.entity as Record<string, unknown> | undefined;
   if (!payment) throw new Error("Missing payment entity in payload");
 
@@ -535,7 +539,7 @@ async function handlePaymentFailed(event: WebhookEventPayload) {
   return result;
 }
 
-async function handleRefundCreated(event: WebhookEventPayload) {
+async function handleRefundCreated(event: WebhookEventPayload, ctx.env) {
   const refund = event.payload.refund?.entity as Record<string, unknown> | undefined;
   if (!refund) throw new Error("Missing refund entity in payload");
 
@@ -628,7 +632,7 @@ async function handleRefundCreated(event: WebhookEventPayload) {
   });
 }
 
-async function handleRefundProcessed(event: WebhookEventPayload) {
+async function handleRefundProcessed(event: WebhookEventPayload, ctx.env) {
   const refund = event.payload.refund?.entity as Record<string, unknown> | undefined;
   if (!refund) throw new Error("Missing refund entity in payload");
 
@@ -639,7 +643,7 @@ async function handleRefundProcessed(event: WebhookEventPayload) {
     where: { transactionId: refundId },
   });
   if (!existingRefund) {
-    return handleRefundCreated(event);
+    return handleRefundCreated(event, ctx.env);
   }
 
   return prisma.$transaction(async (tx) => {
@@ -698,7 +702,7 @@ const EVENT_HANDLERS: Record<string, (payload: WebhookEventPayload) => Promise<{
 // WEBHOOK ENTRY POINT
 // ─────────────────────────────────────────────────────────────
 
-async function handleWebhook(req: Request): Promise<Response> {
+async function handleWebhook(req: Request, env: any): Promise<Response> {
   const rawBody = await req.text();
   const signature = req.headers.get("x-razorpay-signature");
 
@@ -807,7 +811,7 @@ async function handleWebhook(req: Request): Promise<Response> {
   }
 
   try {
-    const result = await handler(event);
+    const result = await handler(event, ctx.env);
 
     await prisma.webhookEvent.update({
       where: { id: webhookEventId },
@@ -818,7 +822,7 @@ async function handleWebhook(req: Request): Promise<Response> {
       },
     }).catch(() => {});
 
-    logAction(null, "payment.webhook", {
+    logAction(ctx.userId,  null, "payment.webhook", {
       entity: "payment_webhook",
       entityId: eventId,
       metadata: { event: eventName, status: "processed" },
@@ -837,7 +841,7 @@ async function handleWebhook(req: Request): Promise<Response> {
       },
     }).catch(() => {});
 
-    logAction(null, "payment.webhook_error", {
+    logAction(ctx.userId,  null, "payment.webhook_error", {
       entity: "payment_webhook",
       entityId: eventId,
       metadata: { event: eventName, status: "failed", error: errorMessage },
@@ -860,17 +864,17 @@ export async function handleAdminWebhookRequest(
 ): Promise<Response> {
   switch (action) {
     case "events":
-      return handleListWebhookEvents(_req);
+      return handleListWebhookEvents(_req, ctx.env);
     case "reprocess":
-      return handleReprocessWebhookEvent(_req, params[0]);
+      return handleReprocessWebhookEvent(_req, params[0], ctx.env);
     case "reconcile":
-      return handleReconcileOrder(_req, params[0]);
+      return handleReconcileOrder(_req, params[0], ctx.env);
     default:
       return notFound();
   }
 }
 
-async function handleListWebhookEvents(req: Request): Promise<Response> {
+async function handleListWebhookEvents(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") || "1", 10);
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "50", 10), 200);
@@ -897,7 +901,7 @@ async function handleListWebhookEvents(req: Request): Promise<Response> {
   });
 }
 
-async function handleReprocessWebhookEvent(req: Request, eventId: string): Promise<Response> {
+async function handleReprocessWebhookEvent(req: Request, eventId: string, env: any): Promise<Response> {
   if (!eventId) return badRequest("eventId is required");
 
   const event = await prisma.webhookEvent.findUnique({ where: { id: eventId } });
@@ -907,7 +911,8 @@ async function handleReprocessWebhookEvent(req: Request, eventId: string): Promi
   if (!handler) return badRequest(`No handler for event type: ${event.eventType}`);
 
   try {
-    const result = await handler(event.payload as unknown as WebhookEventPayload);
+    const prisma = getPrisma(env);
+    const result = await handler(event.payload as unknown as WebhookEventPayload, ctx.env);
     await prisma.webhookEvent.update({
       where: { id: eventId },
       data: {
@@ -931,7 +936,7 @@ async function handleReprocessWebhookEvent(req: Request, eventId: string): Promi
   }
 }
 
-async function handleReconcileOrder(req: Request, orderId: string): Promise<Response> {
+async function handleReconcileOrder(req: Request, orderId: string, env: any): Promise<Response> {
   if (!orderId) return badRequest("orderId is required");
 
   const order = await prisma.order.findUnique({ where: { id: orderId } });
@@ -940,6 +945,7 @@ async function handleReconcileOrder(req: Request, orderId: string): Promise<Resp
   if (!order.razorpayOrderId) return badRequest("Order has no Razorpay order ID");
 
   try {
+    const prisma = getPrisma(env);
     const razorpayOrder = await callRazorpay(`/orders/${order.razorpayOrderId}`, "GET");
     const razorpayStatus = razorpayOrder.status as string;
     const razorpayAmountDue = Number(razorpayOrder.amount_due || 0);

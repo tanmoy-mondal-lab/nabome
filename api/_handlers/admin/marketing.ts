@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -14,20 +14,21 @@ export async function handleAdminMarketingRequest(
 
   switch (action) {
     case "announcements":
-      return handleAnnouncementsList();
+      return handleAnnouncementsList(ctx.env);
     case "createAnnouncement":
-      return handleCreateAnnouncement(req);
+      return handleCreateAnnouncement(req, ctx.env);
     case "updateAnnouncement":
-      return handleUpdateAnnouncement(params[0], req);
+      return handleUpdateAnnouncement(params[0], req, ctx.env);
     case "deleteAnnouncement":
-      return handleDeleteAnnouncement(params[0]);
+      return handleDeleteAnnouncement(params[0], ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleAnnouncementsList(): Promise<Response> {
+env: anyasync function handleAnnouncementsList(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const announcements = await prisma.announcementBar.findMany({
       orderBy: { createdAt: "desc" },
     });
@@ -37,13 +38,14 @@ async function handleAnnouncementsList(): Promise<Response> {
   }
 }
 
-async function handleCreateAnnouncement(req: Request): Promise<Response> {
+async function handleCreateAnnouncement(req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { text, linkUrl, linkText, bgColor, textColor, position, isActive, startDate, endDate } = body;
 
   if (!text) return badRequest("Announcement text is required");
 
   try {
+    const prisma = getPrisma(env);
     const announcement = await prisma.announcementBar.create({
       data: {
         text,
@@ -63,10 +65,11 @@ async function handleCreateAnnouncement(req: Request): Promise<Response> {
   }
 }
 
-async function handleUpdateAnnouncement(announcementId: string, req: Request): Promise<Response> {
+async function handleUpdateAnnouncement(announcementId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
 
   try {
+    const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
     const fields = ["text", "linkUrl", "linkText", "bgColor", "textColor", "position", "isActive"];
     for (const field of fields) {
@@ -85,8 +88,9 @@ async function handleUpdateAnnouncement(announcementId: string, req: Request): P
   }
 }
 
-async function handleDeleteAnnouncement(announcementId: string): Promise<Response> {
+async function handleDeleteAnnouncement(announcementId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.announcementBar.delete({ where: { id: announcementId } });
     return success({ message: "Announcement deleted" });
   } catch (err) {

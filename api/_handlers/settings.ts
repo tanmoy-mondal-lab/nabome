@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -10,16 +10,17 @@ export async function handleSettingsRequest(
 ): Promise<Response> {
   switch (action) {
     case "public":
-      return handlePublic();
+      return handlePublic(ctx.env);
     case "homepage":
-      return handleHomepage();
+      return handleHomepage(ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleHomepage(): Promise<Response> {
+env: anyasync function handleHomepage(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const sections = await prisma.homepageSection.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
@@ -30,8 +31,9 @@ async function handleHomepage(): Promise<Response> {
   }
 }
 
-async function handlePublic(): Promise<Response> {
+env: anyasync function handlePublic(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const [settings, socialLinks] = await Promise.all([
       prisma.siteSetting.findFirst({
         select: {

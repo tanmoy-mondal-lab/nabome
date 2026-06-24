@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -14,17 +14,17 @@ export async function handleAdminCustomerRequest(
 
   switch (action) {
     case "list":
-      return handleList(req);
+      return handleList(req, ctx.env);
     case "detail":
-      return handleDetail(params[0]);
+      return handleDetail(params[0], ctx.env);
     case "update":
-      return handleUpdate(params[0], req);
+      return handleUpdate(params[0], req, ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request): Promise<Response> {
+async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -75,8 +75,9 @@ async function handleList(req: Request): Promise<Response> {
   }
 }
 
-async function handleDetail(customerId: string): Promise<Response> {
+async function handleDetail(customerId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const customer = await prisma.profile.findUnique({
       where: { id: customerId },
       select: {
@@ -130,10 +131,11 @@ async function handleDetail(customerId: string): Promise<Response> {
   }
 }
 
-async function handleUpdate(customerId: string, req: Request): Promise<Response> {
+async function handleUpdate(customerId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
 
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.profile.findUnique({ where: { id: customerId } });
     if (!existing) return notFound("Customer not found");
 

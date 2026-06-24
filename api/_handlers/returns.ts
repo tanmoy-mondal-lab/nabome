@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -32,8 +32,8 @@ export async function handleReturnRequest(
     case "create": return handleCreate(req, ctx);
     case "listMy": return handleListMy(ctx);
     case "detailMy": return handleDetailMy(params[0], ctx);
-    case "adminList": return handleAdminList(req);
-    case "adminDetail": return handleAdminDetail(params[0]);
+    case "adminList": return handleAdminList(req, ctx.env);
+    case "adminDetail": return handleAdminDetail(params[0], ctx.env);
     case "approve": return handleApprove(params[0], ctx);
     case "reject": return handleReject(params[0], req, ctx);
     case "receive": return handleReceive(params[0], ctx);
@@ -41,7 +41,7 @@ export async function handleReturnRequest(
   }
 }
 
-async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   const body = await req.json();
@@ -53,6 +53,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   if (!validReasons.includes(reason)) return badRequest("Invalid return reason");
 
   try {
+    const prisma = getPrisma(env);
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: { items: true },
@@ -105,10 +106,11 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   }
 }
 
-async function handleListMy(ctx: RequestContext): Promise<Response> {
+async function handleListMy(ctx: RequestContext, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
+    const prisma = getPrisma(env);
     const returns = await prisma.returnRequest.findMany({
       where: { profileId: ctx.userId },
       include: {
@@ -123,10 +125,11 @@ async function handleListMy(ctx: RequestContext): Promise<Response> {
   }
 }
 
-async function handleDetailMy(returnId: string, ctx: RequestContext): Promise<Response> {
+async function handleDetailMy(returnId: string, ctx: RequestContext, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
+    const prisma = getPrisma(env);
     const returnRequest = await prisma.returnRequest.findUnique({
       where: { id: returnId },
       include: {
@@ -144,7 +147,7 @@ async function handleDetailMy(returnId: string, ctx: RequestContext): Promise<Re
   }
 }
 
-async function handleAdminList(req: Request): Promise<Response> {
+async function handleAdminList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -156,6 +159,7 @@ async function handleAdminList(req: Request): Promise<Response> {
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const [returns, total] = await Promise.all([
       prisma.returnRequest.findMany({
         where: where as never,
@@ -180,8 +184,9 @@ async function handleAdminList(req: Request): Promise<Response> {
   }
 }
 
-async function handleAdminDetail(returnId: string): Promise<Response> {
+async function handleAdminDetail(returnId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const returnRequest = await prisma.returnRequest.findUnique({
       where: { id: returnId },
       include: {
@@ -198,8 +203,9 @@ async function handleAdminDetail(returnId: string): Promise<Response> {
   }
 }
 
-async function handleApprove(returnId: string, ctx: RequestContext): Promise<Response> {
+async function handleApprove(returnId: string, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const returnRequest = await prisma.returnRequest.findUnique({
       where: { id: returnId },
       include: { order: { select: { orderNumber: true, profileId: true } } },
@@ -231,11 +237,12 @@ async function handleApprove(returnId: string, ctx: RequestContext): Promise<Res
   }
 }
 
-async function handleReject(returnId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleReject(returnId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { adminNote } = body;
 
   try {
+    const prisma = getPrisma(env);
     const returnRequest = await prisma.returnRequest.findUnique({
       where: { id: returnId },
       include: { order: { select: { orderNumber: true, profileId: true } } },
@@ -270,8 +277,9 @@ async function handleReject(returnId: string, req: Request, ctx: RequestContext)
   }
 }
 
-async function handleReceive(returnId: string, ctx: RequestContext): Promise<Response> {
+async function handleReceive(returnId: string, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const returnRequest = await prisma.returnRequest.findUnique({
       where: { id: returnId },
       include: {

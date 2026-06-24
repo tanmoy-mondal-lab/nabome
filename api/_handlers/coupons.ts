@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -16,13 +16,14 @@ export async function handleCouponRequest(
   }
 }
 
-async function handleValidate(ctx: RequestContext, req: Request): Promise<Response> {
+async function handleValidate(ctx: RequestContext, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { code, subtotal, gender } = body;
 
   if (!code) return badRequest("Coupon code is required");
 
   try {
+    const prisma = getPrisma(env);
     const coupon = await prisma.coupon.findUnique({
       where: { code: code.toUpperCase() },
     });

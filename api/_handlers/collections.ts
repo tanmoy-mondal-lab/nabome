@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -10,16 +10,17 @@ export async function handleCollectionRequest(
 ): Promise<Response> {
   switch (action) {
     case "list":
-      return handleList();
+      return handleList(ctx.env);
     case "detail":
-      return handleDetail(params[0]);
+      return handleDetail(params[0], ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(): Promise<Response> {
+async function handleList(env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const collections = await prisma.collection.findMany({
       where: {
         isActive: true,
@@ -39,8 +40,9 @@ async function handleList(): Promise<Response> {
   }
 }
 
-async function handleDetail(slug: string): Promise<Response> {
+async function handleDetail(slug: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const collection = await prisma.collection.findFirst({
       where: { slug, isActive: true },
       include: {

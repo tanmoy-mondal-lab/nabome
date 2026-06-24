@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -34,17 +34,17 @@ export async function handleAdminSearchIndexRequest(
 
   switch (action) {
     case "status":
-      return handleStatus();
+      return handleStatus(ctx.env);
     case "build":
-      return handleBuild();
+      return handleBuild(ctx.env);
     case "search":
-      return handleSearch(req);
+      return handleSearch(req, ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleStatus(): Promise<Response> {
+env: anyasync function handleStatus(ctx.env): Promise<Response> {
   return success({
     indexed: memoryIndex.length > 0,
     count: memoryIndex.length,
@@ -53,8 +53,9 @@ async function handleStatus(): Promise<Response> {
   });
 }
 
-async function handleBuild(): Promise<Response> {
+env: anyasync function handleBuild(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const [products, pages, categories, collections, lookbooks] = await Promise.all([
       prisma.product.findMany({
         where: { isActive: true },
@@ -164,7 +165,7 @@ function scoreDoc(doc: SearchableDoc, queryTokens: string[]): number {
   return score;
 }
 
-async function handleSearch(req: Request): Promise<Response> {
+async function handleSearch(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? "";
   const type = url.searchParams.get("type");
@@ -174,7 +175,7 @@ async function handleSearch(req: Request): Promise<Response> {
   if (!q.trim()) return success({ results: [], total: 0, page, limit });
 
   if (memoryIndex.length === 0) {
-    await handleBuild();
+    await handleBuild(ctx.env);
   }
 
   const queryTokens = tokenize(q);

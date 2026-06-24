@@ -31,9 +31,11 @@ function generateToken(): string {
  * Creates a Response with a CSRF cookie set.
  * Call this on the first GET request to establish a CSRF token.
  */
-export function setCsrfCookie(response: Response): Response {
+export function setCsrfCookie(response: Response, env?: any): Response {
   const token = generateToken();
-  const isSecure = process.env.NODE_ENV === "production" || process.env.CF_PAGES === "true";
+  const nodeEnv = env?.NODE_ENV ?? (typeof process !== "undefined" ? process.env?.NODE_ENV : undefined);
+  const cfPages = env?.CF_PAGES ?? (typeof process !== "undefined" ? process.env?.CF_PAGES : undefined);
+  const isSecure = nodeEnv === "production" || cfPages === "true";
   response.headers.append(
     "Set-Cookie",
     `${CSRF_COOKIE_NAME}=${token}; Path=/; SameSite=Strict${isSecure ? "; Secure" : ""}; Max-Age=86400`

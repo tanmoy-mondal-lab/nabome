@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -7,16 +7,16 @@ export async function handleAdminCampaignRequest(req: Request, ctx: RequestConte
   const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
   switch (action) {
-    case "list": return handleList(req);
-    case "create": return handleCreate(req);
-    case "detail": return handleDetail(params[0]);
-    case "update": return handleUpdate(params[0], req);
-    case "delete": return handleDelete(params[0]);
+    case "list": return handleList(req, ctx.env);
+    case "create": return handleCreate(req, ctx.env);
+    case "detail": return handleDetail(params[0], ctx.env);
+    case "update": return handleUpdate(params[0], req, ctx.env);
+    case "delete": return handleDelete(params[0], ctx.env);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request): Promise<Response> {
+async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -30,22 +30,23 @@ async function handleList(req: Request): Promise<Response> {
   return success({ campaigns: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
 }
 
-async function handleCreate(req: Request): Promise<Response> {
+async function handleCreate(req: Request, env: any): Promise<Response> {
   const body = await req.json();
   if (!body.name || !body.type || !body.startDate) return badRequest("Name, type, and startDate are required");
   try {
+    const prisma = getPrisma(env);
     const item = await prisma.campaign.create({ data: { name: body.name, description: body.description ?? null, type: body.type, startDate: new Date(body.startDate), endDate: body.endDate ? new Date(body.endDate) : null, isActive: body.isActive ?? true, metadata: body.metadata ?? null } });
     return created(item);
   } catch (err) { return serverError(err); }
 }
 
-async function handleDetail(id: string): Promise<Response> {
+async function handleDetail(id: string, env: any): Promise<Response> {
   const item = await prisma.campaign.findUnique({ where: { id } });
   if (!item) return notFound("Campaign not found");
   return success({ campaign: item });
 }
 
-async function handleUpdate(id: string, req: Request): Promise<Response> {
+async function handleUpdate(id: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const existing = await prisma.campaign.findUnique({ where: { id } });
   if (!existing) return notFound("Campaign not found");
@@ -54,12 +55,14 @@ async function handleUpdate(id: string, req: Request): Promise<Response> {
   if (body.startDate) data.startDate = new Date(body.startDate);
   if (body.endDate !== undefined) data.endDate = body.endDate ? new Date(body.endDate) : null;
   try {
+    const prisma = getPrisma(env);
     const updated = await prisma.campaign.update({ where: { id }, data: data as never });
     return success(updated);
   } catch (err) { return serverError(err); }
 }
 
-async function handleDelete(id: string): Promise<Response> {
+async function handleDelete(id: string, env: any): Promise<Response> {
   try { await prisma.campaign.delete({ where: { id } }); return success({ message: "Campaign deleted" }); }
+    const prisma = getPrisma(env);
   catch { return notFound("Campaign not found"); }
 }

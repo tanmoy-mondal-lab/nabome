@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -14,21 +14,21 @@ export async function handleAdminContactRequest(
 
   switch (action) {
     case "list":
-      return handleList(req);
+      return handleList(req, ctx.env);
     case "markRead":
-      return handleMarkRead(params[0]);
+      return handleMarkRead(params[0], ctx.env);
     case "delete":
-      return handleDelete(params[0]);
+      return handleDelete(params[0], ctx.env);
     case "subscribers":
-      return handleSubscribers(req);
+      return handleSubscribers(req, ctx.env);
     case "deleteSubscriber":
-      return handleDeleteSubscriber(params[0]);
+      return handleDeleteSubscriber(params[0], ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request): Promise<Response> {
+async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -40,6 +40,7 @@ async function handleList(req: Request): Promise<Response> {
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const [submissions, total, unreadCount] = await Promise.all([
       prisma.contactSubmission.findMany({
         where: where as never,
@@ -61,8 +62,9 @@ async function handleList(req: Request): Promise<Response> {
   }
 }
 
-async function handleMarkRead(submissionId: string): Promise<Response> {
+async function handleMarkRead(submissionId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const submission = await prisma.contactSubmission.update({
       where: { id: submissionId },
       data: { isRead: true },
@@ -73,8 +75,9 @@ async function handleMarkRead(submissionId: string): Promise<Response> {
   }
 }
 
-async function handleDelete(submissionId: string): Promise<Response> {
+async function handleDelete(submissionId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.contactSubmission.delete({ where: { id: submissionId } });
     return success({ message: "Submission deleted" });
   } catch (err) {
@@ -82,7 +85,7 @@ async function handleDelete(submissionId: string): Promise<Response> {
   }
 }
 
-async function handleSubscribers(req: Request): Promise<Response> {
+async function handleSubscribers(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -90,6 +93,7 @@ async function handleSubscribers(req: Request): Promise<Response> {
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const [subscribers, total] = await Promise.all([
       prisma.newsletterSubscriber.findMany({
         orderBy: { createdAt: "desc" },
@@ -108,8 +112,9 @@ async function handleSubscribers(req: Request): Promise<Response> {
   }
 }
 
-async function handleDeleteSubscriber(subscriberId: string): Promise<Response> {
+async function handleDeleteSubscriber(subscriberId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.newsletterSubscriber.delete({ where: { id: subscriberId } });
     return success({ message: "Subscriber removed" });
   } catch (err) {

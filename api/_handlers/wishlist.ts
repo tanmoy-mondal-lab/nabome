@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -20,8 +20,9 @@ export async function handleWishlistRequest(
   }
 }
 
-async function handleList(userId: string): Promise<Response> {
+async function handleList(userId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const items = await prisma.wishlistItem.findMany({
       where: { profileId: userId },
       include: {
@@ -49,13 +50,14 @@ async function handleList(userId: string): Promise<Response> {
   }
 }
 
-async function handleAdd(userId: string, req: Request): Promise<Response> {
+async function handleAdd(userId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { variantId } = body;
 
   if (!variantId) return badRequest("Variant ID is required");
 
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.wishlistItem.findUnique({
       where: { profileId_variantId: { profileId: userId, variantId } },
     });
@@ -84,8 +86,9 @@ async function handleAdd(userId: string, req: Request): Promise<Response> {
   }
 }
 
-async function handleRemove(userId: string, variantId: string): Promise<Response> {
+async function handleRemove(userId: string, variantId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const item = await prisma.wishlistItem.findUnique({
       where: { profileId_variantId: { profileId: userId, variantId } },
     });

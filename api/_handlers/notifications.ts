@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -70,7 +70,7 @@ export async function handleNotificationRequest(
   return notFound();
 }
 
-async function handleList(ctx: RequestContext, req: Request): Promise<Response> {
+async function handleList(ctx: RequestContext, req: Request, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   const url = new URL(req.url);
@@ -85,6 +85,7 @@ async function handleList(ctx: RequestContext, req: Request): Promise<Response> 
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const [notifications, total] = await Promise.all([
       prisma.notification.findMany({
         where: where as never,
@@ -104,10 +105,11 @@ async function handleList(ctx: RequestContext, req: Request): Promise<Response> 
   }
 }
 
-async function handleMarkRead(ctx: RequestContext, notificationId: string): Promise<Response> {
+async function handleMarkRead(ctx: RequestContext, notificationId: string, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
+    const prisma = getPrisma(env);
     const notification = await prisma.notification.findFirst({
       where: { id: notificationId, profileId: ctx.userId },
     });
@@ -124,10 +126,11 @@ async function handleMarkRead(ctx: RequestContext, notificationId: string): Prom
   }
 }
 
-async function handleMarkAllRead(ctx: RequestContext): Promise<Response> {
+async function handleMarkAllRead(ctx: RequestContext, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
+    const prisma = getPrisma(env);
     await prisma.notification.updateMany({
       where: { profileId: ctx.userId, isRead: false },
       data: { isRead: true, readAt: new Date() },
@@ -139,10 +142,11 @@ async function handleMarkAllRead(ctx: RequestContext): Promise<Response> {
   }
 }
 
-async function handleUnreadCount(ctx: RequestContext): Promise<Response> {
+async function handleUnreadCount(ctx: RequestContext, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
+    const prisma = getPrisma(env);
     const count = await prisma.notification.count({
       where: { profileId: ctx.userId, isRead: false },
     });
@@ -153,7 +157,7 @@ async function handleUnreadCount(ctx: RequestContext): Promise<Response> {
   }
 }
 
-async function handleAdminList(ctx: RequestContext, req: Request): Promise<Response> {
+async function handleAdminList(ctx: RequestContext, req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -170,6 +174,7 @@ async function handleAdminList(ctx: RequestContext, req: Request): Promise<Respo
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const [notifications, total] = await Promise.all([
       prisma.notification.findMany({
         where: where as never,
@@ -192,8 +197,9 @@ async function handleAdminList(ctx: RequestContext, req: Request): Promise<Respo
   }
 }
 
-async function handleListTemplates(ctx: RequestContext): Promise<Response> {
+async function handleListTemplates(ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const templates = await prisma.notificationTemplate.findMany({
       orderBy: { event: "asc" },
     });
@@ -203,7 +209,7 @@ async function handleListTemplates(ctx: RequestContext): Promise<Response> {
   }
 }
 
-async function handleUpdateTemplate(ctx: RequestContext, templateId: string, req: Request): Promise<Response> {
+async function handleUpdateTemplate(ctx: RequestContext, templateId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const allowedFields = ["subject", "emailBody", "smsBody", "inAppBody", "isActive"];
   const updateData: Record<string, unknown> = {};
@@ -233,7 +239,7 @@ async function handleUpdateTemplate(ctx: RequestContext, templateId: string, req
   }
 }
 
-async function handleAdminSend(ctx: RequestContext, req: Request): Promise<Response> {
+async function handleAdminSend(ctx: RequestContext, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { profileId, type, title, body: messageBody, orderId, channel } = body;
 

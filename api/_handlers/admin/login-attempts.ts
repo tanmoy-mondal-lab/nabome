@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -7,12 +7,12 @@ export async function handleAdminLoginAttemptRequest(req: Request, _ctx: Request
   const adminGuard = requireAdmin(_ctx);
   if (adminGuard) return adminGuard;
   switch (action) {
-    case "list": return handleList(req);
+    case "list": return handleList(req, ctx.env);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request): Promise<Response> {
+async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
   const limit = Math.max(1, parseInt(url.searchParams.get("limit") ?? "25") || 25);
@@ -23,6 +23,7 @@ async function handleList(req: Request): Promise<Response> {
   if (successFilter === "true") where.success = true;
   if (successFilter === "false") where.success = false;
   try {
+    const prisma = getPrisma(env);
     const [items, total] = await Promise.all([
       prisma.loginAttempt.findMany({
         where: where as never,

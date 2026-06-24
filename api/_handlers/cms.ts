@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -10,26 +10,27 @@ export async function handleCMSRequest(
 ): Promise<Response> {
   switch (action) {
     case "homepage":
-      return handleHomepage();
+      return handleHomepage(ctx.env);
     case "pages":
-      return handlePages();
+      return handlePages(ctx.env);
     case "page":
-      return handlePage(params[0]);
+      return handlePage(params[0], ctx.env);
     case "navigation":
-      return handleNavigation();
+      return handleNavigation(ctx.env);
     case "announcements":
-      return handleAnnouncements();
+      return handleAnnouncements(ctx.env);
     case "brandStory":
-      return handleBrandStory();
+      return handleBrandStory(ctx.env);
     case "footer":
-      return handleFooter();
+      return handleFooter(ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleHomepage(): Promise<Response> {
+env: anyasync function handleHomepage(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const sections = await prisma.homepageSection.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
@@ -40,8 +41,9 @@ async function handleHomepage(): Promise<Response> {
   }
 }
 
-async function handlePages(): Promise<Response> {
+env: anyasync function handlePages(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const pages = await prisma.staticPage.findMany({
       where: { isPublished: true },
       select: {
@@ -61,8 +63,9 @@ async function handlePages(): Promise<Response> {
   }
 }
 
-async function handlePage(slug: string): Promise<Response> {
+async function handlePage(slug: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const page = await prisma.staticPage.findFirst({
       where: { slug, isPublished: true },
     });
@@ -73,8 +76,9 @@ async function handlePage(slug: string): Promise<Response> {
   }
 }
 
-async function handleNavigation(): Promise<Response> {
+env: anyasync function handleNavigation(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const menus = await prisma.navigationMenu.findMany({
       where: { isActive: true },
       orderBy: { createdAt: "asc" },
@@ -85,8 +89,9 @@ async function handleNavigation(): Promise<Response> {
   }
 }
 
-async function handleAnnouncements(): Promise<Response> {
+env: anyasync function handleAnnouncements(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const now = new Date();
     const announcements = await prisma.announcementBar.findMany({
       where: {
@@ -104,8 +109,9 @@ async function handleAnnouncements(): Promise<Response> {
   }
 }
 
-async function handleBrandStory(): Promise<Response> {
+env: anyasync function handleBrandStory(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const story = await prisma.brandStory.findFirst();
     if (!story) return notFound("Brand story not found");
     return success({ story });
@@ -114,8 +120,9 @@ async function handleBrandStory(): Promise<Response> {
   }
 }
 
-async function handleFooter(): Promise<Response> {
+env: anyasync function handleFooter(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const sections = await prisma.footerSection.findMany({
       where: { isActive: true },
       orderBy: [{ column: "asc" }, { sortOrder: "asc" }],

@@ -2,11 +2,12 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import type { Env } from "./env";
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
+const globalForPrisma = globalThis as unknown as { 
+  prisma: PrismaClient | undefined;
+};
 
 function getDatabaseUrl(env?: Env): string {
-  // Try env first, fall back to process.env for local dev
-  const url = env?.DATABASE_URL || env?.DATABASE_URL_POOLED || 
+  const url = env?.DATABASE_URL || env?.DATABASE_URL_POOLED ||
     (typeof process !== "undefined" && process.env?.DATABASE_URL) ||
     (typeof process !== "undefined" && process.env?.DATABASE_URL_POOLED) ||
     "";
@@ -27,19 +28,24 @@ function createPrismaClient(env?: Env): PrismaClient {
   });
 }
 
-function getPrismaClient(env?: Env): PrismaClient {
-  // In production, we create a new client per request with the correct env
-  // In development, we can reuse the global client
-  if (globalForPrisma.prisma && !env) {
+/**
+ * Get a Prisma client instance.
+ * 
+ * IMPORTANT: This must be called with `env` parameter in Cloudflare Pages Functions.
+ * The env is injected at request time, not module load time.
+ * 
+ * @param env - Cloudflare Pages environment (required in production)
+ * @returns PrismaClient instance
+ */
+export function getPrisma(env?: Env): PrismaClient {
+  // In local development, reuse global singleton for performance
+  if (!env && typeof process !== "undefined" && process.env?.DATABASE_URL) {
+    if (!globalForPrisma.prisma) {
+      globalForPrisma.prisma = createPrismaClient();
+    }
     return globalForPrisma.prisma;
   }
+  
+  // In Cloudflare Pages, always create client per-request with env
   return createPrismaClient(env);
 }
-
-export function getPrisma(env?: Env): PrismaClient {
-  return getPrismaClient(env);
-}
-
-// For backward compatibility - use with caution in production
-export const prisma = getPrismaClient();
-export default prisma;

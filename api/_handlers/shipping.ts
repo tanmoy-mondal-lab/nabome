@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -9,21 +9,22 @@ export async function handleShippingRequest(
   action: string
 ): Promise<Response> {
   switch (action) {
-    case "listZones": return handleListZones();
-    case "calculateRates": return handleCalculateRates(req);
-    case "adminListZones": return handleAdminListZones();
-    case "createZone": return handleCreateZone(req);
-    case "updateZone": return handleUpdateZone(params[0], req);
-    case "deleteZone": return handleDeleteZone(params[0]);
-    case "addRate": return handleAddRate(params[0], req);
-    case "updateRate": return handleUpdateRate(params[0], req);
-    case "deleteRate": return handleDeleteRate(params[0]);
+    case "listZones": return handleListZones(ctx.env);
+    case "calculateRates": return handleCalculateRates(req, ctx.env);
+    case "adminListZones": return handleAdminListZones(ctx.env);
+    case "createZone": return handleCreateZone(req, ctx.env);
+    case "updateZone": return handleUpdateZone(params[0], req, ctx.env);
+    case "deleteZone": return handleDeleteZone(params[0], ctx.env);
+    case "addRate": return handleAddRate(params[0], req, ctx.env);
+    case "updateRate": return handleUpdateRate(params[0], req, ctx.env);
+    case "deleteRate": return handleDeleteRate(params[0], ctx.env);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleListZones(): Promise<Response> {
+env: anyasync function handleListZones(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const zones = await prisma.shippingZone.findMany({
       where: { isActive: true },
       include: {
@@ -40,7 +41,7 @@ async function handleListZones(): Promise<Response> {
   }
 }
 
-async function handleCalculateRates(req: Request): Promise<Response> {
+async function handleCalculateRates(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const pincode = url.searchParams.get("pincode");
   const orderValue = parseFloat(url.searchParams.get("orderValue") ?? "0");
@@ -48,6 +49,7 @@ async function handleCalculateRates(req: Request): Promise<Response> {
   if (!pincode) return badRequest("Pincode is required");
 
   try {
+    const prisma = getPrisma(env);
     const zones = await prisma.shippingZone.findMany({
       where: {
         isActive: true,
@@ -93,8 +95,9 @@ async function handleCalculateRates(req: Request): Promise<Response> {
   }
 }
 
-async function handleAdminListZones(): Promise<Response> {
+env: anyasync function handleAdminListZones(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const zones = await prisma.shippingZone.findMany({
       include: {
         rates: { orderBy: { baseRate: "asc" } },
@@ -107,13 +110,14 @@ async function handleAdminListZones(): Promise<Response> {
   }
 }
 
-async function handleCreateZone(req: Request): Promise<Response> {
+async function handleCreateZone(req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { name, countries, states, pincodes, sortOrder } = body;
 
   if (!name) return badRequest("Zone name is required");
 
   try {
+    const prisma = getPrisma(env);
     const zone = await prisma.shippingZone.create({
       data: {
         name,
@@ -130,11 +134,12 @@ async function handleCreateZone(req: Request): Promise<Response> {
   }
 }
 
-async function handleUpdateZone(zoneId: string, req: Request): Promise<Response> {
+async function handleUpdateZone(zoneId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { name, countries, states, pincodes, isActive, sortOrder } = body;
 
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.shippingZone.findUnique({ where: { id: zoneId } });
     if (!existing) return notFound("Shipping zone not found");
 
@@ -156,8 +161,9 @@ async function handleUpdateZone(zoneId: string, req: Request): Promise<Response>
   }
 }
 
-async function handleDeleteZone(zoneId: string): Promise<Response> {
+async function handleDeleteZone(zoneId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.shippingZone.findUnique({ where: { id: zoneId } });
     if (!existing) return notFound("Shipping zone not found");
 
@@ -168,13 +174,14 @@ async function handleDeleteZone(zoneId: string): Promise<Response> {
   }
 }
 
-async function handleAddRate(zoneId: string, req: Request): Promise<Response> {
+async function handleAddRate(zoneId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { name, method, minOrderValue, maxOrderValue, baseRate, perKgRate, freeAbove, estimatedDays } = body;
 
   if (!name) return badRequest("Rate name is required");
 
   try {
+    const prisma = getPrisma(env);
     const zone = await prisma.shippingZone.findUnique({ where: { id: zoneId } });
     if (!zone) return notFound("Shipping zone not found");
 
@@ -197,11 +204,12 @@ async function handleAddRate(zoneId: string, req: Request): Promise<Response> {
   }
 }
 
-async function handleUpdateRate(rateId: string, req: Request): Promise<Response> {
+async function handleUpdateRate(rateId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { name, method, minOrderValue, maxOrderValue, baseRate, perKgRate, freeAbove, estimatedDays, isActive } = body;
 
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.shippingRate.findUnique({ where: { id: rateId } });
     if (!existing) return notFound("Shipping rate not found");
 
@@ -225,8 +233,9 @@ async function handleUpdateRate(rateId: string, req: Request): Promise<Response>
   }
 }
 
-async function handleDeleteRate(rateId: string): Promise<Response> {
+async function handleDeleteRate(rateId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.shippingRate.findUnique({ where: { id: rateId } });
     if (!existing) return notFound("Shipping rate not found");
 

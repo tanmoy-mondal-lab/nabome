@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -15,19 +15,19 @@ export async function handleAdminMediaRequest(
 
   switch (action) {
     case "list":
-      return handleList(req);
+      return handleList(req, ctx.env);
     case "create":
-      return handleCreate(req);
+      return handleCreate(req, ctx.env);
     case "update":
-      return handleUpdate(params[0], req);
+      return handleUpdate(params[0], req, ctx.env);
     case "delete":
-      return handleDelete(params[0]);
+      return handleDelete(params[0], ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request): Promise<Response> {
+async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "50");
@@ -41,6 +41,7 @@ async function handleList(req: Request): Promise<Response> {
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const [assets, total] = await Promise.all([
       prisma.mediaAsset.findMany({
         where: where as never,
@@ -67,13 +68,14 @@ async function handleList(req: Request): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request): Promise<Response> {
+async function handleCreate(req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { url, publicId, altText, width, height, fileSize, mimeType, type, tags, folder } = body;
 
   if (!url) return badRequest("URL is required");
 
   try {
+    const prisma = getPrisma(env);
     const asset = await prisma.mediaAsset.create({
       data: {
         url,
@@ -94,8 +96,9 @@ async function handleCreate(req: Request): Promise<Response> {
   }
 }
 
-async function handleDelete(assetId: string): Promise<Response> {
+async function handleDelete(assetId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const asset = await prisma.mediaAsset.findUnique({ where: { id: assetId } });
     if (!asset) return notFound("Asset not found");
     if (asset.publicId) await destroyCloudinaryAsset(asset.publicId);
@@ -106,11 +109,12 @@ async function handleDelete(assetId: string): Promise<Response> {
   }
 }
 
-async function handleUpdate(assetId: string, req: Request): Promise<Response> {
+async function handleUpdate(assetId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { altText, folder } = body;
 
   try {
+    const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
     if (altText !== undefined) data.altText = altText;
     if (folder !== undefined) data.folder = folder;

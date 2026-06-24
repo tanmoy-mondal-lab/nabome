@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
@@ -15,7 +15,7 @@ export async function handleAdminCouponRequest(
 
   switch (action) {
     case "list":
-      return handleList(req);
+      return handleList(req, ctx.env);
     case "create":
       return handleCreate(req, ctx);
     case "update":
@@ -27,13 +27,14 @@ export async function handleAdminCouponRequest(
   }
 }
 
-async function handleList(req: Request): Promise<Response> {
+async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "50");
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const [coupons, total] = await Promise.all([
       prisma.coupon.findMany({
         include: { _count: { select: { redemptions: true } } },
@@ -52,7 +53,7 @@ async function handleList(req: Request): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { code, description, discountType, discountValue, minOrderValue, maxDiscount, usageLimit, perUserLimit, applicableGender, isActive, startDate, endDate } = body;
 
@@ -80,7 +81,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
         endDate: new Date(endDate),
       },
     });
-    logAction(ctx.userId, "admin.coupons.create", {
+    logAction(ctx.userId,  ctx.userId, "admin.coupons.create", {
       entity: "coupon",
       entityId: coupon.id,
       metadata: { code: coupon.code, discountType: coupon.discountType },
@@ -92,10 +93,11 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   }
 }
 
-async function handleUpdate(couponId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleUpdate(couponId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
 
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.coupon.findUnique({ where: { id: couponId } });
     if (!existing) return notFound("Coupon not found");
 
@@ -113,7 +115,7 @@ async function handleUpdate(couponId: string, req: Request, ctx: RequestContext)
       where: { id: couponId },
       data: data as never,
     });
-    logAction(ctx.userId, "admin.coupons.update", {
+    logAction(ctx.userId,  ctx.userId, "admin.coupons.update", {
       entity: "coupon",
       entityId: coupon.id,
       metadata: { code: coupon.code },
@@ -125,13 +127,14 @@ async function handleUpdate(couponId: string, req: Request, ctx: RequestContext)
   }
 }
 
-async function handleDelete(couponId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleDelete(couponId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.coupon.update({
       where: { id: couponId },
       data: { isActive: false },
     });
-    logAction(ctx.userId, "admin.coupons.delete", {
+    logAction(ctx.userId,  ctx.userId, "admin.coupons.delete", {
       entity: "coupon",
       entityId: couponId,
       ...extractRequestMeta(req),

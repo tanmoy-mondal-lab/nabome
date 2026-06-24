@@ -1,13 +1,14 @@
 import { createClient } from "@supabase/supabase-js";
 import { unauthorized, forbidden, serverError } from "./response";
 import type { RequestContext } from "./types";
-import { prisma } from "./prisma";
+import { getPrisma } from "./prisma";
+import type { Env } from "./env";
 
 let supabaseAdminWarningShown = false;
 
-function getSupabaseAdmin() {
-  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+function getSupabaseAdmin(env?: Env) {
+  const url = env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL ?? (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
+  const key = env?.SUPABASE_SERVICE_ROLE_KEY ?? (typeof process !== "undefined" ? process.env?.SUPABASE_SERVICE_ROLE_KEY : undefined);
 
   if (!url || !key) {
     if (!supabaseAdminWarningShown) {
@@ -23,7 +24,8 @@ function getSupabaseAdmin() {
 }
 
 export async function authenticateRequest(
-  request: Request
+  request: Request,
+  env?: Env
 ): Promise<RequestContext | Response> {
   const authHeader = request.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
@@ -33,7 +35,7 @@ export async function authenticateRequest(
   const token = authHeader.slice(7);
 
   try {
-    const supabase = getSupabaseAdmin();
+    const supabase = getSupabaseAdmin(env);
     const {
       data: { user },
       error: authError,
@@ -44,6 +46,7 @@ export async function authenticateRequest(
     }
 
     // Read role from the profile table (source of truth), not from JWT metadata
+    const prisma = getPrisma(env);
     const profile = await prisma.profile.findUnique({
       where: { id: user.id },
       select: { role: true },

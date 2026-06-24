@@ -1,4 +1,4 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
@@ -10,16 +10,17 @@ export async function handleCategoryRequest(
 ): Promise<Response> {
   switch (action) {
     case "list":
-      return handleList();
+      return handleList(ctx.env);
     case "detail":
-      return handleDetail(params[0]);
+      return handleDetail(params[0], ctx.env);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(): Promise<Response> {
+async function handleList(env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const categories = await prisma.category.findMany({
       where: { isActive: true, parentId: null },
       include: {
@@ -43,8 +44,9 @@ async function handleList(): Promise<Response> {
   }
 }
 
-async function handleDetail(slug: string): Promise<Response> {
+async function handleDetail(slug: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const category = await prisma.category.findFirst({
       where: { slug, isActive: true },
       include: {

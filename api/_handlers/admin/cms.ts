@@ -1,4 +1,4 @@
-import { prisma } from "../../_lib/prisma";
+import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
@@ -16,7 +16,7 @@ export async function handleAdminCMSRequest(
 
   switch (action) {
     case "pages":
-      return handlePagesList();
+      return handlePagesList(ctx.env);
     case "createPage":
       return handleCreatePage(req, ctx);
     case "updatePage":
@@ -24,7 +24,7 @@ export async function handleAdminCMSRequest(
     case "deletePage":
       return handleDeletePage(params[0], req, ctx);
     case "homepage":
-      return handleHomepageList();
+      return handleHomepageList(ctx.env);
     case "createHomeSection":
       return handleCreateHomeSection(req, ctx);
     case "updateHomeSection":
@@ -32,9 +32,9 @@ export async function handleAdminCMSRequest(
     case "deleteHomeSection":
       return handleDeleteHomeSection(params[0], req, ctx);
     case "reorderHomeSections":
-      return handleReorderHomeSections(req);
+      return handleReorderHomeSections(req, ctx.env);
     case "navigation":
-      return handleNavigationList();
+      return handleNavigationList(ctx.env);
     case "createNavigation":
       return handleCreateNavigation(req, ctx);
     case "updateNavigation":
@@ -42,11 +42,11 @@ export async function handleAdminCMSRequest(
     case "deleteNavigation":
       return handleDeleteNavigation(params[0], req, ctx);
     case "brandStory":
-      return handleGetBrandStory();
+      return handleGetBrandStory(ctx.env);
     case "updateBrandStory":
       return handleUpdateBrandStory(req, ctx);
     case "footer":
-      return handleFooterList();
+      return handleFooterList(ctx.env);
     case "createFooter":
       return handleCreateFooter(req, ctx);
     case "updateFooter":
@@ -60,8 +60,9 @@ export async function handleAdminCMSRequest(
 
 // ─── Static Pages ───
 
-async function handlePagesList(): Promise<Response> {
+env: anyasync function handlePagesList(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const pages = await prisma.staticPage.findMany({
       orderBy: { createdAt: "desc" },
     });
@@ -71,7 +72,7 @@ async function handlePagesList(): Promise<Response> {
   }
 }
 
-async function handleCreatePage(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleCreatePage(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { title, content, template, isPublished, metaTitle, metaDesc, ogImage } = body;
 
@@ -82,6 +83,7 @@ async function handleCreatePage(req: Request, ctx: RequestContext): Promise<Resp
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
+    const prisma = getPrisma(env);
     const page = await prisma.staticPage.create({
       data: {
         title,
@@ -95,7 +97,7 @@ async function handleCreatePage(req: Request, ctx: RequestContext): Promise<Resp
         ogImage: ogImage ?? null,
       },
     });
-    logAction(ctx.userId, "admin.cms.page.create", {
+    logAction(ctx.userId,  ctx.userId, "admin.cms.page.create", {
       entity: "staticPage",
       entityId: page.id,
       metadata: { title: page.title, slug: page.slug },
@@ -107,9 +109,10 @@ async function handleCreatePage(req: Request, ctx: RequestContext): Promise<Resp
   }
 }
 
-async function handleUpdatePage(pageId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleUpdatePage(pageId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.staticPage.findUnique({ where: { id: pageId } });
     if (!existing) return notFound("Page not found");
 
@@ -127,7 +130,7 @@ async function handleUpdatePage(pageId: string, req: Request, ctx: RequestContex
       where: { id: pageId },
       data: data as never,
     });
-    logAction(ctx.userId, "admin.cms.page.update", {
+    logAction(ctx.userId,  ctx.userId, "admin.cms.page.update", {
       entity: "staticPage",
       entityId: page.id,
       metadata: { title: page.title },
@@ -139,10 +142,11 @@ async function handleUpdatePage(pageId: string, req: Request, ctx: RequestContex
   }
 }
 
-async function handleDeletePage(pageId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleDeletePage(pageId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.staticPage.delete({ where: { id: pageId } });
-    logAction(ctx.userId, "admin.cms.page.delete", {
+    logAction(ctx.userId,  ctx.userId, "admin.cms.page.delete", {
       entity: "staticPage",
       entityId: pageId,
       ...extractRequestMeta(req),
@@ -155,8 +159,9 @@ async function handleDeletePage(pageId: string, req: Request, ctx: RequestContex
 
 // ─── Homepage Sections ───
 
-async function handleHomepageList(): Promise<Response> {
+env: anyasync function handleHomepageList(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const sections = await prisma.homepageSection.findMany({
       orderBy: { sortOrder: "asc" },
     });
@@ -166,13 +171,14 @@ async function handleHomepageList(): Promise<Response> {
   }
 }
 
-async function handleCreateHomeSection(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleCreateHomeSection(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { sectionType, title, subtitle, content, sortOrder, isActive, visibility } = body;
 
   if (!sectionType) return badRequest("Section type is required");
 
   try {
+    const prisma = getPrisma(env);
     const section = await prisma.homepageSection.create({
       data: {
         sectionType,
@@ -184,7 +190,7 @@ async function handleCreateHomeSection(req: Request, ctx: RequestContext): Promi
         visibility: visibility ?? "all",
       },
     });
-    logAction(ctx.userId, "admin.cms.homepage.create", {
+    logAction(ctx.userId,  ctx.userId, "admin.cms.homepage.create", {
       entity: "homepageSection",
       entityId: section.id,
       metadata: { sectionType: section.sectionType, title: section.title },
@@ -196,9 +202,10 @@ async function handleCreateHomeSection(req: Request, ctx: RequestContext): Promi
   }
 }
 
-async function handleUpdateHomeSection(sectionId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleUpdateHomeSection(sectionId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   try {
+    const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
     const fields = ["sectionType", "title", "subtitle", "content", "sortOrder", "isActive", "visibility"];
     for (const field of fields) {
@@ -209,7 +216,7 @@ async function handleUpdateHomeSection(sectionId: string, req: Request, ctx: Req
       where: { id: sectionId },
       data: data as never,
     });
-    logAction(ctx.userId, "admin.cms.homepage.update", {
+    logAction(ctx.userId,  ctx.userId, "admin.cms.homepage.update", {
       entity: "homepageSection",
       entityId: section.id,
       metadata: { sectionType: section.sectionType },
@@ -221,10 +228,11 @@ async function handleUpdateHomeSection(sectionId: string, req: Request, ctx: Req
   }
 }
 
-async function handleDeleteHomeSection(sectionId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleDeleteHomeSection(sectionId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.homepageSection.delete({ where: { id: sectionId } });
-    logAction(ctx.userId, "admin.cms.homepage.delete", {
+    logAction(ctx.userId,  ctx.userId, "admin.cms.homepage.delete", {
       entity: "homepageSection",
       entityId: sectionId,
       ...extractRequestMeta(req),
@@ -235,13 +243,14 @@ async function handleDeleteHomeSection(sectionId: string, req: Request, ctx: Req
   }
 }
 
-async function handleReorderHomeSections(req: Request): Promise<Response> {
+async function handleReorderHomeSections(req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { order } = body;
 
   if (!Array.isArray(order)) return badRequest("Order array is required");
 
   try {
+    const prisma = getPrisma(env);
     await prisma.$transaction(
       order.map((item: { id: string; sortOrder: number }) =>
         prisma.homepageSection.update({
@@ -258,8 +267,9 @@ async function handleReorderHomeSections(req: Request): Promise<Response> {
 
 // ─── Navigation ───
 
-async function handleNavigationList(): Promise<Response> {
+env: anyasync function handleNavigationList(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const menus = await prisma.navigationMenu.findMany({
       orderBy: { createdAt: "asc" },
     });
@@ -269,7 +279,7 @@ async function handleNavigationList(): Promise<Response> {
   }
 }
 
-async function handleCreateNavigation(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleCreateNavigation(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { name, location, items, isActive } = body;
 
@@ -286,7 +296,7 @@ async function handleCreateNavigation(req: Request, ctx: RequestContext): Promis
         isActive: isActive ?? true,
       },
     });
-    logAction(ctx.userId, "admin.cms.navigation.create", {
+    logAction(ctx.userId,  ctx.userId, "admin.cms.navigation.create", {
       entity: "navigationMenu",
       entityId: menu.id,
       metadata: { name: menu.name, location: menu.location },
@@ -298,9 +308,10 @@ async function handleCreateNavigation(req: Request, ctx: RequestContext): Promis
   }
 }
 
-async function handleUpdateNavigation(menuId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleUpdateNavigation(menuId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   try {
+    const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
     if (body.name !== undefined) data.name = body.name;
     if (body.location !== undefined) data.location = body.location;
@@ -311,7 +322,7 @@ async function handleUpdateNavigation(menuId: string, req: Request, ctx: Request
       where: { id: menuId },
       data: data as never,
     });
-    logAction(ctx.userId, "admin.cms.navigation.update", {
+    logAction(ctx.userId,  ctx.userId, "admin.cms.navigation.update", {
       entity: "navigationMenu",
       entityId: menu.id,
       metadata: { name: menu.name },
@@ -323,10 +334,11 @@ async function handleUpdateNavigation(menuId: string, req: Request, ctx: Request
   }
 }
 
-async function handleDeleteNavigation(menuId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleDeleteNavigation(menuId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.navigationMenu.delete({ where: { id: menuId } });
-    logAction(ctx.userId, "admin.cms.navigation.delete", {
+    logAction(ctx.userId,  ctx.userId, "admin.cms.navigation.delete", {
       entity: "navigationMenu",
       entityId: menuId,
       ...extractRequestMeta(req),
@@ -339,8 +351,9 @@ async function handleDeleteNavigation(menuId: string, req: Request, ctx: Request
 
 // ─── Brand Story ───
 
-async function handleGetBrandStory(): Promise<Response> {
+env: anyasync function handleGetBrandStory(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const story = await prisma.brandStory.findFirst();
     return success({ story: story ?? null });
   } catch (err) {
@@ -348,11 +361,12 @@ async function handleGetBrandStory(): Promise<Response> {
   }
 }
 
-async function handleUpdateBrandStory(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleUpdateBrandStory(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { title, subtitle, heroImageUrl, content, mission, vision, values } = body;
 
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.brandStory.findFirst();
     if (existing) {
       const story = await prisma.brandStory.update({
@@ -367,7 +381,7 @@ async function handleUpdateBrandStory(req: Request, ctx: RequestContext): Promis
           values: values ?? existing.values,
         },
       });
-      logAction(ctx.userId, "admin.cms.brand_story.update", {
+      logAction(ctx.userId,  ctx.userId, "admin.cms.brand_story.update", {
         entity: "brandStory",
         entityId: story.id,
         metadata: { title: story.title },
@@ -386,7 +400,7 @@ async function handleUpdateBrandStory(req: Request, ctx: RequestContext): Promis
           values: values ?? null,
         },
       });
-      logAction(ctx.userId, "admin.cms.brand_story.create", {
+      logAction(ctx.userId,  ctx.userId, "admin.cms.brand_story.create", {
         entity: "brandStory",
         entityId: story.id,
         metadata: { title: story.title },
@@ -401,8 +415,9 @@ async function handleUpdateBrandStory(req: Request, ctx: RequestContext): Promis
 
 // ─── Footer Sections ───
 
-async function handleFooterList(): Promise<Response> {
+env: anyasync function handleFooterList(ctx.env): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const sections = await prisma.footerSection.findMany({
       orderBy: [{ column: "asc" }, { sortOrder: "asc" }],
     });
@@ -412,13 +427,14 @@ async function handleFooterList(): Promise<Response> {
   }
 }
 
-async function handleCreateFooter(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleCreateFooter(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { column, title, contentType, content, sortOrder, isActive } = body;
 
   if (!title) return badRequest("Footer section title is required");
 
   try {
+    const prisma = getPrisma(env);
     const section = await prisma.footerSection.create({
       data: {
         column: column ?? 1,
@@ -429,7 +445,7 @@ async function handleCreateFooter(req: Request, ctx: RequestContext): Promise<Re
         isActive: isActive ?? true,
       },
     });
-    logAction(ctx.userId, "admin.cms.footer.create", {
+    logAction(ctx.userId,  ctx.userId, "admin.cms.footer.create", {
       entity: "footerSection",
       entityId: section.id,
       metadata: { title: section.title, column: section.column },
@@ -441,9 +457,10 @@ async function handleCreateFooter(req: Request, ctx: RequestContext): Promise<Re
   }
 }
 
-async function handleUpdateFooter(sectionId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleUpdateFooter(sectionId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   try {
+    const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
     const fields = ["column", "title", "contentType", "content", "sortOrder", "isActive"];
     for (const field of fields) {
@@ -454,7 +471,7 @@ async function handleUpdateFooter(sectionId: string, req: Request, ctx: RequestC
       where: { id: sectionId },
       data: data as never,
     });
-    logAction(ctx.userId, "admin.cms.footer.update", {
+    logAction(ctx.userId,  ctx.userId, "admin.cms.footer.update", {
       entity: "footerSection",
       entityId: section.id,
       metadata: { title: section.title },
@@ -466,10 +483,11 @@ async function handleUpdateFooter(sectionId: string, req: Request, ctx: RequestC
   }
 }
 
-async function handleDeleteFooter(sectionId: string, req: Request, ctx: RequestContext): Promise<Response> {
+async function handleDeleteFooter(sectionId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     await prisma.footerSection.delete({ where: { id: sectionId } });
-    logAction(ctx.userId, "admin.cms.footer.delete", {
+    logAction(ctx.userId,  ctx.userId, "admin.cms.footer.delete", {
       entity: "footerSection",
       entityId: sectionId,
       ...extractRequestMeta(req),
