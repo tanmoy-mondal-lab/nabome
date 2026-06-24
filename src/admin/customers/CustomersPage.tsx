@@ -5,7 +5,7 @@ import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
 import { SafeImage } from "../../components/SafeImage";
 import { formatPrice, formatDate } from "../../lib/utils/format";
-import { Mail, Phone, ShoppingBag, Edit3, ShieldCheck, Clock, UserCheck } from "lucide-react";
+import { Mail, Phone, ShoppingBag, Edit3, Clock, UserCheck } from "lucide-react";
 
 interface Customer {
   id: string;
@@ -51,7 +51,7 @@ export default function CustomersPage() {
       setCustomers((res.customers as Customer[]) ?? []);
       const pag = res.pagination as { totalPages?: number } | undefined;
       setTotalPages(pag?.totalPages ?? 1);
-    } catch { /* non-critical, keep existing data */ } finally {
+    } catch { /* non-critical: failed to fetch customers, keep existing data */ } finally {
       setLoading(false);
     }
   }, [page]);
@@ -62,7 +62,7 @@ export default function CustomersPage() {
     try {
       const res = await adminApi.getCustomer(c.id);
       setSelected(res.customer as CustomerDetail);
-    } catch { /* non-critical, keep existing data */ }
+    } catch { /* non-critical: failed to load customer detail, keep existing data */ }
   };
 
   const openEdit = (c: Customer) => {

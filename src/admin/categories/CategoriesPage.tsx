@@ -1,10 +1,12 @@
 import { MediaPicker } from "../common/MediaPicker";
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { Edit3, Trash2, Plus, Folder, ChevronRight, Search, Image } from "lucide-react";
 import { SafeImage } from "../../components/SafeImage";
+import { useToast } from "../../components/ui/Toast";
 
 interface Category {
   id: string;
@@ -23,29 +25,51 @@ interface Category {
 }
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Category | null>(null);
   const [search, setSearch] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "", slug: "", description: "", parentId: "", imageUrl: "",
     sortOrder: 0, isActive: true, metaTitle: "", metaDesc: ""
   });
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: categories = [], isLoading: loading } = useQuery<Category[]>({
+    queryKey: ["categories"],
+    queryFn: async () => {
       const res = await adminApi.getCategories();
-      setCategories((res.categories as Category[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.categories as Category[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const saveMutation = useMutation({
+    mutationFn: (data: { name: string; slug: string; description: string; parentId: string | null; imageUrl: string; sortOrder: number; isActive: boolean; metaTitle: string; metaDesc: string }) =>
+      editItem
+        ? adminApi.updateCategory(editItem.id, data)
+        : adminApi.createCategory(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+      setModalOpen(false);
+      toast(editItem ? "Category updated" : "Category created", "success");
+    },
+    onError: (err: Error) => {
+      toast(err.message || "Failed to save category", "error");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteCategory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+      toast("Category deleted", "success");
+    },
+    onError: (err: Error) => {
+      toast(err.message || "Failed to delete category", "error");
+    },
+  });
 
   const openCreate = () => {
     setEditItem(null);
@@ -64,33 +88,13 @@ export default function CategoriesPage() {
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const data = { ...form, parentId: form.parentId || null };
-      if (editItem) {
-        await adminApi.updateCategory(editItem.id, data);
-      } else {
-        await adminApi.createCategory(data);
-      }
-      setModalOpen(false);
-      fetch();
-    } catch (err) {
-      // failed to save
-    } finally {
-      setSaving(false);
-    }
+  const handleSave = () => {
+    const data = { ...form, parentId: form.parentId || null };
+    saveMutation.mutate(data);
   };
 
-  const handleDelete = async (id: string) => {
-    setDeleteError(null);
-    try {
-      await adminApi.deleteCategory(id);
-      fetch();
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to delete category";
-      setDeleteError(msg);
-    }
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
   };
 
   const filtered = categories.filter((c) =>
@@ -137,13 +141,6 @@ export default function CategoriesPage() {
           />
         </div>
       </div>
-
-      {deleteError && (
-        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-100 text-sm text-red-700 flex items-center justify-between">
-          <span>{deleteError}</span>
-          <button onClick={() => setDeleteError(null)} className="text-red-400 hover:text-red-600 ml-2">×</button>
-        </div>
-      )}
 
       {categories.length === 0 ? (
         <div className="bg-white border border-neutral-200">
@@ -281,9 +278,9 @@ export default function CategoriesPage() {
               className="px-5 py-2.5 text-[11px] font-medium tracking-[0.15em] uppercase text-neutral-500 hover:text-neutral-900 transition-colors">
               Cancel
             </button>
-            <button onClick={handleSave} disabled={saving || !form.name.trim()}
+            <button onClick={handleSave} disabled={saveMutation.isPending || !form.name.trim()}
               className="bg-neutral-900 text-white px-6 py-2.5 text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-neutral-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2">
-              {saving && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+              {saveMutation.isPending && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
               {editItem ? "Update" : "Create"}
             </button>
           </div>

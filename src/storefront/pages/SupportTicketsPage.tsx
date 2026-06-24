@@ -199,7 +199,7 @@ export default function SupportTicketsPage() {
       </div>
 
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowCreate(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowCreate(false)} role="dialog" aria-modal="true" aria-label="Create support ticket">
           <div className="bg-white w-full max-w-lg mx-4 premium-card" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-4 border-b flex items-center justify-between">
               <h3 className="text-sm uppercase tracking-widest font-medium">Create Support Ticket</h3>

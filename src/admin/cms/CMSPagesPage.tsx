@@ -1,9 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { StatusBadge } from "../common/StatusBadge";
 import { EmptyState } from "../common/EmptyState";
 import { Edit3, Trash2, Plus, FileText } from "lucide-react";
+import { useToast } from "../../components/ui/Toast";
 
 interface CMSPage {
   id: string;
@@ -17,25 +19,56 @@ interface CMSPage {
 }
 
 export default function CMSPagesPage() {
-  const [pages, setPages] = useState<CMSPage[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<CMSPage | null>(null);
   const [form, setForm] = useState({ title: "", slug: "", content: "", metaTitle: "", metaDescription: "", status: "draft" });
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: pages = [], isLoading: loading } = useQuery<CMSPage[]>({
+    queryKey: ["admin", "cmsPages"],
+    queryFn: async () => {
       const res = await adminApi.getPages();
-      setPages((res.pages as CMSPage[]) ?? []);
-    } catch (error) {
-      // failed to fetch
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.pages as CMSPage[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const createMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof adminApi.createPage>[0]) =>
+      adminApi.createPage(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "cmsPages"] });
+      setModalOpen(false);
+      toast("Page created", "success");
+    },
+    onError: () => {
+      toast("Failed to create page", "error");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof adminApi.updatePage>[1] }) =>
+      adminApi.updatePage(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "cmsPages"] });
+      setModalOpen(false);
+      toast("Page updated", "success");
+    },
+    onError: () => {
+      toast("Failed to update page", "error");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deletePage(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "cmsPages"] });
+      toast("Page deleted", "success");
+    },
+    onError: () => {
+      toast("Failed to delete page", "error");
+    },
+  });
 
   const openCreate = () => {
     setEditItem(null);
@@ -49,35 +82,26 @@ export default function CMSPagesPage() {
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
-    try {
-      const payload = {
-        title: form.title,
-        slug: form.slug,
-        content: form.content || "<!-- content -->",
-        metaTitle: form.metaTitle,
-        metaDesc: form.metaDescription,
-        isPublished: form.status === "published",
-      };
-      if (editItem) {
-        await adminApi.updatePage(editItem.id, payload);
-      } else {
-        await adminApi.createPage(payload);
-      }
-      setModalOpen(false);
-      fetch();
-    } catch (error) {
-      // failed to save
+  const handleSave = () => {
+    const payload = {
+      title: form.title,
+      slug: form.slug,
+      content: form.content || "<!-- content -->",
+      metaTitle: form.metaTitle,
+      metaDesc: form.metaDescription,
+      isPublished: form.status === "published",
+    };
+    if (editItem) {
+      updateMutation.mutate({ id: editItem.id, payload });
+    } else {
+      createMutation.mutate(payload);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deletePage(id);
-      fetch();
-    } catch (error) {
-      // failed to delete
-    }
+  const handleDelete = (id: string) => {
+    const page = pages.find((p) => p.id === id);
+    if (!window.confirm(`Delete "${page?.title ?? "this page"}"? This cannot be undone.`)) return;
+    deleteMutation.mutate(id);
   };
 
   if (loading) {
@@ -149,7 +173,7 @@ export default function CMSPagesPage() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Edit Page" : "New Page"} size="lg">
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Title *</label>
               <input required value={form.title}
@@ -169,7 +193,7 @@ export default function CMSPagesPage() {
               onChange={(e) => setForm({ ...form, content: e.target.value })}
               className="w-full px-3 py-2 text-sm font-mono border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Meta Title</label>
               <input value={form.metaTitle}

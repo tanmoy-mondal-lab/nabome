@@ -6,7 +6,7 @@ import { StatusBadge } from "../common/StatusBadge";
 import { StatsCard } from "../common/StatsCard";
 import { formatPrice, formatDate } from "../../lib/utils/format";
 import {
-  ShoppingCart, Clock, Package, Truck, CheckCircle,
+  Clock, Package, Truck, CheckCircle,
   RotateCcw, Banknote, Search, X,
 } from "lucide-react";
 

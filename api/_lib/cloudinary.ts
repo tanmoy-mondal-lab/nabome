@@ -1,7 +1,12 @@
-export async function destroyCloudinaryAsset(publicId: string): Promise<boolean> {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+import type { Env } from "./env";
+
+export async function destroyCloudinaryAsset(
+  publicId: string,
+  env?: Env
+): Promise<boolean> {
+  const cloudName = env?.CLOUDINARY_CLOUD_NAME;
+  const apiKey = env?.CLOUDINARY_API_KEY;
+  const apiSecret = env?.CLOUDINARY_API_SECRET;
   if (!cloudName || !apiKey || !apiSecret) return false;
 
   const timestamp = Math.round(Date.now() / 1000);
@@ -25,6 +30,9 @@ export async function destroyCloudinaryAsset(publicId: string): Promise<boolean>
   }
 }
 
-export async function destroyCloudinaryAssets(publicIds: string[]): Promise<void> {
-  await Promise.all(publicIds.map((id) => id ? destroyCloudinaryAsset(id) : Promise.resolve()));
+export async function destroyCloudinaryAssets(
+  publicIds: string[],
+  env?: Env
+): Promise<void> {
+  await Promise.all(publicIds.map((id) => id ? destroyCloudinaryAsset(id, env) : Promise.resolve()));
 }

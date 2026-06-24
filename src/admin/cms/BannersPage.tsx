@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { StatusBadge } from "../common/StatusBadge";
 import { EmptyState } from "../common/EmptyState";
 import { MediaPicker } from "../common/MediaPicker";
 import { SafeImage } from "../../components/SafeImage";
+import { useToast } from "../../components/ui/Toast";
 import { Edit3, Trash2, Plus, Images } from "lucide-react";
 
 interface Banner {
@@ -17,34 +19,73 @@ interface Banner {
   isActive: boolean;
 }
 
+interface HeroSection {
+  id: string;
+  type: string;
+  config: { banners?: Banner[]; [key: string]: unknown };
+}
+
 export default function BannersPage() {
-  const [banners, setBanners] = useState<Banner[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Banner | null>(null);
   const [form, setForm] = useState({ title: "", subtitle: "", imageUrl: "", linkUrl: "", position: "hero", isActive: true });
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: sections = [], isLoading } = useQuery({
+    queryKey: ["admin", "homepage"],
+    queryFn: async () => {
       const res = await adminApi.getHomepageSections();
-      const allSections = (res.sections as Array<Record<string, unknown>>) ?? [];
-      const heroSections = allSections.filter((s) => s.type === "hero");
-      const extracted = heroSections.flatMap((s) => {
-        const config = s.config as Record<string, unknown> | undefined;
-        return Array.isArray(config?.banners) ? (config.banners as Banner[]) : [];
-      });
-      setBanners(extracted.length ? extracted : [
-        { id: "1", title: "Summer Collection", subtitle: "Discover the new arrivals", imageUrl: "", linkUrl: "/shop", position: "hero", isActive: true },
-      ]);
-    } catch (error) {
-      // failed to fetch
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.sections as HeroSection[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const banners = sections
+    .filter((s) => s.type === "hero")
+    .flatMap((s) => Array.isArray(s.config?.banners) ? (s.config.banners as Banner[]) : []);
+
+  const heroSection = sections.find((s) => s.type === "hero");
+
+  const saveMutation = useMutation({
+    mutationFn: async (updatedBanners: Banner[]) => {
+      if (heroSection) {
+        await adminApi.updateHomeSection(heroSection.id, {
+          ...heroSection,
+          config: { ...heroSection.config, banners: updatedBanners },
+        });
+      } else {
+        await adminApi.createHomeSection({
+          type: "hero",
+          sortOrder: 0,
+          isActive: true,
+          config: { banners: updatedBanners },
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
+      setModalOpen(false);
+      toast(editItem ? "Banner updated" : "Banner created", "success");
+    },
+    onError: () => toast("Failed to save banner", "error"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (bannerId: string) => {
+      const updatedBanners = banners.filter((b) => b.id !== bannerId);
+      if (heroSection) {
+        await adminApi.updateHomeSection(heroSection.id, {
+          ...heroSection,
+          config: { ...heroSection.config, banners: updatedBanners },
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
+      toast("Banner deleted", "success");
+    },
+    onError: () => toast("Failed to delete banner", "error"),
+  });
 
   const openCreate = () => {
     setEditItem(null);
@@ -58,12 +99,21 @@ export default function BannersPage() {
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
-    setModalOpen(false);
-    fetch();
+  const handleSave = () => {
+    let updatedBanners: Banner[];
+    if (editItem) {
+      updatedBanners = banners.map((b) => b.id === editItem.id ? { ...b, ...form } : b);
+    } else {
+      updatedBanners = [...banners, { id: `banner-${Date.now()}`, ...form }];
+    }
+    saveMutation.mutate(updatedBanners);
   };
 
-  if (loading) {
+  const handleDelete = (bannerId: string) => {
+    deleteMutation.mutate(bannerId);
+  };
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -102,6 +152,7 @@ export default function BannersPage() {
                 )}
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={() => openEdit(banner)} className="bg-white p-1.5 rounded shadow text-neutral-600"><Edit3 size={12} /></button>
+                  <button onClick={() => handleDelete(banner.id)} className="bg-white p-1.5 rounded shadow text-red-500"><Trash2 size={12} /></button>
                 </div>
               </div>
               <div className="p-4">
@@ -118,7 +169,7 @@ export default function BannersPage() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Edit Banner" : "New Banner"}>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Title</label>
               <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -154,7 +205,10 @@ export default function BannersPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">Save</button>
+            <button onClick={handleSave} disabled={saveMutation.isPending}
+              className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+              {saveMutation.isPending ? "Saving..." : "Save"}
+            </button>
           </div>
         </div>
       </Modal>

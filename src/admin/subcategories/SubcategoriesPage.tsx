@@ -1,24 +1,30 @@
 import { MediaPicker } from "../common/MediaPicker";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
+import { useToast } from "../../components/ui/Toast";
 import { Plus, Edit3, Trash2 } from "lucide-react";
 
 export default function SubcategoriesPage() {
-  const [subs, setSubs] = useState<unknown[]>([]);
-  const [categories, setCategories] = useState<unknown[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const [showModal, setShowModal] = useState(false);
   const [edit, setEdit] = useState<Record<string, unknown> | null>(null);
   const [form, setForm] = useState({ name: "", slug: "", categoryId: "", description: "", imageUrl: "", sortOrder: 0, isActive: true });
 
-  useEffect(() => {
-    Promise.all([adminApi.getSubcategories(), adminApi.getCategories()]).then(([s, c]) => {
-      setSubs(s.subcategories ?? []); setCategories(c.categories ?? []);
-    }).catch(() => { /* non-critical: data will show as empty */ }).finally(() => setLoading(false));
-  }, []);
+  const { data: subs = [], isLoading } = useQuery({
+    queryKey: ["admin", "subcategories"],
+    queryFn: () => adminApi.getSubcategories().then((r) => r.subcategories ?? []),
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: () => adminApi.getCategories().then((r) => r.categories ?? []),
+  });
 
   function openCreate() { setEdit(null); setForm({ name: "", slug: "", categoryId: "", description: "", imageUrl: "", sortOrder: 0, isActive: true }); setShowModal(true); }
 
@@ -33,17 +39,37 @@ export default function SubcategoriesPage() {
     setShowModal(true);
   }
 
-  async function handleSave() {
+  const saveMutation = useMutation({
+    mutationFn: (data: { id?: string; payload: Record<string, unknown> }) =>
+      data.id ? adminApi.updateSubcategory(data.id, data.payload) : adminApi.createSubcategory(data.payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "subcategories"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      setShowModal(false);
+      toast(edit ? "Subcategory updated" : "Subcategory created", "success");
+    },
+    onError: (err: Error) => toast(`Failed to save subcategory: ${err.message ?? "Unknown error"}`, "error"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteSubcategory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "subcategories"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast("Subcategory deleted", "success");
+    },
+    onError: (err: Error) => toast(`Failed to delete subcategory: ${err.message ?? "Unknown error"}`, "error"),
+  });
+
+  function handleSave() {
     if (!form.categoryId) return;
-    const data = { ...form };
-    if (edit) await adminApi.updateSubcategory(edit.id as string, data);
-    else await adminApi.createSubcategory(data);
-    setShowModal(false);
-    const s = await adminApi.getSubcategories(); setSubs(s.subcategories ?? []);
+    saveMutation.mutate({ id: edit?.id as string | undefined, payload: { ...form } });
   }
 
-  async function handleDelete(id: string) {
-    await adminApi.deleteSubcategory(id); setSubs((subs as Record<string, unknown>[]).filter((s) => s.id !== id));
+  function handleDelete(id: string) {
+    deleteMutation.mutate(id);
   }
 
   return (
@@ -58,7 +84,7 @@ export default function SubcategoriesPage() {
         </button>
       </div>
 
-      {subs.length === 0 && !loading ? <EmptyState title="No subcategories" description="Create subcategories within your main categories." action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 text-sm rounded">Add Subcategory</button>} />
+      {subs.length === 0 && !isLoading ? <EmptyState title="No subcategories" description="Create subcategories within your main categories." action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 text-sm rounded">Add Subcategory</button>} />
         : <DataTable columns={[
           { key: "name", label: "Name", sortable: true },
           { key: "category", label: "Category", render: (item) => { const c = (item as Record<string, unknown>).category as Record<string, unknown>; return c?.name as string ?? "—"; } },
@@ -66,7 +92,7 @@ export default function SubcategoriesPage() {
           { key: "description", label: "Description" },
           { key: "isActive", label: "Status", render: (item) => { const v = (item as Record<string, unknown>).isActive as boolean; return <span className={`text-xs px-2 py-1 rounded ${v ? "bg-green-100 text-green-700" : "bg-neutral-100 text-neutral-500"}`}>{v ? "Active" : "Archived"}</span>; } },
           { key: "_count", label: "Products", render: (item) => <span className="text-xs bg-neutral-100 px-2 py-1 rounded">{(((item as Record<string, unknown>)._count as Record<string, number>)?.products ?? 0)}</span> },
-        ]} data={subs} isLoading={loading} actions={(row) => <><button onClick={() => openEdit(row as Record<string, unknown>)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><Edit3 className="w-4 h-4" /></button>
+        ]} data={subs} isLoading={isLoading} actions={(row) => <><button onClick={() => openEdit(row as Record<string, unknown>)} className="p-1.5 text-neutral-400 hover:text-neutral-600"><Edit3 className="w-4 h-4" /></button>
           <button onClick={() => handleDelete((row as Record<string, unknown>).id as string)} className="p-1.5 text-neutral-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
         </>} />}
 
@@ -87,7 +113,7 @@ export default function SubcategoriesPage() {
         </div>
         <div className="flex justify-end gap-2 pt-4 border-t mt-4">
           <button onClick={() => setShowModal(false)} type="button" className="px-4 py-2 text-sm border border-neutral-200 rounded text-neutral-600 hover:bg-neutral-50">Cancel</button>
-          <button onClick={handleSave} type="button" className="px-4 py-2 text-sm bg-neutral-900 text-white rounded hover:bg-neutral-800">Save</button>
+          <button onClick={handleSave} type="button" disabled={saveMutation.isPending} className="px-4 py-2 text-sm bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50">{saveMutation.isPending ? "Saving..." : "Save"}</button>
         </div>
       </Modal>
     </div>

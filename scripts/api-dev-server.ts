@@ -2,6 +2,12 @@ import http from "http";
 
 const PORT = parseInt(process.env.PORT ?? "3001");
 
+// Load env for local development
+const devEnv: Record<string, string> = {};
+if (process.env) {
+  Object.assign(devEnv, process.env);
+}
+
 async function loadHandler() {
   const mod = await import("../api/[...path].ts");
   return mod;
@@ -15,7 +21,7 @@ const server = http.createServer(async (req, res) => {
     const exportKey = method === "OPTIONS" ? "OPTIONS" : method;
 
     const handlerFn = (handler as Record<string, unknown>)[exportKey] as
-      ((request: Request) => Promise<Response>) | undefined;
+      ((request: Request, opts?: { env?: Record<string, string> }) => Promise<Response>) | undefined;
 
     if (!handlerFn) {
       res.writeHead(405, { "Content-Type": "application/json" });
@@ -49,7 +55,7 @@ const server = http.createServer(async (req, res) => {
       body: ["GET", "HEAD"].includes(method) ? undefined : body,
     });
 
-    const response = await handlerFn(request);
+    const response = await handlerFn(request, { env: devEnv });
 
     res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
     const responseBody = await response.text();

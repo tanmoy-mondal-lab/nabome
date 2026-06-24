@@ -1,4 +1,6 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import { useToast } from "../../components/ui/Toast";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
@@ -45,9 +47,8 @@ function getAssetType(mimeType: string): string {
 }
 
 export default function MediaLibrary() {
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [folders, setFolders] = useState<{ name: string; count: number }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [selectedFolder, setSelectedFolder] = useState("all");
   const [uploading, setUploading] = useState(false);
@@ -63,21 +64,46 @@ export default function MediaLibrary() {
   const fileRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: mediaData, isLoading: loading } = useQuery({
+    queryKey: ["admin", "media", search, selectedFolder],
+    queryFn: async () => {
       const params: Record<string, string | number | undefined> = {};
       if (search) params.search = search;
       if (selectedFolder !== "all") params.folder = selectedFolder;
       const res = await adminApi.getMedia(params);
-      setAssets((res.assets as Asset[]) ?? []);
-      setFolders((res.folders as { name: string; count: number }[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [search, selectedFolder]);
+      return {
+        assets: (res.assets as Asset[]) ?? [],
+        folders: (res.folders as { name: string; count: number }[]) ?? [],
+      };
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const assets = mediaData?.assets ?? [];
+  const folders = mediaData?.folders ?? [];
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteMedia(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
+      toast("Asset deleted", "success");
+    },
+    onError: () => {
+      toast("Failed to delete asset", "error");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { altText: string; folder: string } }) =>
+      adminApi.updateMedia(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
+      setEditAsset(null);
+      toast("Asset updated", "success");
+    },
+    onError: () => {
+      toast("Failed to update asset", "error");
+    },
+  });
 
   const doUpload = async (files: { file: File; folder: string }[]) => {
     setUploading(true);
@@ -98,12 +124,15 @@ export default function MediaLibrary() {
           mimeType: res.mimeType || item.file.type,
         });
         completed++;
-      } catch { /* ignore */ }
+      } catch { /* non-critical: failed to upload media file */ }
     }
     setUploading(false);
     setUploadModalOpen(false);
     setUploadQueue([]);
-    if (completed > 0) fetch();
+    if (completed > 0) {
+      queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
+      toast(`${completed} file${completed !== 1 ? "s" : ""} uploaded`, "success");
+    }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -135,11 +164,8 @@ export default function MediaLibrary() {
     setDragOver(false);
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteMedia(id);
-      fetch();
-    } catch { /* ignore */ }
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
   };
 
   const copyUrl = (url: string) => {
@@ -165,16 +191,9 @@ export default function MediaLibrary() {
     setEditForm({ altText: asset.altText, folder: asset.folder || "general" });
   };
 
-  const saveEdit = async () => {
+  const saveEdit = () => {
     if (!editAsset) return;
-    try {
-      await adminApi.updateMedia(editAsset.id, {
-        altText: editForm.altText,
-        folder: editForm.folder,
-      });
-      setEditAsset(null);
-      fetch();
-    } catch { /* ignore */ }
+    updateMutation.mutate({ id: editAsset.id, data: { altText: editForm.altText, folder: editForm.folder } });
   };
 
   const confirmUpload = () => {
@@ -311,7 +330,7 @@ export default function MediaLibrary() {
                   )}
                 </div>
                 {asset.folder && (
-                  <div className="absolute top-1 left-1 bg-black/50 text-white text-[9px] px-1.5 py-0.5 rounded flex items-center gap-1">
+                  <div className="absolute top-1 left-1 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
                     <Folder size={8} />{asset.folder}
                   </div>
                 )}

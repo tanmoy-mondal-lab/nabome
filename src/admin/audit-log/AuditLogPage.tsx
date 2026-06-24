@@ -32,7 +32,7 @@ export default function AuditLogPage() {
       const res = await adminApi.getAuditLog(params);
       setLogs((res.logs as Log[]) ?? []);
       setPagination((res.pagination as typeof pagination) ?? null);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to fetch audit logs */ } finally {
       setLoading(false);
     }
   }, [page, actionFilter, entityFilter]);

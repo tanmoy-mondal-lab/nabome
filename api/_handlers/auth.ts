@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { createClient } from "@supabase/supabase-js";
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import {
   success, badRequest, unauthorized, serverError, created,
 } from "../_lib/response";
@@ -13,6 +13,7 @@ import type { RequestContext } from "../_lib/types";
 import { validateBody, authRegisterSchema, authLoginSchema } from "../_lib/validate";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
+import type { Env } from "../_lib/env";
 
 function generateVerificationCode(): string {
   const buf = new Uint8Array(4);
@@ -21,16 +22,23 @@ function generateVerificationCode(): string {
   return num.toString();
 }
 
-function getAnonClient() {
-  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
+function getAnonClient(env?: Env) {
+  const url = env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL ?? 
+    (typeof process !== "undefined" && process.env?.SUPABASE_URL) ??
+    (typeof process !== "undefined" && process.env?.VITE_SUPABASE_URL);
+  const key = env?.SUPABASE_ANON_KEY ?? env?.VITE_SUPABASE_ANON_KEY ??
+    (typeof process !== "undefined" && process.env?.SUPABASE_ANON_KEY) ??
+    (typeof process !== "undefined" && process.env?.VITE_SUPABASE_ANON_KEY);
   if (!url || !key) throw new Error("Missing Supabase credentials");
   return createClient(url, key);
 }
 
-function getAdminClient() {
-  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+function getAdminClient(env?: Env) {
+  const url = env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL ??
+    (typeof process !== "undefined" && process.env?.SUPABASE_URL) ??
+    (typeof process !== "undefined" && process.env?.VITE_SUPABASE_URL);
+  const key = env?.SUPABASE_SERVICE_ROLE_KEY ??
+    (typeof process !== "undefined" && process.env?.SUPABASE_SERVICE_ROLE_KEY);
   if (!url || !key) throw new Error("Missing Supabase admin credentials");
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -46,15 +54,15 @@ export async function handleAuthRequest(
   action: string
 ): Promise<Response> {
   switch (action) {
-    case "register":         return handleRegister(req);
-    case "login":            return handleLogin(req);
+    case "register":         return handleRegister(req, ctx);
+    case "login":            return handleLogin(req, ctx);
     case "logout":           return handleLogout(req, ctx);
-    case "me":               return handleMe(req);
+    case "me":               return handleMe(req, ctx);
     case "updateMe":         return handleUpdateMe(req, ctx);
-    case "refresh":          return handleRefresh(req);
+    case "refresh":          return handleRefresh(req, ctx);
     case "forgotPassword":   return handleForgotPassword(req);
     case "verifyResetCode":  return handleVerifyResetCode(req);
-    case "resetPassword":    return handleResetPassword(req);
+    case "resetPassword":    return handleResetPassword(req, ctx);
     case "changePassword":   return handleChangePassword(req, ctx);
     case "sessions":         return handleSessions(req, ctx);
     case "deleteSession":    return handleDeleteSession(req, ctx, params[0]);
@@ -69,15 +77,17 @@ export async function handleAuthRequest(
 
 // ─── REGISTER ───
 
-async function handleRegister(req: Request): Promise<Response> {
+async function handleRegister(req: Request, ctx: RequestContext): Promise<Response> {
   try {
     const parsed = await validateBody(req, authRegisterSchema);
     if ("response" in parsed) return parsed.response;
     const { email, password, firstName, lastName, phone } = parsed.data;
 
+    const prisma = getPrisma(ctx.env);
+
     let supabase;
     try {
-      supabase = getAdminClient();
+      supabase = getAdminClient(ctx.env);
     } catch {
       return serverError(new Error("Registration service unavailable"));
     }
@@ -140,8 +150,6 @@ async function handleRegister(req: Request): Promise<Response> {
     });
 
     // Send verification email with 6-digit code
-    console.log(`[VERIFY CODE] ${email}: ${verificationToken}`);
-
     try {
       await sendEmailNotification("email_verification", {
         email,
@@ -177,6 +185,7 @@ async function handleVerifyEmail(req: Request): Promise<Response> {
       return badRequest("Verification code must be a 6-digit number");
     }
 
+    const prisma = getPrisma();
     const profile = await prisma.profile.findFirst({
       where: { email, verificationToken: code, emailVerified: false },
       select: { id: true, email: true, verificationTokenExpiresAt: true },
@@ -221,6 +230,7 @@ async function handleResendVerification(req: Request): Promise<Response> {
       return badRequest("Email is required");
     }
 
+    const prisma = getPrisma();
     const profile = await prisma.profile.findUnique({
       where: { email },
       select: { id: true, email: true, firstName: true, emailVerified: true },
@@ -243,8 +253,6 @@ async function handleResendVerification(req: Request): Promise<Response> {
       data: { verificationToken, verificationTokenExpiresAt },
     });
 
-    console.log(`[VERIFY CODE] ${email}: ${verificationToken}`);
-
     try {
       await sendEmailNotification("email_verification", {
         email,
@@ -264,127 +272,135 @@ async function handleResendVerification(req: Request): Promise<Response> {
 
 // ─── LOGIN ───
 
-async function handleLogin(req: Request): Promise<Response> {
+async function handleLogin(req: Request, ctx: RequestContext): Promise<Response> {
+  try {
     const parsed = await validateBody(req, authLoginSchema);
     if ("response" in parsed) return parsed.response;
     const { email, password } = parsed.data;
 
-  const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
-  const userAgent = req.headers.get("user-agent");
+    const prisma = getPrisma(ctx.env);
+    const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
+    const userAgent = req.headers.get("user-agent");
 
-  // Check if account exists in Prisma first
-  const existingProfile = await prisma.profile.findUnique({
-    where: { email },
-    select: { id: true, emailVerified: true },
-  });
+    // Check if account exists in Prisma first
+    const existingProfile = await prisma.profile.findUnique({
+      where: { email },
+      select: { id: true, emailVerified: true },
+    });
 
-  if (!existingProfile) {
-    return unauthorized("No account found with that email");
-  }
+    if (!existingProfile) {
+      return unauthorized("No account found with that email");
+    }
 
-  const supabase = getAnonClient();
+    const supabase = getAnonClient(ctx.env);
 
-  // Attempt login
-  const { data, error: authError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+    // Attempt login
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  // Record the attempt
-  try {
-    await prisma.loginAttempt.create({
+    // Record the attempt
+    try {
+      await prisma.loginAttempt.create({
+        data: {
+          profileId: existingProfile.id,
+          email,
+          ipAddress: clientIp,
+          userAgent: userAgent ?? null,
+          success: !authError,
+          failReason: authError ? "invalid_credentials" : null,
+        },
+      });
+    } catch {
+      // Non-critical — don't block login
+    }
+
+    if (authError || !data.session) {
+      return unauthorized("Invalid email or password");
+    }
+
+    if (!existingProfile.emailVerified) {
+      return unauthorized("Please verify your email address before logging in. Check your inbox for the verification code.");
+    }
+
+    // Update profile login metadata
+    await prisma.profile.update({
+      where: { id: data.user.id },
       data: {
-        profileId: existingProfile.id,
-        email,
-        ipAddress: clientIp,
-        userAgent: userAgent ?? null,
-        success: !authError,
-        failReason: authError ? "invalid_credentials" : null,
+        lastLoginAt: new Date(),
+        loginCount: { increment: 1 },
       },
     });
-  } catch {
-    // Non-critical — don't block login
-  }
 
-  if (authError || !data.session) {
-    return unauthorized("Invalid email or password");
-  }
+    // Track session
+    const expiresAt = new Date(Date.now() + data.session.expires_in * 1000);
+    try {
+      await prisma.authSession.create({
+        data: {
+          profileId: data.user.id,
+          accessToken: data.session.access_token,
+          refreshToken: data.session.refresh_token,
+          userAgent: userAgent ?? null,
+          ipAddress: clientIp,
+          deviceName: parseDevice(userAgent),
+          expiresAt,
+        },
+      });
+    } catch {
+      // Non-critical
+    }
 
-  if (!existingProfile.emailVerified) {
-    return unauthorized("Please verify your email address before logging in. Check your inbox for the verification code.");
-  }
+    // Fetch full profile
+    const dbProfile = await prisma.profile.findUnique({
+      where: { id: data.user.id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        avatarUrl: true,
+        emailVerified: true,
+        lastLoginAt: true,
+        loginCount: true,
+      },
+    });
 
-  // Update profile login metadata
-  await prisma.profile.update({
-    where: { id: data.user.id },
-    data: {
-      lastLoginAt: new Date(),
-      loginCount: { increment: 1 },
-    },
-  });
+    logAction(data.user.id, "auth.login", {
+      ipAddress: clientIp,
+      userAgent: userAgent,
+    });
 
-  // Track session
-  const expiresAt = new Date(Date.now() + data.session.expires_in * 1000);
-  try {
-    await prisma.authSession.create({
-      data: {
-        profileId: data.user.id,
+    return success({
+      session: {
         accessToken: data.session.access_token,
         refreshToken: data.session.refresh_token,
-        userAgent: userAgent ?? null,
-        ipAddress: clientIp,
-        deviceName: parseDevice(userAgent),
-        expiresAt,
+        expiresAt: data.session.expires_at,
+        expiresIn: data.session.expires_in,
       },
+      user: dbProfile,
     });
-  } catch {
-    // Non-critical
+  } catch (err) {
+    console.error("[LOGIN] Error:", err);
+    return serverError(err);
   }
-
-  // Fetch full profile
-  const dbProfile = await prisma.profile.findUnique({
-    where: { id: data.user.id },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      firstName: true,
-      lastName: true,
-      phone: true,
-      avatarUrl: true,
-      emailVerified: true,
-      lastLoginAt: true,
-      loginCount: true,
-    },
-  });
-
-  logAction(data.user.id, "auth.login", {
-    ipAddress: clientIp,
-    userAgent: userAgent,
-  });
-
-  return success({
-    session: {
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      expiresAt: data.session.expires_at,
-      expiresIn: data.session.expires_in,
-    },
-    user: dbProfile,
-  });
 }
 
 // ─── REFRESH TOKEN ───
 // Rotates the refresh token: validates old, issues new, revokes old.
 // Uses Supabase `setSession` to get fresh tokens, then rotates local session record.
 
-async function handleRefresh(req: Request): Promise<Response> {
+async function handleRefresh(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { refreshToken } = body;
 
   if (!refreshToken || typeof refreshToken !== "string") {
     return badRequest("Refresh token is required");
   }
+
+  const prisma = getPrisma(ctx.env);
 
   // 1. Find the active session with this refresh token
   const oldSession = await prisma.authSession.findUnique({
@@ -405,7 +421,7 @@ async function handleRefresh(req: Request): Promise<Response> {
   }
 
   // 3. Call Supabase to exchange refresh token for new session tokens
-  const supabase = getAnonClient();
+  const supabase = getAnonClient(ctx.env);
   const { data: sbData, error: sbError } = await supabase.auth.setSession({
     access_token: oldSession.accessToken,
     refresh_token: refreshToken,
@@ -480,6 +496,8 @@ async function handleRefresh(req: Request): Promise<Response> {
 async function handleLogout(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
+  const prisma = getPrisma(ctx.env);
+
   // Revoke the specific session for this access token (with audit trail)
   const authHeader = req.headers.get("Authorization");
   if (authHeader?.startsWith("Bearer ")) {
@@ -492,7 +510,7 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
 
   // Invalidate all Supabase sessions for this user
   try {
-    const supabase = getAdminClient();
+    const supabase = getAdminClient(ctx.env);
     await supabase.auth.admin.signOut(ctx.userId);
   } catch {
     // Non-critical
@@ -505,14 +523,15 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
 
 // ─── ME ───
 
-async function handleMe(req: Request): Promise<Response> {
+async function handleMe(req: Request, ctx: RequestContext): Promise<Response> {
   const result = await authenticate(req, { required: true });
   if (result instanceof Response) return result;
-  const { ctx } = result;
-  if (!ctx.userId) return unauthorized();
+  const { ctx: authCtx } = result;
+  if (!authCtx.userId) return unauthorized();
 
+  const prisma = getPrisma(ctx.env);
   const profile = await prisma.profile.findUnique({
-    where: { id: ctx.userId },
+    where: { id: authCtx.userId },
     select: {
       id: true,
       email: true,
@@ -562,6 +581,7 @@ async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Respon
     return badRequest("No valid fields to update");
   }
 
+  const prisma = getPrisma(ctx.env);
   try {
     const updated = await prisma.profile.update({
       where: { id: ctx.userId },
@@ -602,6 +622,8 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
 
   const normalizedEmail = newEmail.toLowerCase().trim();
 
+  const prisma = getPrisma(ctx.env);
+
   // Check new email is not already taken by another profile
   const existing = await prisma.profile.findUnique({
     where: { email: normalizedEmail },
@@ -625,8 +647,6 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
       pendingEmailTokenExpiresAt,
     },
   });
-
-  console.log(`[EMAIL CHANGE CODE] User ${ctx.userId}: ${normalizedEmail} -> ${pendingEmailToken}`);
 
   // Send verification code to the new email
   const profile = await prisma.profile.findUnique({
@@ -659,6 +679,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
     return badRequest("Verification code must be a 6-digit number");
   }
 
+  const prisma = getPrisma(ctx.env);
   const profile = await prisma.profile.findUnique({
     where: { id: ctx.userId },
     select: {
@@ -690,7 +711,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
 
   // Update email in Supabase Auth
   try {
-    const supabase = getAdminClient();
+    const supabase = getAdminClient(ctx.env);
     const { error: supabaseError } = await supabase.auth.admin.updateUserById(ctx.userId, {
       email: newEmail,
       email_confirm: true,
@@ -733,6 +754,7 @@ async function handleForgotPassword(req: Request): Promise<Response> {
 
   const normalizedEmail = email.toLowerCase().trim();
 
+  const prisma = getPrisma();
   const profile = await prisma.profile.findUnique({
     where: { email: normalizedEmail },
     select: { id: true, firstName: true, email: true },
@@ -750,8 +772,6 @@ async function handleForgotPassword(req: Request): Promise<Response> {
     where: { id: profile.id },
     data: { resetPasswordToken, resetPasswordTokenExpiresAt },
   });
-
-  console.log(`[RESET CODE] ${normalizedEmail}: ${resetPasswordToken}`);
 
   try {
     await sendEmailNotification("password_reset", {
@@ -782,6 +802,7 @@ async function handleVerifyResetCode(req: Request): Promise<Response> {
 
   const normalizedEmail = email.toLowerCase().trim();
 
+  const prisma = getPrisma();
   const profile = await prisma.profile.findFirst({
     where: { email: normalizedEmail, resetPasswordToken: code },
     select: { id: true, email: true, resetPasswordTokenExpiresAt: true },
@@ -800,7 +821,7 @@ async function handleVerifyResetCode(req: Request): Promise<Response> {
 
 // ─── RESET PASSWORD ───
 
-async function handleResetPassword(req: Request): Promise<Response> {
+async function handleResetPassword(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { email, code, password } = body;
 
@@ -818,6 +839,7 @@ async function handleResetPassword(req: Request): Promise<Response> {
 
   const normalizedEmail = email.toLowerCase().trim();
 
+  const prisma = getPrisma(ctx.env);
   const profile = await prisma.profile.findFirst({
     where: { email: normalizedEmail, resetPasswordToken: code },
     select: { id: true, resetPasswordTokenExpiresAt: true },
@@ -832,7 +854,7 @@ async function handleResetPassword(req: Request): Promise<Response> {
   }
 
   // Update password via Supabase admin API
-  const supabase = getAdminClient();
+  const supabase = getAdminClient(ctx.env);
   const { error: updateError } = await supabase.auth.admin.updateUserById(profile.id, {
     password,
   });
@@ -886,13 +908,14 @@ async function handleChangePassword(req: Request, ctx: RequestContext): Promise<
     return badRequest("New password must be different from current password");
   }
 
-  const supabase = getAdminClient();
+  const prisma = getPrisma(ctx.env);
+  const supabase = getAdminClient(ctx.env);
 
   // Verify current password by attempting sign in
   const user = await prisma.profile.findUnique({ where: { id: ctx.userId } });
   if (!user) return unauthorized();
 
-  const anonClient = getAnonClient();
+  const anonClient = getAnonClient(ctx.env);
   const { error: verifyError } = await anonClient.auth.signInWithPassword({
     email: user.email,
     password: currentPassword,
@@ -924,6 +947,7 @@ async function handleChangePassword(req: Request, ctx: RequestContext): Promise<
 async function handleSessions(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
+  const prisma = getPrisma(ctx.env);
   const sessions = await prisma.authSession.findMany({
     where: { profileId: ctx.userId, isActive: true },
     orderBy: { lastActiveAt: "desc" },
@@ -939,7 +963,7 @@ async function handleSessions(req: Request, ctx: RequestContext): Promise<Respon
   });
 
   // Mask IP addresses for privacy
-  const masked = sessions.map((s) => ({
+  const masked = sessions.map((s: { ipAddress: string | null }) => ({
     ...s,
     ipAddress: maskIp(s.ipAddress),
   }));
@@ -950,6 +974,7 @@ async function handleSessions(req: Request, ctx: RequestContext): Promise<Respon
 async function handleDeleteSession(req: Request, ctx: RequestContext, sessionId: string): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
+  const prisma = getPrisma(ctx.env);
   await prisma.authSession.updateMany({
     where: { id: sessionId, profileId: ctx.userId },
     data: { isActive: false },

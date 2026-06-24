@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { Edit3, Trash2, Plus, BookOpen } from "lucide-react";
+import { useToast } from "../../components/ui/Toast";
 
 interface LookbookItem {
   id: string;
@@ -32,27 +33,30 @@ interface Lookbook {
 }
 
 export default function LookbooksPage() {
-  const [lookbooks, setLookbooks] = useState<Lookbook[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: lookbooks = [], isLoading } = useQuery({
+    queryKey: ["admin", "lookbooks"],
+    queryFn: async () => {
       const res = await adminApi.getLookbooks();
-      setLookbooks((res.lookbooks as Lookbook[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.lookbooks as Lookbook[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteLookbook(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "lookbooks"] });
+    },
+    onError: () => {
+      toast("Failed to delete lookbook", "error");
+    },
+  });
 
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteLookbook(id);
-      fetch();
-    } catch { /* ignore */ }
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
   };
 
   const columns = [
@@ -111,7 +115,7 @@ export default function LookbooksPage() {
       <DataTable
         columns={columns}
         data={lookbooks}
-        isLoading={loading}
+        isLoading={isLoading}
         onRowClick={(l) => navigate(`/admin/lookbooks/${l.id}/edit`)}
         searchPlaceholder="Search lookbooks…"
         actions={(l) => (

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, TrendingUp, Clock, Sparkles } from "lucide-react";
 import { useUIStore } from "../stores/ui-store";
 import { useSearch } from "../hooks/useProducts";
-import { api } from "../../lib/api/client";
+import { useCategories } from "../hooks/useCategories";
 import { SafeImage } from "../../components/SafeImage";
 
 const TRENDING = ["Summer Dresses", "Linen Shirts", "Leather Bags", "Sneakers", "Silk Scarves"];
@@ -26,15 +26,12 @@ export function SearchOverlay() {
   const { isSearchOpen, closeSearch } = useUIStore();
   const [query, setQuery] = useState("");
   const [recent, setRecent] = useState<string[]>([]);
-  const [categories, setCategories] = useState<{ name: string; slug: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const { data } = useSearch(query);
+  const { data: categories = [] } = useCategories();
 
   useEffect(() => {
     try { setRecent(JSON.parse(localStorage.getItem(`${SEARCH_KEY}-${getUserKey()}`) || "[]")); } catch {}
-    api.get("/api/categories", { params: { action: "list" } })
-      .then((res) => setCategories(((res as Record<string, unknown>).categories ?? []) as { name: string; slug: string }[]))
-      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -60,6 +57,9 @@ export function SearchOverlay() {
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 bg-white/95 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Search"
         >
           <div className="container-page py-6">
             <div className="flex items-center gap-4 mb-8">

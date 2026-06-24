@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/auth-store";
 import { useAuth } from "../../hooks/useAuth";
@@ -68,10 +68,12 @@ const NAV_ITEMS = [
   },
   { label: "Webhooks", icon: Activity, href: "/admin/webhooks" },
   { label: "Page Templates", icon: FileJson, href: "/admin/page-templates" },
-  { label: "Theme", icon: Palette, href: "/admin/theme", children: [
-    { label: "Theme Settings", href: "/admin/theme" },
-    { label: "Theme Builder", href: "/admin/theme/builder" },
-  ]},
+  {
+    label: "Theme", icon: Palette, children: [
+      { label: "Theme Settings", href: "/admin/theme" },
+      { label: "Theme Builder", href: "/admin/theme/builder" },
+    ],
+  },
   { label: "Coupon Redemptions", icon: Receipt, href: "/admin/coupon-redemptions" },
   { label: "Abandoned Carts", icon: ShoppingBag, href: "/admin/abandoned-carts" },
   { label: "Campaigns", icon: Target, href: "/admin/campaigns" },
@@ -89,13 +91,42 @@ const NAV_ITEMS = [
   { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
 
+const DEFAULT_EXPANDED = ["Products", "Content", "Management", "Support", "System", "Theme"];
+
 export default function AdminLayout() {
   const { user } = useAuthStore();
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [expandedMenus, setExpandedMenus] = useState<string[]>(["Products", "Content", "Management", "Support", "System"]);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem("admin-sidebar-expanded");
+      return saved ? JSON.parse(saved) : DEFAULT_EXPANDED;
+    } catch {
+      return DEFAULT_EXPANDED;
+    }
+  });
+
+  // Persist expanded state to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem("admin-sidebar-expanded", JSON.stringify(expandedMenus));
+    } catch { /* non-critical: localStorage might be full */ }
+  }, [expandedMenus]);
+
+  // Auto-expand parent when child is active
+  useEffect(() => {
+    const path = location.pathname;
+    for (const item of NAV_ITEMS) {
+      if ("children" in item && item.children) {
+        const hasActiveChild = item.children.some((child) => path.startsWith(child.href));
+        if (hasActiveChild && !expandedMenus.includes(item.label)) {
+          setExpandedMenus((prev) => [...prev, item.label]);
+        }
+      }
+    }
+  }, [location.pathname]);
 
   const toggleMenu = (label: string) => {
     setExpandedMenus((prev) =>
@@ -108,10 +139,28 @@ export default function AdminLayout() {
     navigate("/auth/login");
   };
 
-  const isActive = (href: string) => {
+  // Segment-aware active matching: exact match for root, prefix+boundary for children
+  const isActive = useCallback((href: string) => {
     if (href === "/admin") return location.pathname === "/admin";
-    return location.pathname.startsWith(href);
-  };
+    if (!location.pathname.startsWith(href)) return false;
+    // Check that the next char after href is either end-of-string, '/', or '?'
+    const rest = location.pathname.slice(href.length);
+    return rest === "" || rest.startsWith("/") || rest.startsWith("?");
+  }, [location.pathname]);
+
+  // Check if any child in a group is active
+  const hasActiveChild = useCallback((children: { href: string }[]) => {
+    return children.some((child) => isActive(child.href));
+  }, [isActive]);
+
+  // Close mobile sidebar on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && sidebarOpen) setSidebarOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [sidebarOpen]);
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -142,7 +191,11 @@ export default function AdminLayout() {
                 <div key={item.label}>
                   <button
                     onClick={() => toggleMenu(item.label)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-neutral-400 hover:text-white hover:bg-neutral-800 rounded transition-colors"
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm rounded transition-colors ${
+                      hasActiveChild(item.children)
+                        ? "text-accent-gold bg-neutral-800"
+                        : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+                    }`}
                   >
                     <item.icon size={18} />
                     <span className="flex-1 text-left">{item.label}</span>

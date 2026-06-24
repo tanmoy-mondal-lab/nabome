@@ -120,7 +120,7 @@ export default function OrderDetailPage() {
       const timelineRes = await adminApi.getOrderTimeline(id);
       setTimeline((timelineRes.timeline as TimelineEntry[]) ?? []);
       setStatusNote("");
-    } catch { /* ignore */ }
+    } catch { /* non-critical: failed to update order status */ }
   };
 
   const handleSaveNote = async () => {
@@ -129,7 +129,7 @@ export default function OrderDetailPage() {
     try {
       await adminApi.updateOrderInternalNotes(id, internalNote);
       setOrder((prev) => prev ? { ...prev, notes: internalNote } : prev);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to save internal notes */ } finally {
       setSavingNote(false);
     }
   };
@@ -140,10 +140,8 @@ export default function OrderDetailPage() {
       const res = await adminApi.generateOrderInvoice(id) as { invoiceUrl?: string };
       if (res?.invoiceUrl) {
         window.open(res.invoiceUrl, "_blank");
-      } else {
-        window.open(`/api/admin/orders/${id}/invoice`, "_blank");
       }
-    } catch { /* ignore */ }
+    } catch { /* non-critical: failed to generate invoice */ }
   };
 
   if (loading) {

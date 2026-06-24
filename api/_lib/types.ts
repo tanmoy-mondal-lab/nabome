@@ -1,3 +1,5 @@
+import type { Env } from "./env";
+
 export interface ApiResponse<T> {
   success: true;
   data: T;
@@ -26,4 +28,5 @@ export interface PaginatedResponse<T> {
 export interface RequestContext {
   userId?: string;
   userRole?: string;
+  env?: Env;
 }

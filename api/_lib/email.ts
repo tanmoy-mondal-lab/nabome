@@ -1,12 +1,13 @@
-import { prisma } from "./prisma";
+import { getPrisma } from "./prisma";
 import { getEmailTemplate } from "./email-templates";
 import type { EmailType } from "./email-templates";
 import type { NotificationEvent } from "@prisma/client";
+import type { Env } from "./env";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
-function getAdminEmails(): string[] {
-  const raw = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL;
+function getAdminEmails(env?: Env): string[] {
+  const raw = env?.ADMIN_EMAILS || env?.ADMIN_EMAIL;
   if (!raw) return [];
   return raw.split(",").map((e) => e.trim()).filter(Boolean);
 }
@@ -20,17 +21,18 @@ async function sendViaResend(
   to: string,
   subject: string,
   html: string,
-  replyTo?: string
-): Promise<SendEmailResult> {
-  const apiKey = process.env.RESEND_API_KEY;
+  replyTo: string | undefined,
+  env?: Env
+): Promise<{ messageId: string | null; error: string | null }> {
+  const apiKey = env?.RESEND_API_KEY;
   if (!apiKey) {
     return { messageId: null, error: "RESEND_API_KEY not configured" };
   }
 
-  const from = process.env.EMAIL_FROM || "noreply@nabome.online";
+  const from = env?.EMAIL_FROM || "noreply@nabome.online";
 
   try {
-    const res = await fetch(RESEND_API_URL, {
+    const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -60,15 +62,17 @@ async function sendViaResend(
 export async function sendEmailNotification(
   type: EmailType,
   data: Record<string, unknown>,
-  options?: { profileId?: string | null; orderId?: string | null }
+  options?: { profileId?: string | null; orderId?: string | null },
+  env?: Env
 ): Promise<void> {
   const template = getEmailTemplate(type, data);
   if (!template) return;
 
-  // Determine recipients
+  const prisma = getPrisma(env);
+
   const isAdminEmail = type.startsWith("admin_");
   const recipients = isAdminEmail
-    ? getAdminEmails()
+    ? getAdminEmails(env)
     : data.email
       ? [data.email as string]
       : [];
@@ -89,13 +93,13 @@ export async function sendEmailNotification(
     },
   });
 
-  // Send to each recipient
   for (const to of recipients) {
     const { messageId, error } = await sendViaResend(
       to,
       template.subject,
       template.html,
-      data.replyTo as string | undefined
+      data.replyTo as string | undefined,
+      env
     );
 
     if (messageId) {
@@ -123,11 +127,13 @@ export async function sendEmailNotification(
       email: recipients[0],
     });
     if (adminTemplate) {
-      for (const adminEmail of getAdminEmails()) {
+      for (const adminEmail of getAdminEmails(env)) {
         const { error } = await sendViaResend(
           adminEmail,
           adminTemplate.subject,
-          adminTemplate.html
+          adminTemplate.html,
+          undefined,
+          env
         );
         if (error) {
           console.error(`[EMAIL] Failed to send admin ${adminType} to ${adminEmail}: ${error}`);

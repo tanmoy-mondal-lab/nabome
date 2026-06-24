@@ -14,7 +14,7 @@ interface BreadcrumbsProps {
 
 export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
   return (
-    <nav className={cn("flex items-center gap-1.5 text-xs text-neutral-500", className)}>
+    <nav aria-label="Breadcrumb" className={cn("flex items-center gap-1.5 text-xs text-neutral-500", className)}>
       <Link to="/" className="hover:text-neutral-900 transition-colors">Home</Link>
       {items.map((item, i) => (
         <span key={i} className="flex items-center gap-1.5">

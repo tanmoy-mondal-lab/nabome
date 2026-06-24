@@ -14,7 +14,7 @@ import { SafeImage } from "../../components/SafeImage";
 interface QuickViewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  product: Record<string, any> | null;
+  product: Record<string, unknown> | null;
 }
 
 export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps) {
@@ -113,6 +113,9 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Quick view"
             className={cn(
               "fixed right-0 top-0 h-full z-50 bg-white shadow-2xl overflow-y-auto",
               "w-full md:w-[480px] lg:w-[560px]"
@@ -120,6 +123,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
           >
             <button
               onClick={onClose}
+              aria-label="Close quick view"
               className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-colors"
             >
               <X className="w-5 h-5" />

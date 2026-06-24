@@ -3,12 +3,18 @@ import { unauthorized, forbidden, serverError } from "./response";
 import type { RequestContext } from "./types";
 import { prisma } from "./prisma";
 
+let supabaseAdminWarningShown = false;
+
 function getSupabaseAdmin() {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
-    throw new Error("Missing Supabase admin credentials");
+    if (!supabaseAdminWarningShown) {
+      console.error("[AUTH] Missing Supabase credentials. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Cloudflare Pages secrets.");
+      supabaseAdminWarningShown = true;
+    }
+    throw new Error("Authentication service unavailable — missing configuration");
   }
 
   return createClient(url, key, {
@@ -48,6 +54,10 @@ export async function authenticateRequest(
       userRole: profile?.role ?? "customer",
     };
   } catch (err) {
+    // If it's our own "missing config" error, return a clear 503
+    if (err instanceof Error && err.message.includes("missing configuration")) {
+      return serverError("Authentication service unavailable — server misconfigured");
+    }
     return serverError(err);
   }
 }

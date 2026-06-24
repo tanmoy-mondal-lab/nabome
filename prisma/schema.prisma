@@ -10,10 +10,10 @@ generator client {
 }
 
 datasource db {
-  provider          = "postgresql"
-  url               = env("DATABASE_URL")
-  extensions        = [pg_trgm, pgcrypto]
-  relationMode      = "foreignKeys"
+  provider     = "postgresql"
+  url          = env("DATABASE_URL")
+  extensions   = [pg_trgm, pgcrypto]
+  relationMode = "foreignKeys"
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -173,30 +173,30 @@ enum SupportTicketPriority {
 
 // Maps 1:1 to Supabase auth.users
 model Profile {
-  id            String    @id @default(uuid()) @db.Uuid
-  role          UserRole  @default(customer)
-  email         String    @unique @db.VarChar(255) // Denormalized from auth.users for quick access
-  firstName     String    @map("first_name") @db.VarChar(100)
-  lastName      String?   @map("last_name") @db.VarChar(100)
-  phone         String?   @db.VarChar(20)
-  avatarUrl     String?   @map("avatar_url") @db.Text
-  isActive      Boolean   @default(true) @map("is_active")
-  emailVerified Boolean   @default(false) @map("email_verified")
-  verificationToken String? @map("verification_token") @db.VarChar(255)
-  verificationTokenExpiresAt DateTime? @map("verification_token_expires_at") @db.Timestamptz
-  pendingEmail String? @map("pending_email") @db.VarChar(255)
-  pendingEmailToken String? @map("pending_email_token") @db.VarChar(255)
-  pendingEmailTokenExpiresAt DateTime? @map("pending_email_token_expires_at") @db.Timestamptz
-  resetPasswordToken String? @map("reset_password_token") @db.VarChar(255)
+  id                          String    @id @default(uuid()) @db.Uuid
+  role                        UserRole  @default(customer)
+  email                       String    @unique @db.VarChar(255) // Denormalized from auth.users for quick access
+  firstName                   String    @map("first_name") @db.VarChar(100)
+  lastName                    String?   @map("last_name") @db.VarChar(100)
+  phone                       String?   @db.VarChar(20)
+  avatarUrl                   String?   @map("avatar_url") @db.Text
+  isActive                    Boolean   @default(true) @map("is_active")
+  emailVerified               Boolean   @default(false) @map("email_verified")
+  verificationToken           String?   @map("verification_token") @db.VarChar(255)
+  verificationTokenExpiresAt  DateTime? @map("verification_token_expires_at") @db.Timestamptz
+  pendingEmail                String?   @map("pending_email") @db.VarChar(255)
+  pendingEmailToken           String?   @map("pending_email_token") @db.VarChar(255)
+  pendingEmailTokenExpiresAt  DateTime? @map("pending_email_token_expires_at") @db.Timestamptz
+  resetPasswordToken          String?   @map("reset_password_token") @db.VarChar(255)
   resetPasswordTokenExpiresAt DateTime? @map("reset_password_token_expires_at") @db.Timestamptz
-  lastLoginAt   DateTime? @map("last_login_at") @db.Timestamptz
-  loginCount    Int       @default(0) @map("login_count")
-  preferences   Json?     @db.JsonB
-  phoneVerified  Boolean  @default(false) @map("phone_verified")
-  marketingOptIn Boolean  @default(true) @map("marketing_opt_in")
-  notificationPreferences Json? @map("notification_preferences") @db.JsonB
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  lastLoginAt                 DateTime? @map("last_login_at") @db.Timestamptz
+  loginCount                  Int       @default(0) @map("login_count")
+  preferences                 Json?     @db.JsonB
+  phoneVerified               Boolean   @default(false) @map("phone_verified")
+  marketingOptIn              Boolean   @default(true) @map("marketing_opt_in")
+  notificationPreferences     Json?     @map("notification_preferences") @db.JsonB
+  createdAt                   DateTime  @default(now()) @map("created_at")
+  updatedAt                   DateTime  @updatedAt @map("updated_at")
 
   addresses           Address[]
   wishlistItems       WishlistItem[]
@@ -209,45 +209,44 @@ model Profile {
   loginAttempts       LoginAttempt[]
   notifications       Notification[]
   supportTickets      SupportTicket[]
-  assignedTickets     SupportTicket[]   @relation("AssignedSupport")
+  assignedTickets     SupportTicket[]      @relation("AssignedSupport")
   supportReplies      SupportTicketReply[]
   returnRequests      ReturnRequest[]
-  refunds             Refund[]          @relation("RefundInitiator")
+  refunds             Refund[]             @relation("RefundInitiator")
   userActionLogs      UserActionLog[]
 
   @@index([role])
   @@index([isActive])
-  @@index([email])
+  @@index([createdAt])
   @@map("profiles")
 }
 
 // ─── AUTH SESSION TRACKING ───
 // Tracks every active session for audit and force-logout capability.
 model AuthSession {
-  id                   String   @id @default(uuid()) @db.Uuid
-  profileId            String   @map("profile_id") @db.Uuid
-  accessToken          String   @unique @map("access_token") @db.Text
-  refreshToken         String   @unique @map("refresh_token") @db.Text
+  id                    String    @id @default(uuid()) @db.Uuid
+  profileId             String    @map("profile_id") @db.Uuid
+  accessToken           String    @unique @map("access_token") @db.Text
+  refreshToken          String    @unique @map("refresh_token") @db.Text
   refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz
-  userAgent            String?  @map("user_agent") @db.Text
-  ipAddress            String?  @map("ip_address") @db.VarChar(45)
-  deviceName           String?  @map("device_name") @db.VarChar(200)
-  isActive             Boolean  @default(true) @map("is_active")
-  revokedAt            DateTime? @map("revoked_at") @db.Timestamptz
-  rotatedFromSessionId String?  @map("rotated_from_session_id") @db.Uuid
-  lastActiveAt         DateTime @default(now()) @map("last_active_at") @db.Timestamptz
-  expiresAt            DateTime @map("expires_at") @db.Timestamptz
-  createdAt            DateTime @default(now()) @map("created_at")
+  userAgent             String?   @map("user_agent") @db.Text
+  ipAddress             String?   @map("ip_address") @db.VarChar(45)
+  deviceName            String?   @map("device_name") @db.VarChar(200)
+  isActive              Boolean   @default(true) @map("is_active")
+  revokedAt             DateTime? @map("revoked_at") @db.Timestamptz
+  rotatedFromSessionId  String?   @map("rotated_from_session_id") @db.Uuid
+  lastActiveAt          DateTime  @default(now()) @map("last_active_at") @db.Timestamptz
+  expiresAt             DateTime  @map("expires_at") @db.Timestamptz
+  createdAt             DateTime  @default(now()) @map("created_at")
 
-  profile       Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  rotatedFrom   AuthSession? @relation("SessionRotation", fields: [rotatedFromSessionId], references: [id])
+  profile         Profile       @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  rotatedFrom     AuthSession?  @relation("SessionRotation", fields: [rotatedFromSessionId], references: [id])
   rotatedSessions AuthSession[] @relation("SessionRotation")
 
   @@index([profileId, isActive])
-  @@index([refreshToken])
-  @@index([accessToken])
   @@index([expiresAt])
   @@index([refreshTokenExpiresAt])
+  @@index([rotatedFromSessionId])
   @@map("auth_sessions")
 }
 
@@ -316,7 +315,6 @@ model Category {
   subcategories Subcategory[]
   sizeGuides    SizeGuide[]
 
-  @@index([slug])
   @@index([parentId])
   @@index([isActive])
   @@index([sortOrder])
@@ -335,34 +333,32 @@ model Subcategory {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "subcategories_category_id_fkey")
+  category Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade, map: "subcategories_category_id_fkey")
   products Product[]
 
-  @@index([slug])
   @@index([categoryId])
   @@index([isActive])
   @@map("subcategories")
 }
 
 model Collection {
-  id          String    @id @default(uuid()) @db.Uuid
-  name        String    @db.VarChar(200)
-  slug        String    @unique @db.VarChar(200)
-  description String?   @db.Text
-  heroImageUrl String?  @map("hero_image_url") @db.Text
-  isActive    Boolean   @default(true) @map("is_active")
-  isFeatured  Boolean   @default(false) @map("is_featured")
-  startDate   DateTime? @map("start_date") @db.Timestamptz
-  endDate     DateTime? @map("end_date") @db.Timestamptz
-  sortOrder   Int       @default(0) @map("sort_order")
-  metaTitle   String?   @map("meta_title") @db.VarChar(200)
-  metaDesc    String?   @map("meta_desc") @db.Text
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String    @db.VarChar(200)
+  slug         String    @unique @db.VarChar(200)
+  description  String?   @db.Text
+  heroImageUrl String?   @map("hero_image_url") @db.Text
+  isActive     Boolean   @default(true) @map("is_active")
+  isFeatured   Boolean   @default(false) @map("is_featured")
+  startDate    DateTime? @map("start_date") @db.Timestamptz
+  endDate      DateTime? @map("end_date") @db.Timestamptz
+  sortOrder    Int       @default(0) @map("sort_order")
+  metaTitle    String?   @map("meta_title") @db.VarChar(200)
+  metaDesc     String?   @map("meta_desc") @db.Text
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   products Product[]
 
-  @@index([slug])
   @@index([isFeatured])
   @@index([sortOrder])
   @@map("collections")
@@ -382,43 +378,41 @@ model Brand {
 
   products Product[]
 
-  @@index([slug])
   @@index([isActive])
   @@map("brands")
 }
 
 model SizeGuide {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @db.VarChar(200)
-  slug        String   @unique @db.VarChar(200)
-  description String?  @db.Text
-  categoryId  String?  @map("category_id") @db.Uuid
-  type        String   @default("clothing") @db.VarChar(50)
-  unit        String   @default("inches") @db.VarChar(20)
-  imageUrl    String?  @map("image_url") @db.Text
-  measurements Json    @db.JsonB
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar(200)
+  slug         String   @unique @db.VarChar(200)
+  description  String?  @db.Text
+  categoryId   String?  @map("category_id") @db.Uuid
+  type         String   @default("clothing") @db.VarChar(50)
+  unit         String   @default("inches") @db.VarChar(20)
+  imageUrl     String?  @map("image_url") @db.Text
+  measurements Json     @db.JsonB
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   products Product[]
 
-  @@index([slug])
   @@index([categoryId])
   @@map("size_guides")
 }
 
 model InventoryAlert {
-  id        String   @id @default(uuid()) @db.Uuid
-  variantId String   @map("variant_id") @db.Uuid
-  type      String   @db.VarChar(50)
-  message   String   @db.Text
-  threshold Int?     @db.SmallInt
-  currentStock Int  @map("current_stock") @db.SmallInt
-  isResolved Boolean @default(false) @map("is_resolved")
-  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz
-  createdAt  DateTime @default(now()) @map("created_at")
+  id           String    @id @default(uuid()) @db.Uuid
+  variantId    String    @map("variant_id") @db.Uuid
+  type         String    @db.VarChar(50)
+  message      String    @db.Text
+  threshold    Int?      @db.SmallInt
+  currentStock Int       @map("current_stock") @db.SmallInt
+  isResolved   Boolean   @default(false) @map("is_resolved")
+  resolvedAt   DateTime? @map("resolved_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at")
 
   variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
@@ -429,37 +423,37 @@ model InventoryAlert {
 }
 
 model Product {
-  id               String    @id @default(uuid()) @db.Uuid
-  name             String    @db.VarChar(300)
-  slug             String    @unique @db.VarChar(300)
-  description      String?   @db.Text
-  shortDescription String?   @map("short_description") @db.Text
-  categoryId       String?   @map("category_id") @db.Uuid
-  subcategoryId    String?   @map("subcategory_id") @db.Uuid
-  collectionId     String?   @map("collection_id") @db.Uuid
-  brandId          String?   @map("brand_id") @db.Uuid
-  basePrice        Decimal   @map("base_price") @db.Decimal(10, 2)
-  compareAtPrice   Decimal?  @map("compare_at_price") @db.Decimal(10, 2)
-  costPrice        Decimal?  @map("cost_price") @db.Decimal(10, 2)
-  salePrice        Decimal?  @map("sale_price") @db.Decimal(10, 2)
-  discountPercent  Int?      @map("discount_percent") @db.SmallInt
-  currency         String    @default("INR") @db.VarChar(3)
-  material         String?   @db.VarChar(200)
-  careInstructions String?   @map("care_instructions") @db.Text
-  sizeChartUrl     String?   @map("size_chart_url") @db.Text
-  sizeGuideId      String?   @map("size_guide_id") @db.Uuid
-  isActive         Boolean   @default(true) @map("is_active")
-  isFeatured       Boolean   @default(false) @map("is_featured")
-  isNew            Boolean   @default(false) @map("is_new")
-  gender           Gender    @default(unisex)
-  sortOrder        Int       @default(0) @map("sort_order")
-  publishedAt      DateTime? @map("published_at") @db.Timestamptz
+  id                 String    @id @default(uuid()) @db.Uuid
+  name               String    @db.VarChar(300)
+  slug               String    @unique @db.VarChar(300)
+  description        String?   @db.Text
+  shortDescription   String?   @map("short_description") @db.Text
+  categoryId         String?   @map("category_id") @db.Uuid
+  subcategoryId      String?   @map("subcategory_id") @db.Uuid
+  collectionId       String?   @map("collection_id") @db.Uuid
+  brandId            String?   @map("brand_id") @db.Uuid
+  basePrice          Decimal   @map("base_price") @db.Decimal(10, 2)
+  compareAtPrice     Decimal?  @map("compare_at_price") @db.Decimal(10, 2)
+  costPrice          Decimal?  @map("cost_price") @db.Decimal(10, 2)
+  salePrice          Decimal?  @map("sale_price") @db.Decimal(10, 2)
+  discountPercent    Int?      @map("discount_percent") @db.SmallInt
+  currency           String    @default("INR") @db.VarChar(3)
+  material           String?   @db.VarChar(200)
+  careInstructions   String?   @map("care_instructions") @db.Text
+  sizeChartUrl       String?   @map("size_chart_url") @db.Text
+  sizeGuideId        String?   @map("size_guide_id") @db.Uuid
+  isActive           Boolean   @default(true) @map("is_active")
+  isFeatured         Boolean   @default(false) @map("is_featured")
+  isNew              Boolean   @default(false) @map("is_new")
+  gender             Gender    @default(unisex)
+  sortOrder          Int       @default(0) @map("sort_order")
+  publishedAt        DateTime? @map("published_at") @db.Timestamptz
   scheduledPublishAt DateTime? @map("scheduled_publish_at") @db.Timestamptz
   scheduledArchiveAt DateTime? @map("scheduled_archive_at") @db.Timestamptz
-  metaTitle        String?   @map("meta_title") @db.VarChar(200)
-  metaDesc         String?   @map("meta_desc") @db.Text
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  metaTitle          String?   @map("meta_title") @db.VarChar(200)
+  metaDesc           String?   @map("meta_desc") @db.Text
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
   category    Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   subcategory Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
@@ -472,20 +466,24 @@ model Product {
   attributes    ProductAttribute[]
   productTags   ProductTagOnProduct[]
   productLabels ProductLabelOnProduct[]
-  relatedTo     RelatedProduct[] @relation("RelatedProductSource")
-  relatedFrom   RelatedProduct[] @relation("RelatedProductTarget")
+  relatedTo     RelatedProduct[]        @relation("RelatedProductSource")
+  relatedFrom   RelatedProduct[]        @relation("RelatedProductTarget")
   reviews       Review[]
   orderItems    OrderItem[]
   lookbookItems LookbookItem[]
 
-  @@index([slug])
   @@index([categoryId])
+  @@index([subcategoryId])
   @@index([collectionId])
-  @@index([gender])
   @@index([brandId])
   @@index([isActive, isFeatured])
   @@index([isActive, isNew])
-  @@index([basePrice])
+  @@index([isActive, gender, createdAt])
+  @@index([isActive, categoryId, sortOrder])
+  @@index([isActive, brandId, sortOrder])
+  @@index([isActive, collectionId, sortOrder])
+  @@index([isActive, collectionId, publishedAt])
+  @@index([isActive, basePrice])
   @@index([scheduledPublishAt])
   @@index([scheduledArchiveAt])
   @@index([createdAt])
@@ -509,18 +507,18 @@ model ProductVariant {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  product        Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
-  images         ProductImage[]
-  cartItems      CartItem[]
-  wishlistItems  WishlistItem[]
-  orderItems     OrderItem[]
+  product            Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  images             ProductImage[]
+  cartItems          CartItem[]
+  wishlistItems      WishlistItem[]
+  orderItems         OrderItem[]
   inventoryMovements InventoryMovement[]
   inventoryAlerts    InventoryAlert[]
 
+  @@unique([productId, size, color])
   @@index([productId])
-  @@index([sku])
   @@index([size, color])
-  @@index([isActive])
+  @@index([isActive, stock])
   @@map("product_variants")
 }
 
@@ -557,12 +555,12 @@ model ProductAttribute {
 }
 
 model RelatedProduct {
-  id         String   @id @default(uuid()) @db.Uuid
-  sourceId   String   @map("source_id") @db.Uuid
-  targetId   String   @map("target_id") @db.Uuid
-  type       String   @default("related") @db.VarChar(50)
-  sortOrder  Int      @default(0) @map("sort_order")
-  createdAt  DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  sourceId  String   @map("source_id") @db.Uuid
+  targetId  String   @map("target_id") @db.Uuid
+  type      String   @default("related") @db.VarChar(50)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
 
   source Product @relation("RelatedProductSource", fields: [sourceId], references: [id], onDelete: Cascade)
   target Product @relation("RelatedProductTarget", fields: [targetId], references: [id], onDelete: Cascade)
@@ -581,7 +579,6 @@ model ProductTag {
 
   products ProductTagOnProduct[]
 
-  @@index([slug])
   @@map("product_tags")
 }
 
@@ -593,6 +590,7 @@ model ProductTagOnProduct {
   tag     ProductTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([productId, tagId])
+  @@index([tagId])
   @@map("product_tags_products")
 }
 
@@ -605,7 +603,6 @@ model ProductLabel {
 
   products ProductLabelOnProduct[]
 
-  @@index([slug])
   @@map("product_labels")
 }
 
@@ -617,6 +614,7 @@ model ProductLabelOnProduct {
   label   ProductLabel @relation(fields: [labelId], references: [id], onDelete: Cascade)
 
   @@id([productId, labelId])
+  @@index([labelId])
   @@map("product_labels_products")
 }
 
@@ -643,25 +641,25 @@ model InventoryMovement {
 // ─────────────────────────────────────────────────────────────
 
 model Address {
-  id        String  @id @default(uuid()) @db.Uuid
-  profileId String  @map("profile_id") @db.Uuid
-  label     String  @default("Home") @db.VarChar(50)
-  fullName  String  @map("full_name") @db.VarChar(200)
-  phone     String  @db.VarChar(20)
-  line1     String  @db.VarChar(500)
-  line2     String? @db.VarChar(500)
-  city      String  @db.VarChar(200)
-  district  String? @db.VarChar(200) @map("district")
-  state     String  @db.VarChar(200)
-  pincode   String  @db.VarChar(10)
-  country   String  @default("India") @db.VarChar(100)
-  isDefault Boolean @default(false) @map("is_default")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  isBillingDefault Boolean @default(false) @map("is_billing_default")
-  addressType      String  @default("shipping") @map("address_type") @db.VarChar(20)
+  id               String   @id @default(uuid()) @db.Uuid
+  profileId        String   @map("profile_id") @db.Uuid
+  label            String   @default("Home") @db.VarChar(50)
+  fullName         String   @map("full_name") @db.VarChar(200)
+  phone            String   @db.VarChar(20)
+  line1            String   @db.VarChar(500)
+  line2            String?  @db.VarChar(500)
+  city             String   @db.VarChar(200)
+  district         String?  @map("district") @db.VarChar(200)
+  state            String   @db.VarChar(200)
+  pincode          String   @db.VarChar(10)
+  country          String   @default("India") @db.VarChar(100)
+  isDefault        Boolean  @default(false) @map("is_default")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  isBillingDefault Boolean  @default(false) @map("is_billing_default")
+  addressType      String   @default("shipping") @map("address_type") @db.VarChar(20)
 
-  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile          Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
   ordersAsShipping Order[] @relation("ShippingAddress")
   ordersAsBilling  Order[] @relation("BillingAddress")
 
@@ -680,7 +678,6 @@ model WishlistItem {
   variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
   @@unique([profileId, variantId])
-  @@index([profileId])
   @@map("wishlist_items")
 }
 
@@ -701,19 +698,18 @@ model Cart {
 }
 
 model CartItem {
-  id             String  @id @default(uuid()) @db.Uuid
-  cartId         String  @map("cart_id") @db.Uuid
-  variantId      String  @map("variant_id") @db.Uuid
-  quantity       Int     @default(1)
-  savedForLater  Boolean @default(false) @map("saved_for_later")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  cartId        String   @map("cart_id") @db.Uuid
+  variantId     String   @map("variant_id") @db.Uuid
+  quantity      Int      @default(1)
+  savedForLater Boolean  @default(false) @map("saved_for_later")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   cart    Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
   variant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
   @@unique([cartId, variantId])
-  @@index([cartId])
   @@map("cart_items")
 }
 
@@ -722,38 +718,38 @@ model CartItem {
 // ─────────────────────────────────────────────────────────────
 
 model Order {
-  id              String        @id @default(uuid()) @db.Uuid
-  orderNumber     String        @unique @map("order_number") @db.VarChar(50)
-  profileId       String?       @map("profile_id") @db.Uuid
-  email           String        @db.VarChar(255)
-  status          OrderStatus   @default(pending)
-  subtotal        Decimal       @db.Decimal(10, 2)
-  shippingCost    Decimal       @default(0) @map("shipping_cost") @db.Decimal(10, 2)
-  tax             Decimal       @default(0) @db.Decimal(10, 2)
-  discount        Decimal       @default(0) @db.Decimal(10, 2)
-  couponCode      String?       @map("coupon_code") @db.VarChar(50)
-  total           Decimal       @db.Decimal(10, 2)
-  currency        String        @default("INR") @db.VarChar(3)
-  paymentMethod   String        @map("payment_method") @db.VarChar(50)
-  paymentStatus   PaymentStatus @default(pending) @map("payment_status")
-  razorpayOrderId   String?     @map("razorpay_order_id") @db.VarChar(100)
-  razorpayPaymentId String?     @map("razorpay_payment_id") @db.VarChar(100)
-  shippingAddressId String?     @map("shipping_address_id") @db.Uuid
-  billingAddressId  String?     @map("billing_address_id") @db.Uuid
-  giftMessage     String?       @map("gift_message") @db.Text
-  notes           String?       @db.Text
-  shippedAt       DateTime?     @map("shipped_at") @db.Timestamptz
-  deliveredAt     DateTime?     @map("delivered_at") @db.Timestamptz
-  cancelledAt       DateTime?     @map("cancelled_at") @db.Timestamptz
-  cancellationReason String?      @map("cancellation_reason") @db.VarChar(500)
-  refundedAt        DateTime?     @map("refunded_at") @db.Timestamptz
-  createdAt       DateTime      @default(now()) @map("created_at")
-  updatedAt       DateTime      @updatedAt @map("updated_at")
-  internalNotes      String?   @map("internal_notes") @db.Text
-  invoiceUrl         String?   @map("invoice_url") @db.Text
-  returnRequestedAt  DateTime? @map("return_requested_at") @db.Timestamptz
+  id                 String        @id @default(uuid()) @db.Uuid
+  orderNumber        String        @unique @map("order_number") @db.VarChar(50)
+  profileId          String?       @map("profile_id") @db.Uuid
+  email              String        @db.VarChar(255)
+  status             OrderStatus   @default(pending)
+  subtotal           Decimal       @db.Decimal(10, 2)
+  shippingCost       Decimal       @default(0) @map("shipping_cost") @db.Decimal(10, 2)
+  tax                Decimal       @default(0) @db.Decimal(10, 2)
+  discount           Decimal       @default(0) @db.Decimal(10, 2)
+  couponCode         String?       @map("coupon_code") @db.VarChar(50)
+  total              Decimal       @db.Decimal(10, 2)
+  currency           String        @default("INR") @db.VarChar(3)
+  paymentMethod      String        @map("payment_method") @db.VarChar(50)
+  paymentStatus      PaymentStatus @default(pending) @map("payment_status")
+  razorpayOrderId    String?       @map("razorpay_order_id") @db.VarChar(100)
+  razorpayPaymentId  String?       @map("razorpay_payment_id") @db.VarChar(100)
+  shippingAddressId  String?       @map("shipping_address_id") @db.Uuid
+  billingAddressId   String?       @map("billing_address_id") @db.Uuid
+  giftMessage        String?       @map("gift_message") @db.Text
+  notes              String?       @db.Text
+  shippedAt          DateTime?     @map("shipped_at") @db.Timestamptz
+  deliveredAt        DateTime?     @map("delivered_at") @db.Timestamptz
+  cancelledAt        DateTime?     @map("cancelled_at") @db.Timestamptz
+  cancellationReason String?       @map("cancellation_reason") @db.VarChar(500)
+  refundedAt         DateTime?     @map("refunded_at") @db.Timestamptz
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  internalNotes      String?       @map("internal_notes") @db.Text
+  invoiceUrl         String?       @map("invoice_url") @db.Text
+  returnRequestedAt  DateTime?     @map("return_requested_at") @db.Timestamptz
 
-  profile      Profile?    @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  profile         Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
   shippingAddress Address? @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: SetNull)
   billingAddress  Address? @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
 
@@ -764,38 +760,42 @@ model Order {
   refunds          Refund[]
   notifications    Notification[]
   supportTickets   SupportTicket[]
+  webhookEvents    WebhookEvent[]
 
-  @@index([orderNumber])
   @@index([profileId])
   @@index([email])
-  @@index([status])
-  @@index([paymentStatus])
+  @@index([status, createdAt])
+  @@index([paymentStatus, createdAt])
+  @@index([profileId, status])
   @@index([createdAt])
+  @@index([shippingAddressId])
+  @@index([billingAddressId])
   @@map("orders")
 }
 
 model OrderItem {
-  id           String  @id @default(uuid()) @db.Uuid
-  orderId      String  @map("order_id") @db.Uuid
-  productId    String  @map("product_id") @db.Uuid
-  variantId    String? @map("variant_id") @db.Uuid
-  productName  String  @map("product_name") @db.VarChar(300)
-  variantLabel String  @map("variant_label") @db.VarChar(200)
-  sku          String  @db.VarChar(100)
-  quantity     Int
-  unitPrice    Decimal @map("unit_price") @db.Decimal(10, 2)
-  totalPrice   Decimal @map("total_price") @db.Decimal(10, 2)
-  imageUrl     String? @map("image_url") @db.Text
-  isReturned     Boolean  @default(false) @map("is_returned")
-  returnQuantity Int      @default(0) @map("return_quantity")
+  id             String  @id @default(uuid()) @db.Uuid
+  orderId        String  @map("order_id") @db.Uuid
+  productId      String  @map("product_id") @db.Uuid
+  variantId      String? @map("variant_id") @db.Uuid
+  productName    String  @map("product_name") @db.VarChar(300)
+  variantLabel   String  @map("variant_label") @db.VarChar(200)
+  sku            String  @db.VarChar(100)
+  quantity       Int
+  unitPrice      Decimal @map("unit_price") @db.Decimal(10, 2)
+  totalPrice     Decimal @map("total_price") @db.Decimal(10, 2)
+  imageUrl       String? @map("image_url") @db.Text
+  isReturned     Boolean @default(false) @map("is_returned")
+  returnQuantity Int     @default(0) @map("return_quantity")
 
-  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
-  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant        ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
   returnRequests ReturnRequest[]
 
   @@index([orderId])
   @@index([productId])
+  @@index([variantId])
   @@map("order_items")
 }
 
@@ -811,6 +811,7 @@ model OrderStatusHistory {
   creator Profile? @relation(fields: [createdBy], references: [id], onDelete: SetNull)
 
   @@index([orderId])
+  @@index([createdBy])
   @@index([createdAt])
   @@map("order_status_history")
 }
@@ -820,26 +821,25 @@ model OrderStatusHistory {
 // ─────────────────────────────────────────────────────────────
 
 model Coupon {
-  id             String       @id @default(uuid()) @db.Uuid
-  code           String       @unique @db.VarChar(50)
-  description    String?      @db.Text
-  discountType   DiscountType @map("discount_type")
-  discountValue  Decimal      @map("discount_value") @db.Decimal(10, 2)
-  minOrderValue  Decimal?     @map("min_order_value") @db.Decimal(10, 2)
-  maxDiscount    Decimal?     @map("max_discount") @db.Decimal(10, 2)
-  usageLimit     Int?         @map("usage_limit")
-  usedCount      Int          @default(0) @map("used_count")
-  perUserLimit   Int          @default(1) @map("per_user_limit")
-  applicableGender Gender?    @map("applicable_gender")
-  isActive       Boolean      @default(true) @map("is_active")
-  startDate      DateTime     @map("start_date") @db.Timestamptz
-  endDate        DateTime     @map("end_date") @db.Timestamptz
-  createdAt      DateTime     @default(now()) @map("created_at")
-  updatedAt      DateTime     @updatedAt @map("updated_at")
+  id               String       @id @default(uuid()) @db.Uuid
+  code             String       @unique @db.VarChar(50)
+  description      String?      @db.Text
+  discountType     DiscountType @map("discount_type")
+  discountValue    Decimal      @map("discount_value") @db.Decimal(10, 2)
+  minOrderValue    Decimal?     @map("min_order_value") @db.Decimal(10, 2)
+  maxDiscount      Decimal?     @map("max_discount") @db.Decimal(10, 2)
+  usageLimit       Int?         @map("usage_limit")
+  usedCount        Int          @default(0) @map("used_count")
+  perUserLimit     Int          @default(1) @map("per_user_limit")
+  applicableGender Gender?      @map("applicable_gender")
+  isActive         Boolean      @default(true) @map("is_active")
+  startDate        DateTime     @map("start_date") @db.Timestamptz
+  endDate          DateTime     @map("end_date") @db.Timestamptz
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
 
   redemptions CouponRedemption[]
 
-  @@index([code])
   @@index([isActive, startDate, endDate])
   @@map("coupons")
 }
@@ -851,12 +851,13 @@ model CouponRedemption {
   profileId String   @map("profile_id") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at")
 
-  coupon  Coupon  @relation(fields: [couponId], references: [id], onDelete: Cascade)
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  coupon  Coupon  @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Restrict)
 
   @@index([couponId])
   @@index([profileId])
+  @@index([couponId, profileId])
   @@map("coupon_redemptions")
 }
 
@@ -878,18 +879,18 @@ model Campaign {
 }
 
 model AnnouncementBar {
-  id        String               @id @default(uuid()) @db.Uuid
-  text      String               @db.Text
-  linkUrl   String?              @map("link_url") @db.Text
-  linkText  String?              @map("link_text") @db.VarChar(100)
-  bgColor   String?              @map("bg_color") @db.VarChar(7)
-  textColor String?              @map("text_color") @db.VarChar(7)
+  id        String                  @id @default(uuid()) @db.Uuid
+  text      String                  @db.Text
+  linkUrl   String?                 @map("link_url") @db.Text
+  linkText  String?                 @map("link_text") @db.VarChar(100)
+  bgColor   String?                 @map("bg_color") @db.VarChar(7)
+  textColor String?                 @map("text_color") @db.VarChar(7)
   position  AnnouncementBarPosition @default(top)
-  isActive  Boolean              @default(true) @map("is_active")
-  startDate DateTime?            @map("start_date") @db.Timestamptz
-  endDate   DateTime?            @map("end_date") @db.Timestamptz
-  createdAt DateTime             @default(now()) @map("created_at")
-  updatedAt DateTime             @updatedAt @map("updated_at")
+  isActive  Boolean                 @default(true) @map("is_active")
+  startDate DateTime?               @map("start_date") @db.Timestamptz
+  endDate   DateTime?               @map("end_date") @db.Timestamptz
+  createdAt DateTime                @default(now()) @map("created_at")
+  updatedAt DateTime                @updatedAt @map("updated_at")
 
   @@index([isActive, position])
   @@map("announcement_bars")
@@ -900,16 +901,16 @@ model AnnouncementBar {
 // ─────────────────────────────────────────────────────────────
 
 model HomepageSection {
-  id         String      @id @default(uuid()) @db.Uuid
+  id          String      @id @default(uuid()) @db.Uuid
   sectionType SectionType @map("section_type")
-  title      String?     @db.VarChar(200)
-  subtitle   String?     @db.VarChar(500)
-  content    Json?       @db.JsonB
-  sortOrder  Int         @default(0) @map("sort_order")
-  isActive   Boolean     @default(true) @map("is_active")
-  visibility Visibility  @default(all)
-  createdAt  DateTime    @default(now()) @map("created_at")
-  updatedAt  DateTime    @updatedAt @map("updated_at")
+  title       String?     @db.VarChar(200)
+  subtitle    String?     @db.VarChar(500)
+  content     Json?       @db.JsonB
+  sortOrder   Int         @default(0) @map("sort_order")
+  isActive    Boolean     @default(true) @map("is_active")
+  visibility  Visibility  @default(all)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   @@index([isActive, sortOrder])
   @@map("homepage_sections")
@@ -929,15 +930,15 @@ model NavigationMenu {
 }
 
 model FooterSection {
-  id        String   @id @default(uuid()) @db.Uuid
-  column    Int      @default(1)
-  title     String   @db.VarChar(200)
-  contentType String @default("links") @map("content_type") @db.VarChar(50)
-  content   Json?    @db.JsonB
-  sortOrder Int      @default(0) @map("sort_order")
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  column      Int      @default(1)
+  title       String   @db.VarChar(200)
+  contentType String   @default("links") @map("content_type") @db.VarChar(50)
+  content     Json?    @db.JsonB
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@index([column, sortOrder])
   @@map("footer_sections")
@@ -957,67 +958,66 @@ model StaticPage {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  @@index([slug])
   @@index([isPublished])
   @@map("static_pages")
 }
 
 model BrandStory {
-  id            String  @id @default(uuid()) @db.Uuid
-  title         String  @db.VarChar(200)
-  subtitle      String? @db.VarChar(500)
-  heroImageUrl  String? @map("hero_image_url") @db.Text
-  content       Json?   @db.JsonB
-  mission       String? @db.Text
-  vision        String? @db.Text
-  values        Json?   @db.JsonB
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid()) @db.Uuid
+  title        String   @db.VarChar(200)
+  subtitle     String?  @db.VarChar(500)
+  heroImageUrl String?  @map("hero_image_url") @db.Text
+  content      Json?    @db.JsonB
+  mission      String?  @db.Text
+  vision       String?  @db.Text
+  values       Json?    @db.JsonB
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@map("brand_story")
 }
 
 model Lookbook {
-  id              String    @id @default(uuid()) @db.Uuid
-  name            String    @db.VarChar(200)
-  slug            String    @unique @db.VarChar(200)
-  description     String?   @db.Text
-  coverImageUrl   String    @map("cover_image_url") @db.Text
-  season          String?   @db.VarChar(50)
-  year            Int?
-  layout          String    @default("grid") @db.VarChar(50)
-  story           Json?     @db.JsonB
-  tags            String[]  @default([])
-  metaTitle       String?   @map("meta_title") @db.VarChar(200)
-  metaDesc        String?   @map("meta_desc") @db.Text
-  isActive        Boolean   @default(true) @map("is_active")
-  sortOrder       Int       @default(0) @map("sort_order")
-  publishedAt     DateTime? @map("published_at") @db.Timestamptz
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id            String    @id @default(uuid()) @db.Uuid
+  name          String    @db.VarChar(200)
+  slug          String    @unique @db.VarChar(200)
+  description   String?   @db.Text
+  coverImageUrl String    @map("cover_image_url") @db.Text
+  season        String?   @db.VarChar(50)
+  year          Int?
+  layout        String    @default("grid") @db.VarChar(50)
+  story         Json?     @db.JsonB
+  tags          String[]  @default([])
+  metaTitle     String?   @map("meta_title") @db.VarChar(200)
+  metaDesc      String?   @map("meta_desc") @db.Text
+  isActive      Boolean   @default(true) @map("is_active")
+  sortOrder     Int       @default(0) @map("sort_order")
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   items LookbookItem[]
 
-  @@index([slug])
   @@index([isActive, sortOrder])
   @@index([season, year])
   @@map("lookbooks")
 }
 
 model LookbookItem {
-  id          String  @id @default(uuid()) @db.Uuid
-  lookbookId  String  @map("lookbook_id") @db.Uuid
-  imageUrl    String  @map("image_url") @db.Text
-  productId   String? @map("product_id") @db.Uuid
-  hotspotX    Decimal? @map("hotspot_x") @db.Decimal(5, 3)
-  hotspotY    Decimal? @map("hotspot_y") @db.Decimal(5, 3)
-  caption     String? @db.VarChar(500)
-  sortOrder   Int     @default(0) @map("sort_order")
+  id         String   @id @default(uuid()) @db.Uuid
+  lookbookId String   @map("lookbook_id") @db.Uuid
+  imageUrl   String   @map("image_url") @db.Text
+  productId  String?  @map("product_id") @db.Uuid
+  hotspotX   Decimal? @map("hotspot_x") @db.Decimal(5, 3)
+  hotspotY   Decimal? @map("hotspot_y") @db.Decimal(5, 3)
+  caption    String?  @db.VarChar(500)
+  sortOrder  Int      @default(0) @map("sort_order")
 
   lookbook Lookbook @relation(fields: [lookbookId], references: [id], onDelete: Cascade)
   product  Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@index([lookbookId])
+  @@index([productId])
   @@map("lookbook_items")
 }
 
@@ -1026,20 +1026,20 @@ model LookbookItem {
 // ─────────────────────────────────────────────────────────────
 
 model Review {
-  id        String   @id @default(uuid()) @db.Uuid
-  productId String   @map("product_id") @db.Uuid
-  profileId String   @map("profile_id") @db.Uuid
-  orderId   String?  @map("order_id") @db.Uuid
-  rating    Int      @db.SmallInt
-  title     String?  @db.VarChar(200)
-  body      String?  @db.Text
-  images    String[] @db.Text
-  isApproved Boolean @default(false) @map("is_approved")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(uuid()) @db.Uuid
+  productId  String   @map("product_id") @db.Uuid
+  profileId  String   @map("profile_id") @db.Uuid
+  orderId    String?  @map("order_id") @db.Uuid
+  rating     Int      @db.SmallInt
+  title      String?  @db.VarChar(200)
+  body       String?  @db.Text
+  images     String[] @db.Text
+  isApproved Boolean  @default(false) @map("is_approved")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Restrict)
 
   @@unique([productId, profileId, orderId])
   @@index([productId, isApproved])
@@ -1077,28 +1077,28 @@ model MediaAsset {
 // ─────────────────────────────────────────────────────────────
 
 model SiteSetting {
-  id                       String  @id @default(uuid()) @db.Uuid
-  siteName                 String  @map("site_name") @db.VarChar(200)
-  tagline                  String? @db.VarChar(500)
-  logoUrl                  String? @map("logo_url") @db.Text
-  faviconUrl               String? @map("favicon_url") @db.Text
-  ogImageUrl               String? @map("og_image_url") @db.Text
-  currency                 String  @default("INR") @db.VarChar(3)
-  taxRate                  Decimal @default(0) @map("tax_rate") @db.Decimal(5, 2)
-  freeShippingThreshold    Decimal? @map("free_shipping_threshold") @db.Decimal(10, 2)
-  shippingInfo             Json?   @map("shipping_info") @db.JsonB
-  returnPolicy             Json?   @map("return_policy") @db.JsonB
-  aboutUs                  Json?   @map("about_us") @db.JsonB
-  contactEmail             String? @map("contact_email") @db.VarChar(255)
-  contactPhone             String? @map("contact_phone") @db.VarChar(20)
-  address                  String? @db.Text
-  googleAnalyticsId        String? @map("google_analytics_id") @db.VarChar(50)
-  facebookPixelId          String? @map("facebook_pixel_id") @db.VarChar(50)
-  theme                    Json?   @map("theme") @db.JsonB
-  seo                      Json?   @map("seo") @db.JsonB
-  preferences              Json?   @map("preferences") @db.JsonB
-  createdAt                DateTime @default(now()) @map("created_at")
-  updatedAt                DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default(uuid()) @db.Uuid
+  siteName              String   @map("site_name") @db.VarChar(200)
+  tagline               String?  @db.VarChar(500)
+  logoUrl               String?  @map("logo_url") @db.Text
+  faviconUrl            String?  @map("favicon_url") @db.Text
+  ogImageUrl            String?  @map("og_image_url") @db.Text
+  currency              String   @default("INR") @db.VarChar(3)
+  taxRate               Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  freeShippingThreshold Decimal? @map("free_shipping_threshold") @db.Decimal(10, 2)
+  shippingInfo          Json?    @map("shipping_info") @db.JsonB
+  returnPolicy          Json?    @map("return_policy") @db.JsonB
+  aboutUs               Json?    @map("about_us") @db.JsonB
+  contactEmail          String?  @map("contact_email") @db.VarChar(255)
+  contactPhone          String?  @map("contact_phone") @db.VarChar(20)
+  address               String?  @db.Text
+  googleAnalyticsId     String?  @map("google_analytics_id") @db.VarChar(50)
+  facebookPixelId       String?  @map("facebook_pixel_id") @db.VarChar(50)
+  theme                 Json?    @map("theme") @db.JsonB
+  seo                   Json?    @map("seo") @db.JsonB
+  preferences           Json?    @map("preferences") @db.JsonB
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   @@map("site_settings")
 }
@@ -1134,10 +1134,10 @@ model ContactSubmission {
 }
 
 model NewsletterSubscriber {
-  id        String    @id @default(uuid()) @db.Uuid
-  email     String    @unique @db.VarChar(255)
-  isActive  Boolean   @default(true) @map("is_active")
-  createdAt DateTime  @default(now()) @map("created_at")
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique @db.VarChar(255)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([isActive])
   @@map("newsletter_subscribers")
@@ -1161,7 +1161,6 @@ model PageTemplate {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  @@index([slug])
   @@index([category, isActive])
   @@map("page_templates")
 }
@@ -1195,9 +1194,9 @@ model AnalyticsEvent {
 model ShippingZone {
   id        String   @id @default(uuid()) @db.Uuid
   name      String   @db.VarChar(200)
-  countries  String[] @default([])
-  states     String[] @default([])
-  pincodes   String[] @default([])
+  countries String[] @default([])
+  states    String[] @default([])
+  pincodes  String[] @default([])
   isActive  Boolean  @default(true) @map("is_active")
   sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at")
@@ -1210,19 +1209,19 @@ model ShippingZone {
 }
 
 model ShippingRate {
-  id             String   @id @default(uuid()) @db.Uuid
-  zoneId         String   @map("zone_id") @db.Uuid
-  name           String   @db.VarChar(200)
-  method         String   @default("standard") @db.VarChar(50)
-  minOrderValue  Decimal? @map("min_order_value") @db.Decimal(10, 2)
-  maxOrderValue  Decimal? @map("max_order_value") @db.Decimal(10, 2)
-  baseRate       Decimal  @default(0) @map("base_rate") @db.Decimal(10, 2)
-  perKgRate      Decimal  @default(0) @map("per_kg_rate") @db.Decimal(10, 2)
-  freeAbove      Decimal? @map("free_above") @db.Decimal(10, 2)
-  estimatedDays  String?  @map("estimated_days") @db.VarChar(50)
-  isActive       Boolean  @default(true) @map("is_active")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(uuid()) @db.Uuid
+  zoneId        String   @map("zone_id") @db.Uuid
+  name          String   @db.VarChar(200)
+  method        String   @default("standard") @db.VarChar(50)
+  minOrderValue Decimal? @map("min_order_value") @db.Decimal(10, 2)
+  maxOrderValue Decimal? @map("max_order_value") @db.Decimal(10, 2)
+  baseRate      Decimal  @default(0) @map("base_rate") @db.Decimal(10, 2)
+  perKgRate     Decimal  @default(0) @map("per_kg_rate") @db.Decimal(10, 2)
+  freeAbove     Decimal? @map("free_above") @db.Decimal(10, 2)
+  estimatedDays String?  @map("estimated_days") @db.VarChar(50)
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   zone ShippingZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
 
@@ -1235,18 +1234,20 @@ model ShippingRate {
 // ─────────────────────────────────────────────────────────────
 
 model WebhookEvent {
-  id            String   @id @default(uuid()) @db.Uuid
-  eventId       String   @map("event_id") @db.VarChar(200)
-  source        String   @default("razorpay") @db.VarChar(50)
-  eventType     String   @map("event_type") @db.VarChar(100)
-  status        String   @default("received") @db.VarChar(20)
-  payload       Json     @db.JsonB
-  orderId       String?  @map("order_id") @db.Uuid
-  errorMessage  String?  @map("error_message") @db.Text
-  processedAt   DateTime? @map("processed_at") @db.Timestamptz
-  retryCount    Int      @default(0) @map("retry_count")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id           String    @id @default(uuid()) @db.Uuid
+  eventId      String    @map("event_id") @db.VarChar(200)
+  source       String    @default("razorpay") @db.VarChar(50)
+  eventType    String    @map("event_type") @db.VarChar(100)
+  status       String    @default("received") @db.VarChar(20)
+  payload      Json      @db.JsonB
+  orderId      String?   @map("order_id") @db.Uuid
+  errorMessage String?   @map("error_message") @db.Text
+  processedAt  DateTime? @map("processed_at") @db.Timestamptz
+  retryCount   Int       @default(0) @map("retry_count")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  order Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@unique([source, eventId])
   @@index([eventType, status])
@@ -1261,46 +1262,47 @@ model WebhookEvent {
 // ─────────────────────────────────────────────────────────────
 
 model ReturnRequest {
-  id            String       @id @default(uuid()) @db.Uuid
-  orderId       String       @map("order_id") @db.Uuid
-  orderItemId   String?      @map("order_item_id") @db.Uuid
-  profileId     String       @map("profile_id") @db.Uuid
-  reason        ReturnReason
-  reasonDetail  String?      @map("reason_detail") @db.Text
-  status        ReturnStatus @default(pending)
-  evidenceImages String[]    @map("evidence_images") @db.Text
-  adminNote     String?      @map("admin_note") @db.Text
-  reviewedBy    String?      @map("reviewed_by") @db.Uuid
-  reviewedAt    DateTime?    @map("reviewed_at") @db.Timestamptz
-  itemReceivedAt DateTime?   @map("item_received_at") @db.Timestamptz
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  id             String       @id @default(uuid()) @db.Uuid
+  orderId        String       @map("order_id") @db.Uuid
+  orderItemId    String?      @map("order_item_id") @db.Uuid
+  profileId      String       @map("profile_id") @db.Uuid
+  reason         ReturnReason
+  reasonDetail   String?      @map("reason_detail") @db.Text
+  status         ReturnStatus @default(pending)
+  evidenceImages String[]     @map("evidence_images") @db.Text
+  adminNote      String?      @map("admin_note") @db.Text
+  reviewedBy     String?      @map("reviewed_by") @db.Uuid
+  reviewedAt     DateTime?    @map("reviewed_at") @db.Timestamptz
+  itemReceivedAt DateTime?    @map("item_received_at") @db.Timestamptz
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
 
-  order     Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order     Order      @relation(fields: [orderId], references: [id], onDelete: Restrict)
   orderItem OrderItem? @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
-  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Restrict)
   refund    Refund?
 
   @@index([orderId])
   @@index([profileId])
   @@index([status])
+  @@index([status, createdAt])
   @@map("return_requests")
 }
 
 model Refund {
-  id               String       @id @default(uuid()) @db.Uuid
-  returnRequestId  String       @unique @map("return_request_id") @db.Uuid
-  orderId          String       @map("order_id") @db.Uuid
-  amount           Decimal      @db.Decimal(10, 2)
-  type             String       @default("full") @db.VarChar(20)
-  status           RefundStatus @default(pending)
-  paymentMethod    String?      @map("payment_method") @db.VarChar(50)
-  transactionId    String?      @map("transaction_id") @db.VarChar(200)
-  initiatedBy      String?      @map("initiated_by") @db.Uuid
-  processedAt      DateTime?    @map("processed_at") @db.Timestamptz
-  notes            String?      @db.Text
-  createdAt        DateTime     @default(now()) @map("created_at")
-  updatedAt        DateTime     @updatedAt @map("updated_at")
+  id              String       @id @default(uuid()) @db.Uuid
+  returnRequestId String       @unique @map("return_request_id") @db.Uuid
+  orderId         String       @map("order_id") @db.Uuid
+  amount          Decimal      @db.Decimal(10, 2)
+  type            String       @default("full") @db.VarChar(20)
+  status          RefundStatus @default(pending)
+  paymentMethod   String?      @map("payment_method") @db.VarChar(50)
+  transactionId   String?      @map("transaction_id") @db.VarChar(200)
+  initiatedBy     String?      @map("initiated_by") @db.Uuid
+  processedAt     DateTime?    @map("processed_at") @db.Timestamptz
+  notes           String?      @db.Text
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
 
   returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
   order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -1308,6 +1310,7 @@ model Refund {
 
   @@index([orderId])
   @@index([status])
+  @@index([initiatedBy])
   @@map("refunds")
 }
 
@@ -1344,15 +1347,15 @@ model Notification {
 }
 
 model NotificationTemplate {
-  id        String              @id @default(uuid()) @db.Uuid
-  event     NotificationEvent   @unique
-  subject   String              @db.VarChar(500)
-  emailBody String?             @map("email_body") @db.Text
-  smsBody   String?             @map("sms_body") @db.VarChar(500)
-  inAppBody String?             @map("in_app_body") @db.VarChar(500)
-  isActive  Boolean             @default(true) @map("is_active")
-  createdAt DateTime            @default(now()) @map("created_at")
-  updatedAt DateTime            @updatedAt @map("updated_at")
+  id        String            @id @default(uuid()) @db.Uuid
+  event     NotificationEvent @unique
+  subject   String            @db.VarChar(500)
+  emailBody String?           @map("email_body") @db.Text
+  smsBody   String?           @map("sms_body") @db.VarChar(500)
+  inAppBody String?           @map("in_app_body") @db.VarChar(500)
+  isActive  Boolean           @default(true) @map("is_active")
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
 
   @@map("notification_templates")
 }
@@ -1362,29 +1365,31 @@ model NotificationTemplate {
 // ─────────────────────────────────────────────────────────────
 
 model SupportTicket {
-  id           String                @id @default(uuid()) @db.Uuid
-  orderId      String?               @map("order_id") @db.Uuid
-  profileId    String?               @map("profile_id") @db.Uuid
-  name         String                @db.VarChar(200)
-  email        String                @db.VarChar(255)
-  subject      String                @db.VarChar(500)
-  message      String                @db.Text
-  status       SupportTicketStatus   @default(open)
-  priority     SupportTicketPriority @default(medium)
-  assignedTo   String?               @map("assigned_to") @db.Uuid
-  resolvedAt   DateTime?             @map("resolved_at") @db.Timestamptz
-  createdAt    DateTime              @default(now()) @map("created_at")
-  updatedAt    DateTime              @updatedAt @map("updated_at")
+  id         String                @id @default(uuid()) @db.Uuid
+  orderId    String?               @map("order_id") @db.Uuid
+  profileId  String?               @map("profile_id") @db.Uuid
+  name       String                @db.VarChar(200)
+  email      String                @db.VarChar(255)
+  subject    String                @db.VarChar(500)
+  message    String                @db.Text
+  status     SupportTicketStatus   @default(open)
+  priority   SupportTicketPriority @default(medium)
+  assignedTo String?               @map("assigned_to") @db.Uuid
+  resolvedAt DateTime?             @map("resolved_at") @db.Timestamptz
+  createdAt  DateTime              @default(now()) @map("created_at")
+  updatedAt  DateTime              @updatedAt @map("updated_at")
 
-  order     Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  profile   Profile?  @relation(fields: [profileId], references: [id], onDelete: SetNull)
-  assignee  Profile?  @relation("AssignedSupport", fields: [assignedTo], references: [id], onDelete: SetNull)
-  replies   SupportTicketReply[]
+  order    Order?               @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  profile  Profile?             @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  assignee Profile?             @relation("AssignedSupport", fields: [assignedTo], references: [id], onDelete: SetNull)
+  replies  SupportTicketReply[]
 
   @@index([status])
   @@index([priority])
   @@index([profileId])
   @@index([orderId])
+  @@index([assignedTo])
+  @@index([status, priority])
   @@map("support_tickets")
 }
 
@@ -1396,10 +1401,11 @@ model SupportTicketReply {
   isStaff   Boolean  @default(false) @map("is_staff")
   createdAt DateTime @default(now()) @map("created_at")
 
-  ticket  SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  author  Profile?      @relation(fields: [profileId], references: [id], onDelete: SetNull)
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author Profile?      @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   @@index([ticketId])
+  @@index([profileId])
   @@map("support_ticket_replies")
 }
 

@@ -1,9 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { StatusBadge } from "../common/StatusBadge";
 import { EmptyState } from "../common/EmptyState";
 import { Plus, Edit3, Trash2, FileJson } from "lucide-react";
+import { useToast } from "../../components/ui/Toast";
 
 interface PageTemplate {
   id: string;
@@ -19,25 +21,51 @@ interface PageTemplate {
 }
 
 export default function PageTemplatesPage() {
-  const [templates, setTemplates] = useState<PageTemplate[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<PageTemplate | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", description: "", category: "custom", isActive: true });
   const [sectionsJson, setSectionsJson] = useState("[]");
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: templates = [], isLoading: loading } = useQuery<PageTemplate[]>({
+    queryKey: ["admin", "templates"],
+    queryFn: async () => {
       const res = await adminApi.getTemplates();
-      setTemplates((res.templates as PageTemplate[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.templates as PageTemplate[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const createMutation = useMutation({
+    mutationFn: (payload: { name: string; description: string | null; category: string; sections: unknown; isActive: boolean }) =>
+      adminApi.createTemplate(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "templates"] });
+      toast("Template created", "success");
+    },
+    onError: () => toast("Failed to create template", "error"),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: { name: string; description: string | null; category: string; sections: unknown; isActive: boolean } }) =>
+      adminApi.updateTemplate(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "templates"] });
+      toast("Template updated", "success");
+    },
+    onError: () => toast("Failed to update template", "error"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteTemplate(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "templates"] });
+      toast("Template deleted", "success");
+    },
+    onError: () => toast("Failed to delete template", "error"),
+  });
 
   const openCreate = () => {
     setEditItem(null);
@@ -53,27 +81,19 @@ export default function PageTemplatesPage() {
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
-    try {
-      let sections;
-      try { sections = JSON.parse(sectionsJson); } catch { return; }
-      const payload = { name: form.name, description: form.description || null, category: form.category, sections, isActive: form.isActive };
-      if (editItem) {
-        await adminApi.updateTemplate(editItem.id, payload);
-      } else {
-        await adminApi.createTemplate(payload);
-      }
-      setModalOpen(false);
-      fetch();
-    } catch { /* ignore */ }
+  const handleSave = () => {
+    let sections;
+    try { sections = JSON.parse(sectionsJson); } catch { toast("Invalid JSON in sections", "error"); return; }
+    const payload = { name: form.name, description: form.description || null, category: form.category, sections, isActive: form.isActive };
+    if (editItem) {
+      updateMutation.mutate({ id: editItem.id, payload }, { onSuccess: () => setModalOpen(false) });
+    } else {
+      createMutation.mutate(payload, { onSuccess: () => setModalOpen(false) });
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteTemplate(id);
-      setDeleteConfirm(null);
-      fetch();
-    } catch { /* ignore */ }
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id, { onSuccess: () => setDeleteConfirm(null) });
   };
 
   const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
@@ -170,7 +190,9 @@ export default function PageTemplatesPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">Save</button>
+            <button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+              {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save"}
+            </button>
           </div>
         </div>
       </Modal>
@@ -179,7 +201,9 @@ export default function PageTemplatesPage() {
         <p className="text-sm text-neutral-600 mb-6">Delete this page template?</p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-          <button onClick={() => handleDelete(deleteConfirm!)} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
+          <button onClick={() => handleDelete(deleteConfirm!)} disabled={deleteMutation.isPending} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </button>
         </div>
       </Modal>
     </div>

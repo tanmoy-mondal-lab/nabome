@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   MapPin, CreditCard, Smartphone, Building2, Wallet,
-  Package, CheckCircle, Shield, RotateCcw,
+  Package, CheckCircle, RotateCcw,
   Plus, ArrowLeft, Gift, FileText,
   Percent, Loader2, Lock, ShoppingBag,
   AlertCircle,
@@ -14,7 +14,7 @@ import { formatPrice } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { useAuthStore } from "../../stores/auth-store";
 import { customerApi } from "../../lib/api/customer";
-import { addressesApi, type Address, type AddressInput } from "../../lib/api/addresses";
+import { addressesApi, type Address } from "../../lib/api/addresses";
 import { useRazorpay } from "../../lib/razorpay/use-razorpay";
 import { PhoneInput } from "../../components/PhoneInput";
 import { SafeImage } from "../../components/SafeImage";
@@ -133,7 +133,7 @@ export default function CheckoutPage() {
           });
         }
       })
-      .catch(() => {});
+      .catch(() => { /* non-critical: settings will use defaults */ });
   }, []);
 
   useEffect(() => {
@@ -257,7 +257,7 @@ export default function CheckoutPage() {
             pincode: shipping.pincode,
             country: shipping.country,
           });
-          shippingAddressId = (created as any).id;
+          shippingAddressId = created.id;
         }
 
         let billingAddressId: string | undefined;
@@ -272,7 +272,7 @@ export default function CheckoutPage() {
             pincode: billing.pincode,
             country: billing.country,
           });
-          billingAddressId = (created as any).id;
+          billingAddressId = created.id;
         }
 
         orderData = await customerApi.createCheckout({
@@ -325,11 +325,11 @@ export default function CheckoutPage() {
         });
       }
 
-      const order = orderData.order as any;
+      const order = orderData.order as Record<string, unknown>;
       const razorpayOrderId = orderData.razorpayOrderId;
 
       if (paymentMethod === "cod") {
-        setOrderId(order.id || order.orderId);
+        setOrderId((order.id ?? order.orderId) as string);
         clearCart();
         setStep("success");
       } else {
@@ -347,15 +347,15 @@ export default function CheckoutPage() {
             razorpayPaymentId: result.razorpayPaymentId,
             razorpayOrderId: result.razorpayOrderId,
             razorpaySignature: result.razorpaySignature,
-            orderId: order.id || order.orderId,
+            orderId: (order.id ?? order.orderId) as string,
           });
-          setOrderId(order.id || order.orderId);
+          setOrderId((order.id ?? order.orderId) as string);
           clearCart();
           setStep("success");
         } catch (payErr: any) {
           if (payErr?.code) {
             await customerApi.reportPaymentFailed({
-              orderId: order.id || order.orderId,
+              orderId: (order.id ?? order.orderId) as string,
               errorDescription: payErr.description || payErr.message,
             });
             setApiError(`Payment failed: ${payErr.description || "Please try again."}`);

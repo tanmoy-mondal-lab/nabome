@@ -33,7 +33,7 @@ function generateToken(): string {
  */
 export function setCsrfCookie(response: Response): Response {
   const token = generateToken();
-  const isSecure = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+  const isSecure = process.env.NODE_ENV === "production" || process.env.CF_PAGES === "true";
   response.headers.append(
     "Set-Cookie",
     `${CSRF_COOKIE_NAME}=${token}; Path=/; SameSite=Strict${isSecure ? "; Secure" : ""}; Max-Age=86400`

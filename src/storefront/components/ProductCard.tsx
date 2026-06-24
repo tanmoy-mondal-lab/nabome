@@ -159,7 +159,7 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
         </div>
 
         {images.length > 1 && (
-          <div className="absolute bottom-3 right-3 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded text-[9px] font-mono text-neutral-600 shadow-subtle opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute bottom-3 right-3 bg-white/80 backdrop-blur-sm px-1.5 py-0.5 rounded text-[10px] font-mono text-neutral-600 shadow-subtle opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             {images.length} photos
           </div>
         )}

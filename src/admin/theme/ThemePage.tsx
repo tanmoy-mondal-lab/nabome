@@ -41,7 +41,7 @@ export default function ThemePage() {
       const current = await adminApi.getSettings();
       const settings = current.settings as Record<string, unknown> ?? {};
       await adminApi.updateSettings({ ...settings, theme: form });
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to save theme settings */ } finally {
       setSaving(false);
     }
   };

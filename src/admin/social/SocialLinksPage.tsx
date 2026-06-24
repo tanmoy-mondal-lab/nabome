@@ -1,8 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { Plus, Edit3, Trash2, Link2 } from "lucide-react";
+import { useToast } from "../../components/ui/Toast";
 
 const PLATFORM_ICONS: Record<string, string> = {
   instagram: "📸", facebook: "👍", twitter: "🐦", youtube: "▶️",
@@ -19,24 +21,54 @@ interface SocialLink {
 }
 
 export default function SocialLinksPage() {
-  const [links, setLinks] = useState<SocialLink[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<SocialLink | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [form, setForm] = useState({ platform: "instagram", url: "", label: "", sortOrder: 0, isActive: true });
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: links = [], isLoading } = useQuery<SocialLink[]>({
+    queryKey: ["admin", "socialLinks"],
+    queryFn: async () => {
       const res = await adminApi.getSocialLinks();
-      setLinks((res.links as SocialLink[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.links as SocialLink[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const saveMutation = useMutation({
+    mutationFn: async (payload: { platform: string; url: string; label: string | null; sortOrder: number; isActive: boolean; id?: string }) => {
+      if (payload.id) {
+        const { id, ...rest } = payload;
+        await adminApi.updateSocialLink(id, rest);
+      } else {
+        const { id: _, ...rest } = payload;
+        await adminApi.createSocialLink(rest);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "socialLinks"] });
+      setModalOpen(false);
+      toast(editItem ? "Social link updated" : "Social link created", "success");
+    },
+    onError: () => {
+      toast("Failed to save social link", "error");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await adminApi.deleteSocialLink(id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "socialLinks"] });
+      setDeleteConfirm(null);
+      toast("Social link deleted", "success");
+    },
+    onError: () => {
+      toast("Failed to delete social link", "error");
+    },
+  });
 
   const openCreate = () => {
     setEditItem(null);
@@ -50,36 +82,26 @@ export default function SocialLinksPage() {
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
-    try {
-      const payload = {
-        platform: form.platform,
-        url: form.url,
-        label: form.label || null,
-        sortOrder: form.sortOrder,
-        isActive: form.isActive,
-      };
-      if (editItem) {
-        await adminApi.updateSocialLink(editItem.id, payload);
-      } else {
-        await adminApi.createSocialLink(payload);
-      }
-      setModalOpen(false);
-      fetch();
-    } catch { /* ignore */ }
+  const handleSave = () => {
+    if (!form.url.trim()) return;
+    saveMutation.mutate({
+      platform: form.platform,
+      url: form.url,
+      label: form.label || null,
+      sortOrder: form.sortOrder,
+      isActive: form.isActive,
+      ...(editItem ? { id: editItem.id } : {}),
+    });
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteSocialLink(id);
-      setDeleteConfirm(null);
-      fetch();
-    } catch { /* ignore */ }
+  const handleDelete = () => {
+    if (!deleteConfirm) return;
+    deleteMutation.mutate(deleteConfirm);
   };
 
   const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -202,7 +224,7 @@ export default function SocialLinksPage() {
         <p className="text-sm text-neutral-600 mb-6">Delete this social link?</p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-          <button onClick={() => handleDelete(deleteConfirm!)} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
+          <button onClick={handleDelete} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
         </div>
       </Modal>
     </div>

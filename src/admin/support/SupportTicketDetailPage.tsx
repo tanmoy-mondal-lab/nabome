@@ -54,7 +54,7 @@ export default function SupportTicketDetailPage() {
       setReplyText("");
       const res = await adminApi.getSupportTicket(id);
       setTicket((res as unknown as { ticket: TicketDetail }).ticket);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to send reply */ } finally {
       setSending(false);
     }
   };
@@ -66,7 +66,7 @@ export default function SupportTicketDetailPage() {
       setNewStatus(status);
       const res = await adminApi.getSupportTicket(id);
       setTicket((res as unknown as { ticket: TicketDetail }).ticket);
-    } catch { /* ignore */ }
+    } catch { /* non-critical: failed to update ticket status */ }
   };
 
   if (loading) {

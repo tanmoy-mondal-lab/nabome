@@ -70,7 +70,6 @@ interface PhoneInputProps {
 }
 
 export function PhoneInput({ value, onChange, className = "", required, id }: PhoneInputProps) {
-  const [focused, setFocused] = useState(false);
   const [selectedCode, setSelectedCode] = useState("+91");
   const [localNumber, setLocalNumber] = useState("");
 
@@ -98,8 +97,6 @@ export function PhoneInput({ value, onChange, className = "", required, id }: Ph
           value={selectedCode}
           onChange={(e) => handleCodeChange(e.target.value)}
           className="input-field appearance-none cursor-pointer pr-6 w-[90px]"
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
         >
           {COUNTRY_CODES.map((c) => (
             <option key={`${c.code}-${c.label}`} value={c.code}>
@@ -117,8 +114,6 @@ export function PhoneInput({ value, onChange, className = "", required, id }: Ph
         className="input-field flex-1 min-w-0"
         placeholder="9876543210"
         required={required}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
       />
     </div>
   );

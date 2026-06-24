@@ -1,6 +1,8 @@
 import { MediaPicker } from "../common/MediaPicker";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
+import { useToast } from "../../components/ui/Toast";
 
 interface Settings {
   siteName: string;
@@ -28,62 +30,76 @@ interface Settings {
   };
 }
 
+const DEFAULT_SETTINGS: Settings = {
+  siteName: "नबME", tagline: "", logoUrl: "", faviconUrl: "",
+  contactEmail: "", contactPhone: "", address: "",
+  currency: "INR", taxRate: 18, freeShippingThreshold: 5000,
+  preferences: {
+    shippingEnabled: true, shippingCost: 199,
+    orderEmailNotifications: true, lowStockThreshold: 5,
+    autoPublishReviews: false, maxWishlistItems: 50,
+    newsletterTitle: "Stay Connected", newsletterSubtitle: "Join the नबME Inner Circle",
+    promoText: "Free shipping on orders above ₹999 · Easy 30-day returns · Secure checkout", promoTagline: "New Season Now Available",
+    footerLinks: [{ label: "Privacy", url: "/privacy" }, { label: "Terms", url: "/terms" }, { label: "FAQ", url: "/faq" }, { label: "Shipping & Returns", url: "/shipping" }],
+  },
+};
+
+function buildSettings(raw: Record<string, unknown>, fallback: Settings): Settings {
+  return {
+    ...fallback,
+    siteName: (raw.siteName as string) ?? fallback.siteName,
+    tagline: (raw.tagline as string) ?? "",
+    logoUrl: (raw.logoUrl as string) ?? "",
+    faviconUrl: (raw.faviconUrl as string) ?? "",
+    contactEmail: (raw.contactEmail as string) ?? "",
+    contactPhone: (raw.contactPhone as string) ?? "",
+    address: (raw.address as string) ?? "",
+    currency: (raw.currency as string) ?? fallback.currency,
+    taxRate: Number(raw.taxRate ?? fallback.taxRate),
+    freeShippingThreshold: Number(raw.freeShippingThreshold ?? fallback.freeShippingThreshold),
+    preferences: { ...fallback.preferences, ...((raw.preferences as Partial<Settings["preferences"]>) ?? {}) },
+  };
+}
+
 export default function SettingsPage() {
-  const [form, setForm] = useState<Settings>({
-    siteName: "नबME", tagline: "", logoUrl: "", faviconUrl: "",
-    contactEmail: "", contactPhone: "", address: "",
-    currency: "INR", taxRate: 18, freeShippingThreshold: 5000,
-    preferences: {
-      shippingEnabled: true, shippingCost: 199,
-      orderEmailNotifications: true, lowStockThreshold: 5,
-      autoPublishReviews: false, maxWishlistItems: 50,
-      newsletterTitle: "Stay Connected", newsletterSubtitle: "Join the नबME Inner Circle",
-      promoText: "Free shipping on orders above ₹999 · Easy 30-day returns · Secure checkout", promoTagline: "New Season Now Available",
-      footerLinks: [{ label: "Privacy", url: "/privacy" }, { label: "Terms", url: "/terms" }, { label: "FAQ", url: "/faq" }, { label: "Shipping & Returns", url: "/shipping" }],
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["admin", "settings"],
+    queryFn: async () => {
+      const res = await adminApi.getSettings();
+      const s = res.settings as Record<string, unknown> | undefined;
+      return s ? buildSettings(s, DEFAULT_SETTINGS) : DEFAULT_SETTINGS;
     },
   });
-  const [saving, setSaving] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
-  useEffect(() => {
-    adminApi.getSettings().then((res) => {
-      const s = res.settings as Record<string, unknown> | undefined;
-      if (s) {
-        setForm((prev) => ({
-          ...prev,
-          siteName: (s.siteName as string) ?? prev.siteName,
-          tagline: (s.tagline as string) ?? "",
-          logoUrl: (s.logoUrl as string) ?? "",
-          faviconUrl: (s.faviconUrl as string) ?? "",
-          contactEmail: (s.contactEmail as string) ?? "",
-          contactPhone: (s.contactPhone as string) ?? "",
-          address: (s.address as string) ?? "",
-          currency: (s.currency as string) ?? prev.currency,
-          taxRate: Number(s.taxRate ?? prev.taxRate),
-          freeShippingThreshold: Number(s.freeShippingThreshold ?? prev.freeShippingThreshold),
-          preferences: { ...prev.preferences, ...((s.preferences as Partial<typeof prev.preferences>) ?? {}) },
-        }));
-      }
-      setLoaded(true);
-    }).catch(() => setLoaded(true));
-  }, []);
+  const [form, setForm] = useState<Settings>(DEFAULT_SETTINGS);
+  const [formInitialized, setFormInitialized] = useState(false);
+
+  if (settings && !formInitialized) {
+    setForm(settings);
+    setFormInitialized(true);
+  }
 
   const handleSave = async () => {
     setSaving(true);
-    setSaveError(null);
     try {
       await adminApi.updateSettings(form);
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
       window.dispatchEvent(new Event("settings:updated"));
+      toast("Settings saved successfully", "success");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
-      setSaveError(message);
+      toast(`Save failed: ${message}`, "error");
     } finally {
       setSaving(false);
     }
   };
 
-  if (!loaded) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -269,11 +285,6 @@ export default function SettingsPage() {
               className="bg-neutral-900 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">
               {saving ? "Saving…" : "Save Settings"}
             </button>
-            {saveError && (
-              <div className="mt-2 text-xs text-red-600 max-w-xs">
-                Save failed: {saveError}
-              </div>
-            )}
           </div>
       </div>
     </div>

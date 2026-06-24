@@ -1,46 +1,87 @@
 import { SafeImage } from "../../components/SafeImage";
 import { MediaPicker } from "../common/MediaPicker";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
+import { useToast } from "../../components/ui/Toast";
 import { Plus, Edit3, Trash2, Search } from "lucide-react";
 
+interface Brand {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  logoUrl?: string;
+  websiteUrl?: string;
+  sortOrder: number;
+  isActive: boolean;
+  _count?: { products: number };
+}
+
+const defaultForm = { name: "", description: "", logoUrl: "", websiteUrl: "", sortOrder: 0, isActive: true };
+
 export default function BrandsPage() {
-  const [brands, setBrands] = useState<unknown[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [edit, setEdit] = useState<Record<string, string> | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", logoUrl: "", websiteUrl: "", sortOrder: 0, isActive: true });
+  const [edit, setEdit] = useState<Brand | null>(null);
+  const [form, setForm] = useState(defaultForm);
 
-  useEffect(() => { load(); }, []);
+  const { data: brands = [], isLoading: loading } = useQuery<Brand[]>({
+    queryKey: ["brands"],
+    queryFn: async () => {
+      const res = await adminApi.getBrands();
+      return (res.brands ?? []) as Brand[];
+    },
+  });
 
-  async function load() {
-    setLoading(true);
-    try { const res = await adminApi.getBrands(); setBrands(res.brands ?? []); } catch { setBrands([]); }
-    setLoading(false);
-  }
+  const saveMutation = useMutation({
+    mutationFn: (data: typeof defaultForm & { id?: string }) => {
+      if (data.id) return adminApi.updateBrand(data.id, data);
+      return adminApi.createBrand(data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brands"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "brands"] });
+      setShowModal(false);
+      setEdit(null);
+      toast(edit ? "Brand updated" : "Brand created", "success");
+    },
+    onError: () => toast("Failed to save brand", "error"),
+  });
 
-  function openCreate() { setEdit(null); setForm({ name: "", description: "", logoUrl: "", websiteUrl: "", sortOrder: 0, isActive: true }); setShowModal(true); }
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteBrand(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["brands"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "brands"] });
+      toast("Brand deleted", "success");
+    },
+    onError: () => toast("Failed to delete brand", "error"),
+  });
 
-  function openEdit(brand: Record<string, unknown>) {
-    setEdit(brand as Record<string, string>);
-    setForm({ name: brand.name as string ?? "", description: brand.description as string ?? "", logoUrl: brand.logoUrl as string ?? "", websiteUrl: brand.websiteUrl as string ?? "", sortOrder: (brand.sortOrder as number) ?? 0, isActive: (brand.isActive as boolean) ?? true });
+  function openCreate() {
+    setEdit(null);
+    setForm(defaultForm);
     setShowModal(true);
   }
 
-  async function handleSave() {
-    if (edit) { await adminApi.updateBrand(edit.id!, form); } else { await adminApi.createBrand(form); }
-    setShowModal(false); load();
+  function openEdit(brand: Brand) {
+    setEdit(brand);
+    setForm({ name: brand.name ?? "", description: brand.description ?? "", logoUrl: brand.logoUrl ?? "", websiteUrl: brand.websiteUrl ?? "", sortOrder: brand.sortOrder ?? 0, isActive: brand.isActive ?? true });
+    setShowModal(true);
   }
 
-  async function handleDelete(id: string) {
-    await adminApi.deleteBrand(id); load();
+  function handleSave() {
+    if (!form.name.trim()) return;
+    saveMutation.mutate(edit ? { ...form, id: edit.id } : form);
   }
 
-  const filtered = (brands as Record<string, unknown>[]).filter((b) => !search || ((b.name as string) ?? "").toLowerCase().includes(search.toLowerCase()));
+  const filtered = brands.filter((b) => !search || (b.name ?? "").toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="p-6 space-y-6">
@@ -64,12 +105,12 @@ export default function BrandsPage() {
           { key: "name", label: "Name", sortable: true },
           { key: "slug", label: "Slug" },
           { key: "description", label: "Description" },
-          { key: "logoUrl", label: "Logo", render: (item) => { const v = (item as Record<string, unknown>).logoUrl as string; return v ? <SafeImage src={v} alt="" className="w-10 h-10 object-contain rounded border" useTransform={false} /> : null; } },
+          { key: "logoUrl", label: "Logo", render: (item) => { const b = item as Brand; return b.logoUrl ? <SafeImage src={b.logoUrl} alt="" className="w-10 h-10 object-contain rounded border" useTransform={false} /> : null; } },
           { key: "websiteUrl", label: "Website" },
-          { key: "_count", label: "Products", render: (item) => <span className="text-xs bg-neutral-100 px-2 py-1 rounded">{(((item as Record<string, unknown>)._count as Record<string, number>)?.products ?? 0)}</span> },
-          { key: "isActive", label: "Status", render: (item) => { const v = (item as Record<string, unknown>).isActive as boolean; return <span className={`text-xs px-2 py-1 rounded ${v ? "bg-green-100 text-green-700" : "bg-neutral-100 text-neutral-500"}`}>{v ? "Active" : "Archived"}</span>; } },
-        ]} data={filtered.map((b: Record<string, unknown>) => ({ ...b, _count: b._count ?? { products: 0 } }))} isLoading={loading} onRowClick={(row) => openEdit(row as Record<string, unknown>)} actions={(row) => <><button onClick={(e) => { e.stopPropagation(); openEdit(row as Record<string, unknown>); }} className="p-1.5 text-neutral-400 hover:text-neutral-600"><Edit3 className="w-4 h-4" /></button>
-          <button onClick={(e) => { e.stopPropagation(); handleDelete((row as Record<string, unknown>).id as string); }} className="p-1.5 text-neutral-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+          { key: "_count", label: "Products", render: (item) => <span className="text-xs bg-neutral-100 px-2 py-1 rounded">{((item as Brand)._count?.products ?? 0)}</span> },
+          { key: "isActive", label: "Status", render: (item) => { const b = item as Brand; return <span className={`text-xs px-2 py-1 rounded ${b.isActive ? "bg-green-100 text-green-700" : "bg-neutral-100 text-neutral-500"}`}>{b.isActive ? "Active" : "Archived"}</span>; } },
+        ]} data={filtered.map((b) => ({ ...b, _count: b._count ?? { products: 0 } }))} isLoading={loading} onRowClick={(row) => openEdit(row as Brand)} actions={(row) => <><button onClick={(e) => { e.stopPropagation(); openEdit(row as Brand); }} className="p-1.5 text-neutral-400 hover:text-neutral-600"><Edit3 className="w-4 h-4" /></button>
+          <button onClick={(e) => { e.stopPropagation(); deleteMutation.mutate((row as Brand).id); }} className="p-1.5 text-neutral-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
         </>} />}
 
       <Modal open={showModal} title={edit ? "Edit Brand" : "Create Brand"} onClose={() => setShowModal(false)}>
@@ -87,7 +128,7 @@ export default function BrandsPage() {
         </div>
         <div className="flex justify-end gap-2 pt-4 border-t mt-4">
           <button onClick={() => setShowModal(false)} type="button" className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
-          <button onClick={handleSave} type="button" className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">Save</button>
+          <button onClick={handleSave} type="button" disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">{saveMutation.isPending ? "Saving..." : "Save"}</button>
         </div>
       </Modal>
     </div>

@@ -5,7 +5,7 @@ import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
 import { StatsCard } from "../common/StatsCard";
-import { RotateCcw, Clock, CheckCircle, XCircle, Banknote } from "lucide-react";
+import { RotateCcw, Clock, CheckCircle } from "lucide-react";
 
 interface ReturnEntry {
   id: string;
@@ -54,7 +54,7 @@ export default function ReturnsPage() {
       setReturns((res.returns as ReturnEntry[]) ?? []);
       const pag = res.pagination as { totalPages?: number } | undefined;
       setTotalPages(pag?.totalPages ?? 1);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to fetch returns */ } finally {
       setLoading(false);
     }
   }, [page, activeTab]);
@@ -80,7 +80,7 @@ export default function ReturnsPage() {
       }
       setModalOpen(false);
       fetch();
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to process return action */ } finally {
       setActionLoading(false);
     }
   };

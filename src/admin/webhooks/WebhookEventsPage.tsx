@@ -33,9 +33,7 @@ export default function WebhookEventsPage() {
       const res = await adminApi.getWebhookEvents(params) as { events: WebhookEvent[]; pagination?: { totalPages: number } };
       setEvents(res.events ?? []);
       setTotalPages(res.pagination?.totalPages ?? 1);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
+    } catch { /* non-critical: failed to fetch webhook events */ } finally { setLoading(false); }
   }, [page, statusFilter]);
 
   useEffect(() => { setPage(1); }, [statusFilter]);
@@ -46,7 +44,7 @@ export default function WebhookEventsPage() {
     try {
       await adminApi.reprocessWebhookEvent(eventId);
       fetch();
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to reprocess webhook event */ } finally {
       setReprocessing(null);
     }
   };

@@ -34,7 +34,7 @@ export default function SupportTicketsPage() {
       const res = await adminApi.getSupportTickets(params) as { tickets: SupportTicket[]; pagination?: { totalPages: number } };
       setTickets(res.tickets ?? []);
       setTotalPages(res.pagination?.totalPages ?? 1);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to fetch support tickets */ } finally {
       setLoading(false);
     }
   }, [page, statusFilter]);

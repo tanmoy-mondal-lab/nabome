@@ -32,11 +32,23 @@ const emptyForm = {
   isDefault: false,
 };
 
+function validateAddressForm(form: typeof emptyForm): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!form.fullName.trim()) errors.fullName = "Full name is required";
+  if (!form.phone.trim()) errors.phone = "Phone number is required";
+  if (!form.line1.trim()) errors.line1 = "Address line 1 is required";
+  if (!form.city.trim()) errors.city = "City is required";
+  if (!form.state.trim()) errors.state = "State is required";
+  if (!form.pincode.trim()) errors.pincode = "Pincode is required";
+  return errors;
+}
+
 export default function AddressesPage() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { data, isLoading } = useQuery({
     queryKey: ["customer", "addresses"],
@@ -87,9 +99,16 @@ export default function AddressesPage() {
     setModalOpen(false);
     setEditingId(null);
     setForm(emptyForm);
+    setErrors({});
   }
 
   function handleSubmit() {
+    const validationErrors = validateAddressForm(form);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+    setErrors({});
     if (editingId) {
       updateMutation.mutate({ id: editingId, body: form });
     } else {
@@ -159,7 +178,7 @@ export default function AddressesPage() {
       </div>
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeModal}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeModal} role="dialog" aria-modal="true" aria-label="Address form">
           <div className="bg-white w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-4 border-b flex items-center justify-between">
               <h3 className="text-sm uppercase tracking-widest font-medium">{editingId ? "Edit Address" : "Add Address"}</h3>
@@ -173,15 +192,18 @@ export default function AddressesPage() {
                 </div>
                 <div>
                   <label className="text-xs text-neutral-500 mb-1 block">Full Name *</label>
-                  <input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} className="input-field w-full" />
+                  <input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} className={`input-field w-full ${errors.fullName ? "input-error" : ""}`} />
+                  {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
                 </div>
                 <div>
                   <label className="text-xs text-neutral-500 mb-1 block">Phone *</label>
-                  <PhoneInput value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} />
+                  <PhoneInput value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} className={errors.phone ? "input-error" : ""} />
+                  {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs text-neutral-500 mb-1 block">Address Line 1 *</label>
-                  <input value={form.line1} onChange={(e) => setForm({ ...form, line1: e.target.value })} className="input-field w-full" />
+                  <input value={form.line1} onChange={(e) => setForm({ ...form, line1: e.target.value })} className={`input-field w-full ${errors.line1 ? "input-error" : ""}`} />
+                  {errors.line1 && <p className="text-xs text-red-500 mt-1">{errors.line1}</p>}
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs text-neutral-500 mb-1 block">Address Line 2</label>
@@ -189,7 +211,8 @@ export default function AddressesPage() {
                 </div>
                 <div>
                   <label className="text-xs text-neutral-500 mb-1 block">City *</label>
-                  <input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className="input-field w-full" />
+                  <input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className={`input-field w-full ${errors.city ? "input-error" : ""}`} />
+                  {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
                 </div>
                 <div>
                   <label className="text-xs text-neutral-500 mb-1 block">District</label>
@@ -197,11 +220,13 @@ export default function AddressesPage() {
                 </div>
                 <div>
                   <label className="text-xs text-neutral-500 mb-1 block">State *</label>
-                  <input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} className="input-field w-full" />
+                  <input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} className={`input-field w-full ${errors.state ? "input-error" : ""}`} />
+                  {errors.state && <p className="text-xs text-red-500 mt-1">{errors.state}</p>}
                 </div>
                 <div>
                   <label className="text-xs text-neutral-500 mb-1 block">Pincode *</label>
-                  <input value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} className="input-field w-full" />
+                  <input value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} className={`input-field w-full ${errors.pincode ? "input-error" : ""}`} />
+                  {errors.pincode && <p className="text-xs text-red-500 mt-1">{errors.pincode}</p>}
                 </div>
                 <div className="flex items-center gap-2">
                   <input type="checkbox" id="isDefault" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} className="accent-neutral-900" />

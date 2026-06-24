@@ -8,10 +8,11 @@ import { unauthorized, forbidden, serverError } from "./response";
 import { withRateLimit, getRateLimitKey, RATE_LIMIT_CONFIG } from "./rate-limit";
 import { validateCsrf, csrfError } from "./csrf";
 import type { RequestContext } from "./types";
+import type { Env } from "./env";
 
-function getSupabaseAdmin() {
-  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+function getSupabaseAdmin(env?: Env) {
+  const url = env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL;
+  const key = env?.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("Missing Supabase admin credentials");
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -44,7 +45,8 @@ const DEFAULT_OPTIONS: AuthOptions = {
  */
 export async function authenticate(
   request: Request,
-  options: AuthOptions = {}
+  options: AuthOptions = {},
+  env?: Env
 ): Promise<{ ctx: RequestContext } | Response> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const clientIp = request.headers.get("x-forwarded-for") ?? request.headers.get("cf-connecting-ip") ?? "unknown";
@@ -80,7 +82,7 @@ export async function authenticate(
     const token = authHeader.slice(7);
 
     try {
-      const supabase = getSupabaseAdmin();
+      const supabase = getSupabaseAdmin(env);
       const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
       if (authError || !user) {
@@ -106,7 +108,7 @@ export async function authenticate(
   // Optional auth — try to parse token but don't fail if missing
   if (authHeader?.startsWith("Bearer ")) {
     try {
-      const supabase = getSupabaseAdmin();
+      const supabase = getSupabaseAdmin(env);
       const { data: { user } } = await supabase.auth.getUser(authHeader.slice(7));
       if (user) {
         return {
@@ -127,8 +129,8 @@ export async function authenticate(
 /**
  * Quick helper for public endpoints that want optional auth identity.
  */
-export async function optionalAuth(request: Request): Promise<RequestContext> {
-  const result = await authenticate(request, { required: false });
+export async function optionalAuth(request: Request, env?: Env): Promise<RequestContext> {
+  const result = await authenticate(request, { required: false }, env);
   if (result instanceof Response) return {};
   return result.ctx;
 }

@@ -52,7 +52,7 @@ export default function AbandonedCartsPage() {
       setCarts((res.carts as Cart[]) ?? []);
       setPagination((res.pagination as Pagination) ?? null);
     } catch {
-      /* ignore */
+      /* non-critical: failed to fetch abandoned carts */
     } finally {
       setLoading(false);
     }

@@ -1,8 +1,8 @@
 import { GET, POST, PUT, DELETE, PATCH, OPTIONS } from "../../api/[...path]";
 
-export const onRequestGet = ({ request }: { request: Request }) => GET(request);
-export const onRequestPost = ({ request }: { request: Request }) => POST(request);
-export const onRequestPut = ({ request }: { request: Request }) => PUT(request);
-export const onRequestDelete = ({ request }: { request: Request }) => DELETE(request);
-export const onRequestPatch = ({ request }: { request: Request }) => PATCH(request);
-export const onRequestOptions = ({ request }: { request: Request }) => OPTIONS(request);
+export const onRequestGet = ({ request, env }: { request: Request; env?: Record<string, string> }) => GET(request, { env });
+export const onRequestPost = ({ request, env }: { request: Request; env?: Record<string, string> }) => POST(request, { env });
+export const onRequestPut = ({ request, env }: { request: Request; env?: Record<string, string> }) => PUT(request, { env });
+export const onRequestDelete = ({ request, env }: { request: Request; env?: Record<string, string> }) => DELETE(request, { env });
+export const onRequestPatch = ({ request, env }: { request: Request; env?: Record<string, string> }) => PATCH(request, { env });
+export const onRequestOptions = ({ request, env }: { request: Request; env?: Record<string, string> }) => OPTIONS(request, { env });

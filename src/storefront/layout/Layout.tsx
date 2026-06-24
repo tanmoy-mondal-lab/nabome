@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Header } from "./Header";
@@ -7,63 +7,33 @@ import { MobileNav } from "./MobileNav";
 import { BottomNav } from "./BottomNav";
 import { SearchOverlay } from "./SearchOverlay";
 import { SocialProof } from "../components/SocialProof";
-import { api } from "../../lib/api/client";
+import { useSettings } from "../hooks/useSettings";
 import { canonical, websiteSchema } from "../../lib/seo";
+import { ErrorBoundary } from "../../components/ErrorBoundary";
 
 export function StorefrontLayout() {
   const { pathname } = useLocation();
-  const [settings, setSettings] = useState<Record<string, unknown> | null>(null);
-  const [theme, setTheme] = useState<Record<string, unknown> | null>(null);
+  const { data: settings } = useSettings();
   const isCheckout = pathname === "/checkout";
 
   useEffect(() => {
-    api.get("/api/settings", { params: { action: "public" } })
-      .then((res) => {
-        const r = res as Record<string, unknown>;
-        setSettings(r);
-        const t = r.theme as Record<string, unknown> ?? null;
-        setTheme(t);
-        if (t) {
-          const d = (t.design as Record<string, unknown>) ?? {};
-          const c = (d.colors as Record<string, unknown>) ?? {};
-          const root = document.documentElement.style;
-          if (c.primary) root.setProperty("--color-primary", c.primary as string);
-          if (c.accent) root.setProperty("--color-accent", c.accent as string);
-          if (c.background) root.setProperty("--color-bg", c.background as string);
-          if (c.text) root.setProperty("--color-text", c.text as string);
-        }
-      })
-      .catch(() => {});
+    if (settings?.theme) {
+      const d = (settings.theme.design as Record<string, unknown>) ?? {};
+      const c = (d.colors as Record<string, unknown>) ?? {};
+      const root = document.documentElement.style;
+      if (c.primary) root.setProperty("--color-primary", c.primary as string);
+      if (c.accent) root.setProperty("--color-accent", c.accent as string);
+      if (c.background) root.setProperty("--color-bg", c.background as string);
+      if (c.text) root.setProperty("--color-text", c.text as string);
+    }
+  }, [settings?.theme]);
 
-    const onSettingsUpdate = () => {
-      api.get("/api/settings", { params: { action: "public" } })
-        .then((res) => {
-          const r = res as Record<string, unknown>;
-          setSettings(r);
-          const t = r.theme as Record<string, unknown> ?? null;
-          setTheme(t);
-          if (t) {
-            const d = (t.design as Record<string, unknown>) ?? {};
-            const c = (d.colors as Record<string, unknown>) ?? {};
-            const root = document.documentElement.style;
-            if (c.primary) root.setProperty("--color-primary", c.primary as string);
-            if (c.accent) root.setProperty("--color-accent", c.accent as string);
-            if (c.background) root.setProperty("--color-bg", c.background as string);
-            if (c.text) root.setProperty("--color-text", c.text as string);
-          }
-        })
-        .catch(() => {});
-    };
-    window.addEventListener("settings:updated", onSettingsUpdate);
-    return () => window.removeEventListener("settings:updated", onSettingsUpdate);
-  }, []);
-
-  const siteName = (settings?.siteName as string) || "নবME";
-  const seo = (settings?.seo as Record<string, unknown>) || {};
+  const siteName = settings?.siteName || "নবME";
+  const seo = settings?.seo || {};
   const siteTitle = (seo.metaTitle as string) || `${siteName} — Premium Fashion`;
   const siteDescription = (seo.metaDesc as string) || "Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design.";
-  const ogImage = (settings?.ogImageUrl as string) || "https://www.nabome.online/og-image.svg";
-  const faviconUrl = (settings?.faviconUrl as string) || "";
+  const ogImage = settings?.ogImageUrl || "https://www.nabome.online/og-image.svg";
+  const faviconUrl = settings?.faviconUrl || "";
 
   const currentUrl = canonical(pathname);
   const ws = websiteSchema();
@@ -102,7 +72,21 @@ export function StorefrontLayout() {
       <MobileNav />
       <SearchOverlay />
       <main className="flex-1 pt-[64px] md:pt-[80px] pb-16 md:pb-0">
-        <Outlet />
+        <ErrorBoundary
+          fallback={
+            <div className="min-h-[400px] flex items-center justify-center px-4">
+              <div className="text-center max-w-md">
+                <h2 className="text-xl font-semibold text-neutral-900 mb-2">Page Error</h2>
+                <p className="text-sm text-neutral-500 mb-4">This page encountered an error.</p>
+                <a href="/" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+                  ← Back to Home
+                </a>
+              </div>
+            </div>
+          }
+        >
+          <Outlet />
+        </ErrorBoundary>
       </main>
       {!isCheckout && <SocialProof />}
       {!isCheckout && <BottomNav />}

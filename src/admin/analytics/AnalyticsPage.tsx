@@ -49,7 +49,7 @@ export default function AnalyticsPage() {
     try {
       const res = await adminApi.getSalesAnalytics({ period }) as SalesData;
       setSalesData(res);
-    } catch { setSalesData(null); } finally { setLoading(false); }
+    } catch { /* non-critical: sales analytics unavailable, showing empty state */ setSalesData(null); } finally { setLoading(false); }
   }, [period]);
 
   const fetchDelivery = useCallback(async () => {
@@ -57,7 +57,7 @@ export default function AnalyticsPage() {
     try {
       const res = await adminApi.getDeliveryAddressAnalytics({ period }) as DeliveryData;
       setDeliveryData(res);
-    } catch { setDeliveryData(null); } finally { setLoading(false); }
+    } catch { /* non-critical: delivery analytics unavailable, showing empty state */ setDeliveryData(null); } finally { setLoading(false); }
   }, [period]);
 
   useEffect(() => {

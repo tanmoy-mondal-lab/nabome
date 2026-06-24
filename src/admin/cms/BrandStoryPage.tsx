@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
-import { adminApi } from "../../lib/api/admin";
-import { MediaPicker } from "../common/MediaPicker";
+import { adminApi } from "@/lib/api/admin";
+import { MediaPicker } from "@/admin/common/MediaPicker";
+import { useToast } from "@/components/ui/Toast";
+import { useFormDirty } from "@/hooks/useFormDirty";
 
 export default function BrandStoryPage() {
+  const { toast } = useToast();
   const [form, setForm] = useState({
     heading: "", subheading: "", body: "", imageUrl: "",
     videoUrl: "", values: [{ title: "", description: "" }],
@@ -10,6 +13,19 @@ export default function BrandStoryPage() {
   });
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+
+  const { isDirty, markDirty, markClean } = useFormDirty(form);
+
+  useEffect(() => {
+    if (isDirty) {
+      const handler = (e: BeforeUnloadEvent) => {
+        e.preventDefault();
+        e.returnValue = "";
+      };
+      window.addEventListener("beforeunload", handler);
+      return () => window.removeEventListener("beforeunload", handler);
+    }
+  }, [isDirty]);
 
   useEffect(() => {
     adminApi.getBrandStory().then((res) => {
@@ -30,13 +46,14 @@ export default function BrandStoryPage() {
     }).catch(() => setLoaded(true));
   }, []);
 
-  const addValue = () => setForm((prev) => ({ ...prev, values: [...prev.values, { title: "", description: "" }] }));
-  const removeValue = (i: number) => setForm((prev) => ({ ...prev, values: prev.values.filter((_, idx) => idx !== i) }));
+  const addValue = () => { setForm((prev) => ({ ...prev, values: [...prev.values, { title: "", description: "" }] })); markDirty(); };
+  const removeValue = (i: number) => { setForm((prev) => ({ ...prev, values: prev.values.filter((_, idx) => idx !== i) })); markDirty(); };
   const updateValue = (i: number, field: string, value: string) => {
     setForm((prev) => ({
       ...prev,
       values: prev.values.map((v, idx) => idx === i ? { ...v, [field]: value } : v),
     }));
+    markDirty();
   };
 
   const handleSave = async () => {
@@ -49,7 +66,11 @@ export default function BrandStoryPage() {
         heroImageUrl: form.imageUrl,
         values: form.values,
       });
-    } catch { /* ignore */ } finally {
+      toast("Brand story saved", "success");
+      markClean();
+    } catch {
+      toast("Failed to save brand story", "error");
+    } finally {
       setSaving(false);
     }
   };
@@ -70,27 +91,27 @@ export default function BrandStoryPage() {
       </div>
 
       <div className="bg-white border border-neutral-200 rounded p-6 space-y-4 max-w-4xl">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Heading</label>
             <input value={form.heading}
-              onChange={(e) => setForm({ ...form, heading: e.target.value })}
+              onChange={(e) => { setForm({ ...form, heading: e.target.value }); markDirty(); }}
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Subheading</label>
             <input value={form.subheading}
-              onChange={(e) => setForm({ ...form, subheading: e.target.value })}
+              onChange={(e) => { setForm({ ...form, subheading: e.target.value }); markDirty(); }}
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
           </div>
         </div>
         <div>
           <label className="block text-xs text-neutral-500 mb-1">Body</label>
           <textarea rows={6} value={form.body}
-            onChange={(e) => setForm({ ...form, body: e.target.value })}
+            onChange={(e) => { setForm({ ...form, body: e.target.value }); markDirty(); }}
             className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <MediaPicker value={form.imageUrl} onChange={(url: string) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="brand-story" />
           </div>
@@ -121,17 +142,17 @@ export default function BrandStoryPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Meta Title</label>
             <input value={form.metaTitle}
-              onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
+              onChange={(e) => { setForm({ ...form, metaTitle: e.target.value }); markDirty(); }}
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
           </div>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Meta Description</label>
             <input value={form.metaDescription}
-              onChange={(e) => setForm({ ...form, metaDescription: e.target.value })}
+              onChange={(e) => { setForm({ ...form, metaDescription: e.target.value }); markDirty(); }}
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
           </div>
         </div>

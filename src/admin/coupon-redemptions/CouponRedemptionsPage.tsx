@@ -32,7 +32,7 @@ export default function CouponRedemptionsPage() {
       const res = await adminApi.getCouponRedemptions(params);
       setRedemptions((res.redemptions as Redemption[]) ?? []);
       setPagination((res.pagination as typeof pagination) ?? null);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to fetch coupon redemptions */ } finally {
       setLoading(false);
     }
   }, [page, search]);

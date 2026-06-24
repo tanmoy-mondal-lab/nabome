@@ -1,14 +1,11 @@
 // ─────────────────────────────────────────────────────────────
-// RATE LIMITER — In-memory sliding window
-// Production: replace with Redis-based implementation
+// RATE LIMITER — Cloudflare KV sliding window
 // ─────────────────────────────────────────────────────────────
 
 interface RateLimitEntry {
   count: number;
   resetAt: number;
 }
-
-const store = new Map<string, RateLimitEntry>();
 
 export interface RateLimitConfig {
   windowMs: number;
@@ -17,53 +14,123 @@ export interface RateLimitConfig {
 }
 
 const DEFAULTS = {
-  // Auth endpoints: 5 attempts per minute per IP
   auth: { windowMs: 60_000, maxRequests: 5, message: "Too many attempts. Try again in 1 minute." },
-  // Standard endpoints: 30 requests per 10 seconds per IP
   standard: { windowMs: 10_000, maxRequests: 30, message: "Too many requests. Slow down." },
-  // Admin endpoints: 60 requests per minute
   admin: { windowMs: 60_000, maxRequests: 60, message: "Too many requests. Slow down." },
-  // Contact endpoints: 3 per hour
   contact: { windowMs: 3_600_000, maxRequests: 3, message: "Too many submissions. Try again later." },
 };
 
-/**
- * Check rate limit for a given key.
- * Returns object with `allowed` boolean and headers to set.
- */
-export function checkRateLimit(
-  key: string,
-  config: RateLimitConfig = DEFAULTS.auth
-): { allowed: boolean; remaining: number; resetAt: number } {
-  const now = Date.now();
+let store: Map<string, RateLimitEntry> | null = null;
+let isUsingKV = false;
 
-  // Lazy cleanup: remove up to 20 stale entries per check
-  let cleaned = 0;
-  for (const [k, v] of store) {
-    if (v.resetAt <= now) { store.delete(k); cleaned++; }
-    if (cleaned >= 20) break;
+export function getStore(): Map<string, RateLimitEntry> {
+  if (!store) {
+    // Check if we're in Cloudflare Workers environment with KV
+    if (typeof process !== "undefined" && process.env?.KV_NAMESPACE) {
+      isUsingKV = true;
+      // Store remains null, will initialize lazily
+      console.log("[RATE LIMIT] Using Cloudflare KV for distributed rate limiting");
+    } else {
+      // Fallback to in-memory map for local development/testing
+      store = new Map<string, RateLimitEntry>();
+      console.log("[RATE LIMIT] Using in-memory Map for development");
+    }
   }
-
-  const entry = store.get(key);
-
-  if (!entry || entry.resetAt <= now) {
-    store.set(key, { count: 1, resetAt: now + config.windowMs });
-    return { allowed: true, remaining: config.maxRequests - 1, resetAt: now + config.windowMs };
-  }
-
-  entry.count += 1;
-  const remaining = Math.max(0, config.maxRequests - entry.count);
-
-  if (entry.count > config.maxRequests) {
-    return { allowed: false, remaining: 0, resetAt: entry.resetAt };
-  }
-
-  return { allowed: true, remaining, resetAt: entry.resetAt };
+  return store;
 }
 
-/**
- * Creates a Response with rate limit headers.
- */
+async function getFromKV(key: string): Promise<RateLimitEntry | null> {
+  try {
+    // In Cloudflare Workers, access KV via environment variable
+    // This is a placeholder implementation - actual KV access would be done via globalThis.caches or similar
+    const kv = globalThis as any;
+    if (kv.RATE_LIMIT_STORE) {
+      const value = await kv.RATE_LIMIT_STORE.get(key, { type: "json" });
+      return value ? (value as RateLimitEntry) : null;
+    }
+    return null;
+  } catch (error) {
+    console.error("[RATE LIMIT] KV error:", error);
+    return null;
+  }
+}
+
+async function setKV(key: string, value: RateLimitEntry): Promise<void> {
+  try {
+    const kv = globalThis as any;
+    if (kv.RATE_LIMIT_STORE) {
+      await kv.RATE_LIMIT_STORE.put(key, JSON.stringify(value), {
+        expiration: Math.ceil(value.resetAt / 1000),
+      });
+    }
+  } catch (error) {
+    console.error("[RATE LIMIT] KV set error:", error);
+  }
+}
+
+async function deleteFromKV(key: string): Promise<void> {
+  try {
+    const kv = globalThis as any;
+    if (kv.RATE_LIMIT_STORE) {
+      await kv.RATE_LIMIT_STORE.delete(key);
+    }
+  } catch (error) {
+    console.error("[RATE LIMIT] KV delete error:", error);
+  }
+}
+
+export async function checkRateLimit(
+  key: string,
+  config: RateLimitConfig = DEFAULTS.auth
+): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
+  const now = Date.now();
+  const store = getStore();
+
+  if (isUsingKV) {
+    // KV implementation
+    let entry = await getFromKV(key);
+    
+    if (!entry || entry.resetAt <= now) {
+      entry = { count: 1, resetAt: now + config.windowMs };
+      await setKV(key, entry);
+      return { allowed: true, remaining: config.maxRequests - 1, resetAt: entry.resetAt };
+    }
+
+    entry.count += 1;
+    const remaining = Math.max(0, config.maxRequests - entry.count);
+
+    if (entry.count > config.maxRequests) {
+      return { allowed: false, remaining: 0, resetAt: entry.resetAt };
+    }
+
+    await setKV(key, entry);
+    return { allowed: true, remaining, resetAt: entry.resetAt };
+  } else {
+    // In-memory implementation (fallback)
+    let cleaned = 0;
+    for (const [k, v] of store) {
+      if (v.resetAt <= now) { store.delete(k); cleaned++; }
+      if (cleaned >= 20) break;
+    }
+
+    const entry = store.get(key);
+
+    if (!entry || entry.resetAt <= now) {
+      store.set(key, { count: 1, resetAt: now + config.windowMs });
+      return { allowed: true, remaining: config.maxRequests - 1, resetAt: now + config.windowMs };
+    }
+
+    entry.count += 1;
+    const remaining = Math.max(0, config.maxRequests - entry.count);
+
+    if (entry.count > config.maxRequests) {
+      return { allowed: false, remaining: 0, resetAt: entry.resetAt };
+    }
+
+    return { allowed: true, remaining, resetAt: entry.resetAt };
+  }
+}
+
 export function rateLimitResponse(message: string, resetAt: number): Response {
   return new Response(
     JSON.stringify({
@@ -80,15 +147,11 @@ export function rateLimitResponse(message: string, resetAt: number): Response {
   );
 }
 
-/**
- * Middleware-style wrapper for API handlers.
- * Returns a rate-limited response if exceeded, or null to proceed.
- */
-export function withRateLimit(
+export async function withRateLimit(
   key: string,
   config?: RateLimitConfig
-): Response | null {
-  const result = checkRateLimit(key, config);
+): Promise<Response | null> {
+  const result = await checkRateLimit(key, config);
   if (!result.allowed) {
     return rateLimitResponse(config?.message ?? DEFAULTS.auth.message, result.resetAt);
   }

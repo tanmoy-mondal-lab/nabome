@@ -1,4 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import { useToast } from "../../components/ui/Toast";
 import { adminApi } from "../../lib/api/admin";
 import { EmptyState } from "../common/EmptyState";
 import { StatusBadge } from "../common/StatusBadge";
@@ -17,35 +19,38 @@ interface Review {
 }
 
 export default function ReviewsPage() {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "approved">("all");
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: reviews = [], isLoading } = useQuery<Review[]>({
+    queryKey: ["admin", "reviews", filter],
+    queryFn: async () => {
       const params: Record<string, string> = {};
       if (filter === "pending") params.status = "pending";
       else if (filter === "approved") params.status = "approved";
       const res = await adminApi.getReviews(params);
-      setReviews((res.reviews as Review[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [filter]);
+      return ((res.reviews as Review[]) ?? []);
+    },
+    staleTime: 30_000,
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
-
-  const toggleApproval = async (review: Review) => {
-    try {
+  const toggleMutation = useMutation({
+    mutationFn: async (review: Review) => {
       await adminApi.approveReview(review.id, !review.isApproved);
-      fetch();
-    } catch { /* ignore */ }
-  };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "reviews"] });
+      toast("Review updated", "success");
+    },
+    onError: () => {
+      toast("Failed to update review", "error");
+    },
+  });
 
   const pendingCount = reviews.filter((r) => !r.isApproved).length;
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -105,7 +110,8 @@ export default function ReviewsPage() {
                     <span>on <span className="text-neutral-600">{r.product.name}</span></span>
                   </div>
                 </div>
-                <button onClick={() => toggleApproval(r)}
+                <button onClick={() => toggleMutation.mutate(r)}
+                  disabled={toggleMutation.isPending}
                   className={`p-2 rounded transition-colors ${
                     r.isApproved
                       ? "text-green-600 hover:bg-green-50"

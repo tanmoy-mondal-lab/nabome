@@ -1,6 +1,8 @@
 import { MediaPicker } from "../common/MediaPicker";
 import { useEffect, useState } from "react";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
+import { useToast } from "../../components/ui/Toast";
 
 interface SEOData {
   globalMetaTitle: string;
@@ -14,48 +16,58 @@ interface SEOData {
   sitemapEnabled: boolean;
 }
 
+const defaultForm: SEOData = {
+  globalMetaTitle: "", globalMetaDescription: "", ogImage: "",
+  facebookPixelId: "", googleTagManagerId: "", canonicalUrl: "",
+  robotsTxt: "", structuredData: "", sitemapEnabled: true,
+};
+
+function extractSEO(settings: Record<string, unknown> | undefined): SEOData {
+  const s = settings?.seo as Partial<SEOData> | undefined;
+  return {
+    globalMetaTitle: s?.globalMetaTitle ?? "",
+    globalMetaDescription: s?.globalMetaDescription ?? "",
+    ogImage: s?.ogImage ?? "",
+    facebookPixelId: s?.facebookPixelId ?? "",
+    googleTagManagerId: s?.googleTagManagerId ?? "",
+    canonicalUrl: s?.canonicalUrl ?? "",
+    robotsTxt: s?.robotsTxt ?? "",
+    structuredData: s?.structuredData ?? "",
+    sitemapEnabled: s?.sitemapEnabled ?? true,
+  };
+}
+
 export default function SEOPage() {
-  const [form, setForm] = useState<SEOData>({
-    globalMetaTitle: "", globalMetaDescription: "", ogImage: "",
-    facebookPixelId: "", googleTagManagerId: "", canonicalUrl: "",
-    robotsTxt: "", structuredData: "", sitemapEnabled: true,
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [form, setForm] = useState<SEOData>(defaultForm);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "seo"],
+    queryFn: async () => {
+      const res = await adminApi.getSettings();
+      return res.settings as Record<string, unknown> | undefined;
+    },
   });
-  const [saving, setSaving] = useState(false);
-  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    adminApi.getSettings().then((res) => {
-      const s = res.settings as Record<string, unknown> | undefined;
-      if (s?.seo) {
-        const seo = s.seo as SEOData;
-        setForm({
-          globalMetaTitle: seo.globalMetaTitle ?? "",
-          globalMetaDescription: seo.globalMetaDescription ?? "",
-          ogImage: seo.ogImage ?? "",
-          facebookPixelId: seo.facebookPixelId ?? "",
-          googleTagManagerId: seo.googleTagManagerId ?? "",
-          canonicalUrl: seo.canonicalUrl ?? "",
-          robotsTxt: seo.robotsTxt ?? "",
-          structuredData: seo.structuredData ?? "",
-          sitemapEnabled: seo.sitemapEnabled ?? true,
-        });
-      }
-      setLoaded(true);
-    }).catch(() => setLoaded(true));
-  }, []);
+    if (data) setForm(extractSEO(data));
+  }, [data]);
 
   const handleSave = async () => {
-    setSaving(true);
     try {
       const current = await adminApi.getSettings();
       const settings = current.settings as Record<string, unknown> ?? {};
       await adminApi.updateSettings({ ...settings, seo: form });
-    } catch { /* ignore */ } finally {
-      setSaving(false);
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "seo"] });
+      toast("SEO settings saved", "success");
+    } catch {
+      toast("Failed to save SEO settings", "error");
     }
   };
 
-  if (!loaded) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -140,9 +152,9 @@ export default function SEOPage() {
         </div>
 
         <div className="flex justify-end pt-2">
-          <button onClick={handleSave} disabled={saving}
+          <button onClick={handleSave} disabled={isLoading}
             className="bg-neutral-900 text-white px-6 py-2.5 rounded text-sm font-medium hover:bg-neutral-800 disabled:opacity-50">
-            {saving ? "Saving…" : "Save SEO Settings"}
+            Save SEO Settings
           </button>
         </div>
       </div>

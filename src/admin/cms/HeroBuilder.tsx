@@ -3,7 +3,7 @@ import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { SafeImage } from "../../components/SafeImage";
-import { Plus, Edit3, Trash2, Film, Play, GripVertical, ChevronUp, ChevronDown, Volume2, VolumeX } from "lucide-react";
+import { Plus, Edit3, Trash2, Film, ChevronUp, ChevronDown, Volume2, VolumeX } from "lucide-react";
 
 interface HeroSlide {
   id: string;
@@ -35,6 +35,7 @@ export default function HeroBuilder() {
   const fileRef = useRef<HTMLInputElement>(null);
   const posterRef = useRef<HTMLInputElement>(null);
   const [uploadingFor, setUploadingFor] = useState<"video" | "poster" | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetch = useCallback(async () => {
     setLoading(true);
@@ -51,7 +52,7 @@ export default function HeroBuilder() {
         setSectionId(null);
       }
     } catch (error) {
-      // failed to fetch
+      setError("Failed to load hero slides.");
     } finally {
       setLoading(false);
     }
@@ -80,7 +81,7 @@ export default function HeroBuilder() {
         if (created?.id) setSectionId(created.id);
       }
       setConfig(newConfig);
-    } catch { /* ignore */ } finally {
+    } catch { setError("Failed to save hero config."); } finally {
       setSaving(false);
     }
   };
@@ -130,7 +131,7 @@ export default function HeroBuilder() {
     try {
       const res = await adminApi.uploadFile(file, "hero-banners");
       setForm((prev) => ({ ...prev, [field]: res.url }));
-    } catch { /* ignore */ } finally {
+    } catch { setError("Failed to upload file."); } finally {
       setUploadingFor(null);
       if (fileRef.current) fileRef.current.value = "";
       if (posterRef.current) posterRef.current.value = "";
@@ -176,6 +177,8 @@ export default function HeroBuilder() {
         <Film size={14} className="text-amber-500" />
         Upload MP4/WebM videos as hero backgrounds. Each slide auto-advances after the interval. Customers can toggle sound on/off.
       </div>
+
+      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">{error}<button onClick={() => setError(null)} className="ml-2 text-red-500 hover:text-red-700">×</button></div>}
 
       {config.slides.length === 0 ? (
         <div className="bg-white border border-neutral-200 rounded">
@@ -243,7 +246,7 @@ export default function HeroBuilder() {
             <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
               placeholder="Discover the new arrivals" className={inputClass} />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Video URL *</label>
               <div className="flex gap-2">
@@ -271,7 +274,7 @@ export default function HeroBuilder() {
                 onChange={(e) => handleVideoUpload(e, "posterUrl")} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">CTA Text</label>
               <input value={form.ctaText} onChange={(e) => setForm({ ...form, ctaText: e.target.value })}

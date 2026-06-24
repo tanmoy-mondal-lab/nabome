@@ -20,7 +20,7 @@ export default function ImportExportPage() {
       a.download = `${type}-${new Date().toISOString().split("T")[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to export data, download will not trigger */ } finally {
       setExporting(null);
     }
   };
@@ -35,7 +35,7 @@ export default function ImportExportPage() {
       formData.append("file", file);
       const res = await adminApi.importProducts(formData);
       setImportResult(res);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to import products from CSV */ } finally {
       setImporting(false);
       e.target.value = "";
     }

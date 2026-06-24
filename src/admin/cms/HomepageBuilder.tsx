@@ -1,9 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { MediaPicker } from "../common/MediaPicker";
 import { Plus, Edit3, Trash2, Eye, EyeOff, Layout, ChevronUp, ChevronDown, GripVertical, ArrowUp, ArrowDown, Save } from "lucide-react";
+import { useToast } from "../../components/ui/Toast";
 
 interface HomeSection {
   id: string;
@@ -99,27 +101,73 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export default function HomepageBuilder() {
-  const [sections, setSections] = useState<HomeSection[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<HomeSection | null>(null);
   const [form, setForm] = useState<FormState>({ ...defaultForm });
-  const [saving, setSaving] = useState(false);
-  const [reordering, setReordering] = useState(false);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: sections = [], isLoading: loading, error: queryError } = useQuery<HomeSection[]>({
+    queryKey: ["admin", "homepage"],
+    queryFn: async () => {
       const res = await adminApi.getHomepageSections();
-      setSections((res.sections as HomeSection[]) ?? []);
-    } catch (error) {
-      // failed to fetch
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.sections as HomeSection[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const saveMutation = useMutation({
+    mutationFn: async (payload: { sectionType: string; title: string | null; subtitle: string | null; content: Record<string, unknown>; sortOrder: number; isActive: boolean }) => {
+      if (editItem) {
+        await adminApi.updateHomeSection(editItem.id, payload);
+      } else {
+        await adminApi.createHomeSection(payload);
+      }
+    },
+    onSuccess: () => {
+      toast(editItem ? "Section updated successfully" : "Section created successfully", "success");
+      setModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
+    },
+    onError: (err: Error) => {
+      toast(err.message || "Failed to save section", "error");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await adminApi.deleteHomeSection(id);
+    },
+    onSuccess: () => {
+      toast("Section deleted successfully", "success");
+      queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
+    },
+    onError: (err: Error) => {
+      toast(err.message || "Failed to delete section", "error");
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async (sec: HomeSection) => {
+      await adminApi.updateHomeSection(sec.id, { isActive: !sec.isActive });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
+    },
+    onError: (err: Error) => {
+      toast(err.message || "Failed to toggle section", "error");
+    },
+  });
+
+  const reorderMutation = useMutation({
+    mutationFn: async (order: { id: string; sortOrder: number }[]) => {
+      await adminApi.reorderHomeSections(order);
+    },
+    onError: () => {
+      toast("Failed to reorder sections", "error");
+      queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
+    },
+  });
 
   const updateForm = (patch: Partial<FormState>) => setForm((prev) => ({ ...prev, ...patch }));
 
@@ -208,51 +256,28 @@ export default function HomepageBuilder() {
     }
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const content = buildContent();
-      const payload = {
-        sectionType: form.sectionType,
-        title: form.title || null,
-        subtitle: form.subtitle || null,
-        content,
-        sortOrder: editItem?.sortOrder ?? sections.length,
-        isActive: form.isActive,
-      };
-      if (editItem) {
-        await adminApi.updateHomeSection(editItem.id, payload);
-      } else {
-        await adminApi.createHomeSection(payload);
-      }
-      setModalOpen(false);
-      fetch();
-    } catch (error) {
-      // failed to save
-    } finally {
-      setSaving(false);
-    }
+  const handleSave = () => {
+    const content = buildContent();
+    const payload = {
+      sectionType: form.sectionType,
+      title: form.title || null,
+      subtitle: form.subtitle || null,
+      content,
+      sortOrder: editItem?.sortOrder ?? sections.length,
+      isActive: form.isActive,
+    };
+    saveMutation.mutate(payload);
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteHomeSection(id);
-      fetch();
-    } catch (error) {
-      // failed to delete
-    }
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
   };
 
-  const toggleActive = async (sec: HomeSection) => {
-    try {
-      await adminApi.updateHomeSection(sec.id, { ...sec, isActive: !sec.isActive });
-      fetch();
-    } catch (error) {
-      // failed to toggle
-    }
+  const toggleActive = (sec: HomeSection) => {
+    toggleMutation.mutate(sec);
   };
 
-  const moveSection = async (index: number, direction: "up" | "down") => {
+  const moveSection = (index: number, direction: "up" | "down") => {
     const newIndex = direction === "up" ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= sections.length) return;
 
@@ -260,20 +285,11 @@ export default function HomepageBuilder() {
     const [moved] = reordered.splice(index, 1);
     reordered.splice(newIndex, 0, moved);
 
-    // Update local state immediately
-    setSections(reordered);
-    setReordering(true);
+    // Optimistic update via queryClient.setQueryData
+    queryClient.setQueryData<HomeSection[]>(["admin", "homepage"], reordered);
 
-    // Persist to backend
-    try {
-      const order = reordered.map((s, i) => ({ id: s.id, sortOrder: i }));
-      await adminApi.reorderHomeSections(order);
-    } catch (error) {
-      // Revert on error
-      fetch();
-    } finally {
-      setReordering(false);
-    }
+    const order = reordered.map((s, i) => ({ id: s.id, sortOrder: i }));
+    reorderMutation.mutate(order);
   };
 
   const typeLabel = (type: string) => SECTION_TYPES.find((t) => t.value === type)?.label ?? type;
@@ -303,6 +319,8 @@ export default function HomepageBuilder() {
         </button>
       </div>
 
+      {queryError && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">{queryError.message}<button onClick={() => queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] })} className="ml-2 text-red-500 hover:text-red-700">×</button></div>}
+
       {sections.length === 0 ? (
         <div className="bg-white border border-neutral-200">
           <EmptyState icon={Layout} title="No sections yet" description="Build your homepage by adding sections"
@@ -322,7 +340,7 @@ export default function HomepageBuilder() {
                 <div className="flex flex-col items-center gap-0.5 shrink-0">
                   <button
                     onClick={() => moveSection(i, "up")}
-                    disabled={i === 0 || reordering}
+                    disabled={i === 0 || reorderMutation.isPending}
                     className="p-1 text-neutral-300 hover:text-neutral-700 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
                     aria-label="Move up"
                   >
@@ -331,7 +349,7 @@ export default function HomepageBuilder() {
                   <span className="text-[10px] font-mono text-neutral-400 w-5 text-center">{i + 1}</span>
                   <button
                     onClick={() => moveSection(i, "down")}
-                    disabled={i === sections.length - 1 || reordering}
+                    disabled={i === sections.length - 1 || reorderMutation.isPending}
                     className="p-1 text-neutral-300 hover:text-neutral-700 disabled:opacity-20 disabled:cursor-not-allowed transition-colors"
                     aria-label="Move down"
                   >
@@ -346,7 +364,7 @@ export default function HomepageBuilder() {
                     <h3 className="text-sm font-medium text-neutral-900 truncate">
                       {sec.title || typeLabel(sec.sectionType)}
                     </h3>
-                    <span className={`inline-flex items-center px-2 py-0.5 text-[9px] font-medium tracking-[0.1em] uppercase border ${SECTION_COLORS[sec.sectionType] || "bg-neutral-50 text-neutral-500 border-neutral-200"}`}>
+                    <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-medium tracking-[0.1em] uppercase border ${SECTION_COLORS[sec.sectionType] || "bg-neutral-50 text-neutral-500 border-neutral-200"}`}>
                       {typeLabel(sec.sectionType)}
                     </span>
                   </div>
@@ -394,7 +412,7 @@ export default function HomepageBuilder() {
             </select>
           </Field>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Title">
               <input value={form.title} onChange={(e) => updateForm({ title: e.target.value })} className={inputClass} placeholder="Section title" />
             </Field>
@@ -404,7 +422,7 @@ export default function HomepageBuilder() {
           </div>
 
           {form.sectionType === "product_grid" && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Product Source">
                 <select value={form.productSource} onChange={(e) => updateForm({ productSource: e.target.value })} className="w-full px-3 py-2.5 text-sm border border-neutral-200 focus:outline-none focus:border-neutral-400 transition-colors">
                   <option value="featured">Featured Products</option>
@@ -457,7 +475,7 @@ export default function HomepageBuilder() {
               <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-neutral-500">Trust Items</p>
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="border border-neutral-100 p-3 space-y-2">
-                  <p className="text-[9px] text-neutral-400 uppercase tracking-[0.15em] font-medium">Item {i}</p>
+                  <p className="text-[10px] text-neutral-400 uppercase tracking-[0.15em] font-medium">Item {i}</p>
                   <div className="grid grid-cols-2 gap-3">
                     <Field label="Title">
                       <input value={i === 1 ? form.trustItem1Title : i === 2 ? form.trustItem2Title : i === 3 ? form.trustItem3Title : form.trustItem4Title}
@@ -484,7 +502,7 @@ export default function HomepageBuilder() {
               <Field label="Image URL">
                 <MediaPicker value={form.bannerImageUrl} onChange={(url: string) => updateForm({ bannerImageUrl: url })} folder="banners" />
               </Field>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="CTA Text">
                   <input value={form.bannerCtaText} onChange={(e) => updateForm({ bannerCtaText: e.target.value })} className={inputClass} placeholder="Shop Now" />
                 </Field>
@@ -520,9 +538,9 @@ export default function HomepageBuilder() {
               className="px-5 py-2.5 text-[11px] font-medium tracking-[0.15em] uppercase text-neutral-500 hover:text-neutral-900 transition-colors">
               Cancel
             </button>
-            <button onClick={handleSave} disabled={saving}
+            <button onClick={handleSave} disabled={saveMutation.isPending}
               className="bg-neutral-900 text-white px-6 py-2.5 text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-neutral-800 transition-colors disabled:opacity-40 flex items-center gap-2">
-              {saving && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+              {saveMutation.isPending && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
               {editItem ? "Update" : "Create"}
             </button>
           </div>

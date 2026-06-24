@@ -1,5 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
+import { useToast } from "../../components/ui/Toast";
 import { Modal } from "../common/Modal";
 import { StatusBadge } from "../common/StatusBadge";
 import { EmptyState } from "../common/EmptyState";
@@ -20,24 +22,58 @@ interface Campaign {
 const CAMPAIGN_TYPES = ["seasonal", "promotional", "launch", "event"];
 
 export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Campaign | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", description: "", type: "seasonal", startDate: "", endDate: "", isActive: true });
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: campaigns = [], isLoading: loading } = useQuery({
+    queryKey: ["admin", "campaigns"],
+    queryFn: async () => {
       const res = await adminApi.getCampaigns();
-      setCampaigns((res.campaigns as Campaign[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.campaigns as Campaign[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const createMutation = useMutation({
+    mutationFn: (data: { name: string; description?: string; type: string; startDate: string; endDate?: string }) =>
+      adminApi.createCampaign(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+      setModalOpen(false);
+      toast("Campaign created", "success");
+    },
+    onError: () => {
+      toast("Failed to create campaign", "error");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: { name: string; description: string | null; type: string; startDate: string; endDate: string | null; isActive: boolean } }) =>
+      adminApi.updateCampaign(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+      setModalOpen(false);
+      toast("Campaign updated", "success");
+    },
+    onError: () => {
+      toast("Failed to update campaign", "error");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteCampaign(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+      setDeleteConfirm(null);
+      toast("Campaign deleted", "success");
+    },
+    onError: () => {
+      toast("Failed to delete campaign", "error");
+    },
+  });
 
   const openCreate = () => {
     setEditItem(null);
@@ -51,25 +87,28 @@ export default function CampaignsPage() {
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
-    try {
-      if (editItem) {
-        await adminApi.updateCampaign(editItem.id, { name: form.name, description: form.description || null, type: form.type, startDate: form.startDate, endDate: form.endDate || null, isActive: form.isActive });
-      } else {
-        await adminApi.createCampaign({ name: form.name, description: form.description || undefined, type: form.type, startDate: form.startDate, endDate: form.endDate || undefined });
-      }
-      setModalOpen(false);
-      fetch();
-    } catch { /* ignore */ }
+  const handleSave = () => {
+    if (editItem) {
+      updateMutation.mutate({
+        id: editItem.id,
+        data: { name: form.name, description: form.description || null, type: form.type, startDate: form.startDate, endDate: form.endDate || null, isActive: form.isActive },
+      });
+    } else {
+      createMutation.mutate({
+        name: form.name,
+        description: form.description || undefined,
+        type: form.type,
+        startDate: form.startDate,
+        endDate: form.endDate || undefined,
+      });
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteCampaign(id);
-      setDeleteConfirm(null);
-      fetch();
-    } catch { /* ignore */ }
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
   };
+
+  const isSaving = createMutation.isPending || updateMutation.isPending;
 
   const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
 
@@ -167,7 +206,9 @@ export default function CampaignsPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">Save</button>
+            <button onClick={handleSave} disabled={isSaving} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+              {isSaving ? "Saving..." : "Save"}
+            </button>
           </div>
         </div>
       </Modal>
@@ -176,7 +217,13 @@ export default function CampaignsPage() {
         <p className="text-sm text-neutral-600 mb-6">Delete this campaign?</p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-          <button onClick={() => handleDelete(deleteConfirm!)} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
+          <button
+            onClick={() => handleDelete(deleteConfirm!)}
+            disabled={deleteMutation.isPending}
+            className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50"
+          >
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </button>
         </div>
       </Modal>
     </div>

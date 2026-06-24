@@ -9,6 +9,7 @@ import { type NavigationMenu, type NavigationItem, type MegaMenuColumn, type Pro
 export default function HeaderBuilder() {
   const [menus, setMenus] = useState<NavigationMenu[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editMenu, setEditMenu] = useState<NavigationMenu | null>(null);
   const [form, setForm] = useState({
@@ -18,11 +19,12 @@ export default function HeaderBuilder() {
 
   const fetch = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await adminApi.getNavigationMenus();
       setMenus((res.menus as NavigationMenu[]) ?? []);
-    } catch (error) {
-      // failed to fetch
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load navigation menus");
     } finally {
       setLoading(false);
     }
@@ -53,7 +55,7 @@ export default function HeaderBuilder() {
       setModalOpen(false);
       fetch();
     } catch (error) {
-      // failed to save
+      setError(error instanceof Error ? error.message : "Failed to save menu");
     }
   };
 
@@ -62,7 +64,7 @@ export default function HeaderBuilder() {
       await adminApi.deleteNavigation(id);
       fetch();
     } catch (error) {
-      // failed to delete
+      setError(error instanceof Error ? error.message : "Failed to delete menu");
     }
   };
 
@@ -189,6 +191,12 @@ export default function HeaderBuilder() {
 
   return (
     <div>
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl text-neutral-900">Header Builder</h1>
@@ -247,7 +255,7 @@ export default function HeaderBuilder() {
       {/* Edit/Create Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editMenu ? "Edit Menu" : "New Menu"} size="xl">
         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Menu Name *</label>
               <input required value={form.name}
@@ -350,7 +358,7 @@ export default function HeaderBuilder() {
                     {/* Mega Menu Columns */}
                     {item.type === "mega_menu" && (
                       <div className="ml-6 space-y-2">
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid-cols-1 sm:grid-cols-3 gap-2">
                           {item.megaMenuColumns?.map((col, ci) => (
                             <div key={col.id} className="bg-white rounded border border-neutral-100 p-2">
                               <input placeholder="Column title" value={col.title}

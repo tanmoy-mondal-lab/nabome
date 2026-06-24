@@ -51,7 +51,7 @@ export default function AddressesPage() {
       const pag = res.pagination as Pagination | undefined;
       setTotalPages(pag?.totalPages ?? 1);
     } catch {
-      /* ignore */
+      /* non-critical: failed to fetch addresses */
     } finally {
       setLoading(false);
     }

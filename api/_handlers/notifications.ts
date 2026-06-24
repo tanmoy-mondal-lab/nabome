@@ -23,10 +23,8 @@ export async function createNotification(
       },
     });
 
-    console.log(`[Notification] Created ${type} for ${profileId}: ${title}`);
-
     if (channel === "email") {
-      console.log(`[Notification] Email channel: Would send email for notification ${notification.id}`);
+      // TODO: integrate with email service
     }
   } catch (err) {
     console.error("[Notification] Failed to create notification:", err);

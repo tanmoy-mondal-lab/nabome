@@ -17,9 +17,7 @@ export default function SearchIndexPage() {
     try {
       const res = await adminApi.getSearchIndexStatus();
       setStatus(res);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
+    } catch { /* non-critical: failed to fetch search index status */ } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
@@ -31,7 +29,7 @@ export default function SearchIndexPage() {
       const res = await adminApi.buildSearchIndex();
       setBuildResult(res);
       fetchStatus();
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to rebuild search index */ } finally {
       setBuilding(false);
     }
   };
@@ -42,7 +40,7 @@ export default function SearchIndexPage() {
     try {
       const res = await adminApi.searchIndex(searchQuery);
       setSearchResults(res);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to search index */ } finally {
       setSearching(false);
     }
   };

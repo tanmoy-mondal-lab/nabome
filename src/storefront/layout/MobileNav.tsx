@@ -1,33 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronRight, Heart, User, Package } from "lucide-react";
 import { useUIStore } from "../stores/ui-store";
 import { useAuthStore } from "../../stores/auth-store";
-import { api } from "../../lib/api/client";
+import { useSettings } from "../hooks/useSettings";
+import { useNavigation } from "../hooks/useNavigation";
 import { cn } from "../../lib/utils/cn";
 
 export function MobileNav() {
   const { isMobileMenuOpen, closeMobileMenu } = useUIStore();
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
-  const [menus, setMenus] = useState<{ label: string; link?: string; url?: string; children?: { label: string; link?: string; url?: string }[] }[]>([]);
-  const [settings, setSettings] = useState<Record<string, unknown>>({});
+  const { data: settings } = useSettings();
+  const { data: navItems = [] } = useNavigation("mobile");
   const [expanded, setExpanded] = useState<string[]>([]);
-
-  useEffect(() => {
-    api.get("/api/cms/navigation")
-      .then((res) => {
-        const navData = res as { menus: Array<{ location: string } & Record<string, unknown>> };
-        const mobileMenu = navData.menus?.find((m) => m.location === "mobile");
-        const allItems = (mobileMenu?.items ?? navData.menus?.[0]?.items ?? []) as typeof menus;
-        setMenus(allItems);
-      })
-      .catch(() => {});
-    api.get("/api/settings", { params: { action: "public" } })
-      .then((s) => setSettings(s as Record<string, unknown>))
-      .catch(() => {});
-  }, []);
 
   const toggleExpand = (label: string) => {
     setExpanded((prev) => prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]);
@@ -42,14 +29,17 @@ export function MobileNav() {
             initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed top-0 left-0 bottom-0 z-50 w-80 bg-white shadow-elevated"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobile navigation menu"
           >
             <div className="flex items-center justify-between px-6 h-16 border-b border-neutral-100">
-              <span className="font-display text-xl tracking-widest">{(settings.siteName as string) || "নবME"}</span>
+              <span className="font-display text-xl tracking-widest">{settings?.siteName || "নবME"}</span>
               <button onClick={closeMobileMenu} className="p-1 hover:text-neutral-600 transition-colors"><X className="w-5 h-5" /></button>
             </div>
 
             <nav className="p-6 space-y-1 overflow-y-auto h-[calc(100vh-4rem)]">
-              {menus.map((menu) => {
+              {navItems.map((menu) => {
                 const hasChildren = (menu.children?.length ?? 0) > 0;
                 const open = expanded.includes(menu.label);
                 return (

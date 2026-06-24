@@ -23,7 +23,7 @@ export default function NewsletterPage() {
     try {
       const res = await adminApi.getNewsletterSubscribers();
       setSubscribers((res.subscribers as Subscriber[]) ?? []);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to fetch newsletter subscribers */ } finally {
       setLoading(false);
     }
   }, []);
@@ -35,7 +35,7 @@ export default function NewsletterPage() {
       await adminApi.deleteSubscriber(id);
       setDeleteConfirm(null);
       fetch();
-    } catch { /* ignore */ }
+    } catch { /* non-critical: failed to delete subscriber */ }
   };
 
   const handleExport = () => {

@@ -1,20 +1,21 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, error, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { createClient } from "@supabase/supabase-js";
+import type { Env } from "../_lib/env";
 
-function getAdminClient() {
-  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+function getAdminClient(env?: Env) {
+  const url = env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL;
+  const key = env?.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("Missing Supabase admin credentials");
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
 
-function getAnonClient() {
-  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
+function getAnonClient(env?: Env) {
+  const url = env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL;
+  const key = env?.SUPABASE_ANON_KEY ?? env?.VITE_SUPABASE_ANON_KEY;
   if (!url || !key) throw new Error("Missing Supabase credentials");
   return createClient(url, key);
 }
@@ -162,7 +163,7 @@ async function handleChangePassword(ctx: RequestContext, req: Request): Promise<
     const user = await prisma.profile.findUnique({ where: { id: ctx.userId } });
     if (!user) return unauthorized();
 
-    const anonClient = getAnonClient();
+    const anonClient = getAnonClient(ctx.env);
     const { error: verifyError } = await anonClient.auth.signInWithPassword({
       email: user.email,
       password: currentPassword,
@@ -172,7 +173,7 @@ async function handleChangePassword(ctx: RequestContext, req: Request): Promise<
       return badRequest("Current password is incorrect");
     }
 
-    const supabase = getAdminClient();
+    const supabase = getAdminClient(ctx.env);
     const { error: updateError } = await supabase.auth.admin.updateUserById(ctx.userId!, {
       password: newPassword,
     });

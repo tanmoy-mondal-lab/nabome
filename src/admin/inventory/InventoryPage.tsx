@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { Modal } from "../common/Modal";
@@ -6,11 +7,11 @@ import { StatsCard } from "../common/StatsCard";
 import { EmptyState } from "../common/EmptyState";
 import { Package, AlertTriangle, XCircle, CheckCircle, PackageSearch, Search } from "lucide-react";
 import { formatDate } from "../../lib/utils/format";
+import { useToast } from "../../components/ui/Toast";
 
 export default function InventoryPage() {
-  const [overview, setOverview] = useState<{ stats: Record<string, number>; recentMovements: unknown[]; alerts: unknown[] } | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [tab, setTab] = useState<"overview" | "alerts" | "history">("overview");
   const [search, setSearch] = useState("");
   const [showAdjust, setShowAdjust] = useState(false);
@@ -18,17 +19,41 @@ export default function InventoryPage() {
   const [adjustForm, setAdjustForm] = useState({ quantityChange: 0, reason: "", note: "" });
   const [adjustError, setAdjustError] = useState<string | null>(null);
 
-  useEffect(() => { load(); }, []);
-
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
+  const { data: overview, isLoading, error } = useQuery({
+    queryKey: ["admin", "inventory"],
+    queryFn: async () => {
       const o = await adminApi.getInventoryOverview();
-      setOverview({ stats: o.stats as Record<string, number>, recentMovements: o.recentMovements as unknown[], alerts: o.alerts as unknown[] });
-    } catch (err) { setError(`Failed to load inventory data: ${(err as Error).message ?? "Unknown error"}`); }
-    setLoading(false);
-  }
+      return { stats: o.stats as Record<string, number>, recentMovements: o.recentMovements as unknown[], alerts: o.alerts as unknown[] };
+    },
+  });
+
+  const adjustMutation = useMutation({
+    mutationFn: (payload: { variantId: string; data: { quantityChange: number; reason: string; note: string } }) =>
+      adminApi.adjustVariantStock(payload.variantId, payload.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "inventory"] });
+      setShowAdjust(false);
+      setAdjustError(null);
+      toast("Stock adjusted successfully", "success");
+    },
+    onError: (err) => {
+      const msg = `Failed to adjust stock: ${(err as Error).message ?? "Unknown error"}`;
+      setAdjustError(msg);
+      toast(msg, "error");
+    },
+  });
+
+  const resolveAlertMutation = useMutation({
+    mutationFn: (alertId: string) => adminApi.resolveAlert(alertId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "inventory"] });
+    },
+    onError: () => {},
+  });
 
   function openAdjust(variant: Record<string, unknown>) {
     setAdjustVariant(variant);
@@ -36,19 +61,14 @@ export default function InventoryPage() {
     setShowAdjust(true);
   }
 
-  async function handleAdjust() {
+  function handleAdjust() {
     if (!adjustVariant) return;
     setAdjustError(null);
-    try {
-      await adminApi.adjustVariantStock(adjustVariant.id as string, adjustForm);
-      setShowAdjust(false); load();
-    } catch (err) { setAdjustError(`Failed to adjust stock: ${(err as Error).message ?? "Unknown error"}`); }
+    adjustMutation.mutate({ variantId: adjustVariant.id as string, data: adjustForm });
   }
 
-  async function handleResolveAlert(alertId: string) {
-    try {
-      await adminApi.resolveAlert(alertId); load();
-    } catch { /* non-critical, ignore */ }
+  function handleResolveAlert(alertId: string) {
+    resolveAlertMutation.mutate(alertId);
   }
 
   const stats = overview?.stats;
@@ -77,8 +97,8 @@ export default function InventoryPage() {
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded p-4 text-sm text-red-700">
-          {error}
-          <button onClick={load} className="ml-3 underline hover:text-red-900">Retry</button>
+          {`Failed to load inventory data: ${(error as Error).message ?? "Unknown error"}`}
+          <button onClick={() => queryClient.invalidateQueries({ queryKey: ["admin", "inventory"] })} className="ml-3 underline hover:text-red-900">Retry</button>
         </div>
       )}
 
@@ -129,7 +149,7 @@ export default function InventoryPage() {
             { key: "stockAfter", label: "After" },
             { key: "reason", label: "Reason" },
             { key: "note", label: "Note" },
-          ]} data={movements as Record<string, unknown>[]} isLoading={loading} />)}
+          ]} data={movements as Record<string, unknown>[]} isLoading={isLoading} />)}
 
       <Modal open={showAdjust && !!adjustVariant} title={`Adjust Stock: ${adjustVariant?.sku ?? ""}`} onClose={() => { setShowAdjust(false); setAdjustError(null); }}>
         <div className="space-y-4">
@@ -148,7 +168,7 @@ export default function InventoryPage() {
         </div>
         <div className="flex justify-end gap-2 pt-4 border-t mt-4">
           <button onClick={() => setShowAdjust(false)} type="button" className="px-4 py-2 text-sm border border-neutral-200 rounded text-neutral-600 hover:bg-neutral-50">Cancel</button>
-          <button onClick={handleAdjust} type="button" className="px-4 py-2 text-sm bg-neutral-900 text-white rounded hover:bg-neutral-800">Save</button>
+          <button onClick={handleAdjust} type="button" disabled={adjustMutation.isPending} className="px-4 py-2 text-sm bg-neutral-900 text-white rounded hover:bg-neutral-800">{adjustMutation.isPending ? "Saving..." : "Save"}</button>
         </div>
       </Modal>
     </div>

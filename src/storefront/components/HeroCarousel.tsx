@@ -50,7 +50,7 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
       if (!v) return;
       if (i === current) {
         v.currentTime = 0;
-        v.play().catch(() => {});
+        v.play().catch(() => { /* non-critical: autoplay not supported */ });
       } else {
         v.pause();
         v.currentTime = 0;

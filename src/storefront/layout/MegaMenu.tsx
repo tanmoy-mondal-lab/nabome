@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { api } from "../../lib/api/client";
 import { useUIStore } from "../stores/ui-store";
+import { useSettings } from "../hooks/useSettings";
 import { cn } from "../../lib/utils/cn";
 import { SafeImage } from "../../components/SafeImage";
 
@@ -17,37 +16,11 @@ interface NavItem {
   description?: string;
 }
 
-export function MegaMenu({ label, menus: propMenus }: { label: string; menus?: NavItem[] }) {
+export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] }) {
   const { setActiveMegaMenu } = useUIStore();
-  const [menus, setMenus] = useState<NavItem[]>(propMenus ?? []);
-  const [settings, setSettings] = useState<Record<string, unknown>>({});
+  const { data: settings } = useSettings();
 
-  useEffect(() => {
-    api.get("/api/settings", { params: { action: "public" } })
-      .then((s) => setSettings(s as Record<string, unknown>))
-      .catch(() => {});
-
-    if (propMenus && propMenus.length > 0) {
-      setMenus(propMenus);
-    } else {
-      api.get<{ menus: { items: NavItem[] }[] }>("/api/cms/navigation")
-        .then((res) => {
-          const mainMenu = res.menus?.find((m) => (m as unknown as Record<string, unknown>).location === "header");
-          setMenus(mainMenu?.items ?? res.menus?.[0]?.items ?? []);
-        })
-        .catch(() => {});
-    }
-
-    const onSettingsUpdate = () => {
-      api.get("/api/settings", { params: { action: "public" } })
-        .then((s) => setSettings(s as Record<string, unknown>))
-        .catch(() => {});
-    };
-    window.addEventListener("settings:updated", onSettingsUpdate);
-    return () => window.removeEventListener("settings:updated", onSettingsUpdate);
-  }, [propMenus]);
-
-  const activeItem = menus.find((m) => m.label === label);
+  const activeItem = menus?.find((m) => m.label === label);
   if (!activeItem) return null;
 
   const linkColumns = activeItem.children?.slice(0, 4) ?? [];
@@ -124,9 +97,9 @@ export function MegaMenu({ label, menus: propMenus }: { label: string; menus?: N
       <div className="border-t border-neutral-50 bg-luxe-ivory/50">
         <div className="container-wide py-3 flex items-center justify-between">
           <p className="text-xs text-neutral-400 tracking-wider">
-            {(settings.preferences as Record<string, unknown>)?.promoText as string || "Free shipping on orders above ₹999 · Easy 30-day returns · Secure checkout"}
+            {(settings?.preferences as Record<string, unknown>)?.promoText as string || "Free shipping on orders above ₹999 · Easy 30-day returns · Secure checkout"}
           </p>
-          <span className="text-[10px] text-accent-gold tracking-widest uppercase">{(settings.preferences as Record<string, unknown>)?.promoTagline as string || "New Season Now Available"}</span>
+          <span className="text-[10px] text-accent-gold tracking-widest uppercase">{(settings?.preferences as Record<string, unknown>)?.promoTagline as string || "New Season Now Available"}</span>
         </div>
       </div>
     </div>

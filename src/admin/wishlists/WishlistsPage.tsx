@@ -38,7 +38,7 @@ export default function WishlistsPage() {
       setProducts(res.products ?? []);
       setTotal(res.pagination?.total ?? 0);
       setTotalPages(res.pagination?.totalPages ?? 1);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to fetch wishlisted products */ } finally {
       setLoading(false);
     }
   }, [page, search]);

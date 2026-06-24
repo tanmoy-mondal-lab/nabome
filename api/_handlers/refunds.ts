@@ -31,6 +31,8 @@ export async function handleRefundRequest(
   switch (action) {
     case "list": return handleList(req);
     case "detail": return handleDetail(params[0]);
+    case "listMy": return handleListMy(req, ctx);
+    case "detailMy": return handleDetailMy(params[0], ctx);
     case "create": return handleCreate(req, ctx);
     case "process": return handleProcess(params[0]);
     case "complete": return handleComplete(params[0], ctx);
@@ -92,6 +94,54 @@ async function handleDetail(refundId: string): Promise<Response> {
       },
     });
 
+    if (!refund) return notFound("Refund not found");
+    return success({ refund });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleListMy(req: Request, ctx: RequestContext): Promise<Response> {
+  if (!ctx.userId) return badRequest("Unauthorized");
+  const url = new URL(req.url);
+  const page = parseInt(url.searchParams.get("page") ?? "1");
+  const limit = parseInt(url.searchParams.get("limit") ?? "25");
+  const skip = (page - 1) * limit;
+
+  try {
+    const where = { returnRequest: { profileId: ctx.userId } };
+    const [refunds, total] = await Promise.all([
+      prisma.refund.findMany({
+        where,
+        include: {
+          returnRequest: { select: { id: true, status: true, reason: true } },
+          order: { select: { orderNumber: true, total: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.refund.count({ where }),
+    ]);
+    return success({
+      refunds,
+      pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleDetailMy(refundId: string, ctx: RequestContext): Promise<Response> {
+  if (!ctx.userId) return badRequest("Unauthorized");
+  try {
+    const refund = await prisma.refund.findFirst({
+      where: { id: refundId, returnRequest: { profileId: ctx.userId } },
+      include: {
+        returnRequest: { include: { items: true } },
+        order: { select: { orderNumber: true, total: true, paymentStatus: true } },
+      },
+    });
     if (!refund) return notFound("Refund not found");
     return success({ refund });
   } catch (err) {

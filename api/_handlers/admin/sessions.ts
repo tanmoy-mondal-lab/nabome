@@ -15,8 +15,8 @@ export async function handleAdminSessionRequest(req: Request, _ctx: RequestConte
 
 async function handleList(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const page = parseInt(url.searchParams.get("page") ?? "1");
-  const limit = parseInt(url.searchParams.get("limit") ?? "25");
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
+  const limit = Math.max(1, parseInt(url.searchParams.get("limit") ?? "25") || 25);
   const profileId = url.searchParams.get("profileId");
   const isActive = url.searchParams.get("isActive");
   const where: Record<string, unknown> = {};

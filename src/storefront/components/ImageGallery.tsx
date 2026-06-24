@@ -98,10 +98,10 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
           )}
         </AnimatePresence>
 
-        <button onClick={goPrev} disabled={activeIndex === 0} className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 disabled:opacity-0 hover:bg-white hover:shadow-subtle max-md:opacity-100 max-md:disabled:opacity-30 max-md:w-8 max-md:h-8">
+        <button onClick={goPrev} disabled={activeIndex === 0} aria-label="Previous image" className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 disabled:opacity-0 hover:bg-white hover:shadow-subtle max-md:opacity-100 max-md:disabled:opacity-30 max-md:w-8 max-md:h-8">
           <ChevronLeft className="w-4 h-4" />
         </button>
-        <button onClick={goNext} disabled={activeIndex === images.length - 1} className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 disabled:opacity-0 hover:bg-white hover:shadow-subtle max-md:opacity-100 max-md:disabled:opacity-30 max-md:w-8 max-md:h-8">
+        <button onClick={goNext} disabled={activeIndex === images.length - 1} aria-label="Next image" className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 disabled:opacity-0 hover:bg-white hover:shadow-subtle max-md:opacity-100 max-md:disabled:opacity-30 max-md:w-8 max-md:h-8">
           <ChevronRight className="w-4 h-4" />
         </button>
 

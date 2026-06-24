@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { StatusBadge } from "../common/StatusBadge";
 import { formatPrice, formatDate } from "../../lib/utils/format";
 import { Plus, Edit3, Trash2, Percent } from "lucide-react";
+import { useToast } from "../../components/ui/Toast";
 
 interface Coupon {
   id: string;
@@ -25,8 +27,8 @@ interface Coupon {
 }
 
 export default function CouponsPage() {
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Coupon | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -37,17 +39,64 @@ export default function CouponsPage() {
     startDate: "", endDate: "",
   });
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: coupons = [], isLoading: loading } = useQuery<Coupon[]>({
+    queryKey: ["admin", "coupons"],
+    queryFn: async () => {
       const res = await adminApi.getCoupons();
-      setCoupons((res.coupons as Coupon[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.coupons as Coupon[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["coupons"] });
+    queryClient.invalidateQueries({ queryKey: ["admin", "coupons"] });
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        code: form.code.toUpperCase(),
+        discountType: form.discountType,
+        discountValue: form.discountValue,
+        description: form.description || null,
+        minOrderValue: form.minOrderValue ? Number(form.minOrderValue) : null,
+        maxDiscount: form.maxDiscount ? Number(form.maxDiscount) : null,
+        usageLimit: form.usageLimit ? Number(form.usageLimit) : null,
+        perUserLimit: Number(form.perUserLimit) || 1,
+        applicableGender: form.applicableGender || null,
+        isActive: form.isActive,
+        startDate: form.startDate || null,
+        endDate: form.endDate || null,
+      };
+      if (editItem) {
+        await adminApi.updateCoupon(editItem.id, payload);
+      } else {
+        await adminApi.createCoupon(payload);
+      }
+    },
+    onSuccess: () => {
+      setModalOpen(false);
+      invalidateAll();
+      toast(editItem ? "Coupon updated" : "Coupon created", "success");
+    },
+    onError: () => {
+      toast("Failed to save coupon", "error");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await adminApi.deleteCoupon(id);
+    },
+    onSuccess: () => {
+      setDeleteConfirm(null);
+      invalidateAll();
+      toast("Coupon deleted", "success");
+    },
+    onError: () => {
+      toast("Failed to delete coupon", "error");
+    },
+  });
 
   const openCreate = () => {
     setEditItem(null);
@@ -71,39 +120,12 @@ export default function CouponsPage() {
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
-    try {
-      const payload = {
-        code: form.code.toUpperCase(),
-        discountType: form.discountType,
-        discountValue: form.discountValue,
-        description: form.description || null,
-        minOrderValue: form.minOrderValue ? Number(form.minOrderValue) : null,
-        maxDiscount: form.maxDiscount ? Number(form.maxDiscount) : null,
-        usageLimit: form.usageLimit ? Number(form.usageLimit) : null,
-        perUserLimit: Number(form.perUserLimit) || 1,
-        applicableGender: form.applicableGender || null,
-        isActive: form.isActive,
-        startDate: form.startDate || null,
-        endDate: form.endDate || null,
-      };
-      if (editItem) {
-        await adminApi.updateCoupon(editItem.id, payload);
-      } else {
-        await adminApi.createCoupon(payload);
-      }
-      setModalOpen(false);
-      fetch();
-    } catch { /* ignore */ }
+  const handleSave = () => {
+    if (!form.code.trim() || form.discountValue <= 0) return;
+    saveMutation.mutate();
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteCoupon(id);
-      setDeleteConfirm(null);
-      fetch();
-    } catch { /* ignore */ }
-  };
+  const handleDelete = (id: string) => deleteMutation.mutate(id);
 
   const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors";
 
@@ -268,7 +290,9 @@ export default function CouponsPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
-            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">Save</button>
+            <button onClick={handleSave} disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">
+              {saveMutation.isPending ? "Saving..." : "Save"}
+            </button>
           </div>
         </div>
       </Modal>
@@ -277,7 +301,9 @@ export default function CouponsPage() {
         <p className="text-sm text-neutral-600 mb-6">Are you sure you want to delete this coupon? This cannot be undone.</p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setDeleteConfirm(null)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
-          <button onClick={() => handleDelete(deleteConfirm!)} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">Delete</button>
+          <button onClick={() => handleDelete(deleteConfirm!)} disabled={deleteMutation.isPending} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50">
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </button>
         </div>
       </Modal>
     </div>

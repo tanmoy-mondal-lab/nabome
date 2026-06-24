@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { Plus, X, GripVertical, Image, Link, Package } from "lucide-react";
 import { MediaPicker } from "../common/MediaPicker";
+import { useToast } from "../../components/ui/Toast";
 
 interface LookbookItem {
   id: string;
@@ -22,6 +24,8 @@ export default function LookbookFormPage() {
   const { id } = useParams();
   const isEdit = !!id;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const [form, setForm] = useState({
     title: "", slug: "", description: "", story: "", season: "",
@@ -31,30 +35,55 @@ export default function LookbookFormPage() {
   });
   const [items, setItems] = useState<LookbookItem[]>([]);
   const [showAddItem, setShowAddItem] = useState(false);
-  const [saving, setSaving] = useState(false);
+
+  const lookbookQuery = useQuery({
+    queryKey: ["admin", "lookbook", id],
+    queryFn: () => adminApi.getLookbook(id!),
+    enabled: isEdit,
+  });
 
   useEffect(() => {
-    if (isEdit) {
-      adminApi.getLookbook(id!).then((res) => {
-        const lb = res.lookbook as Record<string, unknown>;
-        setForm({
-          title: (lb.title as string) ?? "",
-          slug: (lb.slug as string) ?? "",
-          description: (lb.description as string) ?? "",
-          story: (lb.story as string) ?? "",
-          season: (lb.season as string) ?? "",
-          year: (lb.year as number) ?? new Date().getFullYear(),
-          featuredImage: (lb.featuredImage as string) ?? "",
-          layout: (lb.layout as string) ?? "grid",
-          status: (lb.status as string) ?? "draft",
-          tags: Array.isArray(lb.tags) ? (lb.tags as string[]).join(", ") : "",
-          metaTitle: (lb.metaTitle as string) ?? "",
-          metaDescription: (lb.metaDescription as string) ?? "",
-        });
-        setItems((lb.items as LookbookItem[]) ?? []);
-      }).catch(() => navigate("/admin/lookbooks"));
+    if (lookbookQuery.data) {
+      const lb = lookbookQuery.data.lookbook as Record<string, unknown>;
+      setForm({
+        title: (lb.title as string) ?? "",
+        slug: (lb.slug as string) ?? "",
+        description: (lb.description as string) ?? "",
+        story: (lb.story as string) ?? "",
+        season: (lb.season as string) ?? "",
+        year: (lb.year as number) ?? new Date().getFullYear(),
+        featuredImage: (lb.featuredImage as string) ?? "",
+        layout: (lb.layout as string) ?? "grid",
+        status: (lb.status as string) ?? "draft",
+        tags: Array.isArray(lb.tags) ? (lb.tags as string[]).join(", ") : "",
+        metaTitle: (lb.metaTitle as string) ?? "",
+        metaDescription: (lb.metaDescription as string) ?? "",
+      });
+      setItems((lb.items as LookbookItem[]) ?? []);
     }
-  }, [id, isEdit, navigate]);
+  }, [lookbookQuery.data]);
+
+  useEffect(() => {
+    if (lookbookQuery.error) {
+      toast("Failed to load lookbook", "error");
+      navigate("/admin/lookbooks");
+    }
+  }, [lookbookQuery.error, navigate, toast]);
+
+  const saveMutation = useMutation({
+    mutationFn: (payload: Record<string, unknown>) =>
+      isEdit
+        ? adminApi.updateLookbook(id!, payload)
+        : adminApi.createLookbook(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "lookbooks"] });
+      toast(isEdit ? "Lookbook updated" : "Lookbook created", "success");
+      navigate("/admin/lookbooks");
+    },
+    onError: () => {
+      toast("Failed to save lookbook", "error");
+    },
+  });
 
   const addItem = (type: string) => {
     const newItem: LookbookItem = {
@@ -75,33 +104,23 @@ export default function LookbookFormPage() {
     setItems(items.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const payload = {
-        title: form.title,
-        slug: form.slug,
-        description: form.description,
-        story: form.story,
-        season: form.season,
-        year: form.year,
-        featuredImage: form.featuredImage,
-        layout: form.layout,
-        status: form.status,
-        tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-        metaTitle: form.metaTitle,
-        metaDescription: form.metaDescription,
-        items,
-      };
-      if (isEdit) {
-        await adminApi.updateLookbook(id!, payload);
-      } else {
-        await adminApi.createLookbook(payload);
-      }
-      navigate("/admin/lookbooks");
-    } catch { /* ignore */ } finally {
-      setSaving(false);
-    }
+  const handleSave = () => {
+    const payload = {
+      title: form.title,
+      slug: form.slug,
+      description: form.description,
+      story: form.story,
+      season: form.season,
+      year: form.year,
+      featuredImage: form.featuredImage,
+      layout: form.layout,
+      status: form.status,
+      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      metaTitle: form.metaTitle,
+      metaDescription: form.metaDescription,
+      items,
+    };
+    saveMutation.mutate(payload);
   };
 
   return (
@@ -306,9 +325,9 @@ export default function LookbookFormPage() {
             </div>
           </section>
 
-          <button onClick={handleSave} disabled={saving}
+          <button onClick={handleSave} disabled={saveMutation.isPending}
             className="w-full bg-neutral-900 text-white px-6 py-2.5 rounded text-sm font-medium hover:bg-neutral-800 disabled:opacity-50">
-            {saving ? "Saving…" : isEdit ? "Update Lookbook" : "Create Lookbook"}
+            {saveMutation.isPending ? "Saving…" : isEdit ? "Update Lookbook" : "Create Lookbook"}
           </button>
         </div>
       </div>

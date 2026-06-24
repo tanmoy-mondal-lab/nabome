@@ -2,7 +2,7 @@
 // নবME API — Catch-all Router
 // ─────────────────────────────────────────────────────────────
 // Receives all /api/* requests and dispatches to handlers.
-// Vercel serverless function entry point.
+// Cloudflare Pages Functions entry point.
 // ─────────────────────────────────────────────────────────────
 
 import type { RequestContext } from "./_lib/types";
@@ -287,6 +287,10 @@ route("POST", "/api/returns", (req, ctx) => handleReturnRequest(req, ctx, [], "c
 route("GET", "/api/returns", (req, ctx) => handleReturnRequest(req, ctx, [], "listMy"), { auth: true });
 route("GET", "/api/returns/:id", (req, ctx, p) => handleReturnRequest(req, ctx, p, "detailMy"), { auth: true });
 
+// Refunds (customer-facing)
+route("GET", "/api/refunds", (req, ctx) => handleRefundRequest(req, ctx, [], "listMy"), { auth: true });
+route("GET", "/api/refunds/:id", (req, ctx, p) => handleRefundRequest(req, ctx, p, "detailMy"), { auth: true });
+
 route("GET", "/api/admin/returns", (req, ctx) => handleReturnRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
 route("GET", "/api/admin/returns/:id", (req, ctx, p) => handleReturnRequest(req, ctx, p, "adminDetail"), { auth: true, admin: true });
 route("PUT", "/api/admin/returns/:id/approve", (req, ctx, p) => handleReturnRequest(req, ctx, p, "approve"), { auth: true, admin: true });
@@ -318,6 +322,8 @@ route("PUT", "/api/admin/products/:id/schedule", (req, ctx, p) => handleAdminPro
 route("PUT", "/api/admin/products/bulk/status", (req, ctx) => handleAdminProductRequest(req, ctx, [], "bulkStatus"), { auth: true, admin: true });
 route("PUT", "/api/admin/products/bulk/category", (req, ctx) => handleAdminProductRequest(req, ctx, [], "bulkCategory"), { auth: true, admin: true });
 route("PUT", "/api/admin/products/bulk/delete", (req, ctx) => handleAdminProductRequest(req, ctx, [], "bulkDelete"), { auth: true, admin: true });
+route("PUT", "/api/admin/products/bulk/permanent-delete", (req, ctx) => handleAdminProductRequest(req, ctx, [], "bulkPermanentDelete"), { auth: true, admin: true });
+route("DELETE", "/api/admin/products/:id/permanent", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "permanentDelete"), { auth: true, admin: true });
 route("PUT", "/api/admin/products/:id/labels", (req, ctx, p) => handleAdminProductLabelRequest(req, ctx, p, "assignLabels"), { auth: true, admin: true });
 route("PUT", "/api/admin/products/:id/tags", (req, ctx, p) => handleAdminProductLabelRequest(req, ctx, p, "assignTags"), { auth: true, admin: true });
 route("GET", "/api/admin/products/:id/related", (req, ctx, p) => handleAdminRelatedProductRequest(req, ctx, p, "list"), { auth: true, admin: true });
@@ -480,9 +486,6 @@ route("GET", "/api/admin/search/status", (req, ctx) => handleAdminSearchIndexReq
 route("POST", "/api/admin/search/build", (req, ctx) => handleAdminSearchIndexRequest(req, ctx, [], "build"), { auth: true, admin: true });
 route("GET", "/api/admin/search", (req, ctx) => handleAdminSearchIndexRequest(req, ctx, [], "search"), { auth: true, admin: true });
 
-// Public theme endpoint
-route("GET", "/api/theme", (req, ctx) => handleSettingsRequest(req, ctx, [], "public"));
-
 route("GET", "/api/orders/:id/invoice", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "getInvoice"), { auth: true });
 
 // Public invoice by orderNumber (serves the stored invoiceUrl like /invoices/NB-XXXX.html)
@@ -581,38 +584,32 @@ route("GET", "/api/admin/login-attempts", (req, ctx) => handleAdminLoginAttemptR
 
 // ─── Router ───
 
-// Vercel serverless / Cloudflare Pages Functions format
-export async function GET(request: Request): Promise<Response> {
-  return handleRequest("GET", request);
+// Cloudflare Pages Functions format
+export async function GET(request: Request, opts?: { env?: Record<string, string> }): Promise<Response> {
+  return handleRequest("GET", request, opts?.env);
 }
 
-export async function POST(request: Request): Promise<Response> {
-  return handleRequest("POST", request);
+export async function POST(request: Request, opts?: { env?: Record<string, string> }): Promise<Response> {
+  return handleRequest("POST", request, opts?.env);
 }
 
-export async function PUT(request: Request): Promise<Response> {
-  return handleRequest("PUT", request);
+export async function PUT(request: Request, opts?: { env?: Record<string, string> }): Promise<Response> {
+  return handleRequest("PUT", request, opts?.env);
 }
 
-export async function DELETE(request: Request): Promise<Response> {
-  return handleRequest("DELETE", request);
+export async function DELETE(request: Request, opts?: { env?: Record<string, string> }): Promise<Response> {
+  return handleRequest("DELETE", request, opts?.env);
 }
 
-export async function PATCH(request: Request): Promise<Response> {
-  return handleRequest("PATCH", request);
+export async function PATCH(request: Request, opts?: { env?: Record<string, string> }): Promise<Response> {
+  return handleRequest("PATCH", request, opts?.env);
 }
 
-export async function OPTIONS(request: Request): Promise<Response> {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      ...corsHeaders(request),
-      "Access-Control-Max-Age": "86400",
-    },
-  });
+export async function OPTIONS(request: Request, opts?: { env?: Record<string, string> }): Promise<Response> {
+  return handleRequest("OPTIONS", request, opts?.env);
 }
 
-async function handleRequest(method: string, request: Request): Promise<Response> {
+async function handleRequest(method: string, request: Request, env?: Record<string, string>): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname;
 
@@ -624,7 +621,7 @@ async function handleRequest(method: string, request: Request): Promise<Response
   } else if (path.includes("/api/admin/")) {
     rateConfig = RATE_LIMIT_CONFIG.admin;
   }
-  const rateResult = checkRateLimit(key, rateConfig);
+  const rateResult = await checkRateLimit(key, rateConfig);
   if (!rateResult.allowed) {
     return withCors(rateLimitResponse(rateConfig.message || "Too many requests", rateResult.resetAt), request, path);
   }
@@ -659,11 +656,11 @@ async function handleRequest(method: string, request: Request): Promise<Response
     }
 
     // Authenticate if required
-    let context: RequestContext = {};
+    let context: RequestContext = { env };
     if (r.auth || r.admin) {
       const result = await authenticateRequest(request);
       if (result instanceof Response) return withCors(result, request, path);
-      context = result;
+      context = { ...result, env };
     }
 
     // Check admin role

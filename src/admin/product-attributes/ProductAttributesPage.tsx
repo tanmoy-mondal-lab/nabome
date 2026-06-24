@@ -1,8 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { SlidersHorizontal, Plus, Edit3, Trash2, Search } from "lucide-react";
+import { useToast } from "../../components/ui/Toast";
 
 interface Attribute {
   id: string;
@@ -13,25 +15,60 @@ interface Attribute {
 }
 
 export default function ProductAttributesPage() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [productId, setProductId] = useState("");
   const [selectedId, setSelectedId] = useState("");
-  const [attributes, setAttributes] = useState<Attribute[]>([]);
-  const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Attribute | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", value: "" });
 
-  const fetch = useCallback(async () => {
-    if (!selectedId) return;
-    setLoading(true);
-    try {
+  const { data: attributes = [], isLoading: loading } = useQuery<Attribute[]>({
+    queryKey: ["admin", "productAttributes", selectedId],
+    queryFn: async () => {
       const res = await adminApi.getProductAttributes(selectedId);
-      setAttributes((res.attributes as Attribute[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, [selectedId]);
+      return (res.attributes as Attribute[]) ?? [];
+    },
+    enabled: !!selectedId,
+  });
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin", "productAttributes"] });
+    queryClient.invalidateQueries({ queryKey: ["products"] });
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (editItem) {
+        await adminApi.updateProductAttribute(editItem.id, { name: form.name, value: form.value });
+      } else {
+        await adminApi.createProductAttribute(selectedId, { name: form.name, value: form.value });
+      }
+    },
+    onSuccess: () => {
+      setModalOpen(false);
+      invalidateAll();
+      toast(editItem ? "Attribute updated" : "Attribute created", "success");
+    },
+    onError: () => {
+      toast("Failed to save attribute", "error");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await adminApi.deleteProductAttribute(id);
+    },
+    onSuccess: () => {
+      setDeleteConfirm(null);
+      invalidateAll();
+      toast("Attribute deleted", "success");
+    },
+    onError: () => {
+      toast("Failed to delete attribute", "error");
+    },
+  });
 
   const handleSearch = () => {
     const trimmed = productId.trim();
@@ -39,8 +76,6 @@ export default function ProductAttributesPage() {
       setSelectedId(trimmed);
     }
   };
-
-  useEffect(() => { if (selectedId) fetch(); }, [fetch, selectedId]);
 
   const openCreate = () => {
     setEditItem(null);
@@ -54,25 +89,8 @@ export default function ProductAttributesPage() {
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
-    try {
-      if (editItem) {
-        await adminApi.updateProductAttribute(editItem.id, { name: form.name, value: form.value });
-      } else {
-        await adminApi.createProductAttribute(selectedId, { name: form.name, value: form.value });
-      }
-      setModalOpen(false);
-      fetch();
-    } catch { /* ignore */ }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteProductAttribute(id);
-      setDeleteConfirm(null);
-      fetch();
-    } catch { /* ignore */ }
-  };
+  const handleSave = () => saveMutation.mutate();
+  const handleDelete = (id: string) => deleteMutation.mutate(id);
 
   const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
 
@@ -162,7 +180,9 @@ export default function ProductAttributesPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">Save</button>
+            <button onClick={handleSave} disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+              {saveMutation.isPending ? "Saving..." : "Save"}
+            </button>
           </div>
         </div>
       </Modal>
@@ -171,7 +191,9 @@ export default function ProductAttributesPage() {
         <p className="text-sm text-neutral-600 mb-6">Delete this product attribute?</p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-          <button onClick={() => handleDelete(deleteConfirm!)} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
+          <button onClick={() => handleDelete(deleteConfirm!)} disabled={deleteMutation.isPending} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </button>
         </div>
       </Modal>
     </div>

@@ -1,27 +1,71 @@
 import { MediaPicker } from "../common/MediaPicker";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { Plus, Edit3, Trash2, Search } from "lucide-react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import { useToast } from "../../components/ui/Toast";
 
 export default function SizeGuidesPage() {
-  const [guides, setGuides] = useState<unknown[]>([]);
-  const [categories, setCategories] = useState<unknown[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [edit, setEdit] = useState<Record<string, unknown> | null>(null);
   const [form, setForm] = useState({ name: "", description: "", categoryId: "", type: "clothing", unit: "inches", imageUrl: "", measurements: "[]", isActive: true });
   const [measurementsArr, setMeasurementsArr] = useState<{ size: string; bust?: string; waist?: string; hips?: string; length?: string; chest?: string; shoulder?: string }[]>([]);
 
-  useEffect(() => {
-    Promise.all([adminApi.getSizeGuides(), adminApi.getCategories()]).then(([g, c]) => {
-      setGuides(g.sizeGuides ?? []);
-      setCategories(c.categories ?? []);
-    }).catch(() => { /* non-critical: data will show as empty */ }).finally(() => setLoading(false));
-  }, []);
+  const { data: sizeGuidesData, isLoading: loading } = useQuery({
+    queryKey: ["admin", "sizeGuides"],
+    queryFn: async () => {
+      const g = await adminApi.getSizeGuides();
+      return g.sizeGuides ?? [];
+    },
+    throwOnError: false,
+  });
+
+  const { data: categoriesData } = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: async () => {
+      const c = await adminApi.getCategories();
+      return c.categories ?? [];
+    },
+    throwOnError: false,
+  });
+
+  const guides = sizeGuidesData ?? [];
+  const categories = categoriesData ?? [];
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: Record<string, unknown>) => {
+      if (edit) {
+        await adminApi.updateSizeGuide((edit.id as string), data);
+      } else {
+        await adminApi.createSizeGuide(data);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "sizeGuides"] });
+      setShowModal(false);
+      toast(edit ? "Size guide updated" : "Size guide created", "success");
+    },
+    onError: (err: Error) => {
+      toast(`Failed to save size guide: ${err.message ?? "Unknown error"}`, "error");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteSizeGuide(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "sizeGuides"] });
+      toast("Size guide deleted", "success");
+    },
+    onError: (err: Error) => {
+      toast(`Failed to delete size guide: ${err.message ?? "Unknown error"}`, "error");
+    },
+  });
 
   function openCreate() {
     setEdit(null);
@@ -61,17 +105,13 @@ export default function SizeGuidesPage() {
     setMeasurementsArr(measurementsArr.filter((_, i) => i !== idx));
   }
 
-  async function handleSave() {
+  function handleSave() {
     const data = { ...form, measurements: measurementsArr, categoryId: form.categoryId || null };
-    if (edit) { await adminApi.updateSizeGuide((edit.id as string), data); }
-    else { await adminApi.createSizeGuide(data); }
-    setShowModal(false);
-    const g = await adminApi.getSizeGuides();
-    setGuides(g.sizeGuides ?? []);
+    saveMutation.mutate(data);
   }
 
-  async function handleDelete(id: string) {
-    await adminApi.deleteSizeGuide(id); setGuides((guides as Record<string, unknown>[]).filter((g) => g.id !== id));
+  function handleDelete(id: string) {
+    deleteMutation.mutate(id);
   }
 
   const filtered = (guides as Record<string, unknown>[]).filter((g) => !search || ((g.name as string) ?? "").toLowerCase().includes(search.toLowerCase()));

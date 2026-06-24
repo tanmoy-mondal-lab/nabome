@@ -191,30 +191,42 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string):
         include: { items: true, statusHistory: true, shippingAddress: true },
       });
 
-      // Restore stock for all items
-      for (const item of order.items) {
-        if (item.variantId) {
-          const variant = await tx.productVariant.findUnique({ where: { id: item.variantId } });
-          if (variant) {
-            await tx.productVariant.update({
-              where: { id: item.variantId },
-              data: {
-                stock: { increment: item.quantity },
-                reservedStock: { decrement: item.quantity },
-              },
-            });
+      // Restore stock for all items - batch operation
+      const variantIds = order.items.filter(item => item.variantId).map(item => item.variantId!);
+      
+      if (variantIds.length > 0) {
+        // Fetch all variants in one query
+        const variants = await tx.productVariant.findMany({
+          where: { id: { in: variantIds } },
+        });
+        
+        const variantMap = new Map(variants.map(v => [v.id, v]));
+        
+        // Update all variants and create inventory movements in parallel
+        await Promise.all(
+          order.items
+            .filter(item => item.variantId && variantMap.has(item.variantId))
+            .map(async (item) => {
+              const variant = variantMap.get(item.variantId!)!;
+              await tx.productVariant.update({
+                where: { id: item.variantId! },
+                data: {
+                  stock: { increment: item.quantity },
+                  reservedStock: { decrement: item.quantity },
+                },
+              });
 
-            await tx.inventoryMovement.create({
-              data: {
-                variantId: item.variantId,
-                quantityChange: item.quantity,
-                stockAfter: variant.stock + item.quantity,
-                reason: "cancellation",
-                referenceId: order.orderNumber,
-              },
-            });
-          }
-        }
+              await tx.inventoryMovement.create({
+                data: {
+                  variantId: item.variantId!,
+                  quantityChange: item.quantity,
+                  stockAfter: variant.stock + item.quantity,
+                  reason: "cancellation",
+                  referenceId: order.orderNumber,
+                },
+              });
+            })
+        );
       }
 
       // Create notification
@@ -270,7 +282,15 @@ async function handleTracking(ctx: RequestContext, orderId: string): Promise<Res
 
     if (!order) return notFound("Order not found");
 
-    return success({ tracking: order });
+    return success({
+      timeline: order.statusHistory ?? [],
+      shipping: order.shippingAddress ?? null,
+      currentStatus: order.status,
+      trackingNumber: order.trackingNumber,
+      estimatedDelivery: order.estimatedDelivery,
+      shippedAt: order.shippedAt,
+      deliveredAt: order.deliveredAt,
+    });
   } catch (err) {
     return serverError(err);
   }

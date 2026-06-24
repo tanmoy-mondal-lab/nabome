@@ -60,7 +60,7 @@ export default function MarketingPage() {
       ]);
       setCoupons((cRes.coupons as Coupon[]) ?? []);
       setAnnouncements((aRes.announcements as Announcement[]) ?? []);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to fetch marketing data */ } finally {
       setLoading(false);
     }
   }, []);
@@ -93,14 +93,14 @@ export default function MarketingPage() {
       }
       setModalOpen(false);
       fetch();
-    } catch { /* ignore */ }
+    } catch { /* non-critical: failed to save coupon */ }
   };
 
   const handleCouponDelete = async (id: string) => {
     try {
       await adminApi.deleteCoupon(id);
       fetch();
-    } catch { /* ignore */ }
+    } catch { /* non-critical: failed to delete coupon */ }
   };
 
   // Announcement handlers
@@ -125,14 +125,14 @@ export default function MarketingPage() {
       }
       setModalOpen(false);
       fetch();
-    } catch { /* ignore */ }
+    } catch { /* non-critical: failed to save announcement */ }
   };
 
   const handleAnnDelete = async (id: string) => {
     try {
       await adminApi.deleteAnnouncement(id);
       fetch();
-    } catch { /* ignore */ }
+    } catch { /* non-critical: failed to delete announcement */ }
   };
 
   if (loading) {

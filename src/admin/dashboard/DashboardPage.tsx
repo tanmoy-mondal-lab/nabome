@@ -236,7 +236,7 @@ export default function DashboardPage() {
                       </div>
                     )}
                     {day.revenue > 0 && (
-                      <span className="text-[9px] text-neutral-400 font-medium">{formatCompactPrice(day.revenue)}</span>
+                      <span className="text-[10px] text-neutral-400 font-medium">{formatCompactPrice(day.revenue)}</span>
                     )}
                     <div
                       className={`w-full rounded-t transition-all duration-300 ${
@@ -247,11 +247,11 @@ export default function DashboardPage() {
                       style={{ height: `${Math.max(height, 3)}%` }}
                     />
                     {showLabel ? (
-                      <span className="text-[9px] text-neutral-400 mt-1 whitespace-nowrap">
+                      <span className="text-[10px] text-neutral-400 mt-1 whitespace-nowrap">
                         {new Date(day.date).getDate()} {new Date(day.date).toLocaleDateString("en-IN", { month: "short" })}
                       </span>
                     ) : (
-                      <span className="text-[9px] text-transparent mt-1">·</span>
+                      <span className="text-[10px] text-transparent mt-1">·</span>
                     )}
                   </div>
                 );

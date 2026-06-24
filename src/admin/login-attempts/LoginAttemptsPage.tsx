@@ -34,7 +34,7 @@ export default function LoginAttemptsPage() {
       const items = res.loginAttempts ?? res.attempts ?? [];
       setAttempts(items);
       setTotalPages(res.pagination?.totalPages ?? 1);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to fetch login attempts */ } finally {
       setLoading(false);
     }
   }, [page, emailFilter, successFilter]);

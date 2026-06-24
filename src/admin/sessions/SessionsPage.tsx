@@ -48,7 +48,7 @@ export default function SessionsPage() {
       setSessions((res.sessions as Session[]) ?? []);
       setPagination((res.pagination as Pagination) ?? null);
     } catch {
-      /* ignore */
+      /* non-critical: failed to fetch sessions */
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,7 @@ export default function SessionsPage() {
       setRevokeConfirm(null);
       fetch();
     } catch {
-      /* ignore */
+      /* non-critical: failed to revoke session */
     }
   };
 

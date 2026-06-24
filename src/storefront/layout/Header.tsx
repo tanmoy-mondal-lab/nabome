@@ -6,6 +6,9 @@ import { api } from "../../lib/api/client";
 import { useAuthStore } from "../../stores/auth-store";
 import { useUIStore } from "../stores/ui-store";
 import { useCartStore } from "../stores/cart-store";
+import { useSettings } from "../hooks/useSettings";
+import { useNavigation } from "../hooks/useNavigation";
+import { useAnnouncements } from "../hooks/useAnnouncements";
 import { MegaMenu } from "./MegaMenu";
 import { cn } from "../../lib/utils/cn";
 
@@ -18,9 +21,10 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [prevScroll, setPrevScroll] = useState(0);
   const [hidden, setHidden] = useState(false);
-  const [announcement, setAnnouncement] = useState<Record<string, unknown> | null>(null);
-  const [menus, setMenus] = useState<{ id: string; label: string; link?: string; url?: string; children?: unknown[] }[]>([]);
-  const [settings, setSettings] = useState<Record<string, unknown>>({});
+
+  const { data: settings } = useSettings();
+  const { data: navItems } = useNavigation("header");
+  const { data: announcement } = useAnnouncements();
 
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const megaMenuRef = useRef<HTMLDivElement>(null);
@@ -52,26 +56,10 @@ export function Header() {
   }, [prevScroll]);
 
   useEffect(() => {
-    api.get("/api/cms/announcements")
-      .then((a) => {
-        const announcements = ((a as Record<string, unknown>).announcements as Record<string, unknown>[]) ?? [];
-        setAnnouncement(announcements[0] ?? null);
-      })
-      .catch(() => {});
-    api.get("/api/cms/navigation")
-      .then((n) => {
-        const navData = n as { menus: { items: { id: string; label: string; url?: string; children?: unknown[] }[] }[] };
-        const mainMenu = navData.menus?.find((m) => (m as Record<string, unknown>).location === "header");
-        setMenus(mainMenu?.items ?? navData.menus?.[0]?.items ?? []);
-      })
-      .catch(() => {});
-    api.get("/api/settings", { params: { action: "public" } })
-      .then((s) => setSettings(s as Record<string, unknown>))
-      .catch(() => {});
     if (isAuthenticated) {
       api.get("/api/notifications/unread-count", { credentials: "include" })
         .then((res) => setNotifCount((res as Record<string, number>).count ?? 0))
-        .catch(() => {});
+        .catch(() => { /* non-critical: wishlist count fallback */ });
     }
   }, [isAuthenticated]);
 
@@ -108,7 +96,7 @@ export function Header() {
                 <Menu className="w-5 h-5" />
               </button>
               <nav className="hidden md:flex items-center gap-1">
-                {menus.slice(0, 5).map((menu) => {
+                {(navItems ?? []).slice(0, 5).map((menu) => {
                   const hasChildren = (menu.children?.length ?? 0) > 0;
                   const isActive = activeMegaMenu === menu.label;
                   return (
@@ -128,7 +116,7 @@ export function Header() {
                       }}
                     >
                       <Link
-                        to={(menu as Record<string, unknown>).link as string || menu.url || "#"}
+                        to={((menu as unknown as Record<string, unknown>).link as string) || menu.url || "#"}
                         className={cn(
                           "flex items-center gap-1 px-3 py-2 text-xs tracking-[0.15em] uppercase transition-all duration-300 font-medium",
                           isActive
@@ -148,11 +136,11 @@ export function Header() {
             {/* Center: Logo - Fixed positioning */}
             <div className="flex items-center justify-center md:absolute md:left-1/2 md:-translate-x-1/2">
               <Link to="/" className="block">
-                {(settings.logoUrl as string) ? (
-                  <img src={settings.logoUrl as string} alt={settings.siteName as string || "নবME"} className="h-8 md:h-10 w-auto" />
+                {settings?.logoUrl ? (
+                  <img src={settings.logoUrl} alt={settings?.siteName || "নবME"} className="h-8 md:h-10 w-auto" />
                 ) : (
                   <span className="font-display text-xl md:text-2xl tracking-[0.35em] text-neutral-900 hover:text-brand-500 transition-colors duration-300">
-                    {settings.siteName as string || "নবME"}
+                    {settings?.siteName || "নবME"}
                   </span>
                 )}
               </Link>
@@ -213,7 +201,7 @@ export function Header() {
             onMouseEnter={clearCloseTimer}
             onMouseLeave={scheduleClose}
           >
-            <MegaMenu label={activeMegaMenu} menus={menus as never} />
+            <MegaMenu label={activeMegaMenu} menus={navItems as never} />
           </motion.div>
         )}
       </AnimatePresence>

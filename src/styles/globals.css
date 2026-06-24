@@ -116,6 +116,9 @@
   .btn-primary:disabled {
     @apply opacity-40 cursor-not-allowed;
   }
+  .btn-primary:focus-visible {
+    @apply outline-none ring-2 ring-brand-500/40 ring-offset-2 ring-offset-white;
+  }
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2
@@ -132,6 +135,9 @@
   .btn-secondary:disabled {
     @apply opacity-40 cursor-not-allowed;
   }
+  .btn-secondary:focus-visible {
+    @apply outline-none ring-2 ring-brand-500/40 ring-offset-2 ring-offset-white;
+  }
 
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2
@@ -141,6 +147,9 @@
   }
   .btn-ghost:hover {
     @apply text-brand-500;
+  }
+  .btn-ghost:focus-visible {
+    @apply outline-none ring-2 ring-brand-500/40 ring-offset-2 ring-offset-white;
   }
 
   .btn-outline {
@@ -152,6 +161,9 @@
   .btn-outline:hover {
     @apply border-neutral-900 text-neutral-900;
   }
+  .btn-outline:focus-visible {
+    @apply outline-none ring-2 ring-brand-500/40 ring-offset-2 ring-offset-white;
+  }
 
   .btn-gold {
     @apply inline-flex items-center justify-center gap-2
@@ -161,6 +173,9 @@
   }
   .btn-gold:hover {
     @apply bg-accent-goldDark;
+  }
+  .btn-gold:focus-visible {
+    @apply outline-none ring-2 ring-brand-500/40 ring-offset-2 ring-offset-white;
   }
 
   /* ─── INPUT FIELDS ─── */
@@ -172,7 +187,7 @@
   .input-field:hover {
     @apply border-neutral-300;
   }
-  .input-field:focus {
+  .input-field:focus-visible {
     @apply outline-none border-brand-500 ring-1 ring-brand-500/20;
   }
   .input-field::placeholder {
@@ -182,7 +197,7 @@
     @apply bg-neutral-50 text-neutral-400 cursor-not-allowed;
   }
   .input-error {
-    @apply border-red-400 focus:border-red-500 focus:ring-red-500/20;
+    @apply border-red-400 focus-visible:border-red-500 focus-visible:ring-red-500/20;
   }
 
   .input-search {
@@ -190,7 +205,7 @@
            font-body text-sm text-neutral-900 rounded-none
            transition-all duration-200;
   }
-  .input-search:focus {
+  .input-search:focus-visible {
     @apply bg-white shadow-sm border-0 ring-0;
   }
 
@@ -200,7 +215,7 @@
            font-body text-sm text-neutral-900
            transition-all duration-200;
   }
-  .select-field:focus {
+  .select-field:focus-visible {
     @apply outline-none border-brand-500 ring-1 ring-brand-500/20;
   }
 
@@ -210,7 +225,7 @@
            font-body text-sm text-neutral-900 min-h-[100px]
            transition-all duration-200;
   }
-  .textarea-field:focus {
+  .textarea-field:focus-visible {
     @apply outline-none border-brand-500 ring-1 ring-brand-500/20;
   }
 

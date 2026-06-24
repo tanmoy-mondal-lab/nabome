@@ -1,20 +1,18 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { api } from "../../lib/api/client";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { SafeImage } from "../../components/SafeImage";
 
 export default function LookbookPage() {
-  const [lookbooks, setLookbooks] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: res, isLoading: loading } = useQuery({
+    queryKey: ["lookbooks"],
+    queryFn: () => api.get<{ lookbooks: Record<string, unknown>[] }>("/api/lookbooks", { params: { action: "list" } }),
+    staleTime: 1000 * 60 * 10,
+  });
 
-  useEffect(() => {
-    api.get("/api/lookbooks", { params: { action: "list" } })
-      .then((res) => setLookbooks((res as Record<string, unknown>).lookbooks as Record<string, unknown>[] ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const lookbooks = res?.lookbooks ?? [];
 
   return (
     <div className="container-page py-8">
@@ -30,27 +28,24 @@ export default function LookbookPage() {
         <p className="text-sm text-neutral-400 text-center py-20">No lookbooks yet. Check back soon.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {lookbooks.map((lb, i) => {
-            const items = (lb.items as Record<string, unknown>[]) ?? [];
-            const cover = items.find((it) => it.type === "image")?.imageUrl as string || items[0]?.imageUrl as string;
-            const season = lb.season as string;
-            const year = lb.year as number;
-            return (
-              <motion.div key={lb.id as string} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                <Link to={`/lookbooks/${lb.slug}`} className="group block">
-                  <div className="aspect-[4/5] bg-neutral-100 overflow-hidden relative">
-                    {cover && <SafeImage src={cover} alt={lb.title as string} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-6">
-                      {season && <p className="text-accent-gold text-xs tracking-[0.2em] uppercase mb-2">{season}{year ? ` ${year}` : ""}</p>}
-                      <h2 className="text-2xl font-display text-white">{lb.title as string}</h2>
-                      {!!lb.description && <p className="text-sm text-neutral-300 mt-2 line-clamp-2">{lb.description as string}</p>}
-                    </div>
-                  </div>
-                </Link>
+          {lookbooks.map((lb) => (
+            <Link key={lb.id as string} to={`/lookbooks/${lb.slug as string}`}>
+              <motion.div whileHover={{ y: -4 }} className="group cursor-pointer">
+                <div className="aspect-[4/5] bg-neutral-100 rounded overflow-hidden mb-4 relative">
+                  <SafeImage src={lb.coverImage as string} alt={lb.title as string} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" useTransform={false} />
+                </div>
+                <p className="text-accent-gold text-xs tracking-[0.2em] uppercase mb-1">
+                  {lb.season as string}{lb.year ? ` ${lb.year}` : ""}
+                </p>
+                <h2 className="text-xl font-display text-neutral-900 group-hover:text-brand-600 transition-colors">
+                  {lb.title as string}
+                </h2>
+                {typeof lb.description === "string" && lb.description && (
+                  <p className="text-sm text-neutral-500 mt-1 line-clamp-2">{lb.description}</p>
+                )}
               </motion.div>
-            );
-          })}
+            </Link>
+          ))}
         </div>
       )}
     </div>

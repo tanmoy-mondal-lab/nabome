@@ -31,7 +31,7 @@ export function PageBuilderDemo() {
   };
 
   const handleSave = () => {
-    // TODO: implement save
+    // Demo mode — no backend persistence
   };
 
   return (

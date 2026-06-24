@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { StatusBadge } from "../common/StatusBadge";
 import { MessageCircle, Trash2, Mail, MailOpen, Eye } from "lucide-react";
 import { formatDate, formatDateTime } from "../../lib/utils/format";
+import { useToast } from "../../components/ui/Toast";
 
 interface Submission {
   id: string;
@@ -18,41 +20,44 @@ interface Submission {
 }
 
 export default function ContactsPage() {
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [detailItem, setDetailItem] = useState<Submission | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: submissions = [], isLoading: loading } = useQuery<Submission[]>({
+    queryKey: ["admin", "contacts"],
+    queryFn: async () => {
       const res = await adminApi.getContactSubmissions();
-      setSubmissions((res.submissions as Submission[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.submissions as Submission[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const markReadMutation = useMutation({
+    mutationFn: (id: string) => adminApi.markContactRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "contacts"] });
+    },
+    onError: () => {
+      toast("Failed to mark submission as read", "error");
+    },
+  });
 
-  const handleMarkRead = async (id: string) => {
-    try {
-      await adminApi.markContactRead(id);
-      fetch();
-    } catch { /* ignore */ }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteContactSubmission(id);
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteContactSubmission(id),
+    onSuccess: () => {
       setDeleteConfirm(null);
-      fetch();
-    } catch { /* ignore */ }
-  };
+      queryClient.invalidateQueries({ queryKey: ["admin", "contacts"] });
+      toast("Submission deleted", "success");
+    },
+    onError: () => {
+      toast("Failed to delete submission", "error");
+    },
+  });
 
   const openDetail = (item: Submission) => {
     setDetailItem(item);
-    if (!item.isRead) handleMarkRead(item.id);
+    if (!item.isRead) markReadMutation.mutate(item.id);
   };
 
   const unreadCount = submissions.filter((s) => !s.isRead).length;
@@ -161,7 +166,7 @@ export default function ContactsPage() {
         <p className="text-sm text-neutral-600 mb-6">Delete this contact submission?</p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-          <button onClick={() => handleDelete(deleteConfirm!)} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
+          <button onClick={() => deleteMutation.mutate(deleteConfirm!)} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
         </div>
       </Modal>
     </div>

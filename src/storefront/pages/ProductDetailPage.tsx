@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { Heart, ShoppingBag, Shield, Truck, RotateCcw, Minus, Plus, Star } from "lucide-react";
-import { api } from "../../lib/api/client";
+import { Heart, ShoppingBag, Shield, Truck, RotateCcw, Star } from "lucide-react";
+import { useProduct } from "../hooks/useProducts";
 import { ImageGallery } from "../components/ImageGallery";
 import { SizeSelector } from "../components/SizeSelector";
 import { ColorSelector } from "../components/ColorSelector";
@@ -27,9 +27,9 @@ import { img } from "../../lib/seo";
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const [product, setProduct] = useState<Record<string, unknown> | null>(null);
-  const [related, setRelated] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: productData, isLoading: loading, error: queryError } = useProduct(slug);
+  const product = (productData as { product?: Record<string, unknown> })?.product;
+  const related = (product?.relatedProducts as Record<string, unknown>[]) ?? [];
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -40,17 +40,10 @@ export default function ProductDetailPage() {
   const { add: addToWishlist, remove: removeFromWishlist, isInWishlist } = useWishlist();
 
   useEffect(() => {
-    if (!slug) return;
-    setLoading(true);
-    api.get(`/api/products/${slug}`)
-      .then((res) => {
-        const p = (res as Record<string, unknown>).product as Record<string, unknown>;
-        setProduct(p);
-        addRecentlyViewed(slug);
-        const relatedProducts = (p.relatedProducts as Record<string, unknown>[]) ?? [];
-        setRelated(relatedProducts);
-      }).catch(() => {}).finally(() => setLoading(false));
-  }, [slug]);
+    if (product?.slug) addRecentlyViewed(product.slug as string);
+  }, [product?.slug]);
+
+  const error = queryError ? "Failed to load product." : null;
 
   if (loading) {
     return (
@@ -64,6 +57,20 @@ export default function ProductDetailPage() {
             <div className="h-32 bg-luxe-ivory animate-pulse rounded" />
             <div className="h-12 bg-luxe-ivory animate-pulse rounded w-full" />
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container-page section-padding text-center">
+        <h1 className="font-display text-display-1 text-neutral-900 mb-4 text-balance">{error}</h1>
+        <button onClick={() => window.location.reload()} className="text-brand-500 hover:underline text-sm">
+          Retry
+        </button>
+        <div className="mt-4">
+          <Link to="/products" className="text-brand-500 hover:underline">Browse all products</Link>
         </div>
       </div>
     );
@@ -214,7 +221,7 @@ export default function ProductDetailPage() {
                       {labels.map((l, i) => (
                         <span
                           key={i}
-                          className="label-badge text-[9px] px-2.5 py-1"
+                          className="label-badge text-[10px] px-2.5 py-1"
                           style={{
                             backgroundColor: (l.label as Record<string, unknown>).color as string || "#c9a84c",
                             color: "#fff",
@@ -339,7 +346,7 @@ export default function ProductDetailPage() {
                   <p className="text-[10px] font-body font-semibold tracking-[0.15em] uppercase text-neutral-800 mb-0.5">
                     {item.label}
                   </p>
-                  <p className="text-[9px] font-body text-neutral-400 tracking-wide">
+                  <p className="text-[10px] font-body text-neutral-400 tracking-wide">
                     {item.desc}
                   </p>
                 </div>

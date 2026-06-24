@@ -1,9 +1,11 @@
 import { MediaPicker } from "../common/MediaPicker";
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { Plus, Eye, Check, Palette, Type, Layout, Image, Code } from "lucide-react";
 import { type Theme, type ThemeColors, type ThemeTypography, type ThemeButtonStyle } from "../../cms/core/cms-types";
+import { useToast } from "../../components/ui/Toast";
 
 const DEFAULT_THEME: Theme = {
   id: "",
@@ -79,30 +81,42 @@ const DEFAULT_THEME: Theme = {
 };
 
 export default function ThemeBuilder() {
-  const [themes, setThemes] = useState<Theme[]>([]);
   const [activeTheme, setActiveTheme] = useState<Theme>(DEFAULT_THEME);
   const [activeTab, setActiveTab] = useState<"branding" | "colors" | "typography" | "buttons" | "layout" | "header" | "footer" | "css">("branding");
-  const [saving, setSaving] = useState(false);
-  const [loaded, setLoaded] = useState(false);
   const [themeListOpen, setThemeListOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const fetch = useCallback(async () => {
-    try {
+  const { isLoading } = useQuery({
+    queryKey: ["admin", "themes"],
+    queryFn: async () => {
       const res = await adminApi.getSettings();
       const s = res.settings as Record<string, unknown> ?? {};
       const themeData = s.theme as Partial<Theme> | undefined;
       if (themeData) {
         const merged = { ...DEFAULT_THEME, ...themeData };
         setActiveTheme(merged);
-        setThemes([merged]);
+        return [merged];
       }
-      setLoaded(true);
-    } catch {
-      setLoaded(true);
-    }
-  }, []);
+      return [DEFAULT_THEME];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const saveMutation = useMutation({
+    mutationFn: async (theme: Theme) => {
+      const current = await adminApi.getSettings();
+      const settings = current.settings as Record<string, unknown> ?? {};
+      return adminApi.updateSettings({ ...settings, theme });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "themes"] });
+      toast("Theme saved successfully", "success");
+    },
+    onError: () => {
+      toast("Failed to save theme", "error");
+    },
+  });
 
   const updateTheme = useCallback((path: string, value: unknown) => {
     setActiveTheme((prev) => {
@@ -117,15 +131,8 @@ export default function ThemeBuilder() {
     });
   }, []);
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const current = await adminApi.getSettings();
-      const settings = current.settings as Record<string, unknown> ?? {};
-      await adminApi.updateSettings({ ...settings, theme: activeTheme });
-    } catch { /* ignore */ } finally {
-      setSaving(false);
-    }
+  const handleSave = () => {
+    saveMutation.mutate(activeTheme);
   };
 
   const renderColorInput = (label: string, key: string, color: string) => (
@@ -140,7 +147,7 @@ export default function ThemeBuilder() {
     </div>
   );
 
-  if (!loaded) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -166,9 +173,9 @@ export default function ThemeBuilder() {
           <h1 className="font-display text-2xl text-neutral-900">Theme Builder</h1>
           <p className="text-sm text-neutral-500 mt-1">Customize your store's appearance</p>
         </div>
-        <button onClick={handleSave} disabled={saving}
+        <button onClick={handleSave} disabled={saveMutation.isPending}
           className="bg-neutral-900 text-white px-6 py-2.5 rounded text-sm font-medium hover:bg-neutral-800 disabled:opacity-50">
-          {saving ? "Saving…" : "Save Theme"}
+          {saveMutation.isPending ? "Saving…" : "Save Theme"}
         </button>
       </div>
 

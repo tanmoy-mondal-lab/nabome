@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { StatusBadge } from "../common/StatusBadge";
 import { Plus, Edit3, Trash2, Megaphone } from "lucide-react";
 import { formatDate } from "../../lib/utils/format";
+import { useToast } from "../../components/ui/Toast";
 
 interface Announcement {
   id: string;
@@ -21,8 +23,8 @@ interface Announcement {
 }
 
 export default function AnnouncementsPage() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Announcement | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -31,17 +33,61 @@ export default function AnnouncementsPage() {
     position: "top", isActive: true, startDate: "", endDate: "",
   });
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: announcements = [], isLoading: loading } = useQuery<Announcement[]>({
+    queryKey: ["admin", "announcements"],
+    queryFn: async () => {
       const res = await adminApi.getAnnouncements();
-      setAnnouncements((res.announcements as Announcement[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.announcements as Announcement[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["announcements"] });
+    queryClient.invalidateQueries({ queryKey: ["admin", "announcements"] });
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        text: form.text,
+        linkUrl: form.linkUrl || null,
+        linkText: form.linkText || null,
+        bgColor: form.bgColor || null,
+        textColor: form.textColor || null,
+        position: form.position,
+        isActive: form.isActive,
+        startDate: form.startDate || null,
+        endDate: form.endDate || null,
+      };
+      if (editItem) {
+        await adminApi.updateAnnouncement(editItem.id, payload);
+      } else {
+        await adminApi.createAnnouncement(payload);
+      }
+    },
+    onSuccess: () => {
+      setModalOpen(false);
+      invalidateAll();
+      toast(editItem ? "Announcement updated" : "Announcement created", "success");
+    },
+    onError: () => {
+      toast("Failed to save announcement", "error");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await adminApi.deleteAnnouncement(id);
+    },
+    onSuccess: () => {
+      setDeleteConfirm(null);
+      invalidateAll();
+      toast("Announcement deleted", "success");
+    },
+    onError: () => {
+      toast("Failed to delete announcement", "error");
+    },
+  });
 
   const openCreate = () => {
     setEditItem(null);
@@ -60,36 +106,8 @@ export default function AnnouncementsPage() {
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
-    try {
-      const payload = {
-        text: form.text,
-        linkUrl: form.linkUrl || null,
-        linkText: form.linkText || null,
-        bgColor: form.bgColor || null,
-        textColor: form.textColor || null,
-        position: form.position,
-        isActive: form.isActive,
-        startDate: form.startDate || null,
-        endDate: form.endDate || null,
-      };
-      if (editItem) {
-        await adminApi.updateAnnouncement(editItem.id, payload);
-      } else {
-        await adminApi.createAnnouncement(payload);
-      }
-      setModalOpen(false);
-      fetch();
-    } catch { /* ignore */ }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteAnnouncement(id);
-      setDeleteConfirm(null);
-      fetch();
-    } catch { /* ignore */ }
-  };
+  const handleSave = () => saveMutation.mutate();
+  const handleDelete = (id: string) => deleteMutation.mutate(id);
 
   const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
 
@@ -219,7 +237,9 @@ export default function AnnouncementsPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">Save</button>
+            <button onClick={handleSave} disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+              {saveMutation.isPending ? "Saving..." : "Save"}
+            </button>
           </div>
         </div>
       </Modal>
@@ -228,7 +248,9 @@ export default function AnnouncementsPage() {
         <p className="text-sm text-neutral-600 mb-6">Delete this announcement?</p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-          <button onClick={() => handleDelete(deleteConfirm!)} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
+          <button onClick={() => handleDelete(deleteConfirm!)} disabled={deleteMutation.isPending} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </button>
         </div>
       </Modal>
     </div>

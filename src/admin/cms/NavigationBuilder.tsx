@@ -1,8 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { Edit3, Trash2, Plus, Menu as MenuIcon } from "lucide-react";
+import { useToast } from "../../components/ui/Toast";
 
 interface NavMenu {
   id: string;
@@ -19,25 +21,55 @@ interface NavItem {
 }
 
 export default function NavigationBuilder() {
-  const [menus, setMenus] = useState<NavMenu[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<NavMenu | null>(null);
   const [form, setForm] = useState({ name: "", location: "header", isActive: true, itemsRaw: "[]" });
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: menus = [], isLoading: loading, error } = useQuery<NavMenu[]>({
+    queryKey: ["admin", "navigation"],
+    queryFn: async () => {
       const res = await adminApi.getNavigationMenus();
-      setMenus((res.menus as NavMenu[]) ?? []);
-    } catch (error) {
-      // failed to fetch
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.menus as NavMenu[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const saveMutation = useMutation({
+    mutationFn: async (payload: { name: string; location: string; isActive: boolean; itemsRaw: string }) => {
+      const items = JSON.parse(payload.itemsRaw || "[]");
+      const body = { name: payload.name, location: payload.location, isActive: payload.isActive, items };
+      if (editItem) {
+        await adminApi.updateNavigation(editItem.id, body);
+      } else {
+        await adminApi.createNavigation(body);
+      }
+    },
+    onSuccess: () => {
+      toast("Menu saved successfully", "success");
+      setModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["admin", "navigation"] });
+      queryClient.invalidateQueries({ queryKey: ["navigation"] });
+    },
+    onError: (err: Error) => {
+      toast(err.message || "Failed to save menu", "error");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await adminApi.deleteNavigation(id);
+    },
+    onSuccess: () => {
+      toast("Menu deleted successfully", "success");
+      queryClient.invalidateQueries({ queryKey: ["admin", "navigation"] });
+      queryClient.invalidateQueries({ queryKey: ["navigation"] });
+    },
+    onError: (err: Error) => {
+      toast(err.message || "Failed to delete menu", "error");
+    },
+  });
 
   const openCreate = () => {
     setEditItem(null);
@@ -54,29 +86,14 @@ export default function NavigationBuilder() {
     setModalOpen(true);
   };
 
-  const handleSave = async () => {
-    try {
-      const items = JSON.parse(form.itemsRaw || "[]");
-      const payload = { ...form, items };
-      if (editItem) {
-        await adminApi.updateNavigation(editItem.id, payload);
-      } else {
-        await adminApi.createNavigation(payload);
-      }
-      setModalOpen(false);
-      fetch();
-    } catch (error) {
-      // failed to save
-    }
+  const handleSave = () => {
+    saveMutation.mutate(form);
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteNavigation(id);
-      fetch();
-    } catch (error) {
-      // failed to delete
-    }
+  const handleDelete = (id: string) => {
+    const menu = menus.find((m) => m.id === id);
+    if (!window.confirm(`Delete "${menu?.name ?? "this menu"}"? This cannot be undone.`)) return;
+    deleteMutation.mutate(id);
   };
 
   const itemCount = (items: NavItem[]): number => {
@@ -97,6 +114,11 @@ export default function NavigationBuilder() {
 
   return (
     <div>
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+          {error.message}
+        </div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl text-neutral-900">Navigation</h1>
@@ -153,7 +175,7 @@ export default function NavigationBuilder() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Edit Menu" : "New Menu"} size="lg">
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Menu Name *</label>
               <input required value={form.name}
@@ -188,8 +210,8 @@ export default function NavigationBuilder() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">
-              {editItem ? "Update" : "Create"}
+            <button onClick={handleSave} disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">
+              {saveMutation.isPending ? "Saving..." : editItem ? "Update" : "Create"}
             </button>
           </div>
         </div>

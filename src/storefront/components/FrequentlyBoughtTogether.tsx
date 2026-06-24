@@ -53,7 +53,7 @@ export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBo
   return (
     <div className="bg-neutral-50 border p-6">
       <h3 className="text-sm font-medium text-neutral-900 mb-4">Frequently Bought Together</h3>
-      <div className="flex items-center gap-4 mb-4">
+      <div className="flex items-center gap-4 mb-4 overflow-x-auto pb-2">
         {[mainProduct, ...products.slice(0, 3)].map((p, i) => {
           const images = (p.images as { url: string }[]) ?? [];
           return (

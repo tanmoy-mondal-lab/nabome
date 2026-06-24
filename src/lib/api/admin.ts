@@ -272,6 +272,10 @@ export const adminApi = {
     api.put<{ updated: number }>("/admin/products/bulk/category", { ids, ...data }),
   bulkDeleteProducts: (ids: string[]) =>
     api.put<{ archived: number }>("/admin/products/bulk/delete", { ids }),
+  permanentDeleteProduct: (id: string) =>
+    api.delete<{ message: string }>(`/admin/products/${id}/permanent`),
+  bulkPermanentDeleteProducts: (ids: string[]) =>
+    api.put<{ deleted: number }>("/admin/products/bulk/permanent-delete", { ids }),
 
   // Upload
   uploadFile: (file: File, folder?: string, altText?: string) => {
@@ -302,7 +306,7 @@ export const adminApi = {
   // Returns
   getReturns: (params?: Record<string, string | number | undefined>) =>
     api.get<{ returns: unknown[]; pagination: unknown }>("/admin/returns", { params }),
-  getReturn: (id: string) => api.get<{ returnRequest: unknown }>(`/admin/returns/${id}`),
+  getReturn: (id: string) => api.get<{ return: unknown }>(`/admin/returns/${id}`),
   approveReturn: (id: string, data?: { adminNote?: string }) =>
     api.put<unknown>(`/admin/returns/${id}/approve`, data ?? {}),
   rejectReturn: (id: string, data: { adminNote: string }) =>

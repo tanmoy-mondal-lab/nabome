@@ -13,7 +13,6 @@ interface PasswordInputProps {
 
 export function PasswordInput({ id, value, onChange, placeholder, required, autoComplete, className = "" }: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
-  const [focused, setFocused] = useState(false);
 
   return (
     <div className={`relative ${className}`}>
@@ -26,8 +25,6 @@ export function PasswordInput({ id, value, onChange, placeholder, required, auto
         placeholder={placeholder}
         required={required}
         autoComplete={autoComplete}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
       />
       <button
         type="button"

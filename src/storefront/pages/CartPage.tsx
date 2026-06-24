@@ -1,11 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, ArrowLeft, Tag, Shield, Truck, RotateCcw, X, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Shield, Truck, RotateCcw, X, ShoppingBag } from "lucide-react";
 import { useCart } from "../hooks/useCart";
-import { useCartStore } from "../stores/cart-store";
 import { QuantitySelector } from "../components/QuantitySelector";
-import { PriceDisplay } from "../components/PriceDisplay";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { formatPrice } from "../../lib/utils/format";
 import { SafeImage } from "../../components/SafeImage";
@@ -34,7 +32,7 @@ export default function CartPage() {
           });
         }
       })
-      .catch(() => {});
+      .catch(() => { /* non-critical: settings will use defaults */ });
   }, []);
 
   async function handleApplyCoupon() {
@@ -97,7 +95,7 @@ export default function CartPage() {
               <div key={item.label} className="text-center">
                 <item.icon className="w-5 h-5 mx-auto text-brand-400 mb-3" />
                 <p className="text-[10px] font-body font-semibold tracking-[0.15em] uppercase text-neutral-800 mb-1">{item.label}</p>
-                <p className="text-[9px] font-body text-neutral-400 tracking-wide">{item.desc}</p>
+                <p className="text-[10px] font-body text-neutral-400 tracking-wide">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -331,7 +329,7 @@ export default function CartPage() {
                 ].map((item) => (
                   <div key={item.label} className="flex items-center gap-1.5">
                     <item.icon className="w-3 h-3 text-neutral-400" />
-                    <span className="text-[9px] font-body font-medium tracking-[0.1em] uppercase text-neutral-400">
+                    <span className="text-[10px] font-body font-medium tracking-[0.1em] uppercase text-neutral-400">
                       {item.label}
                     </span>
                   </div>

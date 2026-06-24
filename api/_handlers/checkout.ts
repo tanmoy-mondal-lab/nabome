@@ -1,9 +1,10 @@
-import { prisma } from "../_lib/prisma";
+import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, serverError, unauthorized } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { generateOrderNumber } from "../../src/lib/utils/format";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
+import type { Env } from "../_lib/env";
 
 const VALID_PAYMENT_METHODS = ["cod", "card", "upi", "netbanking", "wallet", "razorpay"] as const;
 const STANDARD_SHIPPING = 99;
@@ -23,10 +24,11 @@ function validateAddressFields(addr: Record<string, unknown>, label: string): st
 async function createRazorpayOrder(
   amount: number,
   currency: string,
-  receipt: string
+  receipt: string,
+  env?: Env
 ): Promise<string> {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const keyId = env?.RAZORPAY_KEY_ID;
+  const keySecret = env?.RAZORPAY_KEY_SECRET;
   if (!keyId || !keySecret) {
     throw new Error("Razorpay credentials not configured");
   }
@@ -34,7 +36,7 @@ async function createRazorpayOrder(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: "Basic " + Buffer.from(`${keyId}:${keySecret}`).toString("base64"),
+      Authorization: "Basic " + btoa(`${keyId}:${keySecret}`),
     },
     body: JSON.stringify({
       amount: Math.round(amount * 100),
@@ -439,7 +441,7 @@ export async function handleCheckoutRequest(
     // ── Create Razorpay order for online payments ──
     let razorpayOrderId: string | null = null;
     if (paymentMethod !== "cod") {
-      razorpayOrderId = await createRazorpayOrder(total, "INR", order.orderNumber);
+      razorpayOrderId = await createRazorpayOrder(total, "INR", order.orderNumber, ctx.env);
       await prisma.order.update({
         where: { id: order.id },
         data: { razorpayOrderId },
@@ -461,7 +463,7 @@ export async function handleCheckoutRequest(
           image: item.imageUrl,
         })) || [],
         orderId: order.id,
-      }, { profileId: profileId, orderId: order.id });
+      }, { profileId: profileId, orderId: order.id }, ctx.env);
     } catch (emailErr) {
       console.error("[EMAIL] Failed to send order confirmation:", (emailErr as Error).message);
     }

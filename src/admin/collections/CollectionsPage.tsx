@@ -1,11 +1,13 @@
 import { MediaPicker } from "../common/MediaPicker";
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { SafeImage } from "../../components/SafeImage";
 import { Edit3, Trash2, Plus, LayoutGrid } from "lucide-react";
 import { formatDate } from "../../lib/utils/format";
+import { useToast } from "../../components/ui/Toast";
 
 interface Collection {
   id: string;
@@ -24,23 +26,53 @@ interface Collection {
 }
 
 export default function CollectionsPage() {
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Collection | null>(null);
   const [form, setForm] = useState({ name: "", slug: "", description: "", isActive: true, isFeatured: false, sortOrder: 0, imageUrl: "", startDate: "", endDate: "", metaTitle: "", metaDesc: "" });
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: collections = [], isLoading: loading } = useQuery<Collection[]>({
+    queryKey: ["admin", "collections"],
+    queryFn: async () => {
       const res = await adminApi.getCollections();
-      setCollections((res.collections as Collection[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.collections as Collection[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const invalidateCollections = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin", "collections"] });
+    queryClient.invalidateQueries({ queryKey: ["collections"] });
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload = { ...form, heroImageUrl: form.imageUrl || undefined, image: undefined };
+      if (editItem) {
+        return adminApi.updateCollection(editItem.id, payload);
+      }
+      return adminApi.createCollection(payload);
+    },
+    onSuccess: () => {
+      setModalOpen(false);
+      invalidateCollections();
+      toast(editItem ? "Collection updated" : "Collection created", "success");
+    },
+    onError: () => {
+      toast("Failed to save collection", "error");
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteCollection(id),
+    onSuccess: () => {
+      invalidateCollections();
+      toast("Collection deleted", "success");
+    },
+    onError: () => {
+      toast("Failed to delete collection", "error");
+    },
+  });
 
   const openCreate = () => {
     setEditItem(null);
@@ -57,26 +89,6 @@ export default function CollectionsPage() {
       endDate: col.endDate ? col.endDate.slice(0, 16) : "", metaTitle: col.metaTitle ?? "", metaDesc: col.metaDesc ?? "",
     });
     setModalOpen(true);
-  };
-
-  const handleSave = async () => {
-    try {
-      const payload = { ...form, heroImageUrl: form.imageUrl || undefined, image: undefined };
-      if (editItem) {
-        await adminApi.updateCollection(editItem.id, payload);
-      } else {
-        await adminApi.createCollection(payload);
-      }
-      setModalOpen(false);
-      fetch();
-    } catch { /* ignore */ }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await adminApi.deleteCollection(id);
-      fetch();
-    } catch { /* ignore */ }
   };
 
   if (loading) {
@@ -131,7 +143,7 @@ export default function CollectionsPage() {
                   <button onClick={() => openEdit(col)} className="bg-white p-1.5 rounded shadow text-neutral-600 hover:text-neutral-900">
                     <Edit3 size={12} />
                   </button>
-                  <button onClick={() => handleDelete(col.id)} className="bg-white p-1.5 rounded shadow text-red-500 hover:text-red-600">
+                  <button onClick={() => deleteMutation.mutate(col.id)} className="bg-white p-1.5 rounded shadow text-red-500 hover:text-red-600">
                     <Trash2 size={12} />
                   </button>
                 </div>
@@ -225,8 +237,8 @@ export default function CollectionsPage() {
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
-            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">
-              {editItem ? "Update" : "Create"}
+            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">
+              {saveMutation.isPending ? "Saving..." : editItem ? "Update" : "Create"}
             </button>
           </div>
         </div>

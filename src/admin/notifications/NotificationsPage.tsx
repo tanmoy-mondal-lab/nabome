@@ -49,7 +49,7 @@ export default function NotificationsPage() {
       const res = await adminApi.getNotifications(params) as { notifications: NotificationEntry[]; pagination?: { totalPages: number } };
       setNotifications(res.notifications ?? []);
       setTotalPages(res.pagination?.totalPages ?? 1);
-    } catch { /* ignore */ } finally {
+    } catch { /* non-critical: failed to fetch notifications */ } finally {
       setLoading(false);
     }
   }, [page, typeFilter]);
@@ -60,7 +60,7 @@ export default function NotificationsPage() {
     try {
       const res = await adminApi.getNotificationTemplates();
       setTemplates((res.templates as NotificationTemplate[]) ?? []);
-    } catch { /* ignore */ }
+    } catch { /* non-critical: failed to fetch notification templates */ }
   }, []);
 
   useEffect(() => { if (activeTab === "templates") fetchTemplates(); }, [fetchTemplates, activeTab]);
@@ -77,7 +77,7 @@ export default function NotificationsPage() {
       await adminApi.updateNotificationTemplate(editingTemplate.id, templateForm);
       setTemplateModalOpen(false);
       fetchTemplates();
-    } catch { /* ignore */ }
+    } catch { /* non-critical: failed to save notification template */ }
   };
 
   const notifColumns = [

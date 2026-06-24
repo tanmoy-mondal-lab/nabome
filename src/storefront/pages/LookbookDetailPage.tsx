@@ -1,10 +1,9 @@
-import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { api } from "../../lib/api/client";
 import { ProductCard } from "../components/ProductCard";
 import { Breadcrumbs } from "../components/Breadcrumbs";
-import { PriceDisplay } from "../components/PriceDisplay";
 import { ShoppingBag } from "lucide-react";
 import { SafeImage } from "../../components/SafeImage";
 import { useCartStore } from "../stores/cart-store";
@@ -13,18 +12,17 @@ import { useAuthStore } from "../../stores/auth-store";
 export default function LookbookDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const [lookbook, setLookbook] = useState<Record<string, unknown> | null>(null);
-  const [loading, setLoading] = useState(true);
   const addItem = useCartStore((s) => s.addItem);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  useEffect(() => {
-    if (!slug) return;
-    api.get("/api/lookbooks", { params: { action: "detail", slug } })
-      .then((res) => setLookbook((res as Record<string, unknown>).lookbook as Record<string, unknown>))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [slug]);
+  const { data: res, isLoading: loading } = useQuery({
+    queryKey: ["lookbook", slug],
+    queryFn: () => api.get<{ lookbook: Record<string, unknown> }>("/api/lookbooks", { params: { action: "detail", slug } }),
+    enabled: !!slug,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const lookbook = res?.lookbook as Record<string, unknown> | undefined;
 
   if (loading) {
     return <div className="container-page py-8"><div className="aspect-[2/1] bg-neutral-100 animate-pulse rounded" /></div>;

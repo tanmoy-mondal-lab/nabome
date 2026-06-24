@@ -14,8 +14,8 @@ export async function handleAdminAuditLogRequest(req: Request, _ctx: RequestCont
 
 async function handleList(req: Request): Promise<Response> {
   const url = new URL(req.url);
-  const page = parseInt(url.searchParams.get("page") ?? "1");
-  const limit = parseInt(url.searchParams.get("limit") ?? "25");
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
+  const limit = Math.max(1, parseInt(url.searchParams.get("limit") ?? "25") || 25);
   const action = url.searchParams.get("action");
   const entity = url.searchParams.get("entity");
   const profileId = url.searchParams.get("profileId");

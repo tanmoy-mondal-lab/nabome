@@ -1,8 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { formatPrice } from "../../lib/utils/format";
 import { Plus, Edit2, Trash2, Truck } from "lucide-react";
+import { useToast } from "../../components/ui/Toast";
 
 interface ShippingRate {
   id: string;
@@ -36,8 +38,9 @@ const emptyRate = {
 };
 
 export default function ShippingZonesPage() {
-  const [zones, setZones] = useState<ShippingZone[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   const [zoneModalOpen, setZoneModalOpen] = useState(false);
   const [rateModalOpen, setRateModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
@@ -46,19 +49,64 @@ export default function ShippingZonesPage() {
   const [editingZoneId, setEditingZoneId] = useState<string | null>(null);
   const [editingRateId, setEditingRateId] = useState<string | null>(null);
   const [zoneInputs, setZoneInputs] = useState({ countries: "", states: "", pincodes: "" });
-  const [saving, setSaving] = useState(false);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: zones = [], isLoading: loading } = useQuery<ShippingZone[]>({
+    queryKey: ["admin", "shippingZones"],
+    queryFn: async () => {
       const res = await adminApi.getShippingZones();
-      setZones((res.zones as ShippingZone[]) ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, []);
+      return (res.zones as ShippingZone[]) ?? [];
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const createZoneMutation = useMutation({
+    mutationFn: (data: Record<string, unknown>) => adminApi.createShippingZone(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "shippingZones"] });
+      setZoneModalOpen(false);
+      toast("Zone created", "success");
+    },
+    onError: () => toast("Failed to create zone", "error"),
+  });
+
+  const updateZoneMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => adminApi.updateShippingZone(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "shippingZones"] });
+      setZoneModalOpen(false);
+      toast("Zone updated", "success");
+    },
+    onError: () => toast("Failed to update zone", "error"),
+  });
+
+  const deleteZoneMutation = useMutation({
+    mutationFn: (id: string) => adminApi.deleteShippingZone(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "shippingZones"] });
+      setDeleteConfirm(null);
+      toast("Zone deleted", "success");
+    },
+    onError: () => toast("Failed to delete zone", "error"),
+  });
+
+  const addRateMutation = useMutation({
+    mutationFn: ({ zoneId, data }: { zoneId: string; data: Record<string, unknown> }) => adminApi.addShippingRate(zoneId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "shippingZones"] });
+      setRateModalOpen(false);
+      toast("Rate added", "success");
+    },
+    onError: () => toast("Failed to add rate", "error"),
+  });
+
+  const updateRateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => adminApi.updateShippingRate(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "shippingZones"] });
+      setRateModalOpen(false);
+      toast("Rate updated", "success");
+    },
+    onError: () => toast("Failed to update rate", "error"),
+  });
 
   const openAddZone = () => {
     setEditingZone({ name: "", countries: [], states: [], pincodes: [], isActive: true, sortOrder: 0 });
@@ -85,35 +133,25 @@ export default function ShippingZonesPage() {
     setZoneModalOpen(true);
   };
 
-  const saveZone = async () => {
-    setSaving(true);
-    try {
-      const data = {
-        name: editingZone.name,
-        countries: zoneInputs.countries.split(",").map((s) => s.trim()).filter(Boolean),
-        states: zoneInputs.states.split(",").map((s) => s.trim()).filter(Boolean),
-        pincodes: zoneInputs.pincodes.split(",").map((s) => s.trim()).filter(Boolean),
-        isActive: editingZone.isActive ?? true,
-        sortOrder: editingZone.sortOrder ?? 0,
-      };
-      if (editingZoneId) {
-        await adminApi.updateShippingZone(editingZoneId, data);
-      } else {
-        await adminApi.createShippingZone(data);
-      }
-      setZoneModalOpen(false);
-      fetch();
-    } catch { /* ignore */ } finally {
-      setSaving(false);
+  const saveZone = () => {
+    if (!editingZone.name.trim()) return;
+    const data = {
+      name: editingZone.name,
+      countries: zoneInputs.countries.split(",").map((s) => s.trim()).filter(Boolean),
+      states: zoneInputs.states.split(",").map((s) => s.trim()).filter(Boolean),
+      pincodes: zoneInputs.pincodes.split(",").map((s) => s.trim()).filter(Boolean),
+      isActive: editingZone.isActive ?? true,
+      sortOrder: editingZone.sortOrder ?? 0,
+    };
+    if (editingZoneId) {
+      updateZoneMutation.mutate({ id: editingZoneId, data });
+    } else {
+      createZoneMutation.mutate(data);
     }
   };
 
-  const deleteZone = async (id: string) => {
-    try {
-      await adminApi.deleteShippingZone(id);
-      setDeleteConfirm(null);
-      fetch();
-    } catch { /* ignore */ }
+  const deleteZone = (id: string) => {
+    deleteZoneMutation.mutate(id);
   };
 
   const openAddRate = (zoneId: string) => {
@@ -130,32 +168,27 @@ export default function ShippingZonesPage() {
     setRateModalOpen(true);
   };
 
-  const saveRate = async () => {
+  const saveRate = () => {
     if (!editingZoneId) return;
-    setSaving(true);
-    try {
-      const data = {
-        name: editingRate.name,
-        method: editingRate.method,
-        minOrderValue: editingRate.minOrderValue || null,
-        maxOrderValue: editingRate.maxOrderValue || null,
-        baseRate: editingRate.baseRate,
-        perKgRate: editingRate.perKgRate || null,
-        freeAbove: editingRate.freeAbove || null,
-        estimatedDaysMin: editingRate.estimatedDaysMin || null,
-        estimatedDaysMax: editingRate.estimatedDaysMax || null,
-      };
-      if (editingRateId) {
-        await adminApi.updateShippingRate(editingRateId, data);
-      } else {
-        await adminApi.addShippingRate(editingZoneId, data);
-      }
-      setRateModalOpen(false);
-      fetch();
-    } catch { /* ignore */ } finally {
-      setSaving(false);
+    const data = {
+      name: editingRate.name,
+      method: editingRate.method,
+      minOrderValue: editingRate.minOrderValue || null,
+      maxOrderValue: editingRate.maxOrderValue || null,
+      baseRate: editingRate.baseRate,
+      perKgRate: editingRate.perKgRate || null,
+      freeAbove: editingRate.freeAbove || null,
+      estimatedDaysMin: editingRate.estimatedDaysMin || null,
+      estimatedDaysMax: editingRate.estimatedDaysMax || null,
+    };
+    if (editingRateId) {
+      updateRateMutation.mutate({ id: editingRateId, data });
+    } else {
+      addRateMutation.mutate({ zoneId: editingZoneId, data });
     }
   };
+
+  const isSaving = createZoneMutation.isPending || updateZoneMutation.isPending || addRateMutation.isPending || updateRateMutation.isPending;
 
   if (loading) {
     return (
@@ -338,8 +371,8 @@ export default function ShippingZonesPage() {
             <button onClick={() => setZoneModalOpen(false)} className="px-4 py-2 text-sm font-medium border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors">
               Cancel
             </button>
-            <button onClick={saveZone} disabled={saving || !editingZone.name.trim()} className="px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50">
-              {saving ? "Saving…" : editingZoneId ? "Update Zone" : "Create Zone"}
+            <button onClick={saveZone} disabled={isSaving || !editingZone.name.trim()} className="px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50">
+              {isSaving ? "Saving…" : editingZoneId ? "Update Zone" : "Create Zone"}
             </button>
           </div>
         </div>
@@ -459,8 +492,8 @@ export default function ShippingZonesPage() {
             <button onClick={() => setRateModalOpen(false)} className="px-4 py-2 text-sm font-medium border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors">
               Cancel
             </button>
-            <button onClick={saveRate} disabled={saving || !editingRate.name} className="px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50">
-              {saving ? "Saving…" : editingRateId ? "Update Rate" : "Add Rate"}
+            <button onClick={saveRate} disabled={isSaving || !editingRate.name} className="px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50">
+              {isSaving ? "Saving…" : editingRateId ? "Update Rate" : "Add Rate"}
             </button>
           </div>
         </div>

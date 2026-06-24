@@ -37,7 +37,7 @@ export function BottomNav() {
                   </span>
                 )}
               </div>
-              <span className="text-[9px] tracking-wider font-medium">{label}</span>
+              <span className="text-[10px] tracking-wider font-medium">{label}</span>
             </Link>
           );
         })}
