@@ -18,7 +18,7 @@ export async function handleSettingsRequest(
   }
 }
 
-env: anyasync function handleHomepage(ctx.env): Promise<Response> {
+async function handleHomepage(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const sections = await prisma.homepageSection.findMany({
@@ -31,7 +31,7 @@ env: anyasync function handleHomepage(ctx.env): Promise<Response> {
   }
 }
 
-env: anyasync function handlePublic(ctx.env): Promise<Response> {
+async function handlePublic(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [settings, socialLinks] = await Promise.all([

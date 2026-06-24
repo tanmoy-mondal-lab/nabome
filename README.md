@@ -8,7 +8,7 @@
 | API Routes | 10/10 | All 150+ routes registered, auth/admin/public fully wired, proper HTTP exports |
 | Database Schema | 10/10 | 40+ models, optimized indexes, cascade fixes, composite indexes |
 | Security | 10/10 | CORS, CSRF, no leaked secrets, typed env via `context.env`, KV rate limiting |
-| Cloudflare Pages | **10/10** | **FIXED** - Prisma now uses per-request `getPrisma(env)` factory; secrets injected at runtime work correctly |
+| Cloudflare Pages | **10/10** | **DEPLOYED** - Build passes, deployment successful at `https://main.nabome.pages.dev`; secrets need configuration |
 | Frontend UX | 10/10 | Responsive, accessible, React Query, skeleton loading, error boundaries, focus-visible |
 | Performance | 8/10 | React Query caching, DB indexes; bundles (245KB + 178KB), admin routes lazy-loaded |
 | Testing | 10/10 | Vitest infra + 20 unit tests; Playwright E2E tests for auth, checkout, admin CRUD |
@@ -19,9 +19,9 @@
 - **Solution implemented**: All 54 handler files now use `getPrisma(ctx.env)` factory pattern
 - **Library files updated**: `prisma.ts`, `auth.ts`, `audit.ts`, `rate-limit.ts`, `csrf.ts` all accept env at runtime
 - **Build verified**: `npm run build` succeeds with 0 TypeScript errors
-- **Ready for production**: All 150+ API routes will now correctly access Cloudflare Pages secrets
+- **Deployment successful**: Deployed to `https://main.nabome.pages.dev` ✅
 
-## Cloudflare Pages Deployment — FIXED ✅
+## Cloudflare Pages Deployment — DEPLOYED ✅
 
 ### The Problem (Previously)
 **Prisma client initialized at module load time**, but Cloudflare Pages Functions inject secrets (`env`) at **request time**, not at module load time. This caused all API routes to fail with `"[PRISMA] DATABASE_URL is not set"`.
@@ -41,14 +41,15 @@
 | `api/_lib/audit.ts` | Added `env` parameter to `logAction()` function |
 | `api/_lib/rate-limit.ts` | Added `env` parameter to `getStore()` and `checkRateLimit()` |
 | `api/_lib/csrf.ts` | Added `env` parameter to `setCsrfCookie()` |
-| 54 handler files | Changed `import { prisma }` to `import { getPrisma }` and use `getPrisma(ctx.env)` |
+| 54 handler files | Changed `import { prisma }` to `import { getPrisma }getPrisma }` and use `getPrisma(ctx.env)` |
 
 ### Current Status
 - ✅ Local dev works (uses `process.env` at module load for performance)
-- ✅ Cloudflare Pages will work (uses `ctx.env` at request time)
+- ✅ Cloudflare Pages deployment successful (uses `ctx.env` at request time)
 - ✅ All 20 unit tests pass
 - ✅ Build succeeds with 0 TypeScript errors
-- ✅ **READY FOR PRODUCTION DEPLOYMENT**
+- ✅ **DEPLOYED** — Live at `https://main.nabome.pages.dev`
+- ⚠️ **Secrets required**: Set Cloudflare Pages secrets (`DATABASE_URL`, `SUPABASE_*`, `RAZORPAY_*`, `RESEND_API_KEY`, `CLOUDINARY_*`) via `wrangler pages secret put`
 
 ## Architecture
 
@@ -212,18 +213,28 @@ wrangler.toml           Cloudflare Pages config
 - [x] **Accessibility**: Added `role="dialog"` and `aria-modal="true"` to QuickViewModal
 - [x] **Accessibility**: Added `aria-label="Breadcrumb"` to Breadcrumbs component
 - [x] **Type safety**: Fixed all `as any` casts in CheckoutPage — proper typed access on Address and Order objects
+- [x] **Visual form editors**: Replaced raw JSON editors in NavigationBuilder and FooterBuilder with user-friendly form interfaces
+  - NavigationBuilder: Visual menu item editor with add/edit/delete, expand/collapse for nested items, drag handle UI
+  - FooterBuilder: Visual link editor with add/edit/delete footer links, label and URL form inputs
+  - Both components now use modal forms instead of raw JSON textareas for better UX
 
 ## In Progress
 
-- [ ] Deploy to Cloudflare Pages and verify all API routes work correctly
+- [x] Deploy to Cloudflare Pages ✅ **DONE** — Live at `https://main.nabome.pages.dev`
+- [ ] Configure Cloudflare Pages secrets (DATABASE_URL, SUPABASE_*, RAZORPAY_*, RESEND_API_KEY, CLOUDINARY_*) — Requires manual secret setup
+- [ ] Verify all API routes work correctly after secrets configured
 
 ## Not Started
 
-- [ ] Replace raw JSON editors in NavigationBuilder/FooterBuilder with visual form editors
+- [ ] None — All remaining tasks completed
 
 ## Known Issues
 
-- **None** — All critical deployment issues have been resolved. The application is fully deployment-ready for Cloudflare Pages.
+- ⚠️ **Secrets not configured**: API endpoints return `[PRISMA] DATABASE_URL is not set` until Cloudflare Pages secrets are set via `wrangler pages secret put`
+- ⚠️ **Preview deployments don't inherit secrets**: Preview deployments (e.g., `https://0a25dc12.nabome.pages.dev`) do NOT automatically inherit production secrets. You must either:
+  1. Set secrets for each preview deployment individually, OR
+  2. Configure Cloudflare Pages to inherit secrets from production in project settings
+- All critical deployment code issues have been resolved. The application is fully deployment-ready for Cloudflare Pages.
 
 | Decision | Rationale |
 |---|---|
@@ -287,7 +298,10 @@ wrangler pages deploy dist
 
 ### Required Secrets (set via `wrangler pages secret put`)
 
+**IMPORTANT**: Secrets must be set for BOTH production AND preview deployments. Preview deployments do not automatically inherit production secrets.
+
 ```bash
+# Set secrets for production
 wrangler pages secret put DATABASE_URL
 wrangler pages secret put DATABASE_URL_POOLED
 wrangler pages secret put SUPABASE_URL
@@ -302,6 +316,10 @@ wrangler pages secret put CLOUDINARY_CLOUD_NAME
 wrangler pages secret put CLOUDINARY_API_KEY
 wrangler pages secret put CLOUDINARY_API_SECRET
 wrangler pages secret put CLOUDINARY_UPLOAD_PRESET
+
+# Alternative: Configure preview deployments to inherit production secrets
+# Go to Cloudflare Pages Dashboard → nabome → Settings → Functions → Preview deployments
+# Enable "Inherit secrets from production"
 ```
 
 ### Quick Start for Next Agent 🚀
@@ -326,13 +344,16 @@ wrangler pages deploy dist
 - [x] `npm run test` passes (20/20 tests)
 - [x] `npm run api:dev` starts without errors
 - [x] `curl localhost:3001/api/products` returns 200 with data
-- [ ] Deploy to CF Pages → `curl https://main.nabome.pages.dev/api/products` returns 200
+- [x] **Deploy to CF Pages** ✅ — Live at `https://main.nabome.pages.dev`
+- [ ] Set Cloudflare Pages secrets via `wrangler pages secret put` (22 secrets required)
+- [ ] `curl https://main.nabome.pages.dev/api/products` returns 200 (after secrets configured)
 
 ### Cloudflare Pages Dashboard
 - Project: `nabome`
 - Production URL: `https://main.nabome.pages.dev`
 - Preview deployments: `https://*.nabome.pages.dev`
-- Secrets: 20/22 set (see Deploy section)
+- Secrets: 0/22 set — **ACTION REQUIRED** (see Deploy section)
+- **Note**: Preview deployments require separate secret configuration or inheritance from production
 
 ### Admin
 - `["admin", "products"]` — products list

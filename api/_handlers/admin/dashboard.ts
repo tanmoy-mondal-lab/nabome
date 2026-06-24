@@ -20,7 +20,7 @@ export async function handleDashboardRequest(
   }
 }
 
-env: anyasync function handleOverview(ctx.env): Promise<Response> {
+async function handleOverview(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const now = new Date();

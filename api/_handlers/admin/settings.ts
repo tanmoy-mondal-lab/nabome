@@ -31,7 +31,7 @@ export async function handleAdminSettingsRequest(
   }
 }
 
-env: anyasync function handleGet(ctx.env): Promise<Response> {
+async function handleGet(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const settings = await prisma.siteSetting.findFirst();
@@ -85,7 +85,7 @@ async function handleUpdate(req: Request, ctx: RequestContext, env: any): Promis
   }
 }
 
-env: anyasync function handleSocialLinksList(ctx.env): Promise<Response> {
+async function handleSocialLinksList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const links = await prisma.socialMediaLink.findMany({

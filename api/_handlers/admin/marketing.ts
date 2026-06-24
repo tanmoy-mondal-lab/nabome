@@ -26,7 +26,7 @@ export async function handleAdminMarketingRequest(
   }
 }
 
-env: anyasync function handleAnnouncementsList(ctx.env): Promise<Response> {
+async function handleAnnouncementsList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const announcements = await prisma.announcementBar.findMany({

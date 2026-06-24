@@ -44,7 +44,7 @@ export async function handleAdminSearchIndexRequest(
   }
 }
 
-env: anyasync function handleStatus(ctx.env): Promise<Response> {
+async function handleStatus(env: any): Promise<Response> {
   return success({
     indexed: memoryIndex.length > 0,
     count: memoryIndex.length,
@@ -53,7 +53,7 @@ env: anyasync function handleStatus(ctx.env): Promise<Response> {
   });
 }
 
-env: anyasync function handleBuild(ctx.env): Promise<Response> {
+async function handleBuild(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [products, pages, categories, collections, lookbooks] = await Promise.all([

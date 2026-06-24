@@ -62,7 +62,11 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
 }
 
 async function handleDelete(id: string, env: any): Promise<Response> {
-  try { await prisma.campaign.delete({ where: { id } }); return success({ message: "Campaign deleted" }); }
+  try {
     const prisma = getPrisma(env);
-  catch { return notFound("Campaign not found"); }
+    await prisma.campaign.delete({ where: { id } });
+    return success({ message: "Campaign deleted" });
+  } catch {
+    return notFound("Campaign not found");
+  }
 }

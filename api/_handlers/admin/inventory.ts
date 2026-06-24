@@ -23,7 +23,7 @@ export async function handleAdminInventoryRequest(
   }
 }
 
-env: anyasync function handleOverview(ctx.env): Promise<Response> {
+async function handleOverview(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     // Read low stock threshold from site settings

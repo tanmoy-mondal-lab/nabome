@@ -3,7 +3,7 @@ import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
-import { Edit3, Trash2, Plus, LayoutList } from "lucide-react";
+import { Edit3, Trash2, Plus, LayoutList, GripVertical } from "lucide-react";
 import { useToast } from "../../components/ui/Toast";
 
 interface FooterSection {
@@ -13,7 +13,13 @@ interface FooterSection {
   content: string;
   sortOrder: number;
   isActive: boolean;
-  links?: { label: string; url: string }[];
+  links?: FooterLink[];
+}
+
+interface FooterLink {
+  id: string;
+  label: string;
+  url: string;
 }
 
 export default function FooterBuilder() {
@@ -21,7 +27,10 @@ export default function FooterBuilder() {
   const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<FooterSection | null>(null);
-  const [form, setForm] = useState({ title: "", contentType: "links", content: "", isActive: true, linksRaw: "[]", column: 1 });
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [editingLink, setEditingLink] = useState<{ index?: number; link: FooterLink } | null>(null);
+  const [form, setForm] = useState({ title: "", contentType: "links", content: "", isActive: true, links: [] as FooterLink[], column: 1 });
+  const [linkForm, setLinkForm] = useState({ label: "", url: "" });
 
   const { data: sections = [], isLoading: loading, error: queryError } = useQuery<FooterSection[]>({
     queryKey: ["admin", "footer"],
@@ -66,7 +75,7 @@ export default function FooterBuilder() {
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ title: "", contentType: "links", content: "", isActive: true, linksRaw: "[]", column: 1 });
+    setForm({ title: "", contentType: "links", content: "", isActive: true, links: [], column: 1 });
     setModalOpen(true);
   };
 
@@ -74,18 +83,55 @@ export default function FooterBuilder() {
     setEditItem(sec);
     setForm({
       title: sec.title, contentType: sec.contentType, content: typeof sec.content === 'object' ? JSON.stringify(sec.content) : (sec.content ?? ""),
-      isActive: sec.isActive, linksRaw: JSON.stringify(sec.links ?? [], null, 2), column: (sec as unknown as { column?: number }).column ?? 1,
+      isActive: sec.isActive, links: sec.links ?? [], column: (sec as unknown as { column?: number }).column ?? 1,
     });
     setModalOpen(true);
   };
 
   const handleSave = () => {
-    const links = JSON.parse(form.linksRaw || "[]");
     const payload: Record<string, unknown> = {
-      title: form.title, contentType: form.contentType, content: form.linksRaw ? JSON.stringify({ links }) : form.content,
+      title: form.title, contentType: form.contentType, content: form.contentType === 'links' ? JSON.stringify({ links: form.links }) : form.content,
       isActive: form.isActive, sortOrder: editItem?.sortOrder ?? sections.length, column: form.column,
     };
     saveMutation.mutate({ id: editItem?.id, data: payload });
+  };
+
+  const openAddLink = () => {
+    setEditingLink(null);
+    setLinkForm({ label: "", url: "" });
+    setLinkModalOpen(true);
+  };
+
+  const openEditLink = (index: number, link: FooterLink) => {
+    setEditingLink({ index, link });
+    setLinkForm({ label: link.label, url: link.url });
+    setLinkModalOpen(true);
+  };
+
+  const handleSaveLink = () => {
+    if (!linkForm.label || !linkForm.url) return;
+    
+    const newLink: FooterLink = {
+      id: editingLink?.link.id || `link-${Date.now()}`,
+      label: linkForm.label,
+      url: linkForm.url,
+    };
+
+    let newLinks = [...form.links];
+    
+    if (editingLink) {
+      newLinks[editingLink.index!] = newLink;
+    } else {
+      newLinks.push(newLink);
+    }
+    
+    setForm({ ...form, links: newLinks });
+    setLinkModalOpen(false);
+  };
+
+  const handleDeleteLink = (index: number) => {
+    const newLinks = form.links.filter((_, i) => i !== index);
+    setForm({ ...form, links: newLinks });
   };
 
   const handleDelete = (id: string) => {
@@ -180,13 +226,37 @@ export default function FooterBuilder() {
                   onChange={(e) => setForm({ ...form, content: e.target.value })}
                   className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
               </div>
-              <div>
-                <label className="block text-xs text-neutral-500 mb-1">Links (JSON)</label>
-                <textarea rows={6} value={form.linksRaw}
-                  onChange={(e) => setForm({ ...form, linksRaw: e.target.value })}
-                  className="w-full px-3 py-2 text-sm font-mono border border-neutral-200 rounded focus:outline-none"
-                  placeholder='[{"label":"About Us","url":"/about"}]' />
-              </div>
+              {form.contentType === 'links' && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs text-neutral-500">Links</label>
+                    <button onClick={openAddLink} className="text-xs bg-brand-500 text-white px-2 py-1 rounded hover:bg-brand-600">
+                      + Add Link
+                    </button>
+                  </div>
+                  <div className="border border-neutral-200 rounded divide-y divide-neutral-100">
+                    {form.links.length === 0 ? (
+                      <div className="p-4 text-center text-sm text-neutral-400">
+                        No links yet. Click "+ Add Link" to add footer links.
+                      </div>
+                    ) : (
+                      form.links.map((link, idx) => (
+                        <div key={link.id} className="p-3 flex items-center gap-2">
+                          <GripVertical size={14} className="text-neutral-300" />
+                          <span className="flex-1 text-sm font-medium text-neutral-900">{link.label}</span>
+                          <span className="text-xs text-neutral-400">{link.url}</span>
+                          <button onClick={() => openEditLink(idx, link)} className="p-1 hover:bg-neutral-100 rounded text-neutral-400">
+                            <Edit3 size={14} />
+                          </button>
+                          <button onClick={() => handleDeleteLink(idx)} className="p-1 hover:bg-red-50 rounded text-neutral-400 hover:text-red-500">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input type="checkbox" checked={form.isActive}
                   onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
@@ -198,6 +268,37 @@ export default function FooterBuilder() {
                 <button onClick={handleSave} disabled={saveMutation.isPending}
                   className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
                   {saveMutation.isPending ? "Saving..." : editItem ? "Update" : "Create"}
+                </button>
+              </div>
+            </div>
+          </Modal>
+
+          <Modal open={linkModalOpen} onClose={() => setLinkModalOpen(false)} title={editingLink ? "Edit Link" : "Add Link"} size="md">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs text-neutral-500 mb-1">Label *</label>
+                <input required value={linkForm.label}
+                  onChange={(e) => setLinkForm({ ...linkForm, label: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  placeholder="e.g., About Us"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-neutral-500 mb-1">URL *</label>
+                <input required value={linkForm.url}
+                  onChange={(e) => setLinkForm({ ...linkForm, url: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  placeholder="e.g., /about"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button onClick={() => setLinkModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+                <button 
+                  onClick={handleSaveLink}
+                  disabled={!linkForm.label || !linkForm.url}
+                  className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50"
+                >
+                  {editingLink ? "Update" : "Add"}
                 </button>
               </div>
             </div>

@@ -1,9 +1,31 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Plugin to copy functions directory to dist
+function copyFunctionsPlugin() {
+  return {
+    name: 'copy-functions',
+    closeBundle() {
+      const srcDir = path.resolve(__dirname, 'functions');
+      const destDir = path.resolve(__dirname, 'dist', 'functions');
+      
+      if (fs.existsSync(srcDir)) {
+        fs.mkdirSync(destDir, { recursive: true });
+        fs.cpSync(srcDir, destDir, { recursive: true });
+        console.log('✓ Copied functions directory to dist/functions');
+      }
+    }
+  };
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), copyFunctionsPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

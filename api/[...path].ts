@@ -5,7 +5,7 @@
 // Cloudflare Pages Functions entry point.
 // ─────────────────────────────────────────────────────────────
 
-import { getPrisma, setCurrentEnv } from "./_lib/prisma";
+import { getPrisma } from "./_lib/prisma";
 import { authenticateRequest, requireAdmin } from "./_lib/auth";
 import { notFound, serverError, error } from "./_lib/response";
 import { checkRateLimit, RATE_LIMIT_CONFIG, rateLimitResponse } from "./_lib/rate-limit";
@@ -668,9 +668,6 @@ async function handleRequest(method: string, request: Request, env?: Record<stri
       const forbidden = requireAdmin(context);
       if (forbidden) return withCors(forbidden, request, path);
     }
-
-    // Set current env for prisma proxy
-    setCurrentEnv(env);
 
     try {
       const response = await r.handler(request, context, params);

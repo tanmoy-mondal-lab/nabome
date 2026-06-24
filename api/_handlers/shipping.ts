@@ -22,7 +22,7 @@ export async function handleShippingRequest(
   }
 }
 
-env: anyasync function handleListZones(ctx.env): Promise<Response> {
+async function handleListZones(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const zones = await prisma.shippingZone.findMany({
@@ -95,7 +95,7 @@ async function handleCalculateRates(req: Request, env: any): Promise<Response> {
   }
 }
 
-env: anyasync function handleAdminListZones(ctx.env): Promise<Response> {
+async function handleAdminListZones(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const zones = await prisma.shippingZone.findMany({

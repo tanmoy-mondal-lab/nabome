@@ -108,7 +108,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   }
 }
 
-env: anyasync function handleStats(ctx.env): Promise<Response> {
+async function handleStats(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const statuses: string[] = [

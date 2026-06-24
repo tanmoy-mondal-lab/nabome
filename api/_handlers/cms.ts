@@ -28,7 +28,7 @@ export async function handleCMSRequest(
   }
 }
 
-env: anyasync function handleHomepage(ctx.env): Promise<Response> {
+async function handleHomepage(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const sections = await prisma.homepageSection.findMany({
@@ -41,7 +41,7 @@ env: anyasync function handleHomepage(ctx.env): Promise<Response> {
   }
 }
 
-env: anyasync function handlePages(ctx.env): Promise<Response> {
+async function handlePages(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const pages = await prisma.staticPage.findMany({
@@ -76,7 +76,7 @@ async function handlePage(slug: string, env: any): Promise<Response> {
   }
 }
 
-env: anyasync function handleNavigation(ctx.env): Promise<Response> {
+async function handleNavigation(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const menus = await prisma.navigationMenu.findMany({
@@ -89,7 +89,7 @@ env: anyasync function handleNavigation(ctx.env): Promise<Response> {
   }
 }
 
-env: anyasync function handleAnnouncements(ctx.env): Promise<Response> {
+async function handleAnnouncements(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const now = new Date();
@@ -109,7 +109,7 @@ env: anyasync function handleAnnouncements(ctx.env): Promise<Response> {
   }
 }
 
-env: anyasync function handleBrandStory(ctx.env): Promise<Response> {
+async function handleBrandStory(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const story = await prisma.brandStory.findFirst();
@@ -120,7 +120,7 @@ env: anyasync function handleBrandStory(ctx.env): Promise<Response> {
   }
 }
 
-env: anyasync function handleFooter(ctx.env): Promise<Response> {
+async function handleFooter(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const sections = await prisma.footerSection.findMany({

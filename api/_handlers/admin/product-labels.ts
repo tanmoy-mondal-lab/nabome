@@ -28,7 +28,7 @@ export async function handleAdminProductLabelRequest(
   }
 }
 
-env: anyasync function handleListLabels(ctx.env): Promise<Response> {
+async function handleListLabels(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const labels = await prisma.productLabel.findMany({
@@ -73,7 +73,7 @@ async function handleDeleteLabel(id: string, env: any): Promise<Response> {
   } catch (err) { return notFound("Label not found"); }
 }
 
-env: anyasync function handleListTags(ctx.env): Promise<Response> {
+async function handleListTags(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const tags = await prisma.productTag.findMany({

@@ -418,7 +418,7 @@ function roundAmount(amount: unknown): number {
 // WEBHOOK EVENT HANDLERS
 // ─────────────────────────────────────────────────────────────
 
-async function handlePaymentCaptured(event: WebhookEventPayload, ctx.env) {
+async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: any }) {
   const payment = event.payload.payment?.entity as Record<string, unknown> | undefined;
   if (!payment) throw new Error("Missing payment entity in payload");
 
@@ -485,7 +485,7 @@ async function handlePaymentCaptured(event: WebhookEventPayload, ctx.env) {
   return result;
 }
 
-async function handlePaymentFailed(event: WebhookEventPayload, ctx.env) {
+async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: any }) {
   const payment = event.payload.payment?.entity as Record<string, unknown> | undefined;
   if (!payment) throw new Error("Missing payment entity in payload");
 
@@ -539,7 +539,7 @@ async function handlePaymentFailed(event: WebhookEventPayload, ctx.env) {
   return result;
 }
 
-async function handleRefundCreated(event: WebhookEventPayload, ctx.env) {
+async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }) {
   const refund = event.payload.refund?.entity as Record<string, unknown> | undefined;
   if (!refund) throw new Error("Missing refund entity in payload");
 
@@ -632,7 +632,7 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx.env) {
   });
 }
 
-async function handleRefundProcessed(event: WebhookEventPayload, ctx.env) {
+async function handleRefundProcessed(event: WebhookEventPayload, ctx: { env: any }) {
   const refund = event.payload.refund?.entity as Record<string, unknown> | undefined;
   if (!refund) throw new Error("Missing refund entity in payload");
 

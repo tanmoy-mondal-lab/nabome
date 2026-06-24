@@ -94,7 +94,7 @@ async function handleCreateTicket(ctx: RequestContext, req: Request, env: any): 
   }
 }
 
-env: anyasync function handleListFAQs(ctx.env): Promise<Response> {
+async function handleListFAQs(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const faqs = await prisma.fAQ.findMany({
@@ -341,7 +341,7 @@ async function handleAdminReply(ctx: RequestContext, ticketId: string, req: Requ
   }
 }
 
-env: anyasync function handleAdminFaqList(ctx.env): Promise<Response> {
+async function handleAdminFaqList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const faqs = await prisma.fAQ.findMany({

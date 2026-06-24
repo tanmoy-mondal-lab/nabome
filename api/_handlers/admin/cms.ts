@@ -60,7 +60,7 @@ export async function handleAdminCMSRequest(
 
 // ─── Static Pages ───
 
-env: anyasync function handlePagesList(ctx.env): Promise<Response> {
+async function handlePagesList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const pages = await prisma.staticPage.findMany({
@@ -159,7 +159,7 @@ async function handleDeletePage(pageId: string, req: Request, ctx: RequestContex
 
 // ─── Homepage Sections ───
 
-env: anyasync function handleHomepageList(ctx.env): Promise<Response> {
+async function handleHomepageList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const sections = await prisma.homepageSection.findMany({
@@ -267,7 +267,7 @@ async function handleReorderHomeSections(req: Request, env: any): Promise<Respon
 
 // ─── Navigation ───
 
-env: anyasync function handleNavigationList(ctx.env): Promise<Response> {
+async function handleNavigationList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const menus = await prisma.navigationMenu.findMany({
@@ -351,7 +351,7 @@ async function handleDeleteNavigation(menuId: string, req: Request, ctx: Request
 
 // ─── Brand Story ───
 
-env: anyasync function handleGetBrandStory(ctx.env): Promise<Response> {
+async function handleGetBrandStory(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const story = await prisma.brandStory.findFirst();
@@ -415,7 +415,7 @@ async function handleUpdateBrandStory(req: Request, ctx: RequestContext, env: an
 
 // ─── Footer Sections ───
 
-env: anyasync function handleFooterList(ctx.env): Promise<Response> {
+async function handleFooterList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const sections = await prisma.footerSection.findMany({

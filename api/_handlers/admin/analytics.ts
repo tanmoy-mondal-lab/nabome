@@ -165,7 +165,7 @@ async function handleSales(req: Request, env: any): Promise<Response> {
   }
 }
 
-env: anyasync function handleProducts(ctx.env): Promise<Response> {
+async function handleProducts(env: any): Promise<Response> {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   try {
@@ -220,7 +220,7 @@ env: anyasync function handleProducts(ctx.env): Promise<Response> {
   }
 }
 
-env: anyasync function handleCustomers(ctx.env): Promise<Response> {
+async function handleCustomers(env: any): Promise<Response> {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 

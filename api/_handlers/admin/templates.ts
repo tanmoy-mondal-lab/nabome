@@ -31,7 +31,7 @@ export async function handleAdminTemplateRequest(
   }
 }
 
-env: anyasync function handleList(ctx.env): Promise<Response> {
+async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const templates = await prisma.pageTemplate.findMany({

@@ -7,6 +7,13 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function getDatabaseUrl(env?: Env): string {
+  // Debug logging
+  console.log("[PRISMA DEBUG] env parameter:", env);
+  console.log("[PRISMA DEBUG] env type:", typeof env);
+  console.log("[PRISMA DEBUG] env keys:", env ? Object.keys(env) : "env is null/undefined");
+  console.log("[PRISMA DEBUG] env.DATABASE_URL:", env?.DATABASE_URL ? "SET" : "UNDEFINED");
+  console.log("[PRISMA DEBUG] env.DATABASE_URL_POOLED:", env?.DATABASE_URL_POOLED ? "SET" : "UNDEFINED");
+  
   const url = env?.DATABASE_URL || env?.DATABASE_URL_POOLED ||
     (typeof process !== "undefined" && process.env?.DATABASE_URL) ||
     (typeof process !== "undefined" && process.env?.DATABASE_URL_POOLED) ||

@@ -18,7 +18,7 @@ export async function handleLookbookRequest(
   }
 }
 
-env: anyasync function handleList(ctx.env): Promise<Response> {
+async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const lookbooks = await prisma.lookbook.findMany({

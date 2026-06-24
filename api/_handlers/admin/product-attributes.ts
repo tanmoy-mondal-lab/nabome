@@ -49,7 +49,11 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
 }
 
 async function handleDelete(id: string, env: any): Promise<Response> {
-  try { await prisma.productAttribute.delete({ where: { id } }); return success({ message: "Attribute deleted" }); }
+  try {
     const prisma = getPrisma(env);
-  catch { return notFound("Attribute not found"); }
+    await prisma.productAttribute.delete({ where: { id } });
+    return success({ message: "Attribute deleted" });
+  } catch {
+    return notFound("Attribute not found");
+  }
 }

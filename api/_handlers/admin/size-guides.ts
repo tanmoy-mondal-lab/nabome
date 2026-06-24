@@ -24,7 +24,7 @@ export async function handleAdminSizeGuideRequest(
   }
 }
 
-env: anyasync function handleList(ctx.env): Promise<Response> {
+async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const guides = await prisma.sizeGuide.findMany({

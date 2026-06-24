@@ -20,7 +20,7 @@ export async function handleAdminSubcategoryRequest(
   }
 }
 
-env: anyasync function handleList(ctx.env): Promise<Response> {
+async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const subcategories = await prisma.subcategory.findMany({
