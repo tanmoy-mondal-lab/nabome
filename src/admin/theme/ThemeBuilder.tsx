@@ -1,5 +1,5 @@
 import { MediaPicker } from "../common/MediaPicker";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
@@ -87,21 +87,23 @@ export default function ThemeBuilder() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { isLoading } = useQuery({
+  const { data: queryTheme, isLoading } = useQuery({
     queryKey: ["admin", "themes"],
     queryFn: async () => {
       const res = await adminApi.getSettings();
       const s = res.settings as Record<string, unknown> ?? {};
       const themeData = s.theme as Partial<Theme> | undefined;
       if (themeData) {
-        const merged = { ...DEFAULT_THEME, ...themeData };
-        setActiveTheme(merged);
-        return [merged];
+        return { ...DEFAULT_THEME, ...themeData };
       }
-      return [DEFAULT_THEME];
+      return DEFAULT_THEME;
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  useEffect(() => {
+    if (queryTheme) setActiveTheme(queryTheme);
+  }, [queryTheme]);
 
   const saveMutation = useMutation({
     mutationFn: async (theme: Theme) => {
@@ -121,7 +123,7 @@ export default function ThemeBuilder() {
   const updateTheme = useCallback((path: string, value: unknown) => {
     setActiveTheme((prev) => {
       const keys = path.split(".");
-      const newTheme = { ...prev };
+      const newTheme = structuredClone(prev);
       let obj: Record<string, unknown> = newTheme as unknown as Record<string, unknown>;
       for (let i = 0; i < keys.length - 1; i++) {
         obj = obj[keys[i]] as Record<string, unknown>;

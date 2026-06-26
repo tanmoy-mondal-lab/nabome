@@ -121,7 +121,10 @@ export default function CouponsPage() {
   };
 
   const handleSave = () => {
-    if (!form.code.trim() || form.discountValue <= 0) return;
+    if (!form.code.trim()) return;
+    if (form.discountValue <= 0) return;
+    if (!form.startDate) return;
+    if (!form.endDate) return;
     saveMutation.mutate();
   };
 
@@ -266,8 +269,8 @@ export default function CouponsPage() {
             <select value={form.applicableGender} onChange={(e) => setForm({ ...form, applicableGender: e.target.value })}
               className={inputClass}>
               <option value="">All</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
+              <option value="men">Male</option>
+              <option value="women">Female</option>
               <option value="unisex">Unisex</option>
             </select>
           </div>

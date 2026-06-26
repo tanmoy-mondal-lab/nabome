@@ -101,7 +101,7 @@ export default function HeroSliderSection({ section }: HeroSliderSectionProps) {
         <motion.h1
           variants={fadeUp}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="display-1 font-display text-6xl md:text-8xl text-white leading-[0.95] mb-6"
+          className="font-display text-display-1 text-white leading-[0.95] mb-6"
         >
           <>{slide.title}</>
         </motion.h1>

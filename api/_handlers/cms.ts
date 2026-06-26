@@ -23,6 +23,8 @@ export async function handleCMSRequest(
       return handleBrandStory(ctx.env);
     case "footer":
       return handleFooter(ctx.env);
+    case "socialProof":
+      return handleSocialProof(ctx.env);
     default:
       return badRequest("Unknown action");
   }
@@ -128,6 +130,41 @@ async function handleFooter(env: any): Promise<Response> {
       orderBy: [{ column: "asc" }, { sortOrder: "asc" }],
     });
     return success({ sections });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleSocialProof(env: any): Promise<Response> {
+  try {
+    const prisma = getPrisma(env);
+    const recentOrders = await prisma.order.findMany({
+      where: { paymentStatus: "paid" },
+      select: {
+        id: true,
+        createdAt: true,
+        shippingAddress: {
+          select: { city: true },
+        },
+        items: {
+          select: { productName: true },
+          take: 1,
+        },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    });
+
+    const proof = recentOrders
+      .filter((o) => o.items.length > 0 && o.items[0].productName)
+      .map((o) => ({
+        product: o.items[0].productName,
+        city: o.shippingAddress?.city ?? "India",
+        timestamp: o.createdAt,
+      }))
+      .slice(0, 10);
+
+    return success({ proof });
   } catch (err) {
     return serverError(err);
   }

@@ -1,29 +1,58 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingBag } from "lucide-react";
+import { api } from "../../lib/api/client";
+
+interface ProofItem {
+  product: string;
+  city: string;
+  timestamp: string;
+}
 
 const NAMES = ["Priya S.", "Arun K.", "Meera R.", "Vikram J.", "Ananya P.", "Rohan M.", "Isha T.", "Kabir S."];
-const PRODUCTS = ["Linen Shirt", "Silk Dress", "Leather Tote", "Cashmere Sweater", "Wool Blazer", "Denim Jacket"];
-const LOCATIONS = ["Mumbai", "Delhi", "Bengaluru", "Kolkata", "Jaipur", "Hyderabad", "Chennai", "Pune"];
+
+function getRandomName(): string {
+  return NAMES[Math.floor(Math.random() * NAMES.length)];
+}
 
 export function SocialProof() {
   const [visible, setVisible] = useState(true);
-  const [name, setName] = useState(NAMES[0]);
-  const [product, setProduct] = useState(PRODUCTS[0]);
-  const [location, setLocation] = useState(LOCATIONS[0]);
+  const [name, setName] = useState(getRandomName());
+  const [proofData, setProofData] = useState<ProofItem[]>([]);
+  const currentIndexRef = useRef(0);
 
   useEffect(() => {
+    api.get<{ proof: ProofItem[] }>("/api/cms/social-proof")
+      .then((res) => {
+        if (res.proof && res.proof.length > 0) {
+          setProofData(res.proof);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (proofData.length === 0) return;
+
     const show = () => {
-      setName(NAMES[Math.floor(Math.random() * NAMES.length)]);
-      setProduct(PRODUCTS[Math.floor(Math.random() * PRODUCTS.length)]);
-      setLocation(LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]);
+      const item = proofData[currentIndexRef.current % proofData.length];
+      setName(getRandomName());
+      setProduct(item.product);
+      setCity(item.city);
       setVisible(true);
+      currentIndexRef.current++;
       setTimeout(() => setVisible(false), 4500);
     };
+
     show();
     const interval = setInterval(show, 20000 + Math.random() * 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [proofData]);
+
+  const [product, setProduct] = useState("a product");
+  const [city, setCity] = useState("India");
+
+  if (proofData.length === 0) return null;
 
   return (
     <AnimatePresence>
@@ -34,6 +63,8 @@ export function SocialProof() {
           exit={{ opacity: 0, y: 8, x: -16 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           className="fixed bottom-20 md:bottom-6 left-4 md:left-6 z-40 bg-white/95 backdrop-blur-md shadow-elevated border border-neutral-100 rounded-lg px-4 py-3 max-w-xs"
+          aria-live="polite"
+          role="status"
         >
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center shrink-0 mt-0.5">
@@ -42,7 +73,7 @@ export function SocialProof() {
             <div>
               <p className="text-xs text-neutral-600 leading-relaxed">
                 <span className="font-semibold text-neutral-900">{name}</span> from{" "}
-                <span className="font-medium text-neutral-800">{location}</span> just purchased{" "}
+                <span className="font-medium text-neutral-800">{city}</span> just purchased{" "}
                 <span className="font-semibold text-neutral-900">{product}</span>
               </p>
               <p className="text-[10px] text-accent-gold mt-1 font-medium">from নবME</p>

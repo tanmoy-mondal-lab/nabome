@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { adminApi } from "../../lib/api/admin";
 import { StatsCard } from "../common/StatsCard";
-import { formatPrice, formatCompactPrice } from "../../lib/utils/format";
+import { formatPrice } from "../../lib/utils/format";
 import {
   ShoppingCart, Users, IndianRupee, TrendingUp, Eye,
   MapPin, Globe, Building2, Home, Hash, ChevronDown, ChevronRight,
@@ -43,21 +43,32 @@ export default function AnalyticsPage() {
   const [salesData, setSalesData] = useState<SalesData | null>(null);
   const [deliveryData, setDeliveryData] = useState<DeliveryData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchSales = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await adminApi.getSalesAnalytics({ period }) as SalesData;
       setSalesData(res);
-    } catch { /* non-critical: sales analytics unavailable, showing empty state */ setSalesData(null); } finally { setLoading(false); }
+    } catch (err) {
+      console.error("Failed to fetch sales analytics:", err);
+      setError(err instanceof Error ? err.message : "Failed to load analytics");
+      setSalesData(null);
+    } finally { setLoading(false); }
   }, [period]);
 
   const fetchDelivery = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await adminApi.getDeliveryAddressAnalytics({ period }) as DeliveryData;
       setDeliveryData(res);
-    } catch { /* non-critical: delivery analytics unavailable, showing empty state */ setDeliveryData(null); } finally { setLoading(false); }
+    } catch (err) {
+      console.error("Failed to fetch delivery analytics:", err);
+      setError(err instanceof Error ? err.message : "Failed to load analytics");
+      setDeliveryData(null);
+    } finally { setLoading(false); }
   }, [period]);
 
   useEffect(() => {
@@ -103,6 +114,11 @@ export default function AnalyticsPage() {
       {loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 rounded p-6 text-center">
+          <p className="text-red-600 font-medium">{error}</p>
+          <p className="text-sm text-red-500 mt-1">Please try again or check your connection.</p>
         </div>
       ) : tab === "sales" ? (
         <SalesTab data={salesData} />

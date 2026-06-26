@@ -1,6 +1,8 @@
 import { MediaPicker } from "../common/MediaPicker";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
+import { useToast } from "../../components/ui/Toast";
 
 interface ThemeConfig {
   primaryColor: string;
@@ -25,6 +27,8 @@ export default function ThemePage() {
   });
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   useEffect(() => {
     adminApi.getSettings().then((res) => {
@@ -43,7 +47,14 @@ export default function ThemePage() {
       const current = await adminApi.getSettings();
       const settings = current.settings as Record<string, unknown> ?? {};
       await adminApi.updateSettings({ ...settings, theme: form });
-    } catch { /* non-critical: failed to save theme settings */ } finally {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "themes"] });
+      toast("Theme saved successfully", "success");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      toast(`Failed to save theme: ${message}`, "error");
+    } finally {
       setSaving(false);
     }
   };

@@ -8,6 +8,7 @@ import { SafeImage } from "../../components/SafeImage";
 import { useWishlist } from "../hooks/useWishlist";
 import { useCartStore } from "../stores/cart-store";
 import { useAuthStore } from "../../stores/auth-store";
+import { hapticMedium } from "../../lib/utils/haptic";
 
 interface ProductCardProps {
   product: Record<string, unknown>;
@@ -50,6 +51,7 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
       navigate("/auth/login", { state: { from: window.location.pathname } });
       return;
     }
+    hapticMedium();
     if (inWishlist) {
       removeFromWishlist(defaultVariant.id as string);
     } else {
@@ -140,10 +142,10 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
         )}
 
         <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onQuickView?.(); }} className="w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-subtle transition-all duration-200 text-neutral-600" aria-label="Quick view">
+          <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onQuickView?.(); }} className="w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-subtle transition-all duration-200 text-neutral-600" aria-label="Quick view">
             <Eye className="w-4 h-4" />
           </button>
-          <button onClick={handleToggleWishlist} className={cn("w-9 h-9 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-subtle transition-all duration-200", inWishlist ? "text-red-500" : "text-neutral-600")} aria-label="Toggle wishlist">
+          <button onClick={handleToggleWishlist} className={cn("w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-subtle transition-all duration-200", inWishlist ? "text-red-500" : "text-neutral-600")} aria-label="Toggle wishlist">
             <AnimatePresence mode="wait">
               {inWishlist ? (
                 <motion.span key="filled" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex items-center justify-center">

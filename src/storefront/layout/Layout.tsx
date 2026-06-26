@@ -1,12 +1,15 @@
 import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { motion } from "framer-motion";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { MobileNav } from "./MobileNav";
 import { BottomNav } from "./BottomNav";
 import { SearchOverlay } from "./SearchOverlay";
+import { CartDrawer } from "../components/CartDrawer";
 import { SocialProof } from "../components/SocialProof";
+import { ScrollToTop } from "../components/ScrollToTop";
 import { useSettings } from "../hooks/useSettings";
 import { canonical, websiteSchema } from "../../lib/seo";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
@@ -71,7 +74,11 @@ export function StorefrontLayout() {
       <Header />
       <MobileNav />
       <SearchOverlay />
-      <main className="flex-1 pt-[64px] md:pt-[80px] pb-16 md:pb-0">
+      <CartDrawer />
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:bg-brand-500 focus:text-white focus:px-4 focus:py-2 focus:rounded">
+        Skip to content
+      </a>
+      <main id="main-content" className="flex-1 pt-[64px] md:pt-[80px] pb-16 md:pb-0">
         <ErrorBoundary
           fallback={
             <div className="min-h-[400px] flex items-center justify-center px-4">
@@ -85,11 +92,19 @@ export function StorefrontLayout() {
             </div>
           }
         >
-          <Outlet />
+          <motion.div
+            key={pathname}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Outlet />
+          </motion.div>
         </ErrorBoundary>
       </main>
       {!isCheckout && <SocialProof />}
       {!isCheckout && <BottomNav />}
+      <ScrollToTop />
       <Footer />
     </div>
   );

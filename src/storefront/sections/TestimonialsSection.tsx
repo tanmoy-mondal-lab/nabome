@@ -62,7 +62,7 @@ export default function TestimonialsSection({ section }: TestimonialsSectionProp
         transition={{ duration: 0.6 }}
         className="text-center mb-12"
       >
-        <h2 className="text-3xl md:text-4xl font-display text-neutral-900 mb-3">
+        <h2 className="text-4xl md:text-5xl font-display text-neutral-900 mb-3">
           {title}
         </h2>
         {subtitle && (
@@ -75,13 +75,13 @@ export default function TestimonialsSection({ section }: TestimonialsSectionProp
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true }}
-        className={`grid ${getColumns(testimonials.length)} gap-6`}
+        className={`grid ${getColumns(testimonials.length)} gap-8`}
       >
         {testimonials.map((t, i) => (
           <motion.div
             key={i}
             variants={cardVariants}
-            className="border border-neutral-200 rounded-lg p-6 bg-white shadow-sm flex flex-col"
+            className="premium-card-lift p-6 bg-white flex flex-col"
           >
             <StarRating rating={t.rating} className="mb-3" />
             <p className="text-neutral-700 leading-relaxed flex-1 mb-4">

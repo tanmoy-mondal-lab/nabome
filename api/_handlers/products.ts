@@ -79,6 +79,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "12");
   const category = url.searchParams.get("category");
+  const subcategory = url.searchParams.get("subcategory");
   const collection = url.searchParams.get("collection");
   const gender = url.searchParams.get("gender");
   const minPrice = url.searchParams.get("minPrice");
@@ -95,6 +96,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   const where: Record<string, unknown> = { isActive: true };
 
   if (category) where.category = { slug: category };
+  if (subcategory) where.subcategory = { slug: subcategory };
   if (collection) where.collection = { slug: collection };
   if (gender) where.gender = gender;
   if (minPrice || maxPrice) {

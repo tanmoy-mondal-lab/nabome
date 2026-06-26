@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { hapticSuccess } from "../../lib/utils/haptic";
 
 export interface CartItem {
   id: string;
@@ -98,6 +99,7 @@ export const useCartStore = create<CartState>()(
         }
         // Clear the "just added" indicator after 2s
         setTimeout(() => get().clearJustAdded(), 2000);
+        hapticSuccess();
       },
 
       removeItem: (variantId) => {

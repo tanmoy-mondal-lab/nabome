@@ -15,7 +15,7 @@ import { cn } from "../../lib/utils/cn";
 export function Header() {
   const navigate = useNavigate();
   const { isAuthenticated, isAdmin } = useAuthStore();
-  const { openSearch, toggleMobileMenu, setActiveMegaMenu, activeMegaMenu } = useUIStore();
+  const { openSearch, toggleMobileMenu, setActiveMegaMenu, activeMegaMenu, openCart } = useUIStore();
   const itemCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.quantity, 0));
   const [notifCount, setNotifCount] = useState(0);
   const [scrolled, setScrolled] = useState(false);
@@ -68,31 +68,31 @@ export function Header() {
       "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
       scrolled ? "bg-white/90 backdrop-blur-xl shadow-subtle" : "bg-white"
     )}>
-      {/* Announcement Bar */}
-      <AnimatePresence>
-        {announcement && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-luxe-charcoal text-white overflow-hidden"
-          >
-            <div className="container-page py-2.5 text-center">
-              <p className="text-[10px] tracking-[0.25em] uppercase text-accent-goldLight">
-                {announcement.message as string}
-              </p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className={cn("transition-transform duration-500", hidden ? "-translate-y-full" : "translate-y-0")}>
+        {/* Announcement Bar */}
+        <AnimatePresence>
+          {announcement && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-luxe-charcoal text-white overflow-hidden"
+            >
+              <div className="container-page py-2.5 text-center">
+                <p className="text-[10px] tracking-[0.25em] uppercase text-accent-goldLight">
+                  {announcement.message as string}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Main Header */}
-      <div className={cn("transition-transform duration-500 relative", hidden && announcement ? "-translate-y-full" : "translate-y-0")}>
+        {/* Main Header */}
         <div className="container-page">
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Left: Mobile Menu + Navigation */}
             <div className="flex items-center gap-2 min-w-0">
-              <button onClick={toggleMobileMenu} className="md:hidden p-2 -ml-2 text-neutral-700 hover:text-brand-500 transition-all duration-200 touch-manipulation">
+              <button onClick={toggleMobileMenu} className="md:hidden p-2.5 -ml-2 text-neutral-700 hover:text-brand-500 transition-all duration-200 touch-manipulation" aria-label="Open menu">
                 <Menu className="w-5 h-5" />
               </button>
               <nav className="hidden md:flex items-center gap-1">
@@ -123,6 +123,18 @@ export function Header() {
                             ? "text-brand-500"
                             : "text-neutral-700 hover:text-brand-500 hover:bg-neutral-50"
                         )}
+                        aria-expanded={hasChildren ? isActive : undefined}
+                        onFocus={() => {
+                          if (hasChildren) {
+                            clearCloseTimer();
+                            setActiveMegaMenu(menu.label);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (hasChildren) {
+                            scheduleClose();
+                          }
+                        }}
                       >
                         {menu.label}
                         {hasChildren && <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", isActive ? "rotate-180" : "")} />}
@@ -170,13 +182,14 @@ export function Header() {
                   Admin
                 </Link>
               )}
-              <button onClick={() => navigate("/cart")} className="relative p-2.5 text-neutral-600 hover:text-brand-500 hover:bg-neutral-100 transition-all duration-300 rounded-lg" aria-label="Cart">
+              <button onClick={() => openCart()} className="relative p-2.5 text-neutral-600 hover:text-brand-500 hover:bg-neutral-100 transition-all duration-300 rounded-lg" aria-label="Cart">
                 <ShoppingBag className="w-4 h-4" />
                 {itemCount > 0 && (
                   <motion.span
                     key={itemCount}
                     initial={{ scale: 0.5 }}
                     animate={{ scale: 1 }}
+                    aria-live="polite"
                     className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-brand-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center shadow-sm"
                   >
                     {itemCount > 9 ? "9+" : itemCount}
@@ -187,6 +200,9 @@ export function Header() {
           </div>
         </div>
       </div>
+
+      {/* Separator line */}
+      <div className={cn("h-px bg-neutral-100 transition-opacity duration-300", scrolled ? "opacity-100" : "opacity-0")} />
 
       {/* Mega Menu - below the header */}
       <AnimatePresence>
@@ -205,9 +221,6 @@ export function Header() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Separator line */}
-      <div className={cn("h-px bg-neutral-100 transition-opacity duration-300", scrolled ? "opacity-100" : "opacity-0")} />
     </header>
   );
 }

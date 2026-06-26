@@ -260,18 +260,19 @@ export default function ProductFormPage() {
       let res: unknown;
       if (isEdit) {
         await adminApi.updateProduct(id!, data);
-        if (selectedLabels.length > 0) await adminApi.assignLabels(id!, selectedLabels);
+        await adminApi.assignLabels(id!, selectedLabels);
       } else {
         res = await adminApi.createProduct(data);
         const newId = (res as Record<string, { id: string }>).product?.id ?? (res as Record<string, string>).id;
-        if (newId && selectedLabels.length > 0) await adminApi.assignLabels(newId, selectedLabels);
+        if (newId) await adminApi.assignLabels(newId, selectedLabels);
       }
       const productId = isEdit ? id! : (res as Record<string, { id: string }>).product?.id ?? (res as Record<string, string>).id;
 
       if (productId) {
         // Save variants
+        let savedVariants: Record<string, unknown>[] = [];
         if (variants.length > 0) {
-          await adminApi.updateProductVariants(
+          const variantRes = await adminApi.updateProductVariants(
             productId,
             variants.map((v) => ({
               id: v.id?.startsWith("new-") ? undefined : v.id,
@@ -280,6 +281,25 @@ export default function ProductFormPage() {
               isActive: v.isActive, videoUrl: v.videoUrl ?? null, videoPublicId: v.videoPublicId ?? null,
             }))
           );
+          savedVariants = (variantRes as Record<string, unknown>)?.variants as Record<string, unknown>[] ?? [];
+        }
+
+        // Save variant images
+        for (let i = 0; i < variants.length; i++) {
+          const v = variants[i];
+          const variantId = savedVariants[i]?.id as string | undefined;
+          if (!variantId) continue;
+          const variantImages = v.images ?? [];
+          for (const img of variantImages) {
+            if (!img.id) {
+              // New image - add it
+              await adminApi.addProductImage(productId, {
+                url: img.url, publicId: img.publicId,
+                altText: img.altText ?? "", isPrimary: false,
+                variantId,
+              });
+            }
+          }
         }
 
         // Delete removed images
@@ -289,7 +309,7 @@ export default function ProductFormPage() {
           await Promise.all(deletedImageIds.map((imgId) => adminApi.deleteProductImage(productId, imgId)));
         }
 
-        // Add new images
+        // Add new product-level images
         const newImages = images.filter((img) => !img.id);
         if (newImages.length > 0) {
           await Promise.all(

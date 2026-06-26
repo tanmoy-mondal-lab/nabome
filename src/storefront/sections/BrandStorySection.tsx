@@ -81,12 +81,12 @@ export default function BrandStorySection({ section }: BrandStorySectionProps) {
               ))}
             </div>
           </div>
-          <div className="relative aspect-[4/5] bg-neutral-200 overflow-hidden rounded-sm">
+          <div className="relative aspect-[4/5] bg-neutral-200 overflow-hidden rounded-sm group">
             {imageUrl && (
               <SafeImage
                 src={imageUrl}
                 alt=""
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-700 ease-luxe-out group-hover:scale-105"
               />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />

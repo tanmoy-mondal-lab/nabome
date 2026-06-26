@@ -15,7 +15,7 @@ export default function SearchResultsPage() {
   const { data: searchRes, isLoading: loading } = useSearch(q);
 
   const products = (searchRes as Record<string, unknown>)?.products as Record<string, unknown>[] ?? [];
-  const total = (searchRes as Record<string, unknown>)?.total as number ?? 0;
+  const total = ((searchRes as Record<string, unknown>)?.pagination as { total?: number })?.total ?? 0;
 
   const pageTitle = q ? `Search: "${q}" — নবME` : "Search — নবME";
   const pageDesc = q ? `Search results for "${q}" on নবME — premium fashion.` : "Search নবME for premium fashion.";

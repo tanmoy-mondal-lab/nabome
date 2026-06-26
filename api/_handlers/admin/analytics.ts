@@ -93,8 +93,8 @@ async function handleSales(req: Request, env: any): Promise<Response> {
         },
         orderBy: { createdAt: "asc" as const },
       }),
-      prisma.profile.count({ where: { role: "customer" } }),
-      prisma.order.count({ where: { paymentStatus: "paid" } }),
+      prisma.profile.count({ where: { role: "customer", createdAt: { gte: start } } }),
+      prisma.order.count({ where: { paymentStatus: "paid", createdAt: { gte: start } } }),
     ]);
 
     const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
@@ -126,12 +126,12 @@ async function handleSales(req: Request, env: any): Promise<Response> {
     }
 
     const revenueByPeriod = Array.from(revenueMap.entries())
-      .map(([key, revenue]) => ({ label: formatLabel(new Date(key), groupBy), revenue }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([key, revenue]) => ({ label: formatLabel(new Date(key), groupBy), revenue }));
 
     const ordersByPeriod = Array.from(ordersByPeriodMap.entries())
-      .map(([key, count]) => ({ label: formatLabel(new Date(key), groupBy), count }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([key, count]) => ({ label: formatLabel(new Date(key), groupBy), count }));
 
     // Top products (last 30 days for context)
     const topProductsRaw = await prisma.orderItem.groupBy({

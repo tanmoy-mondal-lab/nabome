@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { Heart, ShoppingBag, Shield, Truck, RotateCcw, Star } from "lucide-react";
+import { Heart, ShoppingBag, Shield, Truck, RotateCcw, Star, X } from "lucide-react";
 import { useProduct } from "../hooks/useProducts";
 import { ImageGallery } from "../components/ImageGallery";
 import { SizeSelector } from "../components/SizeSelector";
@@ -34,6 +34,7 @@ export default function ProductDetailPage() {
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"description" | "features" | "specs">("description");
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const justAdded = useCartStore((s) => s.justAdded);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -297,9 +298,17 @@ export default function ProductDetailPage() {
 
             {sizes.length > 0 && (
               <div>
-                <p className="text-[10px] font-body font-medium tracking-[0.2em] uppercase text-neutral-500 mb-3">
-                  Size
-                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-[10px] font-body font-medium tracking-[0.2em] uppercase text-neutral-500">
+                    Size
+                  </p>
+                  <button
+                    onClick={() => setShowSizeGuide(true)}
+                    className="text-[10px] font-body text-brand-500 hover:text-brand-600 underline underline-offset-2 transition-colors"
+                  >
+                    Size Guide
+                  </button>
+                </div>
                 <SizeSelector sizes={sizes} selected={selectedSize} onChange={setSelectedSize} stock={sizeStock} />
               </div>
             )}
@@ -495,6 +504,59 @@ export default function ProductDetailPage() {
           <RecentlyViewed />
         </div>
       </section>
+
+      {showSizeGuide && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowSizeGuide(false)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="relative bg-white p-8 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowSizeGuide(false)}
+              className="absolute top-4 right-4 p-2 text-neutral-400 hover:text-neutral-600"
+              aria-label="Close size guide"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="font-display text-2xl text-neutral-900 mb-6">Size Guide</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-200">
+                    <th className="text-left py-3 text-[10px] uppercase tracking-[0.15em] text-neutral-500 font-medium">Size</th>
+                    <th className="text-left py-3 text-[10px] uppercase tracking-[0.15em] text-neutral-500 font-medium">Chest (in)</th>
+                    <th className="text-left py-3 text-[10px] uppercase tracking-[0.15em] text-neutral-500 font-medium">Length (in)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { size: "XS", chest: "34-36", length: "26" },
+                    { size: "S", chest: "36-38", length: "27" },
+                    { size: "M", chest: "38-40", length: "28" },
+                    { size: "L", chest: "40-42", length: "29" },
+                    { size: "XL", chest: "42-44", length: "30" },
+                    { size: "XXL", chest: "44-46", length: "31" },
+                  ].map((row) => (
+                    <tr key={row.size} className="border-b border-neutral-50">
+                      <td className="py-3 font-medium text-neutral-900">{row.size}</td>
+                      <td className="py-3 text-neutral-600">{row.chest}</td>
+                      <td className="py-3 text-neutral-600">{row.length}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-neutral-400 mt-4">
+              Measurements are approximate. For the best fit, we recommend checking the specific size chart for each product.
+            </p>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

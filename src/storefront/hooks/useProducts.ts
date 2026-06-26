@@ -13,7 +13,7 @@ export function useProduct(slug: string | undefined) {
 export function useSearch(q: string) {
   return useQuery({
     queryKey: ["search", q],
-    queryFn: () => api.get<{ products: unknown[]; total: number }>("/api/products", { params: { action: "search", q } }),
+    queryFn: () => api.get<{ products: unknown[]; pagination: { total: number } }>("/api/products/search", { params: { q } }),
     enabled: q.length >= 2,
   });
 }

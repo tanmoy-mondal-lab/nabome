@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Shield, Truck, RotateCcw, X, ShoppingBag } from "lucide-react";
@@ -8,32 +8,20 @@ import { Breadcrumbs } from "../components/Breadcrumbs";
 import { formatPrice } from "../../lib/utils/format";
 import { SafeImage } from "../../components/SafeImage";
 import { cn } from "../../lib/utils/cn";
+import { useSettings } from "../hooks/useSettings";
 
 export default function CartPage() {
   const navigate = useNavigate();
   const { items, removeItem, updateQuantity, subtotal, discountAmount, total, couponCode, applyCoupon, removeCoupon, clearCart } = useCart();
+  const { data: settings } = useSettings();
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState("");
   const [removingId, setRemovingId] = useState<string | null>(null);
 
-  const [siteSettings, setSiteSettings] = useState<{ freeShippingThreshold: number; shippingCost: number }>({
-    freeShippingThreshold: 500, shippingCost: 99,
-  });
-
-  useEffect(() => {
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((d) => {
-        const s = d?.data;
-        if (s) {
-          setSiteSettings({
-            freeShippingThreshold: Number(s.freeShippingThreshold ?? 500),
-            shippingCost: Number(s.shippingInfo?.shippingCost ?? 99),
-          });
-        }
-      })
-      .catch(() => { /* non-critical: settings will use defaults */ });
-  }, []);
+  const siteSettings = {
+    freeShippingThreshold: Number(settings?.preferences && typeof settings.preferences === 'object' ? (settings.preferences as Record<string, unknown>).freeShippingThreshold ?? 500 : 500),
+    shippingCost: Number(settings?.preferences && typeof settings.preferences === 'object' ? (settings.preferences as Record<string, unknown>).shippingCost ?? 99 : 99),
+  };
 
   async function handleApplyCoupon() {
     if (!couponInput.trim()) return;
@@ -178,7 +166,7 @@ export default function CartPage() {
                       </div>
                       <button
                         onClick={() => handleRemove(item.variantId)}
-                        className="p-2 text-neutral-300 hover:text-red-500 transition-colors duration-300 shrink-0"
+                        className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center text-neutral-300 hover:text-red-500 transition-colors duration-300 shrink-0"
                         aria-label="Remove item"
                       >
                         <X className="w-4 h-4" />

@@ -25,10 +25,16 @@ const SEARCH_KEY = "nabome-recent-searches";
 export function SearchOverlay() {
   const { isSearchOpen, closeSearch } = useUIStore();
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { data } = useSearch(query);
+  const { data } = useSearch(debouncedQuery);
   const { data: categories = [] } = useCategories();
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   useEffect(() => {
     try { setRecent(JSON.parse(localStorage.getItem(`${SEARCH_KEY}-${getUserKey()}`) || "[]")); } catch {}
@@ -74,7 +80,7 @@ export function SearchOverlay() {
                   className="w-full pl-12 pr-4 py-4 text-lg border-b-2 border-neutral-900 focus:outline-none focus:border-accent-gold bg-transparent"
                 />
               </div>
-              <button onClick={closeSearch} className="p-2 hover:text-neutral-600 transition-colors"><X className="w-6 h-6" /></button>
+              <button onClick={closeSearch} className="p-2.5 hover:text-neutral-600 transition-colors" aria-label="Close search"><X className="w-6 h-6" /></button>
             </div>
 
             {!query && (
@@ -141,7 +147,7 @@ export function SearchOverlay() {
 
             {query && results.length > 0 && (
               <div className="max-w-5xl mx-auto space-y-6">
-                <p className="text-xs text-neutral-400">{data?.total ?? 0} results for "{query}"</p>
+                <p className="text-xs text-neutral-400">{(data as Record<string, unknown>)?.pagination ? ((data as Record<string, unknown>).pagination as { total?: number }).total ?? 0 : 0} results for "{query}"</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {results.slice(0, 8).map((p) => {
                     const images = p.images as { url: string }[] ?? [];
@@ -156,9 +162,9 @@ export function SearchOverlay() {
                     );
                   })}
                 </div>
-                {(data?.total ?? 0) > 8 && (
+                {((((data as Record<string, unknown>)?.pagination as { total?: number })?.total ?? 0) > 8) && (
                   <Link to={`/search?q=${encodeURIComponent(query)}`} onClick={closeSearch} className="block text-center text-sm text-brand-600 hover:underline py-4">
-                    View all {data?.total} results
+                    View all {((data as Record<string, unknown>)?.pagination as { total?: number })?.total ?? 0} results
                   </Link>
                 )}
               </div>

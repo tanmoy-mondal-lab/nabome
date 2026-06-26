@@ -18,6 +18,7 @@ import { addressesApi, type Address } from "../../lib/api/addresses";
 import { useRazorpay } from "../../lib/razorpay/use-razorpay";
 import { PhoneInput } from "../../components/PhoneInput";
 import { SafeImage } from "../../components/SafeImage";
+import { useSettings } from "../hooks/useSettings";
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
@@ -114,27 +115,14 @@ export default function CheckoutPage() {
   const [guestEmail, setGuestEmail] = useState("");
   const [guestEmailError, setGuestEmailError] = useState("");
 
-  const [siteSettings, setSiteSettings] = useState<{ taxRate: number; freeShippingThreshold: number; shippingCost: number }>({
-    taxRate: 5, freeShippingThreshold: 500, shippingCost: 99,
-  });
+  const { data: settingsData } = useSettings();
+  const siteSettings = {
+    taxRate: Number(settingsData?.preferences && typeof settingsData.preferences === 'object' ? (settingsData.preferences as Record<string, unknown>).taxRate ?? 5 : 5),
+    freeShippingThreshold: Number(settingsData?.preferences && typeof settingsData.preferences === 'object' ? (settingsData.preferences as Record<string, unknown>).freeShippingThreshold ?? 500 : 500),
+    shippingCost: Number(settingsData?.preferences && typeof settingsData.preferences === 'object' ? (settingsData.preferences as Record<string, unknown>).shippingCost ?? 99 : 99),
+  };
 
   const { loaded: razorpayLoaded, openRazorpay } = useRazorpay();
-
-  useEffect(() => {
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((d) => {
-        const s = d?.data;
-        if (s) {
-          setSiteSettings({
-            taxRate: Number(s.taxRate ?? 5),
-            freeShippingThreshold: Number(s.freeShippingThreshold ?? 500),
-            shippingCost: Number(s.shippingInfo?.shippingCost ?? 99),
-          });
-        }
-      })
-      .catch(() => { /* non-critical: settings will use defaults */ });
-  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {

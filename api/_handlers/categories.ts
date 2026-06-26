@@ -13,6 +13,8 @@ export async function handleCategoryRequest(
       return handleList(ctx.env);
     case "detail":
       return handleDetail(params[0], ctx.env);
+    case "subcategories":
+      return handleSubcategories(req, ctx.env);
     default:
       return badRequest("Unknown action");
   }
@@ -25,6 +27,11 @@ async function handleList(env: any): Promise<Response> {
       where: { isActive: true, parentId: null },
       include: {
         _count: { select: { products: true } },
+        subcategories: {
+          where: { isActive: true },
+          select: { id: true, name: true, slug: true, categoryId: true },
+          orderBy: { sortOrder: "asc" },
+        },
       },
       orderBy: { sortOrder: "asc" },
     });
@@ -36,6 +43,7 @@ async function handleList(env: any): Promise<Response> {
       parentId: null,
       imageUrl: cat.imageUrl,
       productCount: cat._count.products,
+      subcategories: cat.subcategories,
     }));
 
     return success({ categories: flat });
@@ -60,6 +68,27 @@ async function handleDetail(slug: string, env: any): Promise<Response> {
     if (!category) return notFound("Category not found");
 
     return success({ category });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleSubcategories(req: Request, env: any): Promise<Response> {
+  try {
+    const prisma = getPrisma(env);
+    const url = new URL(req.url);
+    const categoryId = url.searchParams.get("categoryId");
+
+    const where: Record<string, unknown> = { isActive: true };
+    if (categoryId) where.categoryId = categoryId;
+
+    const subcategories = await prisma.subcategory.findMany({
+      where,
+      select: { id: true, name: true, slug: true, categoryId: true },
+      orderBy: [{ categoryId: "asc" as const }, { sortOrder: "asc" as const }],
+    });
+
+    return success({ subcategories });
   } catch (err) {
     return serverError(err);
   }

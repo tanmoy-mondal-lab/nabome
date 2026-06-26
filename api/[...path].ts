@@ -228,6 +228,7 @@ route("GET", "/api/products/:slug/reviews", (req, ctx, p) => handleProductReques
 
 route("GET", "/api/categories", (req, ctx) => handleCategoryRequest(req, ctx, [], "list"));
 route("GET", "/api/categories/:slug", (req, ctx, p) => handleCategoryRequest(req, ctx, p, "detail"));
+route("GET", "/api/subcategories", (req, ctx) => handleCategoryRequest(req, ctx, [], "subcategories"));
 
 route("GET", "/api/collections", (req, ctx) => handleCollectionRequest(req, ctx, [], "list"));
 route("GET", "/api/collections/:slug", (req, ctx, p) => handleCollectionRequest(req, ctx, p, "detail"));
@@ -239,6 +240,7 @@ route("GET", "/api/cms/navigation", (req, ctx) => handleCMSRequest(req, ctx, [],
 route("GET", "/api/cms/announcements", (req, ctx) => handleCMSRequest(req, ctx, [], "announcements"));
 route("GET", "/api/cms/brand-story", (req, ctx) => handleCMSRequest(req, ctx, [], "brandStory"));
 route("GET", "/api/cms/footer", (req, ctx) => handleCMSRequest(req, ctx, [], "footer"));
+route("GET", "/api/cms/social-proof", (req, ctx) => handleCMSRequest(req, ctx, [], "socialProof"));
 
 route("GET", "/api/lookbooks", (req, ctx) => handleLookbookRequest(req, ctx, [], "list"));
 route("GET", "/api/lookbooks/:slug", (req, ctx, p) => handleLookbookRequest(req, ctx, p, "detail"));

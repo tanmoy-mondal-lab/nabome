@@ -1,5 +1,5 @@
 import { useState, type ImgHTMLAttributes } from "react";
-import { img } from "../lib/seo";
+import { img, imgSet } from "../lib/seo";
 
 interface SafeImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   src?: string;
@@ -7,6 +7,8 @@ interface SafeImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   fallback?: string;
   useTransform?: boolean;
   transformWidth?: number;
+  responsive?: boolean;
+  priority?: boolean;
 }
 
 const FALLBACK =
@@ -14,7 +16,7 @@ const FALLBACK =
 
 export function SafeImage({
   src, alt, fallback = FALLBACK, useTransform = true,
-  transformWidth, className = "", ...props
+  transformWidth, responsive = false, priority = false, className = "", ...props
 }: SafeImageProps) {
   const [failed, setFailed] = useState(false);
 
@@ -29,13 +31,36 @@ export function SafeImage({
     );
   }
 
+  const loadingAttr = priority ? "eager" : "lazy";
+  const fetchPriorityAttr = priority ? "high" : undefined;
+
+  if (responsive && src.includes("res.cloudinary.com")) {
+    const result = imgSet(src);
+    if ("srcSet" in result) {
+      return (
+        <img
+          src={result.src}
+          srcSet={result.srcSet}
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          alt={alt}
+          loading={loadingAttr}
+          fetchPriority={fetchPriorityAttr}
+          onError={() => setFailed(true)}
+          className={className}
+          {...props}
+        />
+      );
+    }
+  }
+
   const finalSrc = useTransform ? img(src, transformWidth ? { width: transformWidth } : {}) : src;
 
   return (
     <img
       src={finalSrc}
       alt={alt}
-      loading="lazy"
+      loading={loadingAttr}
+      fetchPriority={fetchPriorityAttr}
       onError={() => setFailed(true)}
       className={className}
       {...props}

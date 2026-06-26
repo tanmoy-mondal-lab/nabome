@@ -2,7 +2,20 @@
 if (typeof window !== "undefined") {
   // Mock fetch for tests
   global.fetch = require("node-fetch");
-  
+
+  // Mock localStorage for Zustand persist middleware
+  if (typeof global.localStorage === "undefined") {
+    const store = new Map<string, string>();
+    global.localStorage = {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => { store.set(key, value); },
+      removeItem: (key: string) => { store.delete(key); },
+      clear: () => { store.clear(); },
+      get length() { return store.size; },
+      key: (index: number) => [...store.keys()][index] ?? null,
+    } as Storage;
+  }
+
   // Mock crypto for tests - using Object.defineProperty to avoid read-only issues
   if (typeof global.crypto === 'undefined' || !global.crypto.getRandomValues) {
     Object.defineProperty(global, 'crypto', {
@@ -19,6 +32,7 @@ if (typeof window !== "undefined") {
           sign: async () => new ArrayBuffer(0),
           verify: async () => true,
         },
+        randomUUID: () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2),
       },
       writable: true,
       configurable: true,

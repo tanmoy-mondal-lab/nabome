@@ -110,7 +110,7 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="font-display text-4xl md:text-6xl lg:text-7xl tracking-wide mb-4 max-w-4xl"
+              className="font-display text-display-2 tracking-wide mb-4 max-w-4xl"
             >
               {slide.title}
             </motion.h1>

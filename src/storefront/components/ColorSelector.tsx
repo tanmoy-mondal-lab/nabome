@@ -23,11 +23,12 @@ export function ColorSelector({ colors, selected, onChange }: ColorSelectorProps
             key={c.hex}
             onClick={() => onChange(c.hex)}
             className={cn(
-              "w-8 h-8 rounded-full border-2 transition-all",
+              "w-10 h-10 rounded-full border-2 transition-all",
               selected === c.hex ? "border-neutral-900 scale-110" : "border-neutral-200 hover:border-neutral-400"
             )}
             style={{ backgroundColor: c.hex }}
             title={c.name}
+            aria-label={`Color: ${c.name}`}
           />
         ))}
       </div>

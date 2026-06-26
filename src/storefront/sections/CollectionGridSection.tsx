@@ -84,11 +84,14 @@ export default function CollectionGridSection({ section }: CollectionGridSection
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-7">
+                <div className="absolute bottom-0 left-0 right-0 p-7 transform transition-transform duration-500 group-hover:-translate-y-2">
                   <h3 className="text-2xl font-display text-white mb-1">{col.name as string}</h3>
-                  <p className="editorial-caption text-neutral-400">
+                  <p className="editorial-caption text-neutral-400 mb-2">
                     {(col.description as string) || ""}
                   </p>
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    View Collection →
+                  </span>
                 </div>
               </Link>
             </motion.div>

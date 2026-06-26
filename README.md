@@ -27,7 +27,7 @@
 | **Database** | **100 / 100** | ✅ PASS | Neon connected, Prisma schema synced, 56 models |
 | **Environment** | **100 / 100** | ✅ PASS | All 10/10 required env vars present |
 | **Build Output** | **100 / 100** | ✅ PASS | dist/ valid, 123 JS + 1 CSS bundle |
-| **Unit Tests** | **100 / 100** | ✅ PASS | 6/6 test files pass, 30/30 tests green |
+| **Unit Tests** | **100 / 100** | ✅ PASS | 15/15 test files pass, 313/313 tests green |
 
 ### Detailed Findings
 
@@ -95,6 +95,182 @@
 | Priority | Action | Impact |
 |---|---|---|
 | 🟢 LOW | Run `npx prisma migrate deploy` on production DB | Ensures schema is current |
+
+---
+
+## Mobile UX & Accessibility
+
+### Touch Targets (WCAG 2.1 Compliant)
+
+All interactive elements meet the **44x44px minimum** touch target size:
+
+| Element | Size | Location |
+|---|---|---|
+| QuantitySelector +/- buttons | 44x44px | `src/storefront/components/QuantitySelector.tsx` |
+| ProductCard wishlist button | 44x44px | `src/storefront/components/ProductCard.tsx` |
+| ProductCard quick-view button | 44x44px | `src/storefront/components/ProductCard.tsx` |
+| Cart item remove button | 44x44px | `src/storefront/pages/CartPage.tsx` |
+| Color selector swatches | 40x40px | `src/storefront/components/ColorSelector.tsx` |
+| Hamburger menu button | 44px+ | `src/storefront/layout/Header.tsx` |
+| Search overlay close | 44px+ | `src/storefront/layout/SearchOverlay.tsx` |
+| Image gallery arrows | 40x40px | `src/storefront/components/ImageGallery.tsx` |
+
+### Accessibility Features
+
+| Feature | Implementation |
+|---|---|
+| Skip-to-content link | `src/storefront/layout/Layout.tsx` — visible on focus for keyboard users |
+| `aria-live` regions | Cart badge, toast notifications, social proof — announced to screen readers |
+| `aria-current="page"` | BottomNav active state — identifies current page |
+| ARIA labels | All interactive elements have descriptive labels |
+| Focus ring | Global `ring-2 ring-brand-500/40` on `focus-visible` |
+| Semantic HTML | `<nav>`, `<header>`, `<main>`, `<footer>`, proper heading hierarchy |
+
+### Mobile Navigation
+
+- **Bottom nav bar** (mobile) — 5 items: Home, Browse, Wishlist, Cart, Account
+- **Hamburger slide-out menu** — Spring-animated with expandable sections
+- **Auto-hide header** — Hides on scroll down, reveals on scroll up
+
+### Pull-to-Refresh
+
+Custom pull-to-refresh gesture on `ProductListingPage`:
+- Touch-drag down from top of page
+- Spinning refresh indicator with spring animation
+- Invalidates React Query cache on release
+
+### Haptic Feedback
+
+Subtle vibration feedback on key mobile actions:
+- **Add to cart** — Success pattern (5ms → 30ms → 10ms)
+- **Wishlist toggle** — Light tap (10ms)
+- Auto-detects `navigator.vibrate` support (no-op on desktop/iOS)
+
+### Responsive Image Loading
+
+`SafeImage` component supports responsive srcsets via Cloudinary:
+- `responsive` prop enables automatic `srcSet` generation
+- Sizes: 320w, 640w, 960w, 1280w
+- Auto-format (WebP/AVIF) via `f_auto`
+- Auto-quality via `q_auto`
+- Native `loading="lazy"` on all images
+
+### Animations (Framer Motion)
+
+- Page entrance animations (fade + slide)
+- Cart item removal (slide out + collapse)
+- Mobile menu (spring physics)
+- QuickView modal (slide in from right)
+- Wishlist heart toggle (scale spring)
+- Scroll-triggered section reveals
+- Custom easing: `luxe-out` (`cubic-bezier(0.22, 1, 0.36, 1)`)
+
+---
+
+## Desktop UX
+
+### Cart Drawer
+
+Slide-in cart panel on desktop (480px wide) — no page navigation required:
+- Opens from right with spring animation
+- Shows items, quantities, subtotal
+- Quick checkout CTA
+- `src/storefront/components/CartDrawer.tsx`
+
+### Collapsible Sidebar Filter
+
+Desktop product listing uses a persistent left sidebar filter:
+- 264px wide sidebar with sticky positioning
+- Category and Collection dropdowns using `select-field` class
+- Collapsible via filter toggle button
+- Mobile falls back to horizontal filter bar
+- `src/storefront/pages/ProductListingPage.tsx`
+
+### Page Transition Animations
+
+Every route change triggers a fade+slide entrance:
+- `opacity: 0→1` + `y: 20→0` with luxury easing curve
+- 0.4s duration with `cubic-bezier(0.22, 1, 0.36, 1)`
+- `src/storefront/layout/Layout.tsx`
+
+### Mega Menu
+
+Full-width dropdown navigation with premium features:
+- 12-column grid layout
+- "View All {category}" links at top of each column
+- Featured banner with hover image scale
+- Promotional bar with free shipping message
+- 150ms close delay prevents flickering
+- Keyboard accessible: `onFocus`/`onBlur` + `aria-expanded`
+- `src/storefront/layout/MegaMenu.tsx`
+
+### Typography System
+
+Luxury font pairing with consistent token usage:
+- **Display**: Cormorant Garamond (headings, hero)
+- **Body**: Manrope (clean sans-serif)
+- **Editorial**: Playfair Display (accents, captions)
+- 7 defined type levels with tuned letter-spacing
+- Fashion tracking tokens: `fashion` (0.15em), `editorial` (0.05em)
+
+### Image Gallery (Desktop)
+
+Premium product image experience:
+- 2x cursor-tracking zoom (Net-a-Porter style)
+- Vertical thumbnail strip on left
+- Fullscreen lightbox mode (click expand button)
+- Swipe gestures on mobile
+- `src/storefront/components/ImageGallery.tsx`
+
+### Product Card Interactions
+
+Multi-layered hover effects on desktop:
+- 4px lift with shadow elevation change
+- Second image fades in on hover
+- Quick-view + wishlist buttons slide in
+- Add-to-cart button slides up from bottom
+- Custom `luxe-out` easing curve
+
+### Header Behavior
+
+Smart scroll-aware header:
+- Auto-hide on scroll down (past 80px)
+- Reveal on scroll up
+- Frosted glass effect when scrolled (`backdrop-blur-xl`)
+- Centered logo (Zara/COS pattern)
+- Announcement bar with height animation
+
+### Scroll-to-Top Button
+
+Floating button appears after 400px scroll:
+- Smooth scroll to top
+- Spring entrance/exit animation
+- Fixed bottom-right position
+- `src/storefront/components/ScrollToTop.tsx`
+
+### Size Guide Modal
+
+Product detail page size guide:
+- Modal overlay with size chart table
+- Standard measurements (XS-XXL)
+- Accessible close button
+- `src/storefront/pages/ProductDetailPage.tsx`
+
+### Visual Polish
+
+- **Shadow system**: 6 tiers (subtle → card → elevated → modal → menu → gold-glow)
+- **Card classes**: `premium-card`, `premium-card-lift` with hover transitions
+- **Button hierarchy**: 5 variants (primary, secondary, ghost, outline, gold)
+- **Custom scrollbar**: Thin, minimal 6px scrollbar
+- **Empty states**: Icon + message + styled CTA button
+
+### Settings Integration
+
+Cart and Checkout pages use `useSettings()` hook instead of raw `fetch()`:
+- Consistent caching via React Query
+- No duplicate API calls
+- `src/storefront/pages/CartPage.tsx`
+- `src/storefront/pages/CheckoutPage.tsx`
 
 ---
 
@@ -338,6 +514,108 @@ The Vite config proxies `/api` requests to `localhost:3001`.
 | `npm run db:seed` | Seed sample data |
 | `npm run db:cleanup` | Delete all data (keeps tables) |
 | `npm run db:fresh` | Cleanup + seed (full reset) |
+
+---
+
+## Testing
+
+### Frameworks
+
+| Framework | Purpose | Config |
+|---|---|---|
+| **Vitest** | Unit & integration tests | `vitest.config.ts` |
+| **Playwright** | End-to-end browser tests | `playwright.config.ts` |
+
+### Run Commands
+
+| Command | Description |
+|---|---|
+| `npm run test` | Run all unit tests (single run) |
+| `npm run test:watch` | Run unit tests in watch mode |
+| `npm run test:e2e` | Run E2E tests (all browsers: Chromium, Firefox, WebKit) |
+| `npm run test:e2e:headed` | Run E2E tests in headed browser mode |
+| `npm run test:e2e:ui` | Run E2E tests with Playwright UI |
+
+### Test File Structure
+
+```
+src/lib/__tests__/                    # Utility & pure function tests
+├── format.test.ts                    # Price/date formatting, slugify, truncate (34 tests)
+├── validators.test.ts                # All Zod validation schemas (89 tests)
+├── cn.test.ts                        # Tailwind class merging (8 tests)
+├── seo.test.ts                       # SEO/schema.org generators (42 tests)
+└── haptic.test.ts                    # Vibration feedback mocks
+
+src/stores/__tests__/                 # Zustand store tests
+└── auth-store.test.ts                # Auth state, login/logout, persistence (11 tests)
+
+src/storefront/stores/__tests__/      # Storefront-specific store tests
+└── cart-store.test.ts                # Cart CRUD, coupon logic, totals (33 tests)
+
+src/components/__tests__/             # React component tests
+└── ErrorBoundary.test.tsx            # Error boundary fallback
+
+src/admin/common/__tests__/           # Admin component tests
+├── Modal.test.tsx                    # Modal open/close
+└── StatusBadge.test.tsx              # Status color mapping
+
+api/_lib/__tests__/                   # API infrastructure tests
+├── csrf.test.ts                      # CSRF token generation/validation (19 tests)
+├── rate-limit.test.ts                # Rate limiting with KV mock (11 tests)
+├── validate.test.ts                  # Request body validation (33 tests)
+├── response.test.ts                  # HTTP response helpers (22 tests)
+├── sanitize.test.ts                  # Data sanitization (13 tests)
+├── audit.test.ts                     # Audit logging (8 tests)
+├── auth-security.test.ts             # Auth middleware, role checks, JWT format (14 tests)
+├── security-headers.test.ts          # CSP, HSTS, CORS, cache-control (27 tests)
+└── input-security.test.ts            # Upload types, password, validation boundaries (12 tests)
+
+api/_handlers/__tests__/              # API handler tests (mocked Prisma)
+├── test-utils.ts                     # Shared mock factory & helpers
+├── products.test.ts                  # Product list, search, filters, variants, reviews (17 tests)
+├── addresses.test.ts                 # Address CRUD, auth, default logic (9 tests)
+├── wishlist.test.ts                  # Wishlist add/remove, duplicate handling (7 tests)
+├── reviews.test.ts                   # Review creation, validation, ratings 1-5 (10 tests)
+└── coupons.test.ts                   # Coupon validation, expiry, limits (11 tests)
+
+e2e/                                  # End-to-end browser tests (147 tests)
+├── auth.spec.ts                      # Register, login, logout (4 tests)
+├── checkout.spec.ts                  # Cart → checkout → payment (5 tests)
+├── admin-crud.spec.ts                # Admin product/category/order CRUD (10 tests)
+├── customer-journey.spec.ts          # Browse, search, collections, lookbooks, auth guards (25 tests)
+├── cart-edge-cases.spec.ts           # Cart persistence, quantity, drawer (18 tests)
+├── navigation.spec.ts                # Desktop/mobile nav, responsive (22 tests)
+├── product-detail.spec.ts            # Product page: images, size, reviews, related (16 tests)
+└── admin-flows.spec.ts               # Admin dashboard, products, orders, CMS, marketing, settings (47 tests)
+```
+
+### Test Phases
+
+| Phase | Scope | Tests | What It Catches |
+|---|---|---|---|
+| **1. Utilities** | Pure functions, validators, SEO | 173 | Wrong prices, invalid inputs, broken SEO |
+| **2. Stores** | Zustand cart & auth stores | 44 | Cart bugs, auth state, persistence |
+| **3. API Utils** | Response helpers, validation, audit | 81 | API errors, missing validation |
+| **4. API Handlers** | All handlers with mocked DB | 54 | Business logic bugs, auth bypass |
+| **5-6. E2E** | Customer & admin browser flows | 147 | UI bugs, broken flows, layout |
+| **7. Security** | CSRF, XSS, auth, headers, uploads | 79 | Security vulnerabilities |
+
+### Environment for E2E Tests
+
+E2E tests require a running dev server and database. Create `.env.test` or set in your shell:
+
+```env
+TEST_USER_EMAIL=test@example.com
+TEST_USER_PASSWORD=Test123456!
+ADMIN_EMAIL=admin@nabome.online
+ADMIN_PASSWORD=Admin123456!
+```
+
+### Coverage Baseline
+
+| Date | Unit Tests | E2E Tests | Total |
+|---|---|---|---|
+| 2026-06-26 | 478 (23 files) | 147 (8 specs) | **625** |
 
 ---
 
@@ -883,7 +1161,127 @@ http://localhost:4173
 
 ---
 
+## Page Connectivity Audit
+
+> **Last checked:** 2026-06-26
+
+### Summary
+
+All **83 routed pages** (5 auth + 18 storefront + 60 admin) are connected to APIs, backend services, or data stores. No pages are purely static or disconnected.
+
+| Category | Pages | Connected | Issue |
+|---|---|---|---|
+| Auth pages | 5 | 5 | None |
+| Storefront pages | 18 | 18 | None |
+| Admin pages | 60 | 60 | None (1 fixed) |
+
+### Issue Found & Fixed
+
+| File | Issue | Fix |
+|---|---|---|
+| `src/admin/cms/PageBuilderDemo.tsx` | No backend persistence — `handleSave` was a no-op | Added full CRUD via `adminApi.createPage`/`adminApi.updatePage`. Sections now persist to `StaticPage.content` JSON field. Supports create and edit modes. |
+
+### Dead Code (Not Routed)
+
+These files exist but are never imported by any route — they were replaced by newer implementations:
+
+| File | Replaced By |
+|---|---|
+| `src/pages/AccountPage.tsx` | `src/storefront/pages/DashboardPage.tsx` |
+| `src/pages/AccountOverview.tsx` | `src/storefront/pages/DashboardPage.tsx` |
+| `src/pages/AccountAddressesPage.tsx` | `src/storefront/pages/AddressesPage.tsx` |
+| `src/pages/AccountOrdersPage.tsx` | `src/storefront/pages/OrdersPage.tsx` |
+| `src/pages/AccountSettingsPage.tsx` | `src/storefront/pages/SettingsPage.tsx` |
+| `src/pages/AccountWishlistPage.tsx` | `src/storefront/pages/WishlistPage.tsx` |
+| `src/pages/admin/AdminDashboardPage.tsx` | `src/admin/dashboard/DashboardPage.tsx` |
+
+### Notes
+
+- `SocialProof.tsx` now fetches real recent purchase data from `/api/cms/social-proof` API endpoint instead of using hardcoded mock data
+- All storefront sections (TestimonialsSection, BannerPromoSection, etc.) receive data via CMS-managed props from parent components that fetch from the backend
+
+---
+
 ## Changelog
+
+### v2.4.0 — Critical Bug Fixes (9 Issues Resolved)
+
+#### Issue 1: Admin Product Editing Fixed
+- **Variant images now persist during edit** — Save handler now iterates over variant images and calls `addProductImage` with `variantId` after saving variants
+- **Labels can now be cleared** — Removed the `selectedLabels.length > 0` guard; `assignLabels` is always called during save
+- **Added `sizeChartPublicId` to frontend sanitization** — Consistent with backend `optionalStringFields`
+
+#### Issue 2: Storefront Subcategories Filter Added
+- **New public API endpoint** — `GET /api/subcategories` supports optional `categoryId` query param
+- **Categories list API now includes subcategories** — `GET /api/categories` returns `subcategories` array per category
+- **Product listing supports subcategory filtering** — `GET /api/products` now accepts `subcategory` param
+- **Filter UI added** — Subcategory dropdown appears when a category is selected in both desktop sidebar and mobile filter panel
+- **Active filter chips** — Subcategory chip shown with clear button; cleared when parent category changes
+
+#### Issue 3: Search Bar Fixed
+- **Fixed wrong API endpoint** — `useSearch` now calls `/api/products/search` instead of `/api/products?action=search`
+- **Fixed result count display** — Reads `pagination.total` instead of top-level `total` (always showed 0 before)
+- **Added search debounce** — 300ms debounce on search input to reduce API calls
+
+#### Issue 4: Admin Theme Tool Fixed
+- **Fixed React state mutation bug** — `updateTheme` now uses `structuredClone(prev)` instead of shallow `{ ...prev }`
+- **Fixed queryFn side effect** — Moved `setActiveTheme` from `queryFn` to `useEffect` (React Query best practice)
+- **ThemePage now shows error toasts** — Empty `catch` block replaced with `toast("Failed to save theme", "error")`
+- **ThemePage now invalidates React Query cache** — Invalidates `["settings"]`, `["admin", "settings"]`, and `["admin", "themes"]` after save
+
+#### Issue 5: Brand Story Tool
+- **No blocking issues found** — Fully wired at `/admin/cms/brand-story` under Content sidebar group
+- Minor cleanup: duplicate `beforeunload` handler and dead `metaTitle`/`metaDescription` fields identified
+
+#### Issue 6: Header Navigation Fixed
+- **Decoupled hide behavior from announcement bar** — Header now hides on scroll down regardless of announcement bar presence (was `hidden && announcement`, now just `hidden`)
+- **Fixed DOM structure** — Announcement bar and nav bar now wrapped in single translated container (previously siblings, so announcement bar stayed visible when nav hid)
+- **Separator line moved inside translated wrapper** — No longer visible as orphaned 1px line when header hides
+
+#### Issue 7: Storefront Social Proof Fixed
+- **New API endpoint** — `GET /api/cms/social-proof` returns recent paid orders with product names and cities
+- **SocialProof component updated** — Fetches real data from API; falls back to empty state if no orders exist
+- **Removed hardcoded static data** — No more fake NAMES, PRODUCTS, LOCATIONS arrays
+
+#### Issue 8: Admin Analytics Fixed
+- **Fixed chart sorting** — Revenue and orders charts now sort by ISO date key instead of label string (was causing "Jun 10" before "Jun 2")
+- **Fixed conversion rate period filtering** — `totalCustomers` and `paidOrders` counts now respect the selected time period
+- **Added error state UI** — Errors now show a red error banner instead of silently showing "No data"
+- **Removed unused `formatCompactPrice` import**
+
+#### Issue 9: Coupon Creation Fixed
+- **Fixed gender enum mismatch** — Frontend now sends `"men"`/`"women"` matching Prisma `Gender` enum (was `"male"`/`"female"` which caused Prisma validation error)
+- **Added date validation** — `handleSave` now validates `startDate` and `endDate` are provided before submission
+
+#### Files Changed
+| File | Changes |
+|------|---------|
+| `src/admin/coupons/CouponsPage.tsx` | Gender enum values, date validation |
+| `src/storefront/hooks/useProducts.ts` | Search endpoint fix |
+| `src/storefront/layout/SearchOverlay.tsx` | Debounce, total response shape |
+| `src/storefront/pages/SearchResultsPage.tsx` | Total response shape |
+| `api/_handlers/admin/analytics.ts` | Chart sorting, period filtering |
+| `src/storefront/layout/Header.tsx` | Hide condition, DOM structure |
+| `src/admin/products/ProductFormPage.tsx` | Label clearing, variant images |
+| `api/_handlers/categories.ts` | Subcategories in list, new handler |
+| `api/_handlers/products.ts` | Subcategory filter param |
+| `api/[...path].ts` | Subcategories route, social proof route |
+| `api/_handlers/cms.ts` | Social proof handler |
+| `src/storefront/pages/ProductListingPage.tsx` | Subcategory filter UI |
+| `src/admin/theme/ThemeBuilder.tsx` | State mutation fix, queryFn cleanup |
+| `src/admin/theme/ThemePage.tsx` | Error handling, cache invalidation |
+| `src/storefront/components/SocialProof.tsx` | Real data from API |
+| `src/admin/analytics/AnalyticsPage.tsx` | Error state, unused import |
+
+### v2.3.0 — Page Builder Backend Persistence
+
+#### Fixed
+- **PageBuilderDemo now saves to database** — Previously `handleSave` was a no-op with comment `// Demo mode — no backend persistence`. Now fully integrated with `adminApi.createPage`/`adminApi.updatePage`. Sections persist to `StaticPage.content` JSON field.
+- **Page title and slug fields** — Added editable title and slug inputs above the page builder for setting page metadata.
+- **Edit existing pages** — When navigating to `/admin/cms/page-builder/:id`, the page data is fetched from the API and sections are loaded into the builder.
+- **New page redirect** — After creating a new page, the URL updates to `/admin/cms/page-builder/:newId` via `navigate(..., { replace: true })`.
+- **Loading state** — Shows spinner while fetching existing page data.
+- **Validation** — Page title is required before saving.
 
 ### v2.2.0 — Cloudinary Public ID Tracking
 

@@ -61,6 +61,13 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
                   ))}
                 </ul>
               )}
+              {(col.link || col.url) && (
+                <Link to={(col.link || col.url) as string} onClick={() => setActiveMegaMenu(null)}
+                  className="inline-block mt-4 text-[10px] uppercase tracking-[0.15em] text-brand-500 hover:text-brand-600 font-medium transition-colors"
+                >
+                  View All {col.label} →
+                </Link>
+              )}
             </div>
           ))}
 
