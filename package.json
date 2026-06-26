@@ -21,6 +21,8 @@
     "prisma:studio": "prisma studio",
     "prisma:reset": "prisma migrate reset --force",
     "db:seed": "tsx prisma/seed.ts",
+    "db:cleanup": "tsx prisma/cleanup.ts",
+    "db:fresh": "npm run db:cleanup && npm run db:seed",
     "api:dev": "tsx watch scripts/api-dev-server.ts",
     "typecheck": "tsc --noEmit"
   },

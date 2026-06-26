@@ -10,7 +10,7 @@ export async function handleCouponRequest(
 ): Promise<Response> {
   switch (action) {
     case "validate":
-      return handleValidate(ctx, req);
+      return handleValidate(ctx, req, ctx.env);
     default:
       return badRequest("Unknown action");
   }

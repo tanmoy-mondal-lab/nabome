@@ -10,7 +10,7 @@ export async function handleReviewRequest(
 ): Promise<Response> {
   switch (action) {
     case "create":
-      return handleCreate(ctx, req);
+      return handleCreate(ctx, req, ctx.env);
     default:
       return badRequest("Unknown action");
   }
@@ -31,6 +31,7 @@ async function handleCreate(ctx: RequestContext, req: Request, env: any): Promis
   }
 
   try {
+    const prisma = getPrisma(env);
     // Check if product exists
     const product = await prisma.product.findUnique({
       where: { id: productId },

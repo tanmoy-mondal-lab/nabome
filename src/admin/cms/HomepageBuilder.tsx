@@ -55,6 +55,7 @@ interface FormState {
   brandHeadline: string;
   brandBody: string;
   brandImageUrl: string;
+  brandImagePublicId: string;
   brandStat1Label: string;
   brandStat1Value: string;
   brandStat2Label: string;
@@ -70,6 +71,7 @@ interface FormState {
   trustItem4Title: string;
   trustItem4Desc: string;
   bannerImageUrl: string;
+  bannerImagePublicId: string;
   bannerCtaText: string;
   bannerCtaUrl: string;
   htmlContent: string;
@@ -79,13 +81,13 @@ const defaultForm: FormState = {
   sectionType: "hero_slider", title: "", subtitle: "", isActive: true, content: "{}",
   productSource: "featured", productLimit: "8",
   collectionLimit: "3",
-  brandHeadline: "", brandBody: "", brandImageUrl: "",
+  brandHeadline: "", brandBody: "", brandImageUrl: "", brandImagePublicId: "",
   brandStat1Label: "", brandStat1Value: "", brandStat2Label: "", brandStat2Value: "", brandStat3Label: "", brandStat3Value: "",
   trustItem1Title: "Free Shipping", trustItem1Desc: "On orders above ₹999",
   trustItem2Title: "Easy Returns", trustItem2Desc: "30-day return policy",
   trustItem3Title: "Secure Payment", trustItem3Desc: "100% secure checkout",
   trustItem4Title: "Premium Service", trustItem4Desc: "Dedicated support",
-  bannerImageUrl: "", bannerCtaText: "", bannerCtaUrl: "",
+  bannerImageUrl: "", bannerImagePublicId: "", bannerCtaText: "", bannerCtaUrl: "",
   htmlContent: "",
 };
 
@@ -194,6 +196,7 @@ export default function HomepageBuilder() {
       brandHeadline: (c.headline as string) ?? "",
       brandBody: (c.body as string) ?? "",
       brandImageUrl: (c.imageUrl as string) ?? "",
+      brandImagePublicId: (c.imagePublicId as string) ?? "",
       brandStat1Label: (stats[0]?.label as string) ?? "",
       brandStat1Value: (stats[0]?.value as string) ?? "",
       brandStat2Label: (stats[1]?.label as string) ?? "",
@@ -209,6 +212,7 @@ export default function HomepageBuilder() {
       trustItem4Title: (items[3]?.title as string) ?? "Premium Service",
       trustItem4Desc: (items[3]?.description as string) ?? "Dedicated support",
       bannerImageUrl: (c.imageUrl as string) ?? "",
+      bannerImagePublicId: (c.imagePublicId as string) ?? "",
       bannerCtaText: (c.ctaText as string) ?? "",
       bannerCtaUrl: (c.ctaUrl as string) ?? "",
       htmlContent: (c.html as string) ?? "",
@@ -227,6 +231,7 @@ export default function HomepageBuilder() {
           headline: form.brandHeadline || null,
           body: form.brandBody || null,
           imageUrl: form.brandImageUrl || null,
+          imagePublicId: form.brandImagePublicId || undefined,
           stats: [
             { label: form.brandStat1Label || "Artisan Craftspeople", value: form.brandStat1Value || "200+" },
             { label: form.brandStat2Label || "Countries Served", value: form.brandStat2Value || "15+" },
@@ -247,6 +252,7 @@ export default function HomepageBuilder() {
       case "banner_promo":
         return {
           imageUrl: form.bannerImageUrl || null,
+          imagePublicId: form.bannerImagePublicId || undefined,
           ctaText: form.bannerCtaText || null,
           ctaUrl: form.bannerCtaUrl || null,
         };
@@ -452,7 +458,7 @@ export default function HomepageBuilder() {
                 <textarea rows={4} value={form.brandBody} onChange={(e) => updateForm({ brandBody: e.target.value })} className={inputClass} placeholder="Tell your brand story..." />
               </Field>
               <Field label="Image URL">
-                <MediaPicker value={form.brandImageUrl} onChange={(url: string) => updateForm({ brandImageUrl: url })} folder="brand-story" />
+                <MediaPicker value={form.brandImageUrl} onChange={(url: string, publicId?: string) => updateForm({ brandImageUrl: url, brandImagePublicId: publicId ?? "" })} folder="brand-story" />
               </Field>
               <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-neutral-500 mt-2">Statistics</p>
               <div className="grid grid-cols-2 gap-3">
@@ -500,7 +506,7 @@ export default function HomepageBuilder() {
           {form.sectionType === "banner_promo" && (
             <>
               <Field label="Image URL">
-                <MediaPicker value={form.bannerImageUrl} onChange={(url: string) => updateForm({ bannerImageUrl: url })} folder="banners" />
+                <MediaPicker value={form.bannerImageUrl} onChange={(url: string, publicId?: string) => updateForm({ bannerImageUrl: url, bannerImagePublicId: publicId ?? "" })} folder="banners" />
               </Field>
               <div className="grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="CTA Text">

@@ -56,16 +56,16 @@ async function handleDetail(id: string, env: any): Promise<Response> {
 
 async function handleCreate(req: Request, env: any): Promise<Response> {
   const body = await req.json();
-  const { name, description, category, thumbnail, sections, metadata } = body;
+  const { name, description, category, thumbnail, thumbnailPublicId, sections, metadata } = body;
 
   if (!name || !sections) return badRequest("Name and sections are required");
 
   const slug = slugify(name);
+  const prisma = getPrisma(env);
   const slugExists = await prisma.pageTemplate.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
-    const prisma = getPrisma(env);
     const template = await prisma.pageTemplate.create({
       data: {
         name,
@@ -73,6 +73,7 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
         description: description ?? null,
         category: category ?? "custom",
         thumbnail: thumbnail ?? null,
+        thumbnailPublicId: thumbnailPublicId ?? null,
         sections,
         metadata: metadata ?? null,
       },
@@ -91,7 +92,7 @@ async function handleUpdate(templateId: string, req: Request, env: any): Promise
     if (!existing) return notFound("Template not found");
 
     const data: Record<string, unknown> = {};
-    const fields = ["name", "description", "category", "thumbnail", "sections", "metadata", "isActive"];
+    const fields = ["name", "description", "category", "thumbnail", "thumbnailPublicId", "sections", "metadata", "isActive"];
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = body[field];
     }

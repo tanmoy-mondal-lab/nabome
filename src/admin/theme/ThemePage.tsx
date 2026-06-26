@@ -12,14 +12,16 @@ interface ThemeConfig {
   layoutWidth: string;
   customCSS: string;
   logoUrl: string;
+  logoPublicId?: string;
   faviconUrl: string;
+  faviconPublicId?: string;
 }
 
 export default function ThemePage() {
   const [form, setForm] = useState<ThemeConfig>({
     primaryColor: "#000000", accentColor: "#d4a853", fontFamily: "Playfair Display",
     backgroundColor: "#ffffff", textColor: "#1a1a1a",
-    buttonStyle: "solid", layoutWidth: "boxed", customCSS: "", logoUrl: "", faviconUrl: "",
+    buttonStyle: "solid", layoutWidth: "boxed", customCSS: "", logoUrl: "", logoPublicId: "", faviconUrl: "", faviconPublicId: "",
   });
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -66,10 +68,10 @@ export default function ThemePage() {
         <div className="bg-white border border-neutral-200 rounded p-6 space-y-4">
           <h2 className="font-medium text-sm text-neutral-900">Branding</h2>
           <div>
-            <MediaPicker value={form.logoUrl} onChange={(url) => setForm({ ...form, logoUrl: url })} label="Logo URL" folder="branding" />
+            <MediaPicker value={form.logoUrl} onChange={(url, publicId) => setForm({ ...form, logoUrl: url, logoPublicId: publicId ?? "" })} label="Logo URL" folder="branding" />
           </div>
           <div>
-            <MediaPicker value={form.faviconUrl} onChange={(url) => setForm({ ...form, faviconUrl: url })} label="Favicon URL" folder="branding" accept="image/png,image/x-icon,image/svg+xml" />
+            <MediaPicker value={form.faviconUrl} onChange={(url, publicId) => setForm({ ...form, faviconUrl: url, faviconPublicId: publicId ?? "" })} label="Favicon URL" folder="branding" accept="image/png,image/x-icon,image/svg+xml" />
           </div>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Font Family</label>

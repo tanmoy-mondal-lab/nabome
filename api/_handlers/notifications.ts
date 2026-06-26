@@ -8,9 +8,11 @@ export async function createNotification(
   title: string,
   body?: string,
   orderId?: string,
-  channel: string = "in_app"
+  channel: string = "in_app",
+  env?: any
 ): Promise<void> {
   try {
+    const prisma = getPrisma(env);
     const notification = await prisma.notification.create({
       data: {
         profileId,
@@ -41,30 +43,30 @@ export async function handleNotificationRequest(
 
   // Customer routes (require auth)
   if (!action || action === "list") {
-    if (method === "GET" && !params.length) return handleList(ctx, req);
+    if (method === "GET" && !params.length) return handleList(ctx, req, ctx.env);
   }
   if (action === "read") {
-    if (method === "PUT") return handleMarkRead(ctx, params[0]);
+    if (method === "PUT") return handleMarkRead(ctx, params[0], ctx.env);
   }
   if (action === "readAll") {
-    if (method === "PUT") return handleMarkAllRead(ctx);
+    if (method === "PUT") return handleMarkAllRead(ctx, ctx.env);
   }
   if (action === "unreadCount") {
-    if (method === "GET") return handleUnreadCount(ctx);
+    if (method === "GET") return handleUnreadCount(ctx, ctx.env);
   }
 
   // Admin routes
   if (action === "adminList") {
-    if (method === "GET") return handleAdminList(ctx, req);
+    if (method === "GET") return handleAdminList(ctx, req, ctx.env);
   }
   if (action === "adminTemplates") {
-    if (method === "GET") return handleListTemplates(ctx);
+    if (method === "GET") return handleListTemplates(ctx, ctx.env);
   }
   if (action === "adminUpdateTemplate") {
-    if (method === "PUT") return handleUpdateTemplate(ctx, params[0], req);
+    if (method === "PUT") return handleUpdateTemplate(ctx, params[0], req, ctx.env);
   }
   if (action === "adminSend") {
-    if (method === "POST") return handleAdminSend(ctx, req);
+    if (method === "POST") return handleAdminSend(ctx, req, ctx.env);
   }
 
   return notFound();
@@ -225,6 +227,7 @@ async function handleUpdateTemplate(ctx: RequestContext, templateId: string, req
   }
 
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.notificationTemplate.findUnique({ where: { id: templateId } });
     if (!existing) return notFound("Template not found");
 
@@ -248,10 +251,11 @@ async function handleAdminSend(ctx: RequestContext, req: Request, env: any): Pro
   }
 
   try {
+    const prisma = getPrisma(env);
     const profile = await prisma.profile.findUnique({ where: { id: profileId } });
     if (!profile) return notFound("Profile not found");
 
-    await createNotification(profileId, type, title, messageBody ?? null, orderId ?? null, channel ?? "in_app");
+    await createNotification(profileId, type, title, messageBody ?? null, orderId ?? null, channel ?? "in_app", env);
 
     return created({ message: "Notification sent" });
   } catch (err) {

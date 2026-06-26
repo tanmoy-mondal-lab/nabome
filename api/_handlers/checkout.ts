@@ -93,6 +93,7 @@ export async function handleCheckoutRequest(
   }
 
   try {
+    const prisma = getPrisma(ctx.env);
     // ── Resolve cart items ──
     interface CartItemData {
       variantId: string;
@@ -463,7 +464,7 @@ export async function handleCheckoutRequest(
           image: item.imageUrl,
         })) || [],
         orderId: order.id,
-      }, { profileId: profileId, orderId: order.id }, ctx.env);
+      }, ctx.env);
     } catch (emailErr) {
       console.error("[EMAIL] Failed to send order confirmation:", (emailErr as Error).message);
     }

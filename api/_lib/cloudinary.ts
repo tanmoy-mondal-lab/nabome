@@ -1,8 +1,11 @@
 import type { Env } from "./env";
 
+type CloudinaryResourceType = "image" | "video" | "raw";
+
 export async function destroyCloudinaryAsset(
   publicId: string,
-  env?: Env
+  env?: Env,
+  resourceType: CloudinaryResourceType = "image"
 ): Promise<boolean> {
   const cloudName = env?.CLOUDINARY_CLOUD_NAME;
   const apiKey = env?.CLOUDINARY_API_KEY;
@@ -20,7 +23,7 @@ export async function destroyCloudinaryAsset(
   });
 
   try {
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/destroy`, {
       method: "POST", body,
     });
     const json = await res.json() as { result: string };
@@ -32,7 +35,8 @@ export async function destroyCloudinaryAsset(
 
 export async function destroyCloudinaryAssets(
   publicIds: string[],
-  env?: Env
+  env?: Env,
+  resourceType: CloudinaryResourceType = "image"
 ): Promise<void> {
-  await Promise.all(publicIds.map((id) => id ? destroyCloudinaryAsset(id, env) : Promise.resolve()));
+  await Promise.all(publicIds.map((id) => id ? destroyCloudinaryAsset(id, env, resourceType) : Promise.resolve()));
 }

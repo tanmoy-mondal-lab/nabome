@@ -27,8 +27,8 @@ export async function handleUploadRequest(
 ): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const cloudName = ctx.env?.CLOUDINARY_CLOUD_NAME ?? ctx.env?.VITE_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = ctx.env?.CLOUDINARY_UPLOAD_PRESET ?? ctx.env?.VITE_CLOUDINARY_UPLOAD_PRESET;
+  const cloudName = ctx.env?.CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = ctx.env?.CLOUDINARY_UPLOAD_PRESET;
 
   if (!cloudName) {
     return serverError(new Error("Cloudinary not configured"));

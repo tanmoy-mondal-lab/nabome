@@ -17,6 +17,7 @@ interface Category {
   parent?: { id: string; name: string; slug?: string };
   children?: { id: string; name: string; slug: string }[];
   imageUrl?: string;
+  imagePublicId?: string;
   sortOrder?: number;
   isActive?: boolean;
   metaTitle?: string;
@@ -31,7 +32,7 @@ export default function CategoriesPage() {
   const [editItem, setEditItem] = useState<Category | null>(null);
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({
-    name: "", slug: "", description: "", parentId: "", imageUrl: "",
+    name: "", slug: "", description: "", parentId: "", imageUrl: "", imagePublicId: "",
     sortOrder: 0, isActive: true, metaTitle: "", metaDesc: ""
   });
 
@@ -44,7 +45,7 @@ export default function CategoriesPage() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: (data: { name: string; slug: string; description: string; parentId: string | null; imageUrl: string; sortOrder: number; isActive: boolean; metaTitle: string; metaDesc: string }) =>
+    mutationFn: (data: { name: string; slug: string; description: string; parentId: string | null; imageUrl: string; imagePublicId?: string; sortOrder: number; isActive: boolean; metaTitle: string; metaDesc: string }) =>
       editItem
         ? adminApi.updateCategory(editItem.id, data)
         : adminApi.createCategory(data),
@@ -73,7 +74,7 @@ export default function CategoriesPage() {
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ name: "", slug: "", description: "", parentId: "", imageUrl: "", sortOrder: 0, isActive: true, metaTitle: "", metaDesc: "" });
+    setForm({ name: "", slug: "", description: "", parentId: "", imageUrl: "", imagePublicId: "", sortOrder: 0, isActive: true, metaTitle: "", metaDesc: "" });
     setModalOpen(true);
   };
 
@@ -81,7 +82,7 @@ export default function CategoriesPage() {
     setEditItem(cat);
     setForm({
       name: cat.name, slug: cat.slug, description: cat.description ?? "",
-      parentId: cat.parentId ?? "", imageUrl: cat.imageUrl ?? "",
+      parentId: cat.parentId ?? "", imageUrl: cat.imageUrl ?? "", imagePublicId: cat.imagePublicId ?? "",
       sortOrder: cat.sortOrder ?? 0, isActive: cat.isActive ?? true,
       metaTitle: cat.metaTitle ?? "", metaDesc: cat.metaDesc ?? ""
     });
@@ -220,7 +221,7 @@ export default function CategoriesPage() {
               />
             </div>
             <div>
-              <MediaPicker value={form.imageUrl} onChange={(url) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="categories" />
+              <MediaPicker value={form.imageUrl} onChange={(url, publicId) => setForm({ ...form, imageUrl: url, imagePublicId: publicId ?? "" })} label="Image URL" folder="categories" />
             </div>
           </div>
 

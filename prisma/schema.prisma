@@ -151,6 +151,9 @@ enum NotificationEvent {
   welcome
   password_reset
   account_update
+  email_change
+  email_verification
+  contact_form
 }
 
 enum SupportTicketStatus {
@@ -296,12 +299,13 @@ model UserActionLog {
 // ─────────────────────────────────────────────────────────────
 
 model Category {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @db.VarChar(200)
-  slug        String   @unique @db.VarChar(200)
-  description String?  @db.Text
-  imageUrl    String?  @map("image_url") @db.Text
-  parentId    String?  @map("parent_id") @db.Uuid
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @db.VarChar(200)
+  slug            String   @unique @db.VarChar(200)
+  description     String?  @db.Text
+  imageUrl        String?  @map("image_url") @db.Text
+  imagePublicId   String?  @map("image_public_id") @db.VarChar(500)
+  parentId        String?  @map("parent_id") @db.Uuid
   sortOrder   Int      @default(0) @map("sort_order")
   isActive    Boolean  @default(true) @map("is_active")
   metaTitle   String?  @map("meta_title") @db.VarChar(200)
@@ -322,12 +326,13 @@ model Category {
 }
 
 model Subcategory {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @db.VarChar(200)
-  slug        String   @unique @db.VarChar(200)
-  description String?  @db.Text
-  imageUrl    String?  @map("image_url") @db.Text
-  categoryId  String   @map("category_id") @db.Uuid
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String   @db.VarChar(200)
+  slug          String   @unique @db.VarChar(200)
+  description   String?  @db.Text
+  imageUrl      String?  @map("image_url") @db.Text
+  imagePublicId String?  @map("image_public_id") @db.VarChar(500)
+  categoryId    String   @map("category_id") @db.Uuid
   sortOrder   Int      @default(0) @map("sort_order")
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -342,12 +347,13 @@ model Subcategory {
 }
 
 model Collection {
-  id           String    @id @default(uuid()) @db.Uuid
-  name         String    @db.VarChar(200)
-  slug         String    @unique @db.VarChar(200)
-  description  String?   @db.Text
-  heroImageUrl String?   @map("hero_image_url") @db.Text
-  isActive     Boolean   @default(true) @map("is_active")
+  id                String    @id @default(uuid()) @db.Uuid
+  name              String    @db.VarChar(200)
+  slug              String    @unique @db.VarChar(200)
+  description       String?   @db.Text
+  heroImageUrl      String?   @map("hero_image_url") @db.Text
+  heroImagePublicId String?   @map("hero_image_public_id") @db.VarChar(500)
+  isActive          Boolean   @default(true) @map("is_active")
   isFeatured   Boolean   @default(false) @map("is_featured")
   startDate    DateTime? @map("start_date") @db.Timestamptz
   endDate      DateTime? @map("end_date") @db.Timestamptz
@@ -365,12 +371,13 @@ model Collection {
 }
 
 model Brand {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @db.VarChar(200)
-  slug        String   @unique @db.VarChar(200)
-  description String?  @db.Text
-  logoUrl     String?  @map("logo_url") @db.Text
-  websiteUrl  String?  @map("website_url") @db.Text
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar(200)
+  slug         String   @unique @db.VarChar(200)
+  description  String?  @db.Text
+  logoUrl      String?  @map("logo_url") @db.Text
+  logoPublicId String?  @map("logo_public_id") @db.VarChar(500)
+  websiteUrl   String?  @map("website_url") @db.Text
   sortOrder   Int      @default(0) @map("sort_order")
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
@@ -383,15 +390,16 @@ model Brand {
 }
 
 model SizeGuide {
-  id           String   @id @default(uuid()) @db.Uuid
-  name         String   @db.VarChar(200)
-  slug         String   @unique @db.VarChar(200)
-  description  String?  @db.Text
-  categoryId   String?  @map("category_id") @db.Uuid
-  type         String   @default("clothing") @db.VarChar(50)
-  unit         String   @default("inches") @db.VarChar(20)
-  imageUrl     String?  @map("image_url") @db.Text
-  measurements Json     @db.JsonB
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String   @db.VarChar(200)
+  slug          String   @unique @db.VarChar(200)
+  description   String?  @db.Text
+  categoryId    String?  @map("category_id") @db.Uuid
+  type          String   @default("clothing") @db.VarChar(50)
+  unit          String   @default("inches") @db.VarChar(20)
+  imageUrl      String?  @map("image_url") @db.Text
+  imagePublicId String?  @map("image_public_id") @db.VarChar(500)
+  measurements  Json     @db.JsonB
   isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -440,8 +448,9 @@ model Product {
   currency           String    @default("INR") @db.VarChar(3)
   material           String?   @db.VarChar(200)
   careInstructions   String?   @map("care_instructions") @db.Text
-  sizeChartUrl       String?   @map("size_chart_url") @db.Text
-  sizeGuideId        String?   @map("size_guide_id") @db.Uuid
+  sizeChartUrl        String?   @map("size_chart_url") @db.Text
+  sizeChartPublicId   String?   @map("size_chart_public_id") @db.VarChar(500)
+  sizeGuideId         String?   @map("size_guide_id") @db.Uuid
   isActive           Boolean   @default(true) @map("is_active")
   isFeatured         Boolean   @default(false) @map("is_featured")
   isNew              Boolean   @default(false) @map("is_new")
@@ -963,11 +972,14 @@ model StaticPage {
 }
 
 model BrandStory {
-  id           String   @id @default(uuid()) @db.Uuid
-  title        String   @db.VarChar(200)
-  subtitle     String?  @db.VarChar(500)
-  heroImageUrl String?  @map("hero_image_url") @db.Text
-  content      Json?    @db.JsonB
+  id                String   @id @default(uuid()) @db.Uuid
+  title             String   @db.VarChar(200)
+  subtitle          String?  @db.VarChar(500)
+  heroImageUrl      String?  @map("hero_image_url") @db.Text
+  heroImagePublicId String?  @map("hero_image_public_id") @db.VarChar(500)
+  videoUrl          String?  @map("video_url") @db.Text
+  videoPublicId     String?  @map("video_public_id") @db.VarChar(500)
+  content           Json?    @db.JsonB
   mission      String?  @db.Text
   vision       String?  @db.Text
   values       Json?    @db.JsonB
@@ -982,7 +994,8 @@ model Lookbook {
   name          String    @db.VarChar(200)
   slug          String    @unique @db.VarChar(200)
   description   String?   @db.Text
-  coverImageUrl String    @map("cover_image_url") @db.Text
+  coverImageUrl       String    @map("cover_image_url") @db.Text
+  coverImagePublicId  String?   @map("cover_image_public_id") @db.VarChar(500)
   season        String?   @db.VarChar(50)
   year          Int?
   layout        String    @default("grid") @db.VarChar(50)
@@ -1006,8 +1019,9 @@ model Lookbook {
 model LookbookItem {
   id         String   @id @default(uuid()) @db.Uuid
   lookbookId String   @map("lookbook_id") @db.Uuid
-  imageUrl   String   @map("image_url") @db.Text
-  productId  String?  @map("product_id") @db.Uuid
+  imageUrl     String   @map("image_url") @db.Text
+  imagePublicId String? @map("image_public_id") @db.VarChar(500)
+  productId    String?  @map("product_id") @db.Uuid
   hotspotX   Decimal? @map("hotspot_x") @db.Decimal(5, 3)
   hotspotY   Decimal? @map("hotspot_y") @db.Decimal(5, 3)
   caption    String?  @db.VarChar(500)
@@ -1081,8 +1095,11 @@ model SiteSetting {
   siteName              String   @map("site_name") @db.VarChar(200)
   tagline               String?  @db.VarChar(500)
   logoUrl               String?  @map("logo_url") @db.Text
+  logoPublicId          String?  @map("logo_public_id") @db.VarChar(500)
   faviconUrl            String?  @map("favicon_url") @db.Text
+  faviconPublicId       String?  @map("favicon_public_id") @db.VarChar(500)
   ogImageUrl            String?  @map("og_image_url") @db.Text
+  ogImagePublicId       String?  @map("og_image_public_id") @db.VarChar(500)
   currency              String   @default("INR") @db.VarChar(3)
   taxRate               Decimal  @default(0) @map("tax_rate") @db.Decimal(5, 2)
   freeShippingThreshold Decimal? @map("free_shipping_threshold") @db.Decimal(10, 2)
@@ -1153,8 +1170,9 @@ model PageTemplate {
   slug        String   @unique @db.VarChar(200)
   description String?  @db.Text
   category    String   @default("custom") @db.VarChar(50)
-  thumbnail   String?  @map("thumbnail") @db.Text
-  sections    Json     @db.JsonB
+  thumbnail           String?  @map("thumbnail") @db.Text
+  thumbnailPublicId   String?  @map("thumbnail_public_id") @db.VarChar(500)
+  sections            Json     @db.JsonB
   metadata    Json?    @map("metadata") @db.JsonB
   isActive    Boolean  @default(true) @map("is_active")
   useCount    Int      @default(0) @map("use_count")

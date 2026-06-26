@@ -44,10 +44,10 @@ async function handleCreateLabel(req: Request, env: any): Promise<Response> {
   const { name, color } = body;
   if (!name) return badRequest("Label name is required");
   const slug = slugify(name);
+  const prisma = getPrisma(env);
   const slugExists = await prisma.productLabel.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
   try {
-    const prisma = getPrisma(env);
     const label = await prisma.productLabel.create({ data: { name, slug: finalSlug, color } });
     return created(label);
   } catch (err) { return serverError(err); }

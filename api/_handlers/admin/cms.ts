@@ -18,41 +18,41 @@ export async function handleAdminCMSRequest(
     case "pages":
       return handlePagesList(ctx.env);
     case "createPage":
-      return handleCreatePage(req, ctx);
+      return handleCreatePage(req, ctx, ctx.env);
     case "updatePage":
-      return handleUpdatePage(params[0], req, ctx);
+      return handleUpdatePage(params[0], req, ctx, ctx.env);
     case "deletePage":
-      return handleDeletePage(params[0], req, ctx);
+      return handleDeletePage(params[0], req, ctx, ctx.env);
     case "homepage":
       return handleHomepageList(ctx.env);
     case "createHomeSection":
-      return handleCreateHomeSection(req, ctx);
+      return handleCreateHomeSection(req, ctx, ctx.env);
     case "updateHomeSection":
-      return handleUpdateHomeSection(params[0], req, ctx);
+      return handleUpdateHomeSection(params[0], req, ctx, ctx.env);
     case "deleteHomeSection":
-      return handleDeleteHomeSection(params[0], req, ctx);
+      return handleDeleteHomeSection(params[0], req, ctx, ctx.env);
     case "reorderHomeSections":
       return handleReorderHomeSections(req, ctx.env);
     case "navigation":
       return handleNavigationList(ctx.env);
     case "createNavigation":
-      return handleCreateNavigation(req, ctx);
+      return handleCreateNavigation(req, ctx, ctx.env);
     case "updateNavigation":
-      return handleUpdateNavigation(params[0], req, ctx);
+      return handleUpdateNavigation(params[0], req, ctx, ctx.env);
     case "deleteNavigation":
-      return handleDeleteNavigation(params[0], req, ctx);
+      return handleDeleteNavigation(params[0], req, ctx, ctx.env);
     case "brandStory":
       return handleGetBrandStory(ctx.env);
     case "updateBrandStory":
-      return handleUpdateBrandStory(req, ctx);
+      return handleUpdateBrandStory(req, ctx, ctx.env);
     case "footer":
       return handleFooterList(ctx.env);
     case "createFooter":
-      return handleCreateFooter(req, ctx);
+      return handleCreateFooter(req, ctx, ctx.env);
     case "updateFooter":
-      return handleUpdateFooter(params[0], req, ctx);
+      return handleUpdateFooter(params[0], req, ctx, ctx.env);
     case "deleteFooter":
-      return handleDeleteFooter(params[0], req, ctx);
+      return handleDeleteFooter(params[0], req, ctx, ctx.env);
     default:
       return badRequest("Unknown action");
   }
@@ -79,11 +79,11 @@ async function handleCreatePage(req: Request, ctx: RequestContext, env: any): Pr
   if (!title) return badRequest("Page title is required");
 
   const slug = slugify(title);
+  const prisma = getPrisma(env);
   const slugExists = await prisma.staticPage.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
-    const prisma = getPrisma(env);
     const page = await prisma.staticPage.create({
       data: {
         title,
@@ -97,7 +97,7 @@ async function handleCreatePage(req: Request, ctx: RequestContext, env: any): Pr
         ogImage: ogImage ?? null,
       },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.cms.page.create", {
+    logAction(ctx.userId, "admin.cms.page.create", {
       entity: "staticPage",
       entityId: page.id,
       metadata: { title: page.title, slug: page.slug },
@@ -130,7 +130,7 @@ async function handleUpdatePage(pageId: string, req: Request, ctx: RequestContex
       where: { id: pageId },
       data: data as never,
     });
-    logAction(ctx.userId,  ctx.userId, "admin.cms.page.update", {
+    logAction(ctx.userId, "admin.cms.page.update", {
       entity: "staticPage",
       entityId: page.id,
       metadata: { title: page.title },
@@ -146,7 +146,7 @@ async function handleDeletePage(pageId: string, req: Request, ctx: RequestContex
   try {
     const prisma = getPrisma(env);
     await prisma.staticPage.delete({ where: { id: pageId } });
-    logAction(ctx.userId,  ctx.userId, "admin.cms.page.delete", {
+    logAction(ctx.userId, "admin.cms.page.delete", {
       entity: "staticPage",
       entityId: pageId,
       ...extractRequestMeta(req),
@@ -190,7 +190,7 @@ async function handleCreateHomeSection(req: Request, ctx: RequestContext, env: a
         visibility: visibility ?? "all",
       },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.cms.homepage.create", {
+    logAction(ctx.userId, "admin.cms.homepage.create", {
       entity: "homepageSection",
       entityId: section.id,
       metadata: { sectionType: section.sectionType, title: section.title },
@@ -216,7 +216,7 @@ async function handleUpdateHomeSection(sectionId: string, req: Request, ctx: Req
       where: { id: sectionId },
       data: data as never,
     });
-    logAction(ctx.userId,  ctx.userId, "admin.cms.homepage.update", {
+    logAction(ctx.userId, "admin.cms.homepage.update", {
       entity: "homepageSection",
       entityId: section.id,
       metadata: { sectionType: section.sectionType },
@@ -232,7 +232,7 @@ async function handleDeleteHomeSection(sectionId: string, req: Request, ctx: Req
   try {
     const prisma = getPrisma(env);
     await prisma.homepageSection.delete({ where: { id: sectionId } });
-    logAction(ctx.userId,  ctx.userId, "admin.cms.homepage.delete", {
+    logAction(ctx.userId, "admin.cms.homepage.delete", {
       entity: "homepageSection",
       entityId: sectionId,
       ...extractRequestMeta(req),
@@ -288,6 +288,7 @@ async function handleCreateNavigation(req: Request, ctx: RequestContext, env: an
   }
 
   try {
+    const prisma = getPrisma(env);
     const menu = await prisma.navigationMenu.create({
       data: {
         name,
@@ -296,7 +297,7 @@ async function handleCreateNavigation(req: Request, ctx: RequestContext, env: an
         isActive: isActive ?? true,
       },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.cms.navigation.create", {
+    logAction(ctx.userId, "admin.cms.navigation.create", {
       entity: "navigationMenu",
       entityId: menu.id,
       metadata: { name: menu.name, location: menu.location },
@@ -322,7 +323,7 @@ async function handleUpdateNavigation(menuId: string, req: Request, ctx: Request
       where: { id: menuId },
       data: data as never,
     });
-    logAction(ctx.userId,  ctx.userId, "admin.cms.navigation.update", {
+    logAction(ctx.userId, "admin.cms.navigation.update", {
       entity: "navigationMenu",
       entityId: menu.id,
       metadata: { name: menu.name },
@@ -338,7 +339,7 @@ async function handleDeleteNavigation(menuId: string, req: Request, ctx: Request
   try {
     const prisma = getPrisma(env);
     await prisma.navigationMenu.delete({ where: { id: menuId } });
-    logAction(ctx.userId,  ctx.userId, "admin.cms.navigation.delete", {
+    logAction(ctx.userId, "admin.cms.navigation.delete", {
       entity: "navigationMenu",
       entityId: menuId,
       ...extractRequestMeta(req),
@@ -363,7 +364,7 @@ async function handleGetBrandStory(env: any): Promise<Response> {
 
 async function handleUpdateBrandStory(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
-  const { title, subtitle, heroImageUrl, content, mission, vision, values } = body;
+  const { title, subtitle, heroImageUrl, heroImagePublicId, videoUrl, videoPublicId, content, mission, vision, values } = body;
 
   try {
     const prisma = getPrisma(env);
@@ -375,13 +376,16 @@ async function handleUpdateBrandStory(req: Request, ctx: RequestContext, env: an
           title: title ?? existing.title,
           subtitle: subtitle ?? existing.subtitle,
           heroImageUrl: heroImageUrl ?? existing.heroImageUrl,
+          heroImagePublicId: heroImagePublicId ?? existing.heroImagePublicId,
+          videoUrl: videoUrl ?? existing.videoUrl,
+          videoPublicId: videoPublicId ?? existing.videoPublicId,
           content: content ?? existing.content,
           mission: mission ?? existing.mission,
           vision: vision ?? existing.vision,
           values: values ?? existing.values,
         },
       });
-      logAction(ctx.userId,  ctx.userId, "admin.cms.brand_story.update", {
+      logAction(ctx.userId, "admin.cms.brand_story.update", {
         entity: "brandStory",
         entityId: story.id,
         metadata: { title: story.title },
@@ -394,13 +398,16 @@ async function handleUpdateBrandStory(req: Request, ctx: RequestContext, env: an
           title: title ?? "Our Story",
           subtitle: subtitle ?? null,
           heroImageUrl: heroImageUrl ?? null,
+          heroImagePublicId: heroImagePublicId ?? null,
+          videoUrl: videoUrl ?? null,
+          videoPublicId: videoPublicId ?? null,
           content: content ?? null,
           mission: mission ?? null,
           vision: vision ?? null,
           values: values ?? null,
         },
       });
-      logAction(ctx.userId,  ctx.userId, "admin.cms.brand_story.create", {
+      logAction(ctx.userId, "admin.cms.brand_story.create", {
         entity: "brandStory",
         entityId: story.id,
         metadata: { title: story.title },
@@ -445,7 +452,7 @@ async function handleCreateFooter(req: Request, ctx: RequestContext, env: any): 
         isActive: isActive ?? true,
       },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.cms.footer.create", {
+    logAction(ctx.userId, "admin.cms.footer.create", {
       entity: "footerSection",
       entityId: section.id,
       metadata: { title: section.title, column: section.column },
@@ -471,7 +478,7 @@ async function handleUpdateFooter(sectionId: string, req: Request, ctx: RequestC
       where: { id: sectionId },
       data: data as never,
     });
-    logAction(ctx.userId,  ctx.userId, "admin.cms.footer.update", {
+    logAction(ctx.userId, "admin.cms.footer.update", {
       entity: "footerSection",
       entityId: section.id,
       metadata: { title: section.title },
@@ -487,7 +494,7 @@ async function handleDeleteFooter(sectionId: string, req: Request, ctx: RequestC
   try {
     const prisma = getPrisma(env);
     await prisma.footerSection.delete({ where: { id: sectionId } });
-    logAction(ctx.userId,  ctx.userId, "admin.cms.footer.delete", {
+    logAction(ctx.userId, "admin.cms.footer.delete", {
       entity: "footerSection",
       entityId: sectionId,
       ...extractRequestMeta(req),

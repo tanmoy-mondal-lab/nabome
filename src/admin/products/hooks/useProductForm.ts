@@ -38,6 +38,7 @@ export interface ProductFormData {
   scheduledPublishAt: string;
   scheduledArchiveAt: string;
   sizeChartUrl: string;
+  sizeChartPublicId: string;
 }
 
 export interface VariantImage {
@@ -235,6 +236,7 @@ export function buildDefaultForm(): ProductFormData {
     scheduledPublishAt: "",
     scheduledArchiveAt: "",
     sizeChartUrl: "",
+    sizeChartPublicId: "",
   };
 }
 
@@ -267,6 +269,7 @@ export function productToForm(p: Record<string, unknown>): ProductFormData {
     scheduledPublishAt: (p.scheduledPublishAt as string) ?? "",
     scheduledArchiveAt: (p.scheduledArchiveAt as string) ?? "",
     sizeChartUrl: (p.sizeChartUrl as string) ?? "",
+    sizeChartPublicId: (p.sizeChartPublicId as string) ?? "",
   };
 }
 

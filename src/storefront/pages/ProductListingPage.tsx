@@ -51,22 +51,23 @@ export default function ProductListingPage() {
   const q = searchParams.get("q") || "";
 
   const params: Record<string, string | number | undefined> = {
-    action: q ? "search" : "list",
     page, limit: 12, sort, category, collection, gender,
     size, color, material, q: q || undefined,
   };
   if (minPrice) params.minPrice = minPrice;
   if (maxPrice) params.maxPrice = maxPrice;
 
+  const apiUrl = q ? "/api/products/search" : "/api/products";
+
   const { data: res, isLoading: loading } = useQuery({
-    queryKey: ["products", params],
-    queryFn: () => api.get<{ products: Record<string, unknown>[]; total: number; totalPages: number }>("/api/products", { params }),
+    queryKey: ["products", apiUrl, params],
+    queryFn: () => api.get<{ products: Record<string, unknown>[]; pagination?: { total: number; totalPages: number }; total?: number; totalPages?: number }>(apiUrl, { params }),
     staleTime: 1000 * 60 * 5,
   });
 
   const products = res?.products ?? [];
-  const total = res?.total ?? 0;
-  const totalPages = res?.totalPages ?? 1;
+  const total = res?.pagination?.total ?? res?.total ?? 0;
+  const totalPages = res?.pagination?.totalPages ?? res?.totalPages ?? 1;
 
   useEffect(() => {
     Promise.all([

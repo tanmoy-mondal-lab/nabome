@@ -180,7 +180,7 @@ export async function handleInvoiceRequest(
 ): Promise<Response> {
   switch (action) {
     case "getInvoice":
-      return handleGetInvoice(ctx, params[0]);
+      return handleGetInvoice(ctx, params[0], ctx.env);
     case "getByOrderNumber":
       return handleGetByOrderNumber(params[0], ctx.env);
     case "adminGetInvoice":

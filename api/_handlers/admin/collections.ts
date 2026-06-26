@@ -18,11 +18,11 @@ export async function handleAdminCollectionRequest(
     case "list":
       return handleList(ctx.env);
     case "create":
-      return handleCreate(req, ctx);
+      return handleCreate(req, ctx, ctx.env);
     case "update":
-      return handleUpdate(params[0], req, ctx);
+      return handleUpdate(params[0], req, ctx, ctx.env);
     case "delete":
-      return handleDelete(params[0], req, ctx);
+      return handleDelete(params[0], req, ctx, ctx.env);
     default:
       return badRequest("Unknown action");
   }
@@ -43,22 +43,23 @@ async function handleList(env: any): Promise<Response> {
 
 async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
-  const { name, description, heroImageUrl, isActive, isFeatured, startDate, endDate, sortOrder, metaTitle, metaDesc } = body;
+  const { name, description, heroImageUrl, heroImagePublicId, isActive, isFeatured, startDate, endDate, sortOrder, metaTitle, metaDesc } = body;
 
   if (!name) return badRequest("Collection name is required");
 
+  const prisma = getPrisma(env);
   const slug = slugify(name);
   const slugExists = await prisma.collection.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
-    const prisma = getPrisma(env);
     const collection = await prisma.collection.create({
       data: {
         name,
         slug: finalSlug,
         description: description ?? null,
         heroImageUrl: heroImageUrl ?? null,
+        heroImagePublicId: heroImagePublicId ?? null,
         isActive: isActive ?? true,
         isFeatured: isFeatured ?? false,
         startDate: startDate ? new Date(startDate) : null,
@@ -68,7 +69,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
         metaDesc: metaDesc ?? null,
       },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.collection.create", {
+    logAction(ctx.userId, "admin.collection.create", {
       entity: "collection",
       entityId: collection.id,
       metadata: { name: collection.name, slug: collection.slug },
@@ -90,7 +91,7 @@ async function handleUpdate(collectionId: string, req: Request, ctx: RequestCont
     if (!existing) return notFound("Collection not found");
 
     const data: Record<string, unknown> = {};
-    const fields = ["name", "description", "heroImageUrl", "isActive", "isFeatured", "sortOrder", "metaTitle", "metaDesc"];
+    const fields = ["name", "description", "heroImageUrl", "heroImagePublicId", "isActive", "isFeatured", "sortOrder", "metaTitle", "metaDesc"];
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = body[field];
     }
@@ -105,7 +106,7 @@ async function handleUpdate(collectionId: string, req: Request, ctx: RequestCont
       where: { id: collectionId },
       data: data as never,
     });
-    logAction(ctx.userId,  ctx.userId, "admin.collection.update", {
+    logAction(ctx.userId, "admin.collection.update", {
       entity: "collection",
       entityId: collectionId,
       metadata: { name: collection.name },
@@ -125,7 +126,7 @@ async function handleDelete(collectionId: string, req: Request, ctx: RequestCont
       where: { id: collectionId },
       data: { isActive: false },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.collection.delete", {
+    logAction(ctx.userId, "admin.collection.delete", {
       entity: "collection",
       entityId: collectionId,
       metadata: {},

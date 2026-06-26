@@ -3,6 +3,11 @@ pages_build_output_dir = "dist"
 compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
 
+# ─── KV Namespaces ───
+[[kv_namespaces]]
+binding = "RATE_LIMIT_STORE"
+id = "6969b592bba74117b3f27545dcf47e7a"
+
 # ─── Environment variables ───
 # Set secrets via: wrangler pages secret put <NAME>
 # (values come from .env — never commit secrets to git)

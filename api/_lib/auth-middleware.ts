@@ -61,8 +61,8 @@ export async function authenticate(
         ? RATE_LIMIT_CONFIG.auth
         : RATE_LIMIT_CONFIG.standard;
 
-    const limitCheck = withRateLimit(getRateLimitKey(clientIp, prefix), config);
-    if (limitCheck) return limitCheck;
+    const limitCheck = await withRateLimit(getRateLimitKey(clientIp, prefix), config);
+    if (limitCheck !== null) return limitCheck;
   }
 
   // 2. CSRF validation (for state-changing requests)

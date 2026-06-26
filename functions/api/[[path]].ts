@@ -1,13 +1,21 @@
 import { GET, POST, PUT, DELETE, PATCH, OPTIONS } from "../../api/[...path]";
+import type { Env } from "../../api/_lib/env";
 
-export const onRequestGet = (context: { request: Request; env?: Record<string, string> }) => {
-  console.log("[ADAPTER DEBUG] onRequestGet context keys:", Object.keys(context));
-  console.log("[ADAPTER DEBUG] onRequestGet env keys:", context.env ? Object.keys(context.env) : "env is undefined");
-  console.log("[ADAPTER DEBUG] onRequestGet env.DATABASE_URL:", context.env?.DATABASE_URL ? "SET" : "UNDEFINED");
-  return GET(context.request, { env: context.env });
+export const onRequestGet: PagesFunction<Env> = (context) => {
+  return GET(context.request, { env: context.env as unknown as Env });
 };
-export const onRequestPost = (context: { request: Request; env?: Record<string, string> }) => POST(context.request, { env: context.env });
-export const onRequestPut = (context: { request: Request; env?: Record<string, string> }) => PUT(context.request, { env: context.env });
-export const onRequestDelete = (context: { request: Request; env?: Record<string, string> }) => DELETE(context.request, { env: context.env });
-export const onRequestPatch = (context: { request: Request; env?: Record<string, string> }) => PATCH(context.request, { env: context.env });
-export const onRequestOptions = (context: { request: Request; env?: Record<string, string> }) => OPTIONS(context.request, { env: context.env });
+export const onRequestPost: PagesFunction<Env> = (context) => {
+  return POST(context.request, { env: context.env as unknown as Env });
+};
+export const onRequestPut: PagesFunction<Env> = (context) => {
+  return PUT(context.request, { env: context.env as unknown as Env });
+};
+export const onRequestDelete: PagesFunction<Env> = (context) => {
+  return DELETE(context.request, { env: context.env as unknown as Env });
+};
+export const onRequestPatch: PagesFunction<Env> = (context) => {
+  return PATCH(context.request, { env: context.env as unknown as Env });
+};
+export const onRequestOptions: PagesFunction<Env> = (context) => {
+  return OPTIONS(context.request, { env: context.env as unknown as Env });
+};

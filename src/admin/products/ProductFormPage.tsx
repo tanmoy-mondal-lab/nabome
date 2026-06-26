@@ -663,7 +663,7 @@ export default function ProductFormPage() {
               </div>
               <MediaPicker
                 value={form.sizeChartUrl}
-                onChange={(url: string) => setForm({ ...form, sizeChartUrl: url })}
+                onChange={(url: string, publicId?: string) => setForm({ ...form, sizeChartUrl: url, sizeChartPublicId: publicId ?? "" })}
                 label="Size Chart URL"
                 folder="size-guides"
                 placeholder="URL to external size chart"

@@ -60,14 +60,14 @@ export async function handleAuthRequest(
     case "me":               return handleMe(req, ctx);
     case "updateMe":         return handleUpdateMe(req, ctx);
     case "refresh":          return handleRefresh(req, ctx);
-    case "forgotPassword":   return handleForgotPassword(req);
-    case "verifyResetCode":  return handleVerifyResetCode(req);
+    case "forgotPassword":   return handleForgotPassword(req, ctx);
+    case "verifyResetCode":  return handleVerifyResetCode(req, ctx);
     case "resetPassword":    return handleResetPassword(req, ctx);
     case "changePassword":   return handleChangePassword(req, ctx);
     case "sessions":         return handleSessions(req, ctx);
     case "deleteSession":    return handleDeleteSession(req, ctx, params[0]);
-    case "verifyEmail":      return handleVerifyEmail(req);
-    case "resendVerification": return handleResendVerification(req);
+    case "verifyEmail":      return handleVerifyEmail(req, ctx);
+    case "resendVerification": return handleResendVerification(req, ctx);
     case "changeEmail":      return handleChangeEmail(req, ctx);
     case "verifyEmailChange": return handleVerifyEmailChange(req, ctx);
     default:
@@ -155,7 +155,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
         email,
         firstName,
         verificationCode: verificationToken,
-      }, { profileId: authData.user.id });
+      }, ctx.env);
     } catch (emailErr) {
       console.error("[EMAIL] Failed to send verification:", (emailErr as Error).message);
     }
@@ -172,7 +172,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
 
 // ─── VERIFY EMAIL ───
 
-async function handleVerifyEmail(req: Request): Promise<Response> {
+async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Response> {
   try {
     const body = await req.json();
     const { email, code } = body;
@@ -185,7 +185,7 @@ async function handleVerifyEmail(req: Request): Promise<Response> {
       return badRequest("Verification code must be a 6-digit number");
     }
 
-    const prisma = getPrisma();
+    const prisma = getPrisma(ctx.env);
     const profile = await prisma.profile.findFirst({
       where: { email, verificationToken: code, emailVerified: false },
       select: { id: true, email: true, verificationTokenExpiresAt: true },
@@ -210,7 +210,7 @@ async function handleVerifyEmail(req: Request): Promise<Response> {
 
     logAction(profile.id, "auth.email_verified", {
       metadata: { email: profile.email },
-    });
+    }, ctx.env);
 
     return success({ message: "Email verified successfully" });
   } catch (err) {
@@ -221,7 +221,7 @@ async function handleVerifyEmail(req: Request): Promise<Response> {
 
 // ─── RESEND VERIFICATION EMAIL ───
 
-async function handleResendVerification(req: Request): Promise<Response> {
+async function handleResendVerification(req: Request, ctx: RequestContext): Promise<Response> {
   try {
     const body = await req.json();
     const { email } = body;
@@ -230,7 +230,7 @@ async function handleResendVerification(req: Request): Promise<Response> {
       return badRequest("Email is required");
     }
 
-    const prisma = getPrisma();
+    const prisma = getPrisma(ctx.env);
     const profile = await prisma.profile.findUnique({
       where: { email },
       select: { id: true, email: true, firstName: true, emailVerified: true },
@@ -258,7 +258,7 @@ async function handleResendVerification(req: Request): Promise<Response> {
         email,
         firstName: profile.firstName,
         verificationCode: verificationToken,
-      }, { profileId: profile.id });
+      }, ctx.env);
     } catch (emailErr) {
       console.error("[EMAIL] Failed to resend verification:", (emailErr as Error).message);
     }
@@ -655,11 +655,11 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
   });
 
   try {
-    await sendEmailNotification("email_change", {
+      await sendEmailNotification("email_change", {
       email: normalizedEmail,
       firstName: profile?.firstName || "there",
       verificationCode: pendingEmailToken,
-    }, { profileId: ctx.userId });
+    }, ctx.env);
   } catch (emailErr) {
     console.error("[EMAIL] Failed to send email change code:", (emailErr as Error).message);
   }
@@ -746,7 +746,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
 
 // ─── FORGOT PASSWORD (send 6-digit code) ───
 
-async function handleForgotPassword(req: Request): Promise<Response> {
+async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { email } = body;
 
@@ -754,7 +754,7 @@ async function handleForgotPassword(req: Request): Promise<Response> {
 
   const normalizedEmail = email.toLowerCase().trim();
 
-  const prisma = getPrisma();
+  const prisma = getPrisma(ctx.env);
   const profile = await prisma.profile.findUnique({
     where: { email: normalizedEmail },
     select: { id: true, firstName: true, email: true },
@@ -778,7 +778,7 @@ async function handleForgotPassword(req: Request): Promise<Response> {
       email: normalizedEmail,
       firstName: profile.firstName,
       verificationCode: resetPasswordToken,
-    }, { profileId: profile.id });
+    }, ctx.env);
   } catch (mailErr) {
     console.error("[EMAIL] Failed to send password reset:", (mailErr as Error).message);
   }
@@ -788,7 +788,7 @@ async function handleForgotPassword(req: Request): Promise<Response> {
 
 // ─── VERIFY RESET CODE ───
 
-async function handleVerifyResetCode(req: Request): Promise<Response> {
+async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { email, code } = body;
 
@@ -802,7 +802,7 @@ async function handleVerifyResetCode(req: Request): Promise<Response> {
 
   const normalizedEmail = email.toLowerCase().trim();
 
-  const prisma = getPrisma();
+  const prisma = getPrisma(ctx.env);
   const profile = await prisma.profile.findFirst({
     where: { email: normalizedEmail, resetPasswordToken: code },
     select: { id: true, email: true, resetPasswordTokenExpiresAt: true },
@@ -883,7 +883,7 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
   logAction(null, "auth.password_reset", {
     metadata: { email: normalizedEmail },
     ...extractRequestMeta(req),
-  });
+  }, ctx.env);
 
   return success({ message: "Password updated successfully" });
 }

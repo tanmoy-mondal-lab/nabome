@@ -1,22 +1,18 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
+import { neonConfig } from "@neondatabase/serverless";
 import type { Env } from "./env";
 
-const globalForPrisma = globalThis as unknown as { 
+const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+neonConfig.poolQueryViaFetch = true;
+
 function getDatabaseUrl(env?: Env): string {
-  // Debug logging
-  console.log("[PRISMA DEBUG] env parameter:", env);
-  console.log("[PRISMA DEBUG] env type:", typeof env);
-  console.log("[PRISMA DEBUG] env keys:", env ? Object.keys(env) : "env is null/undefined");
-  console.log("[PRISMA DEBUG] env.DATABASE_URL:", env?.DATABASE_URL ? "SET" : "UNDEFINED");
-  console.log("[PRISMA DEBUG] env.DATABASE_URL_POOLED:", env?.DATABASE_URL_POOLED ? "SET" : "UNDEFINED");
-  
-  const url = env?.DATABASE_URL || env?.DATABASE_URL_POOLED ||
-    (typeof process !== "undefined" && process.env?.DATABASE_URL) ||
+  const url = env?.DATABASE_URL_POOLED || env?.DATABASE_URL ||
     (typeof process !== "undefined" && process.env?.DATABASE_URL_POOLED) ||
+    (typeof process !== "undefined" && process.env?.DATABASE_URL) ||
     "";
   if (!url) {
     throw new Error("[PRISMA] DATABASE_URL is not set. Check Cloudflare Pages secrets or .env file.");
@@ -37,10 +33,15 @@ function createPrismaClient(env?: Env): PrismaClient {
 
 /**
  * Get a Prisma client instance.
- * 
+ *
  * IMPORTANT: This must be called with `env` parameter in Cloudflare Pages Functions.
  * The env is injected at request time, not module load time.
- * 
+ *
+ * In production (Cloudflare Pages), we reuse a singleton per isolate to avoid
+ * creating a new connection pool on every request. Cloudflare Pages Functions
+ * run on isolates that persist between requests, so this is safe and avoids
+ * exhausting Neon connection limits.
+ *
  * @param env - Cloudflare Pages environment (required in production)
  * @returns PrismaClient instance
  */
@@ -52,7 +53,13 @@ export function getPrisma(env?: Env): PrismaClient {
     }
     return globalForPrisma.prisma;
   }
-  
-  // In Cloudflare Pages, always create client per-request with env
-  return createPrismaClient(env);
+
+  // In Cloudflare Pages, reuse singleton per isolate to avoid connection exhaustion.
+  // Each isolate persists between requests, so a singleton is safe and efficient.
+  // Creating a new PrismaClient per request would exhaust Neon's connection limit
+  // under load, causing cascading 500 errors.
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = createPrismaClient(env);
+  }
+  return globalForPrisma.prisma;
 }

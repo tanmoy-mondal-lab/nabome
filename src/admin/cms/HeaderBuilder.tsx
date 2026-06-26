@@ -405,7 +405,7 @@ export default function HeaderBuilder() {
                         <input placeholder="Description" value={item.promotionalContent.description}
                           onChange={(e) => updateItem(idx, "promotionalContent", { ...item.promotionalContent!, description: e.target.value })}
                           className="px-2 py-1 text-xs border border-neutral-200 rounded" />
-                        <MediaPicker value={item.promotionalContent?.image ?? ""} onChange={(url: string) => updateItem(idx, "promotionalContent", { ...item.promotionalContent!, image: url })} folder="promotions" placeholder="Image URL" />
+                        <MediaPicker value={item.promotionalContent?.image ?? ""} onChange={(url: string, publicId?: string) => updateItem(idx, "promotionalContent", { ...item.promotionalContent!, image: url, imagePublicId: publicId })} folder="promotions" placeholder="Image URL" />
                         <input placeholder="Link URL" value={item.promotionalContent.linkUrl}
                           onChange={(e) => updateItem(idx, "promotionalContent", { ...item.promotionalContent!, linkUrl: e.target.value })}
                           className="px-2 py-1 text-xs border border-neutral-200 rounded" />

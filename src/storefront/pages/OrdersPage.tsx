@@ -19,10 +19,15 @@ const statusTabs = [
 
 const statusStyles: Record<string, string> = {
   pending: "status-pending",
+  confirmed: "status-confirmed",
   processing: "status-processing",
+  packed: "status-packed",
   shipped: "status-shipped",
+  out_for_delivery: "status-out-for-delivery",
   delivered: "status-delivered",
   cancelled: "status-cancelled",
+  returned: "status-returned",
+  refunded: "status-refunded",
 };
 
 interface Order {

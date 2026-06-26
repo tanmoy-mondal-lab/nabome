@@ -14,7 +14,7 @@ export default function SizeGuidesPage() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [edit, setEdit] = useState<Record<string, unknown> | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", categoryId: "", type: "clothing", unit: "inches", imageUrl: "", measurements: "[]", isActive: true });
+  const [form, setForm] = useState({ name: "", description: "", categoryId: "", type: "clothing", unit: "inches", imageUrl: "", imagePublicId: "", measurements: "[]", isActive: true });
   const [measurementsArr, setMeasurementsArr] = useState<{ size: string; bust?: string; waist?: string; hips?: string; length?: string; chest?: string; shoulder?: string }[]>([]);
 
   const { data: sizeGuidesData, isLoading: loading } = useQuery({
@@ -69,7 +69,7 @@ export default function SizeGuidesPage() {
 
   function openCreate() {
     setEdit(null);
-    setForm({ name: "", description: "", categoryId: "", type: "clothing", unit: "inches", imageUrl: "", measurements: "[]", isActive: true });
+    setForm({ name: "", description: "", categoryId: "", type: "clothing", unit: "inches", imageUrl: "", imagePublicId: "", measurements: "[]", isActive: true });
     setMeasurementsArr([]);
     setShowModal(true);
   }
@@ -84,7 +84,7 @@ export default function SizeGuidesPage() {
       categoryId: (guide.categoryId as string) ?? "",
       type: (guide.type as string) ?? "clothing",
       unit: (guide.unit as string) ?? "inches",
-      imageUrl: (guide.imageUrl as string) ?? "",
+      imageUrl: (guide.imageUrl as string) ?? "", imagePublicId: (guide.imagePublicId as string) ?? "",
       measurements: JSON.stringify(m),
       isActive: (guide.isActive as boolean) ?? true,
     });
@@ -154,7 +154,7 @@ export default function SizeGuidesPage() {
             <div><label className="block text-xs text-neutral-500 mb-1">Type</label><select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"><option value="clothing">Clothing</option><option value="shoes">Shoes</option><option value="accessories">Accessories</option><option value="rings">Rings</option></select></div>
           </div>
           <div><label className="block text-xs text-neutral-500 mb-1">Unit</label><select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"><option value="inches">Inches</option><option value="cm">Centimeters</option><option value="us">US</option><option value="uk">UK</option><option value="eu">EU</option></select></div>
-          <div><MediaPicker value={form.imageUrl} onChange={(url) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="size-guides" /></div>
+          <div><MediaPicker value={form.imageUrl} onChange={(url, publicId) => setForm({ ...form, imageUrl: url, imagePublicId: publicId ?? "" })} label="Image URL" folder="size-guides" /></div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="rounded border-neutral-300" />
             <span className="text-sm text-neutral-700">Active</span>

@@ -60,7 +60,7 @@ export async function handlePaymentRequest(
     case "retry":
       return handleRetry(req, ctx.env);
     case "refund":
-      return handleRefund(req, ctx);
+      return handleRefund(req, ctx, ctx.env);
     case "webhook":
       return handleWebhook(req, ctx.env);
     default:
@@ -85,7 +85,7 @@ async function handleVerify(req: Request, env: any): Promise<Response> {
       return serverError(new Error("Razorpay secret not configured"));
     }
 
-    const expected = await createHMACSHA256(keySecret, `${razorpayOrderId}|${razorpayPaymentId}`);
+    const expected = await createHMACSHA256(keySecret, `${razorpayOrderId}|${razorpayPaymentId}`, env);
 
     if (expected !== razorpaySignature) {
       return badRequest("Invalid payment signature");
@@ -95,12 +95,12 @@ async function handleVerify(req: Request, env: any): Promise<Response> {
     if (!order) return notFound("Order not found");
 
     if (order.paymentStatus === "paid") {
-      logAction(ctx.userId,  null, "payment.verify_duplicate", {
+      logAction(null, "payment.verify_duplicate", {
         entity: "order",
         entityId: orderId,
         metadata: { razorpayPaymentId },
         ...extractRequestMeta(req),
-      });
+      }, env);
       return success({ success: true, alreadyProcessed: true });
     }
 
@@ -144,17 +144,17 @@ async function handleVerify(req: Request, env: any): Promise<Response> {
         amount: `₹${Number(order.total).toLocaleString("en-IN")}`,
         transactionId: razorpayPaymentId,
         orderId: order.id,
-      }, { profileId: order.profileId, orderId: order.id });
+      }, env);
     } catch (emailErr) {
       console.error("[EMAIL] Failed to send payment success:", (emailErr as Error).message);
     }
 
-    logAction(ctx.userId,  order.profileId, "payment.verify", {
+    logAction(null, "payment.verify", {
       entity: "order",
       entityId: order.id,
       metadata: { orderNumber: order.orderNumber, razorpayPaymentId },
       ...extractRequestMeta(req),
-    });
+    }, env);
 
     return success({ success: true });
   } catch (err) {
@@ -201,17 +201,17 @@ async function handleFailed(req: Request, env: any): Promise<Response> {
         email: order.email,
         reason: errorDescription || "Payment was declined by the bank or card issuer.",
         orderId: order.id,
-      }, { profileId: order.profileId, orderId: order.id });
+      }, env);
     } catch (emailErr) {
       console.error("[EMAIL] Failed to send payment failure:", (emailErr as Error).message);
     }
 
-    logAction(ctx.userId,  order.profileId, "payment.failed", {
+    logAction(null, "payment.failed", {
       entity: "order",
       entityId: order.id,
       metadata: { orderNumber: order.orderNumber, errorCode, errorDescription },
       ...extractRequestMeta(req),
-    });
+    }, env);
 
     return success({ success: true });
   } catch (err) {
@@ -358,7 +358,7 @@ async function handleRefund(req: Request, ctx: RequestContext, env: any): Promis
       });
     });
 
-    logAction(ctx.userId,  ctx.userId, "payment.refund", {
+    logAction(ctx.userId, "payment.refund", {
       entity: "order",
       entityId: orderId,
       metadata: {
@@ -368,7 +368,7 @@ async function handleRefund(req: Request, ctx: RequestContext, env: any): Promis
         isFullRefund,
       },
       ...extractRequestMeta(req),
-    });
+    }, env);
 
     return success({
       success: true,
@@ -402,11 +402,13 @@ function getWebhookEventId(event: WebhookEventPayload): string {
   return event.event_id || event.id || `${event.event}_${event.created_at || Date.now()}`;
 }
 
-async function findOrderByRazorpayOrderId(razorpayOrderId: string) {
+async function findOrderByRazorpayOrderId(razorpayOrderId: string, env: any) {
+  const prisma = getPrisma(env);
   return prisma.order.findFirst({ where: { razorpayOrderId } });
 }
 
-async function findOrderByPaymentId(razorpayPaymentId: string) {
+async function findOrderByPaymentId(razorpayPaymentId: string, env: any) {
+  const prisma = getPrisma(env);
   return prisma.order.findFirst({ where: { razorpayPaymentId } });
 }
 
@@ -419,6 +421,7 @@ function roundAmount(amount: unknown): number {
 // ─────────────────────────────────────────────────────────────
 
 async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: any }) {
+  const prisma = getPrisma(ctx.env);
   const payment = event.payload.payment?.entity as Record<string, unknown> | undefined;
   if (!payment) throw new Error("Missing payment entity in payload");
 
@@ -427,7 +430,7 @@ async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: any
   const amount = roundAmount(payment.amount);
   const method = payment.method as string;
 
-  const order = await findOrderByRazorpayOrderId(razorpayOrderId);
+  const order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env);
   if (!order) throw new Error(`Order not found for razorpay_order_id: ${razorpayOrderId}`);
 
   const result = await prisma.$transaction(async (tx) => {
@@ -478,7 +481,7 @@ async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: any
         amount: `₹${amount.toLocaleString("en-IN")}`,
         transactionId: razorpayPaymentId,
         orderId: order.id,
-      }, { profileId: order.profileId, orderId: order.id });
+      }, ctx.env);
     } catch {}
   }
 
@@ -486,6 +489,7 @@ async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: any
 }
 
 async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: any }) {
+  const prisma = getPrisma(ctx.env);
   const payment = event.payload.payment?.entity as Record<string, unknown> | undefined;
   if (!payment) throw new Error("Missing payment entity in payload");
 
@@ -496,7 +500,7 @@ async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: any }
   const errorStep = payment.error_step as string;
   const errorReason = payment.error_reason as string;
 
-  const order = await findOrderByRazorpayOrderId(razorpayOrderId);
+  const order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env);
   if (!order) throw new Error(`Order not found for razorpay_order_id: ${razorpayOrderId}`);
 
   const result = await prisma.$transaction(async (tx) => {
@@ -532,7 +536,7 @@ async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: any }
         email: order.email,
         reason: errorDescription || "Payment was declined.",
         orderId: order.id,
-      }, { profileId: order.profileId, orderId: order.id });
+      }, ctx.env);
     } catch {}
   }
 
@@ -540,6 +544,7 @@ async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: any }
 }
 
 async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }) {
+  const prisma = getPrisma(ctx.env);
   const refund = event.payload.refund?.entity as Record<string, unknown> | undefined;
   if (!refund) throw new Error("Missing refund entity in payload");
 
@@ -549,12 +554,12 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }
   const refundStatus = refund.status as string;
   const refundCreatedAt = refund.created_at ? new Date((refund.created_at as number) * 1000) : new Date();
 
-  let order = await findOrderByPaymentId(razorpayPaymentId);
+  let order = await findOrderByPaymentId(razorpayPaymentId, ctx.env);
   if (!order) {
     const paymentEntity = event.payload.payment?.entity as Record<string, unknown> | undefined;
     const razorpayOrderId = paymentEntity?.order_id as string || "";
     if (razorpayOrderId) {
-      order = await findOrderByRazorpayOrderId(razorpayOrderId);
+      order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env);
     }
   }
   if (!order) throw new Error(`Order not found for razorpay_payment_id: ${razorpayPaymentId}`);
@@ -633,6 +638,7 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }
 }
 
 async function handleRefundProcessed(event: WebhookEventPayload, ctx: { env: any }) {
+  const prisma = getPrisma(ctx.env);
   const refund = event.payload.refund?.entity as Record<string, unknown> | undefined;
   if (!refund) throw new Error("Missing refund entity in payload");
 
@@ -643,7 +649,7 @@ async function handleRefundProcessed(event: WebhookEventPayload, ctx: { env: any
     where: { transactionId: refundId },
   });
   if (!existingRefund) {
-    return handleRefundCreated(event, ctx.env);
+    return handleRefundCreated(event, ctx);
   }
 
   return prisma.$transaction(async (tx) => {
@@ -691,7 +697,7 @@ async function handleRefundProcessed(event: WebhookEventPayload, ctx: { env: any
   });
 }
 
-const EVENT_HANDLERS: Record<string, (payload: WebhookEventPayload) => Promise<{ status: string; [key: string]: unknown }>> = {
+const EVENT_HANDLERS: Record<string, (event: WebhookEventPayload, ctx: { env: any }) => Promise<{ status: string; [key: string]: unknown }>> = {
   "payment.captured": handlePaymentCaptured,
   "payment.failed": handlePaymentFailed,
   "refund.created": handleRefundCreated,
@@ -703,6 +709,7 @@ const EVENT_HANDLERS: Record<string, (payload: WebhookEventPayload) => Promise<{
 // ─────────────────────────────────────────────────────────────
 
 async function handleWebhook(req: Request, env: any): Promise<Response> {
+  const prisma = getPrisma(env);
   const rawBody = await req.text();
   const signature = req.headers.get("x-razorpay-signature");
 
@@ -719,7 +726,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
     return success({ status: "invalid_signature" });
   }
 
-  const expected = await createHMACSHA256(webhookSecret, rawBody);
+  const expected = await createHMACSHA256(webhookSecret, rawBody, env);
 
   if (expected !== signature) {
     console.error("[WEBHOOK] Invalid signature");
@@ -811,7 +818,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
   }
 
   try {
-    const result = await handler(event, ctx.env);
+    const result = await handler(event, { env });
 
     await prisma.webhookEvent.update({
       where: { id: webhookEventId },
@@ -822,11 +829,11 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
       },
     }).catch(() => {});
 
-    logAction(ctx.userId,  null, "payment.webhook", {
+    logAction(null, "payment.webhook", {
       entity: "payment_webhook",
       entityId: eventId,
       metadata: { event: eventName, status: "processed" },
-    });
+    }, env);
 
     return success({ status: "processed", event: eventName, result });
   } catch (err) {
@@ -841,11 +848,11 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
       },
     }).catch(() => {});
 
-    logAction(ctx.userId,  null, "payment.webhook_error", {
+    logAction(null, "payment.webhook_error", {
       entity: "payment_webhook",
       entityId: eventId,
       metadata: { event: eventName, status: "failed", error: errorMessage },
-    });
+    }, env);
 
     console.error(`[WEBHOOK] Error processing ${eventName}:`, errorMessage);
     return success({ status: "error", event: eventName, error: errorMessage });
@@ -857,24 +864,25 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
 // ─────────────────────────────────────────────────────────────
 
 export async function handleAdminWebhookRequest(
-  _req: Request,
-  _ctx: RequestContext,
+  req: Request,
+  ctx: RequestContext,
   params: string[],
   action?: string
 ): Promise<Response> {
   switch (action) {
     case "events":
-      return handleListWebhookEvents(_req, ctx.env);
+      return handleListWebhookEvents(req, ctx.env);
     case "reprocess":
-      return handleReprocessWebhookEvent(_req, params[0], ctx.env);
+      return handleReprocessWebhookEvent(req, params[0], ctx.env);
     case "reconcile":
-      return handleReconcileOrder(_req, params[0], ctx.env);
+      return handleReconcileOrder(req, params[0], ctx.env);
     default:
       return notFound();
   }
 }
 
 async function handleListWebhookEvents(req: Request, env: any): Promise<Response> {
+  const prisma = getPrisma(env);
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") || "1", 10);
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "50", 10), 200);
@@ -904,6 +912,7 @@ async function handleListWebhookEvents(req: Request, env: any): Promise<Response
 async function handleReprocessWebhookEvent(req: Request, eventId: string, env: any): Promise<Response> {
   if (!eventId) return badRequest("eventId is required");
 
+  const prisma = getPrisma(env);
   const event = await prisma.webhookEvent.findUnique({ where: { id: eventId } });
   if (!event) return notFound("Webhook event not found");
 
@@ -911,8 +920,7 @@ async function handleReprocessWebhookEvent(req: Request, eventId: string, env: a
   if (!handler) return badRequest(`No handler for event type: ${event.eventType}`);
 
   try {
-    const prisma = getPrisma(env);
-    const result = await handler(event.payload as unknown as WebhookEventPayload, ctx.env);
+    const result = await handler(event.payload as unknown as WebhookEventPayload, { env });
     await prisma.webhookEvent.update({
       where: { id: eventId },
       data: {
@@ -939,13 +947,13 @@ async function handleReprocessWebhookEvent(req: Request, eventId: string, env: a
 async function handleReconcileOrder(req: Request, orderId: string, env: any): Promise<Response> {
   if (!orderId) return badRequest("orderId is required");
 
+  const prisma = getPrisma(env);
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) return notFound("Order not found");
 
   if (!order.razorpayOrderId) return badRequest("Order has no Razorpay order ID");
 
   try {
-    const prisma = getPrisma(env);
     const razorpayOrder = await callRazorpay(`/orders/${order.razorpayOrderId}`, "GET");
     const razorpayStatus = razorpayOrder.status as string;
     const razorpayAmountDue = Number(razorpayOrder.amount_due || 0);

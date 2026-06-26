@@ -175,7 +175,7 @@ async function handleSearch(req: Request, env: any): Promise<Response> {
   if (!q.trim()) return success({ results: [], total: 0, page, limit });
 
   if (memoryIndex.length === 0) {
-    await handleBuild(ctx.env);
+    await handleBuild(env);
   }
 
   const queryTokens = tokenize(q);

@@ -34,9 +34,9 @@ export async function handleAdminOrderRequest(
     case "detail":
       return handleDetail(params[0], ctx.env);
     case "updateStatus":
-      return handleUpdateStatus(params[0], req, ctx);
+      return handleUpdateStatus(params[0], req, ctx, ctx.env);
     case "internalNotes":
-      return handleInternalNotes(params[0], req, ctx);
+      return handleInternalNotes(params[0], req, ctx, ctx.env);
     case "timeline":
       return handleTimeline(params[0], ctx.env);
     default:
@@ -75,6 +75,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   const orderBy = { [sortBy]: sortOrder };
 
   try {
+    const prisma = getPrisma(env);
     const [orders, total, aggregate] = await Promise.all([
       prisma.order.findMany({
         where: where as never,
@@ -123,7 +124,7 @@ async function handleStats(env: any): Promise<Response> {
       where: { status: { in: statuses as never } },
     });
     const statusMap = new Map(grouped.map((g) => [g.status, g._count.id]));
-    const statusCounts = statuses.map((s) => statusMap.get(s) ?? 0);
+    const statusCounts = statuses.map((s) => statusMap.get(s as never) ?? 0);
 
     const [returnRequestCount, refundRequestCount] = await Promise.all([
       prisma.returnRequest.count(),
@@ -186,8 +187,13 @@ async function handleDetail(orderId: string, env: any): Promise<Response> {
 }
 
 async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
-  const body = await req.json();
-  const { status, note } = body;
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
+  const { status, note } = body as { status?: string; note?: string };
 
   if (!status) return badRequest("Status is required");
 
@@ -218,11 +224,11 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
       const updatedOrder = await tx.order.update({
         where: { id: orderId },
         data: {
-          status,
+          status: status as never,
           ...timestampFields,
           statusHistory: {
             create: {
-              status,
+              status: status as never,
               note: note ?? null,
               createdBy: ctx.userId,
             },
@@ -287,25 +293,25 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
             trackingNumber: note?.includes("tracking:") ? note.split("tracking:")[1]?.trim() : "",
             estimatedDelivery: "",
             orderId: order.id,
-          }, { profileId: order.profileId, orderId: order.id });
+          }, env);
         } else if (status === "delivered") {
           await sendEmailNotification("delivery_confirmation", {
             orderNumber: order.orderNumber,
             email: order.email,
             orderId: order.id,
-          }, { profileId: order.profileId, orderId: order.id });
+          }, env);
         }
       } catch (emailErr) {
         console.error("[EMAIL] Failed to send status update:", (emailErr as Error).message);
       }
     }
 
-    logAction(ctx.userId,  ctx.userId, "admin.order.status_change", {
+    logAction(ctx.userId, "admin.order.status_change", {
       entity: "order",
       entityId: orderId,
       metadata: { from: order.status, to: status },
       ...extractRequestMeta(req),
-    });
+    }, env);
 
     return success(updated);
   } catch (err) {
@@ -314,7 +320,12 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
 }
 
 async function handleInternalNotes(orderId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { internalNotes } = body;
 
   if (internalNotes === undefined) return badRequest("internalNotes is required");
@@ -330,12 +341,12 @@ async function handleInternalNotes(orderId: string, req: Request, ctx: RequestCo
       include: orderInclude,
     });
 
-    logAction(ctx.userId,  ctx.userId, "admin.order.internal_notes", {
+    logAction(ctx.userId, "admin.order.internal_notes", {
       entity: "order",
       entityId: orderId,
       metadata: {},
       ...extractRequestMeta(req),
-    });
+    }, env);
 
     return success(updated);
   } catch (err) {

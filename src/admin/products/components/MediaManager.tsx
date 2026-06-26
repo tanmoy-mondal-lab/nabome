@@ -3,6 +3,7 @@ import { Plus, Film, X, ImageIcon, Upload, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SafeImage } from "../../../components/SafeImage";
 import { adminApi } from "../../../lib/api/admin";
+import { useToast } from "../../../components/ui/Toast";
 import type { ProductImage } from "../hooks/useProductForm";
 
 interface MediaManagerProps {
@@ -22,6 +23,7 @@ export function MediaManager({
   onUploadEnd,
   onPendingImage,
 }: MediaManagerProps) {
+  const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -33,7 +35,9 @@ export function MediaManager({
       .then((res) => {
         onPendingImage({ url: res.url, publicId: res.publicId });
       })
-      .catch(() => {})
+      .catch(() => {
+        toast("Upload failed — try again", "error");
+      })
       .finally(() => {
         onUploadEnd();
         if (fileInputRef.current) fileInputRef.current.value = "";
@@ -52,7 +56,9 @@ export function MediaManager({
           { url: res.url, isPrimary: images.length === 0, sortOrder: images.length, type: "video" },
         ]);
       })
-      .catch(() => {})
+      .catch(() => {
+        toast("Video upload failed — try again", "error");
+      })
       .finally(() => {
         onUploadEnd();
         if (videoFileRef.current) videoFileRef.current.value = "";

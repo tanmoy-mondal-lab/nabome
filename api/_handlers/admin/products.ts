@@ -71,6 +71,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where: where as never,
@@ -99,17 +100,33 @@ async function handleList(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
   let body: Record<string, unknown>;
   try {
-    const prisma = getPrisma(env);
     body = await req.json();
   } catch {
     return badRequest("Invalid JSON body");
   }
-  const { name, description, shortDescription, categoryId, subcategoryId, collectionId, brandId, sizeGuideId, basePrice, salePrice, compareAtPrice, costPrice, discountPercent, material, careInstructions, sizeChartUrl, currency, scheduledPublishAt, scheduledArchiveAt, isActive, isFeatured, isNew, gender, sortOrder, metaTitle, metaDesc } = body as Record<string, unknown>;
+  const prisma = getPrisma(ctx.env);
+  const bodyData = body as Record<string, unknown>;
+  const { description, shortDescription, categoryId, subcategoryId, collectionId, brandId, sizeGuideId, currency, scheduledPublishAt, scheduledArchiveAt, metaTitle, metaDesc } = bodyData;
+  const name = bodyData.name as string;
+  const basePriceNum = Number(bodyData.basePrice);
+  const salePriceNum = bodyData.salePrice != null ? Number(bodyData.salePrice) : null;
+  const compareAtPriceNum = bodyData.compareAtPrice != null ? Number(bodyData.compareAtPrice) : null;
+  const costPriceNum = bodyData.costPrice != null ? Number(bodyData.costPrice) : null;
+  const discountPercentNum = bodyData.discountPercent != null ? Number(bodyData.discountPercent) : null;
+  const sortOrderNum = bodyData.sortOrder != null ? Number(bodyData.sortOrder) : 0;
+  const material = bodyData.material as string | undefined;
+  const careInstructions = bodyData.careInstructions as string | undefined;
+  const sizeChartUrl = bodyData.sizeChartUrl as string | undefined;
+  const sizeChartPublicId = bodyData.sizeChartPublicId as string | undefined;
+  const isActive = bodyData.isActive as boolean | undefined;
+  const isFeatured = bodyData.isFeatured as boolean | undefined;
+  const isNew = bodyData.isNew as boolean | undefined;
+  const gender = bodyData.gender as string | undefined;
 
-  if (!name || basePrice === undefined) {
+  if (!name || basePriceNum === 0 || isNaN(basePriceNum)) {
     return badRequest("Name and base price are required");
   }
 
@@ -132,22 +149,23 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
         collectionId: toNull(collectionId),
         brandId: toNull(brandId),
         sizeGuideId: toNull(sizeGuideId),
-        basePrice,
-        salePrice: toNull(salePrice),
-        compareAtPrice: toNull(compareAtPrice),
-        costPrice: toNull(costPrice),
-        discountPercent: toNull(discountPercent),
+        basePrice: basePriceNum,
+        salePrice: salePriceNum,
+        compareAtPrice: compareAtPriceNum,
+        costPrice: costPriceNum,
+        discountPercent: discountPercentNum,
         material: toNull(material),
         careInstructions: toNull(careInstructions),
         sizeChartUrl: toNull(sizeChartUrl),
+        sizeChartPublicId: toNull(sizeChartPublicId),
         currency: (currency as string) || "INR",
         scheduledPublishAt: scheduledPublishAt ? new Date(scheduledPublishAt as string) : null,
         scheduledArchiveAt: scheduledArchiveAt ? new Date(scheduledArchiveAt as string) : null,
         isActive: isActive ?? true,
         isFeatured: isFeatured ?? false,
         isNew: isNew ?? false,
-        gender: gender ?? "unisex",
-        sortOrder: sortOrder ?? 0,
+        gender: (gender as "men" | "women" | "unisex" | undefined) ?? "unisex",
+        sortOrder: sortOrderNum,
         metaTitle: toNull(metaTitle),
         metaDesc: toNull(metaDesc),
         publishedAt: isActive ? new Date() : null,
@@ -155,7 +173,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
       include: { images: true, variants: true },
     });
 
-    logAction(ctx.userId,  ctx.userId, "admin.product.create", {
+    logAction(ctx.userId, "admin.product.create", {
       entity: "product",
       entityId: product.id,
       metadata: { name: product.name, slug: product.slug },
@@ -182,15 +200,15 @@ async function handleDetail(productId: string, env: any): Promise<Response> {
   }
 }
 
-async function handleUpdate(productId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleUpdate(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   let body: Record<string, unknown>;
   try {
-    const prisma = getPrisma(env);
     body = await req.json();
   } catch {
     return badRequest("Invalid JSON body");
   }
 
+  const prisma = getPrisma(ctx.env);
   try {
     const existing = await prisma.product.findUnique({ where: { id: productId } });
     if (!existing) return notFound("Product not found");
@@ -199,14 +217,14 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
     const updatableFields = [
       "name", "description", "shortDescription", "categoryId", "subcategoryId", "collectionId",
       "brandId", "sizeGuideId", "basePrice", "salePrice", "compareAtPrice", "costPrice", "discountPercent",
-      "material", "careInstructions", "sizeChartUrl", "currency",
+      "material", "careInstructions", "sizeChartUrl", "sizeChartPublicId", "currency",
       "isActive", "isFeatured", "isNew", "gender", "sortOrder", "metaTitle", "metaDesc",
       "scheduledPublishAt", "scheduledArchiveAt",
     ];
 
     const optionalStringFields = [
       "categoryId", "subcategoryId", "collectionId", "brandId", "sizeGuideId",
-      "sizeChartUrl", "material", "careInstructions", "metaTitle", "metaDesc",
+      "sizeChartUrl", "sizeChartPublicId", "material", "careInstructions", "metaTitle", "metaDesc",
       "scheduledPublishAt", "scheduledArchiveAt",
     ];
 
@@ -217,14 +235,14 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
     }
 
     if (body.slug && body.slug !== existing.slug) {
-      let slug = slugify(body.slug);
+      let slug = slugify(body.slug as string);
       const slugExists = await prisma.product.findFirst({
         where: { slug, id: { not: productId } },
       });
       if (slugExists) slug = `${slug}-${Date.now().toString(36)}`;
       data.slug = slug;
     } else if (body.name && body.name !== existing.name) {
-      let slug = slugify(body.name);
+      let slug = slugify(body.name as string);
       const slugExists = await prisma.product.findFirst({
         where: { slug, id: { not: productId } },
       });
@@ -242,7 +260,7 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
       include: productInclude,
     });
 
-    logAction(ctx.userId,  ctx.userId, "admin.product.update", {
+    logAction(ctx.userId, "admin.product.update", {
       entity: "product",
       entityId: productId,
       metadata: { name: product.name },
@@ -255,18 +273,21 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
   }
 }
 
-async function handleDelete(productId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleDelete(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
-    const prisma = getPrisma(env);
+    const prisma = getPrisma(ctx.env);
     const images = await prisma.productImage.findMany({ where: { productId }, select: { publicId: true } });
     const publicIds = images.map((i) => i.publicId).filter(Boolean) as string[];
     await destroyCloudinaryAssets(publicIds);
+    const variants = await prisma.productVariant.findMany({ where: { productId }, select: { videoPublicId: true } });
+    const videoIds = variants.map((v) => v.videoPublicId).filter(Boolean) as string[];
+    await destroyCloudinaryAssets(videoIds, ctx.env, "video");
     await prisma.productImage.deleteMany({ where: { productId } });
     await prisma.product.update({
       where: { id: productId },
       data: { isActive: false },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.product.delete", {
+    logAction(ctx.userId, "admin.product.delete", {
       entity: "product",
       entityId: productId,
       metadata: {},
@@ -282,7 +303,6 @@ async function handleDelete(productId: string, req: Request, ctx: RequestContext
 async function handleUpdateVariants(productId: string, req: Request, env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
-    const prisma = getPrisma(env);
     body = await req.json();
   } catch {
     return badRequest("Invalid JSON body");
@@ -293,10 +313,29 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
     return badRequest("Variants array is required");
   }
 
+  const prisma = getPrisma(env);
   try {
     // Separate existing variants (updates) from new variants (creates)
     const toUpdate = variants.filter(v => v.id && !String(v.id).startsWith("new-"));
     const toCreate = variants.filter(v => !v.id || String(v.id).startsWith("new-"));
+
+    // Clean up old variant videos that are being replaced
+    if (toUpdate.length > 0) {
+      const oldVariants = await prisma.productVariant.findMany({
+        where: { id: { in: toUpdate.map(v => v.id!) } },
+        select: { id: true, videoPublicId: true },
+      });
+      const toClean: string[] = [];
+      for (const old of oldVariants) {
+        const incoming = toUpdate.find(v => v.id === old.id);
+        if (old.videoPublicId && incoming?.videoPublicId !== old.videoPublicId) {
+          toClean.push(old.videoPublicId);
+        }
+      }
+      if (toClean.length > 0) {
+        await destroyCloudinaryAssets(toClean, env, "video");
+      }
+    }
 
     const variantData = (v: typeof variants[0]) => ({
       sku: v.sku,
@@ -347,7 +386,6 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
 async function handleAddImage(productId: string, req: Request, env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
-    const prisma = getPrisma(env);
     body = await req.json();
   } catch {
     return badRequest("Invalid JSON body");
@@ -356,6 +394,7 @@ async function handleAddImage(productId: string, req: Request, env: any): Promis
 
   if (!url) return badRequest("Image URL is required");
 
+  const prisma = getPrisma(env);
   try {
     if (isPrimary) {
       await prisma.productImage.updateMany({
@@ -367,12 +406,12 @@ async function handleAddImage(productId: string, req: Request, env: any): Promis
     const image = await prisma.productImage.create({
       data: {
         productId,
-        url,
-        publicId: publicId ?? null,
-        altText: altText ?? null,
+        url: url as string,
+        publicId: (publicId as string) ?? null,
+        altText: (altText as string) ?? null,
         variantId: toNull(variantId),
-        sortOrder: sortOrder ?? 0,
-        isPrimary: isPrimary ?? false,
+        sortOrder: (sortOrder as number) ?? 0,
+        isPrimary: (isPrimary as boolean) ?? false,
       },
     });
 
@@ -397,9 +436,9 @@ async function handleDeleteImage(productId: string, imageId: string, env: any): 
 
 // ─── Duplicate ───
 
-async function handleDuplicate(productId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleDuplicate(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
-    const prisma = getPrisma(env);
+    const prisma = getPrisma(ctx.env);
     const source = await prisma.product.findUnique({
       where: { id: productId },
       include: { attributes: true, variants: true, productTags: true, productLabels: true },
@@ -459,7 +498,7 @@ async function handleDuplicate(productId: string, req: Request, ctx: RequestCont
       });
     }
 
-    logAction(ctx.userId,  ctx.userId, "admin.product.duplicate", {
+    logAction(ctx.userId, "admin.product.duplicate", {
       entity: "product",
       entityId: product.id,
       metadata: { sourceId: productId, name: product.name },
@@ -472,14 +511,14 @@ async function handleDuplicate(productId: string, req: Request, ctx: RequestCont
 
 // ─── Restore (reactivate) ───
 
-async function handleRestore(productId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleRestore(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
-    const prisma = getPrisma(env);
+    const prisma = getPrisma(ctx.env);
     const product = await prisma.product.update({
       where: { id: productId },
       data: { isActive: true, publishedAt: new Date() },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.product.restore", {
+    logAction(ctx.userId, "admin.product.restore", {
       entity: "product",
       entityId: productId,
       metadata: { name: product.name },
@@ -495,18 +534,18 @@ async function handleRestore(productId: string, req: Request, ctx: RequestContex
 
 // ─── Bulk Status ───
 
-async function handleBulkStatus(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleBulkStatus(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { ids, status } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
   if (typeof status !== "boolean") return badRequest("status boolean required");
   try {
-    const prisma = getPrisma(env);
+    const prisma = getPrisma(ctx.env);
     const result = await prisma.product.updateMany({
       where: { id: { in: ids } },
       data: { isActive: status, publishedAt: status ? new Date() : undefined },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.product.bulk_status", {
+    logAction(ctx.userId, "admin.product.bulk_status", {
       entity: "product",
       entityId: ids.join(","),
       metadata: { count: ids.length, status },
@@ -539,17 +578,17 @@ async function handleBulkCategory(req: Request, env: any): Promise<Response> {
 
 // ─── Bulk Delete ───
 
-async function handleBulkDelete(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleBulkDelete(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { ids } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
   try {
-    const prisma = getPrisma(env);
+    const prisma = getPrisma(ctx.env);
     const result = await prisma.product.updateMany({
       where: { id: { in: ids }, isActive: true },
       data: { isActive: false },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.product.bulk_delete", {
+    logAction(ctx.userId, "admin.product.bulk_delete", {
       entity: "product",
       entityId: ids.join(","),
       metadata: { count: ids.length },
@@ -562,9 +601,9 @@ async function handleBulkDelete(req: Request, ctx: RequestContext, env: any): Pr
 
 // ─── Permanent Delete (soft-deleted products only) ───
 
-async function handlePermanentDelete(productId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handlePermanentDelete(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
-    const prisma = getPrisma(env);
+    const prisma = getPrisma(ctx.env);
     const product = await prisma.product.findUnique({
       where: { id: productId },
       select: { id: true, name: true, isActive: true, _count: { select: { orderItems: true } } },
@@ -575,25 +614,22 @@ async function handlePermanentDelete(productId: string, req: Request, ctx: Reque
       return badRequest(`Cannot permanently delete "${product.name}" — it has ${product._count.orderItems} order(s). Remove it from orders first or contact support.`);
     }
 
-    // Gather all Cloudinary public IDs (product images + variant images)
-    const [productImages, variantImages] = await Promise.all([
-      prisma.productImage.findMany({ where: { productId }, select: { publicId: true } }),
-      prisma.productVariantImage.findMany({
-        where: { variant: { productId } },
-        select: { publicId: true },
-      }),
-    ]);
-    const allPublicIds = [...productImages, ...variantImages]
-      .map((i) => i.publicId)
-      .filter(Boolean) as string[];
+    // Gather all Cloudinary public IDs (images + variant videos)
+    const images = await prisma.productImage.findMany({ where: { productId }, select: { publicId: true } });
+    const allPublicIds = images.map((i) => i.publicId).filter(Boolean) as string[];
     if (allPublicIds.length > 0) {
       await destroyCloudinaryAssets(allPublicIds);
+    }
+    const variants = await prisma.productVariant.findMany({ where: { productId }, select: { videoPublicId: true } });
+    const videoIds = variants.map((v) => v.videoPublicId).filter(Boolean) as string[];
+    if (videoIds.length > 0) {
+      await destroyCloudinaryAssets(videoIds, ctx.env, "video");
     }
 
     // Delete from DB (cascades handle variants, images, tags, labels, etc.)
     await prisma.product.delete({ where: { id: productId } });
 
-    logAction(ctx.userId,  ctx.userId, "admin.product.permanent_delete", {
+    logAction(ctx.userId, "admin.product.permanent_delete", {
       entity: "product",
       entityId: productId,
       metadata: { name: product.name },
@@ -606,13 +642,13 @@ async function handlePermanentDelete(productId: string, req: Request, ctx: Reque
   }
 }
 
-async function handleBulkPermanentDelete(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Promise<Response> {
   const body = await req.json();
   const { ids } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
 
   try {
-    const prisma = getPrisma(env);
+    const prisma = getPrisma(ctx.env);
     // Check for order items across all products
     const orderItemCount = await prisma.orderItem.count({
       where: { productId: { in: ids } },
@@ -621,24 +657,21 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext, env:
       return badRequest(`${orderItemCount} product(s) have existing orders and cannot be permanently deleted. Remove them from orders first.`);
     }
 
-    // Gather all Cloudinary public IDs
-    const [productImages, variantImages] = await Promise.all([
-      prisma.productImage.findMany({ where: { productId: { in: ids } }, select: { publicId: true } }),
-      prisma.productVariantImage.findMany({
-        where: { variant: { productId: { in: ids } } },
-        select: { publicId: true },
-      }),
-    ]);
-    const allPublicIds = [...productImages, ...variantImages]
-      .map((i) => i.publicId)
-      .filter(Boolean) as string[];
+    // Gather all Cloudinary public IDs (images + variant videos)
+    const images = await prisma.productImage.findMany({ where: { productId: { in: ids } }, select: { publicId: true } });
+    const allPublicIds = images.map((i) => i.publicId).filter(Boolean) as string[];
     if (allPublicIds.length > 0) {
       await destroyCloudinaryAssets(allPublicIds);
+    }
+    const variants = await prisma.productVariant.findMany({ where: { productId: { in: ids } }, select: { videoPublicId: true } });
+    const videoIds = variants.map((v) => v.videoPublicId).filter(Boolean) as string[];
+    if (videoIds.length > 0) {
+      await destroyCloudinaryAssets(videoIds, ctx.env, "video");
     }
 
     const result = await prisma.product.deleteMany({ where: { id: { in: ids } } });
 
-    logAction(ctx.userId,  ctx.userId, "admin.product.bulk_permanent_delete", {
+    logAction(ctx.userId, "admin.product.bulk_permanent_delete", {
       entity: "product",
       entityId: ids.join(","),
       metadata: { count: result.count },
@@ -656,16 +689,16 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext, env:
 async function handleSchedule(productId: string, req: Request, env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
-    const prisma = getPrisma(env);
     body = await req.json();
   } catch {
     return badRequest("Invalid JSON body");
   }
   const { publishAt, archiveAt } = body;
+  const prisma = getPrisma(env);
   try {
     const data: Record<string, unknown> = {};
-    if (publishAt) data.scheduledPublishAt = new Date(publishAt);
-    if (archiveAt) data.scheduledArchiveAt = new Date(archiveAt);
+    if (publishAt) data.scheduledPublishAt = new Date(publishAt as string);
+    if (archiveAt) data.scheduledArchiveAt = new Date(archiveAt as string);
     const product = await prisma.product.update({
       where: { id: productId },
       data: data as never,

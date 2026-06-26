@@ -148,6 +148,8 @@ export default function ProductDetailPage() {
   }
 
   const reviewCount = Number((product._count as Record<string, unknown>)?.reviews ?? 0);
+  const reviews = product.reviews as { average?: number; distribution?: number[]; items?: Record<string, unknown>[] } | undefined;
+  const averageRating = reviews?.average ?? 0;
 
   return (
     <div className="bg-white">
@@ -256,11 +258,7 @@ export default function ProductDetailPage() {
                 <PriceDisplay price={variantPrice} compareAtPrice={compareAtPrice} size="lg" />
                 {reviewCount > 0 && (
                   <div className="flex items-center gap-1.5 text-sm text-neutral-500">
-                    <div className="flex gap-0.5">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-3.5 h-3.5 fill-accent-gold text-accent-gold" />
-                      ))}
-                    </div>
+                    <StarRating rating={averageRating} size={14} />
                     <span className="text-xs">({reviewCount})</span>
                   </div>
                 )}

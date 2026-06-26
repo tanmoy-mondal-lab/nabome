@@ -12,7 +12,7 @@ export async function handleSupportRequest(
 
   // Public
   if (action === "createTicket") {
-    if (method === "POST") return handleCreateTicket(ctx, req);
+    if (method === "POST") return handleCreateTicket(ctx, req, ctx.env);
   }
   if (action === "faq") {
     if (method === "GET") return handleListFAQs(ctx.env);
@@ -20,13 +20,13 @@ export async function handleSupportRequest(
 
   // Customer
   if (action === "listTickets") {
-    if (method === "GET") return handleListTickets(ctx);
+    if (method === "GET") return handleListTickets(ctx, ctx.env);
   }
   if (action === "ticketDetail") {
-    if (method === "GET") return handleTicketDetail(ctx, params[0]);
+    if (method === "GET") return handleTicketDetail(ctx, params[0], ctx.env);
   }
   if (action === "ticketReply") {
-    if (method === "POST") return handleTicketReply(ctx, params[0], req);
+    if (method === "POST") return handleTicketReply(ctx, params[0], req, ctx.env);
   }
 
   // Admin support
@@ -37,13 +37,13 @@ export async function handleSupportRequest(
     if (method === "GET") return handleAdminDetail(params[0], ctx.env);
   }
   if (action === "adminUpdateStatus") {
-    if (method === "PUT") return handleAdminUpdateStatus(ctx, params[0], req);
+    if (method === "PUT") return handleAdminUpdateStatus(ctx, params[0], req, ctx.env);
   }
   if (action === "adminAssign") {
-    if (method === "PUT") return handleAdminAssign(ctx, params[0], req);
+    if (method === "PUT") return handleAdminAssign(ctx, params[0], req, ctx.env);
   }
   if (action === "adminReply") {
-    if (method === "POST") return handleAdminReply(ctx, params[0], req);
+    if (method === "POST") return handleAdminReply(ctx, params[0], req, ctx.env);
   }
 
   // Admin FAQ
@@ -71,6 +71,7 @@ async function handleCreateTicket(ctx: RequestContext, req: Request, env: any): 
     return badRequest("Subject and message are required");
   }
 
+  const prisma = getPrisma(env);
   const name = ctx.userId
     ? (await prisma.profile.findUnique({ where: { id: ctx.userId }, select: { firstName: true, lastName: true, email: true } }))
     : null;
@@ -210,6 +211,7 @@ async function handleAdminList(req: Request, env: any): Promise<Response> {
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const [tickets, total] = await Promise.all([
       prisma.supportTicket.findMany({
         where: where as never,
@@ -270,6 +272,7 @@ async function handleAdminUpdateStatus(ctx: RequestContext, ticketId: string, re
   }
 
   try {
+    const prisma = getPrisma(env);
     const ticket = await prisma.supportTicket.findUnique({ where: { id: ticketId } });
     if (!ticket) return notFound("Ticket not found");
 
@@ -362,6 +365,7 @@ async function handleAdminFaqCreate(req: Request, env: any): Promise<Response> {
   }
 
   try {
+    const prisma = getPrisma(env);
     const faq = await prisma.fAQ.create({
       data: {
         question,
@@ -393,6 +397,7 @@ async function handleAdminFaqUpdate(faqId: string, req: Request, env: any): Prom
   }
 
   try {
+    const prisma = getPrisma(env);
     const existing = await prisma.fAQ.findUnique({ where: { id: faqId } });
     if (!existing) return notFound("FAQ not found");
 

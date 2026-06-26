@@ -207,16 +207,16 @@ export default function ThemeBuilder() {
                 <h2 className="font-medium text-sm text-neutral-900 mb-4">Brand Identity</h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <MediaPicker value={activeTheme.branding.logo} onChange={(url) => updateTheme("branding.logo", url)} label="Logo URL (Light)" folder="branding" />
+                    <MediaPicker value={activeTheme.branding.logo} onChange={(url, publicId) => { updateTheme("branding.logo", url); updateTheme("branding.logoPublicId", publicId ?? null); }} label="Logo URL (Light)" folder="branding" />
                   </div>
                   <div>
-                    <MediaPicker value={activeTheme.branding.logoDark} onChange={(url) => updateTheme("branding.logoDark", url)} label="Logo URL (Dark)" folder="branding" />
+                    <MediaPicker value={activeTheme.branding.logoDark} onChange={(url, publicId) => { updateTheme("branding.logoDark", url); updateTheme("branding.logoDarkPublicId", publicId ?? null); }} label="Logo URL (Dark)" folder="branding" />
                   </div>
                   <div>
-                    <MediaPicker value={activeTheme.branding.logoMobile} onChange={(url) => updateTheme("branding.logoMobile", url)} label="Logo URL (Mobile)" folder="branding" />
+                    <MediaPicker value={activeTheme.branding.logoMobile} onChange={(url, publicId) => { updateTheme("branding.logoMobile", url); updateTheme("branding.logoMobilePublicId", publicId ?? null); }} label="Logo URL (Mobile)" folder="branding" />
                   </div>
                   <div>
-                    <MediaPicker value={activeTheme.branding.favicon} onChange={(url) => updateTheme("branding.favicon", url)} label="Favicon URL" folder="branding" />
+                    <MediaPicker value={activeTheme.branding.favicon} onChange={(url, publicId) => { updateTheme("branding.favicon", url); updateTheme("branding.faviconPublicId", publicId ?? null); }} label="Favicon URL" folder="branding" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

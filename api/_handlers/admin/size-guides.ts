@@ -4,6 +4,7 @@ import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
 import { requireAdmin } from "../../_lib/auth";
 import { toNull } from "../../_lib/sanitize";
+import { destroyCloudinaryAsset } from "../../_lib/cloudinary";
 
 export async function handleAdminSizeGuideRequest(
   req: Request,
@@ -46,15 +47,15 @@ async function handleDetail(id: string, env: any): Promise<Response> {
 
 async function handleCreate(req: Request, env: any): Promise<Response> {
   const body = await req.json();
-  const { name, description, categoryId, type, unit, imageUrl, measurements } = body;
+  const { name, description, categoryId, type, unit, imageUrl, imagePublicId, measurements } = body;
   if (!name || !measurements) return badRequest("Name and measurements are required");
   const slug = slugify(name);
+  const prisma = getPrisma(env);
   const slugExists = await prisma.sizeGuide.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
   try {
-    const prisma = getPrisma(env);
     const guide = await prisma.sizeGuide.create({
-      data: { name, slug: finalSlug, description, categoryId: toNull(categoryId), type: type ?? "clothing", unit: unit ?? "inches", imageUrl, measurements },
+      data: { name, slug: finalSlug, description, categoryId: toNull(categoryId), type: type ?? "clothing", unit: unit ?? "inches", imageUrl, imagePublicId, measurements },
     });
     return created(guide);
   } catch (err) { return serverError(err); }
@@ -64,7 +65,7 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
-    const fields = ["name", "description", "categoryId", "type", "unit", "imageUrl", "measurements", "isActive"];
+    const fields = ["name", "description", "categoryId", "type", "unit", "imageUrl", "imagePublicId", "measurements", "isActive"];
     const data: Record<string, unknown> = {};
     for (const f of fields) { if (body[f] !== undefined) data[f] = f === "categoryId" ? toNull(body[f]) : body[f]; }
     if (body.name) data.slug = slugify(body.name);
@@ -76,6 +77,11 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
 async function handleDelete(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const guide = await prisma.sizeGuide.findUnique({ where: { id } });
+    if (!guide) return notFound("Size guide not found");
+    if (guide.imagePublicId) {
+      await destroyCloudinaryAsset(guide.imagePublicId, env);
+    }
     await prisma.sizeGuide.delete({ where: { id } });
     return success({ message: "Size guide deleted" });
   } catch (err) { return notFound("Size guide not found"); }

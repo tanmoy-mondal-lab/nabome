@@ -166,6 +166,7 @@ export interface ShopTheLook {
   slug: string;
   description: string;
   image: string;
+  imagePublicId?: string;
   products: ShopTheLookProduct[];
   tags: string[];
   status: ContentStatus;

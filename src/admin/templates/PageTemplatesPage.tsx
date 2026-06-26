@@ -4,6 +4,7 @@ import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { StatusBadge } from "../common/StatusBadge";
 import { EmptyState } from "../common/EmptyState";
+import { MediaPicker } from "../common/MediaPicker";
 import { Plus, Edit3, Trash2, FileJson } from "lucide-react";
 import { useToast } from "../../components/ui/Toast";
 
@@ -14,6 +15,7 @@ interface PageTemplate {
   description: string | null;
   category: string;
   thumbnail: string | null;
+  thumbnailPublicId?: string | null;
   sections: unknown;
   isActive: boolean;
   useCount: number;
@@ -27,7 +29,7 @@ export default function PageTemplatesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<PageTemplate | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", category: "custom", isActive: true });
+  const [form, setForm] = useState({ name: "", description: "", category: "custom", isActive: true, thumbnail: "", thumbnailPublicId: "" });
   const [sectionsJson, setSectionsJson] = useState("[]");
 
   const { data: templates = [], isLoading: loading } = useQuery<PageTemplate[]>({
@@ -69,14 +71,14 @@ export default function PageTemplatesPage() {
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ name: "", description: "", category: "custom", isActive: true });
+    setForm({ name: "", description: "", category: "custom", isActive: true, thumbnail: "", thumbnailPublicId: "" });
     setSectionsJson("[]");
     setModalOpen(true);
   };
 
   const openEdit = (t: PageTemplate) => {
     setEditItem(t);
-    setForm({ name: t.name, description: t.description ?? "", category: t.category, isActive: t.isActive });
+    setForm({ name: t.name, description: t.description ?? "", category: t.category, isActive: t.isActive, thumbnail: t.thumbnail ?? "", thumbnailPublicId: "" });
     setSectionsJson(JSON.stringify(t.sections, null, 2));
     setModalOpen(true);
   };
@@ -84,7 +86,7 @@ export default function PageTemplatesPage() {
   const handleSave = () => {
     let sections;
     try { sections = JSON.parse(sectionsJson); } catch { toast("Invalid JSON in sections", "error"); return; }
-    const payload = { name: form.name, description: form.description || null, category: form.category, sections, isActive: form.isActive };
+    const payload = { name: form.name, description: form.description || null, category: form.category, sections, isActive: form.isActive, thumbnail: form.thumbnail || null, thumbnailPublicId: form.thumbnailPublicId || null };
     if (editItem) {
       updateMutation.mutate({ id: editItem.id, payload }, { onSuccess: () => setModalOpen(false) });
     } else {
@@ -178,6 +180,9 @@ export default function PageTemplatesPage() {
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Description</label>
             <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputClass} />
+          </div>
+          <div>
+            <MediaPicker value={form.thumbnail} onChange={(url, publicId) => setForm({ ...form, thumbnail: url, thumbnailPublicId: publicId ?? "" })} label="Thumbnail URL" folder="page-builder" />
           </div>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Sections (JSON) *</label>

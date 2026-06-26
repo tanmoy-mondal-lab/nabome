@@ -1,4 +1,5 @@
-import { prisma } from "./_lib/prisma";
+import { getPrisma } from "./_lib/prisma";
+import type { Env } from "./_lib/env";
 import type { Product, Category, Collection, Lookbook } from "@prisma/client";
 
 const SITE_URL = "https://www.nabome.online";
@@ -17,8 +18,9 @@ ${urls.map((u) => `  <url>
 </urlset>`;
 }
 
-export async function GET(): Promise<Response> {
+export async function GET(_req: Request, opts?: { env?: Env }): Promise<Response> {
   try {
+    const prisma = getPrisma(opts?.env);
     const [products, categories, collections, lookbooks] = await Promise.all([
       prisma.product.findMany({
         where: { isActive: true },

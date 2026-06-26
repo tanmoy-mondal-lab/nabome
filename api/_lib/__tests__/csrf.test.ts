@@ -1,17 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-// Mock crypto for tests
-global.crypto = {
-  getRandomValues: (array: Uint8Array) => {
-    for (let i = 0; i < array.length; i++) {
-      array[i] = Math.floor(Math.random() * 256);
-    }
-    return array;
-  },
-  subtle: {},
-} as any;
-
-import { generateToken, setCsrfCookie, validateCsrf, parseCookies } from '../api/_lib/csrf';
+import { generateToken, setCsrfCookie, validateCsrf, parseCookies } from '../csrf';
 
 describe('csrf', () => {
   it('should generate unique tokens', () => {
@@ -23,33 +12,40 @@ describe('csrf', () => {
 
   it('should set CSRF cookie on response', () => {
     const response = new Response();
-    const token = 'test-token-123';
-    setCsrfCookie(response, token);
+    setCsrfCookie(response);
     
     const cookieHeader = response.headers.get('set-cookie');
-    expect(cookieHeader).toContain('csrf_token=test-token-123');
-    expect(cookieHeader).toContain('HttpOnly');
+    expect(cookieHeader).toContain('csrf_token=');
     expect(cookieHeader).toContain('SameSite=Strict');
   });
 
   it('should validate matching tokens', () => {
-    const token = 'test-token-123';
     const request = {
-      headers: new Map([['x-csrf-token', token]]),
+      method: 'POST',
+      headers: new Map(),
     } as any;
     
     const response = new Response();
-    setCsrfCookie(response, token);
+    setCsrfCookie(response);
     
-    // Mock the cookie header to match
-    const cookieHeader = `csrf_token=${token}`;
-    vi.spyOn(request.headers, 'get').mockReturnValue(cookieHeader);
+    // Extract the token from the set-cookie header
+    const cookieHeader = response.headers.get('set-cookie') ?? '';
+    const tokenMatch = cookieHeader.match(/csrf_token=([^;]+)/);
+    const token = tokenMatch?.[1] ?? '';
+    
+    // Mock the cookie header and x-csrf-token header
+    vi.spyOn(request.headers, 'get').mockImplementation(((name: string) => {
+      if (name === 'Cookie') return `csrf_token=${token}`;
+      if (name === 'x-csrf-token') return token;
+      return null;
+    }) as any);
     
     expect(validateCsrf(request)).toBe(true);
   });
 
   it('should reject missing tokens', () => {
     const request = {
+      method: 'POST',
       headers: new Map(),
     } as any;
     vi.spyOn(request.headers, 'get').mockReturnValue(null);

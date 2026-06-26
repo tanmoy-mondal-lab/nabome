@@ -22,6 +22,7 @@ interface Collection {
   metaTitle?: string;
   metaDesc?: string;
   heroImageUrl?: string;
+  heroImagePublicId?: string;
   _count: { products: number };
 }
 
@@ -30,7 +31,7 @@ export default function CollectionsPage() {
   const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Collection | null>(null);
-  const [form, setForm] = useState({ name: "", slug: "", description: "", isActive: true, isFeatured: false, sortOrder: 0, imageUrl: "", startDate: "", endDate: "", metaTitle: "", metaDesc: "" });
+  const [form, setForm] = useState({ name: "", slug: "", description: "", isActive: true, isFeatured: false, sortOrder: 0, imageUrl: "", imagePublicId: "", startDate: "", endDate: "", metaTitle: "", metaDesc: "" });
 
   const { data: collections = [], isLoading: loading } = useQuery<Collection[]>({
     queryKey: ["admin", "collections"],
@@ -47,7 +48,7 @@ export default function CollectionsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = { ...form, heroImageUrl: form.imageUrl || undefined, image: undefined };
+      const payload = { ...form, heroImageUrl: form.imageUrl || undefined, heroImagePublicId: form.imagePublicId || undefined, image: undefined };
       if (editItem) {
         return adminApi.updateCollection(editItem.id, payload);
       }
@@ -76,7 +77,7 @@ export default function CollectionsPage() {
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ name: "", slug: "", description: "", isActive: true, isFeatured: false, sortOrder: 0, imageUrl: "", startDate: "", endDate: "", metaTitle: "", metaDesc: "" });
+    setForm({ name: "", slug: "", description: "", isActive: true, isFeatured: false, sortOrder: 0, imageUrl: "", imagePublicId: "", startDate: "", endDate: "", metaTitle: "", metaDesc: "" });
     setModalOpen(true);
   };
 
@@ -85,7 +86,7 @@ export default function CollectionsPage() {
     setForm({
       name: col.name, slug: col.slug, description: col.description ?? "",
       isActive: col.isActive, isFeatured: col.isFeatured ?? false, sortOrder: col.sortOrder,
-      imageUrl: col.heroImageUrl ?? "", startDate: col.startDate ? col.startDate.slice(0, 16) : "",
+      imageUrl: col.heroImageUrl ?? "", imagePublicId: col.heroImagePublicId ?? "", startDate: col.startDate ? col.startDate.slice(0, 16) : "",
       endDate: col.endDate ? col.endDate.slice(0, 16) : "", metaTitle: col.metaTitle ?? "", metaDesc: col.metaDesc ?? "",
     });
     setModalOpen(true);
@@ -191,7 +192,7 @@ export default function CollectionsPage() {
             </div>
           </div>
           <div>
-            <MediaPicker value={form.imageUrl} onChange={(url) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="collections" />
+            <MediaPicker value={form.imageUrl} onChange={(url, publicId) => setForm({ ...form, imageUrl: url, imagePublicId: publicId ?? "" })} label="Image URL" folder="collections" />
           </div>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Description</label>

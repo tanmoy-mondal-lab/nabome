@@ -3,6 +3,7 @@ import { Plus, Trash2, ChevronDown, ChevronRight, ImagePlus, Film, X, GripVertic
 import { motion, AnimatePresence } from "framer-motion";
 import { SafeImage } from "../../../components/SafeImage";
 import { adminApi } from "../../../lib/api/admin";
+import { useToast } from "../../../components/ui/Toast";
 import type { Variant } from "../hooks/useProductForm";
 
 interface VariantManagerProps {
@@ -24,6 +25,7 @@ export function VariantManager({
   onUploadEnd,
   onPendingImage,
 }: VariantManagerProps) {
+  const { toast } = useToast();
   const [expandedVariant, setExpandedVariant] = useState<string | null>(null);
   const variantImageRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const variantVideoRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -70,14 +72,14 @@ export function VariantManager({
         const res = await adminApi.uploadFile(file, "products");
         onPendingImage({ url: res.url, publicId: res.publicId, variantId });
       } catch {
-        /* non-critical */
+        toast("Image upload failed — try again", "error");
       } finally {
         onUploadEnd();
         const ref = variantImageRefs.current[variantId];
         if (ref) ref.value = "";
       }
     },
-    [onUploadStart, onUploadEnd, onPendingImage]
+    [onUploadStart, onUploadEnd, onPendingImage, toast]
   );
 
   const handleVariantVideoUpload = useCallback(
@@ -92,14 +94,14 @@ export function VariantManager({
           onChange(updated);
         }
       } catch {
-        /* non-critical */
+        toast("Video upload failed — try again", "error");
       } finally {
         onUploadEnd();
         const ref = variantVideoRefs.current[variantId];
         if (ref) ref.value = "";
       }
     },
-    [variants, onChange, onUploadStart, onUploadEnd]
+    [variants, onChange, onUploadStart, onUploadEnd, toast]
   );
 
   const removeVariantVideo = useCallback(

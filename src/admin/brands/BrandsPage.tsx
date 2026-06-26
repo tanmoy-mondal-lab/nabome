@@ -15,13 +15,14 @@ interface Brand {
   slug: string;
   description?: string;
   logoUrl?: string;
+  logoPublicId?: string;
   websiteUrl?: string;
   sortOrder: number;
   isActive: boolean;
   _count?: { products: number };
 }
 
-const defaultForm = { name: "", description: "", logoUrl: "", websiteUrl: "", sortOrder: 0, isActive: true };
+const defaultForm = { name: "", description: "", logoUrl: "", logoPublicId: "", websiteUrl: "", sortOrder: 0, isActive: true };
 
 export default function BrandsPage() {
   const { toast } = useToast();
@@ -72,7 +73,7 @@ export default function BrandsPage() {
 
   function openEdit(brand: Brand) {
     setEdit(brand);
-    setForm({ name: brand.name ?? "", description: brand.description ?? "", logoUrl: brand.logoUrl ?? "", websiteUrl: brand.websiteUrl ?? "", sortOrder: brand.sortOrder ?? 0, isActive: brand.isActive ?? true });
+    setForm({ name: brand.name ?? "", description: brand.description ?? "", logoUrl: brand.logoUrl ?? "", logoPublicId: brand.logoPublicId ?? "", websiteUrl: brand.websiteUrl ?? "", sortOrder: brand.sortOrder ?? 0, isActive: brand.isActive ?? true });
     setShowModal(true);
   }
 
@@ -118,7 +119,7 @@ export default function BrandsPage() {
           <div><label className="block text-xs text-neutral-500 mb-1">Name *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
           <div className="text-[10px] text-neutral-400 -mt-2">Slug will be auto-generated from name</div>
           <div><label className="block text-xs text-neutral-500 mb-1">Description</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
-          <div><MediaPicker value={form.logoUrl} onChange={(url) => setForm({ ...form, logoUrl: url })} label="Logo URL" folder="brands" /></div>
+          <div><MediaPicker value={form.logoUrl} onChange={(url, publicId) => setForm({ ...form, logoUrl: url, logoPublicId: publicId ?? "" })} label="Logo URL" folder="brands" /></div>
           <div><label className="block text-xs text-neutral-500 mb-1">Website URL</label><input value={form.websiteUrl} onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
           <div><label className="block text-xs text-neutral-500 mb-1">Sort Order</label><input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
           <label className="flex items-center gap-2 cursor-pointer">

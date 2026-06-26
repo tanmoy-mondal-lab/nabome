@@ -14,7 +14,7 @@ export default function SubcategoriesPage() {
 
   const [showModal, setShowModal] = useState(false);
   const [edit, setEdit] = useState<Record<string, unknown> | null>(null);
-  const [form, setForm] = useState({ name: "", slug: "", categoryId: "", description: "", imageUrl: "", sortOrder: 0, isActive: true });
+  const [form, setForm] = useState({ name: "", slug: "", categoryId: "", description: "", imageUrl: "", imagePublicId: "", sortOrder: 0, isActive: true });
 
   const { data: subs = [], isLoading } = useQuery({
     queryKey: ["admin", "subcategories"],
@@ -26,14 +26,14 @@ export default function SubcategoriesPage() {
     queryFn: () => adminApi.getCategories().then((r) => r.categories ?? []),
   });
 
-  function openCreate() { setEdit(null); setForm({ name: "", slug: "", categoryId: "", description: "", imageUrl: "", sortOrder: 0, isActive: true }); setShowModal(true); }
+  function openCreate() { setEdit(null); setForm({ name: "", slug: "", categoryId: "", description: "", imageUrl: "", imagePublicId: "", sortOrder: 0, isActive: true }); setShowModal(true); }
 
   function openEdit(sub: Record<string, unknown>) {
     setEdit(sub);
     setForm({
       name: sub.name as string ?? "", slug: sub.slug as string ?? "",
       categoryId: (sub.categoryId as string) ?? (sub.category as Record<string, unknown>)?.id as string ?? "",
-      description: sub.description as string ?? "", imageUrl: sub.imageUrl as string ?? "",
+      description: sub.description as string ?? "", imageUrl: sub.imageUrl as string ?? "", imagePublicId: sub.imagePublicId as string ?? "",
       sortOrder: (sub.sortOrder as number) ?? 0, isActive: (sub.isActive as boolean) ?? true,
     });
     setShowModal(true);
@@ -104,7 +104,7 @@ export default function SubcategoriesPage() {
           </div>
           <div><label className="block text-xs text-neutral-500 mb-1">Parent Category *</label><select value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })} className="w-full px-3 py-2 text-sm border rounded"><option value="">Select...</option>{(categories as Record<string, unknown>[]).map((c) => <option key={c.id as string} value={c.id as string}>{c.name as string}</option>)}</select></div>
           <div><label className="block text-xs text-neutral-500 mb-1">Description</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} className="w-full px-3 py-2 text-sm border rounded" /></div>
-          <div><MediaPicker value={form.imageUrl} onChange={(url) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="categories" /></div>
+          <div><MediaPicker value={form.imageUrl} onChange={(url, publicId) => setForm({ ...form, imageUrl: url, imagePublicId: publicId ?? "" })} label="Image URL" folder="categories" /></div>
           <div><label className="block text-xs text-neutral-500 mb-1">Sort Order</label><input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: parseInt(e.target.value) || 0 })} className="w-full px-3 py-2 text-sm border rounded" /></div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="rounded border-neutral-300" />

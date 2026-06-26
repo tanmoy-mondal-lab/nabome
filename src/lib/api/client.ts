@@ -195,8 +195,8 @@ async function request<T>(
         return {} as T;
       }
 
-      const retryData = await retryResponse.json();
       if (!retryResponse.ok) {
+        const retryData = await retryResponse.json().catch(() => ({}));
         throw new ApiError(
           retryData.error?.message ??
             `Request failed with status ${retryResponse.status}`,
@@ -204,6 +204,7 @@ async function request<T>(
           retryData.details
         );
       }
+      const retryData = await retryResponse.json();
       return retryData.data ?? retryData;
     }
 
@@ -216,9 +217,8 @@ async function request<T>(
     return {} as T;
   }
 
-  const data = await response.json();
-
   if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
     throw new ApiError(
       data.error?.message ?? `Request failed with status ${response.status}`,
       response.status,
@@ -226,6 +226,7 @@ async function request<T>(
     );
   }
 
+  const data = await response.json();
   return data.data ?? data;
 }
 

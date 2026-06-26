@@ -20,64 +20,33 @@ const DEFAULTS = {
   contact: { windowMs: 3_600_000, maxRequests: 3, message: "Too many submissions. Try again later." },
 };
 
-let store: Map<string, RateLimitEntry> | null = null;
-let isUsingKV = false;
-
-export function getStore(env?: any): Map<string, RateLimitEntry> | null {
-  if (!store) {
-    // Check if we're in Cloudflare Workers environment with KV
-    const kvNamespace = env?.KV_NAMESPACE ?? (typeof process !== "undefined" ? process.env?.KV_NAMESPACE : undefined);
-    if (kvNamespace) {
-      isUsingKV = true;
-      // Store remains null, will initialize lazily
-      console.log("[RATE LIMIT] Using Cloudflare KV for distributed rate limiting");
-      return null;
-    } else {
-      // Fallback to in-memory map for local development/testing
-      store = new Map<string, RateLimitEntry>();
-      console.log("[RATE LIMIT] Using in-memory Map for development");
-    }
+function getKVBinding(env?: any): any | null {
+  if (!env) return null;
+  // Cloudflare Pages binds KV as a property on the env object
+  const kv = env.RATE_LIMIT_STORE;
+  if (kv && typeof kv.get === "function" && typeof kv.put === "function") {
+    return kv;
   }
-  return store;
+  return null;
 }
 
-async function getFromKV(key: string): Promise<RateLimitEntry | null> {
+async function getFromKV(kv: any, key: string): Promise<RateLimitEntry | null> {
   try {
-    // In Cloudflare Workers, access KV via environment variable
-    // This is a placeholder implementation - actual KV access would be done via globalThis.caches or similar
-    const kv = globalThis as any;
-    if (kv.RATE_LIMIT_STORE) {
-      const value = await kv.RATE_LIMIT_STORE.get(key, { type: "json" });
-      return value ? (value as RateLimitEntry) : null;
-    }
-    return null;
+    const value = await kv.get(key, { type: "json" });
+    return value ? (value as RateLimitEntry) : null;
   } catch (error) {
-    console.error("[RATE LIMIT] KV error:", error);
+    console.error("[RATE LIMIT] KV get error:", error);
     return null;
   }
 }
 
-async function setKV(key: string, value: RateLimitEntry): Promise<void> {
+async function setKV(kv: any, key: string, value: RateLimitEntry): Promise<void> {
   try {
-    const kv = globalThis as any;
-    if (kv.RATE_LIMIT_STORE) {
-      await kv.RATE_LIMIT_STORE.put(key, JSON.stringify(value), {
-        expiration: Math.ceil(value.resetAt / 1000),
-      });
-    }
+    await kv.put(key, JSON.stringify(value), {
+      expirationTtl: Math.ceil((value.resetAt - Date.now()) / 1000),
+    });
   } catch (error) {
-    console.error("[RATE LIMIT] KV set error:", error);
-  }
-}
-
-async function deleteFromKV(key: string): Promise<void> {
-  try {
-    const kv = globalThis as any;
-    if (kv.RATE_LIMIT_STORE) {
-      await kv.RATE_LIMIT_STORE.delete(key);
-    }
-  } catch (error) {
-    console.error("[RATE LIMIT] KV delete error:", error);
+    console.error("[RATE LIMIT] KV put error:", error);
   }
 }
 
@@ -87,15 +56,15 @@ export async function checkRateLimit(
   env?: any
 ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
   const now = Date.now();
-  const store = getStore(env);
+  const kv = getKVBinding(env);
 
-  if (isUsingKV) {
-    // KV implementation
-    let entry = await getFromKV(key);
-    
+  if (kv) {
+    // KV-based distributed rate limiting (production)
+    let entry = await getFromKV(kv, key);
+
     if (!entry || entry.resetAt <= now) {
       entry = { count: 1, resetAt: now + config.windowMs };
-      await setKV(key, entry);
+      await setKV(kv, key, entry);
       return { allowed: true, remaining: config.maxRequests - 1, resetAt: entry.resetAt };
     }
 
@@ -106,32 +75,14 @@ export async function checkRateLimit(
       return { allowed: false, remaining: 0, resetAt: entry.resetAt };
     }
 
-    await setKV(key, entry);
-    return { allowed: true, remaining, resetAt: entry.resetAt };
-  } else {
-    // In-memory implementation (fallback)
-    let cleaned = 0;
-    for (const [k, v] of store) {
-      if (v.resetAt <= now) { store.delete(k); cleaned++; }
-      if (cleaned >= 20) break;
-    }
-
-    const entry = store.get(key);
-
-    if (!entry || entry.resetAt <= now) {
-      store.set(key, { count: 1, resetAt: now + config.windowMs });
-      return { allowed: true, remaining: config.maxRequests - 1, resetAt: now + config.windowMs };
-    }
-
-    entry.count += 1;
-    const remaining = Math.max(0, config.maxRequests - entry.count);
-
-    if (entry.count > config.maxRequests) {
-      return { allowed: false, remaining: 0, resetAt: entry.resetAt };
-    }
-
+    await setKV(kv, key, entry);
     return { allowed: true, remaining, resetAt: entry.resetAt };
   }
+
+  // No KV available — allow request (fail open)
+  // This prevents rate limiting from breaking the app when KV is misconfigured
+  console.warn("[RATE LIMIT] No KV binding available, skipping rate limit check");
+  return { allowed: true, remaining: config.maxRequests, resetAt: now + config.windowMs };
 }
 
 export function rateLimitResponse(message: string, resetAt: number): Response {
@@ -146,7 +97,7 @@ export function rateLimitResponse(message: string, resetAt: number): Response {
         "Content-Type": "application/json",
         "Retry-After": String(Math.ceil((resetAt - Date.now()) / 1000)),
       },
-    }
+    },
   );
 }
 
@@ -162,9 +113,10 @@ export async function withRateLimit(
   return null;
 }
 
-export function getRateLimitKey(ip: string, endpoint: string, userAgent?: string): string {
-  const ua = userAgent?.slice(0, 50) ?? "unknown";
-  return `${ip}:${ua}:${endpoint}`;
+export function getRateLimitKey(ip: string, endpoint: string, userId?: string): string {
+  // Use userId when available for per-user rate limiting
+  const identifier = userId ?? ip;
+  return `${identifier}:${endpoint}`;
 }
 
 export { DEFAULTS as RATE_LIMIT_CONFIG };

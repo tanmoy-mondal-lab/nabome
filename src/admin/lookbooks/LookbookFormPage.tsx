@@ -13,6 +13,7 @@ interface LookbookItem {
   title: string;
   description?: string;
   mediaUrl?: string;
+  mediaPublicId?: string;
   linkUrl?: string;
   linkText?: string;
   productId?: string;
@@ -29,7 +30,7 @@ export default function LookbookFormPage() {
 
   const [form, setForm] = useState({
     title: "", slug: "", description: "", story: "", season: "",
-    year: new Date().getFullYear(), featuredImage: "", layout: "grid",
+    year: new Date().getFullYear(), coverImageUrl: "", coverImagePublicId: "", layout: "grid",
     status: "draft", tags: "",
     metaTitle: "", metaDescription: "",
   });
@@ -52,7 +53,8 @@ export default function LookbookFormPage() {
         story: (lb.story as string) ?? "",
         season: (lb.season as string) ?? "",
         year: (lb.year as number) ?? new Date().getFullYear(),
-        featuredImage: (lb.featuredImage as string) ?? "",
+        coverImageUrl: (lb.coverImageUrl as string) ?? "",
+        coverImagePublicId: (lb.coverImagePublicId as string) ?? "",
         layout: (lb.layout as string) ?? "grid",
         status: (lb.status as string) ?? "draft",
         tags: Array.isArray(lb.tags) ? (lb.tags as string[]).join(", ") : "",
@@ -89,7 +91,7 @@ export default function LookbookFormPage() {
     const newItem: LookbookItem = {
       id: crypto.randomUUID?.() ?? `${Date.now()}`,
       type,
-      title: "", description: "", mediaUrl: "",
+      title: "", description: "", mediaUrl: "", mediaPublicId: "",
       position: items.length, aspectRatio: 1,
     };
     setItems([...items, newItem]);
@@ -112,7 +114,8 @@ export default function LookbookFormPage() {
       story: form.story,
       season: form.season,
       year: form.year,
-      featuredImage: form.featuredImage,
+      coverImageUrl: form.coverImageUrl,
+      coverImagePublicId: form.coverImagePublicId,
       layout: form.layout,
       status: form.status,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
@@ -258,7 +261,10 @@ export default function LookbookFormPage() {
                         </button>
                       </div>
                       {item.type !== "text" && (
-                        <MediaPicker value={item.mediaUrl ?? ""} onChange={(url: string) => updateItem(idx, "mediaUrl", url)}
+                        <MediaPicker value={item.mediaUrl ?? ""} onChange={(url: string, publicId?: string) => {
+                          updateItem(idx, "mediaUrl", url);
+                          updateItem(idx, "mediaPublicId", publicId ?? "");
+                        }}
                           folder={item.type === "video" ? "lookbooks/video" : "lookbooks"}
                           accept={item.type === "video" ? "video/mp4,video/webm,video/quicktime" : "image/*"}
                           placeholder={item.type === "video" ? "Video URL" : "Image URL"} />
@@ -305,7 +311,7 @@ export default function LookbookFormPage() {
               </select>
             </div>
             <div>
-              <MediaPicker value={form.featuredImage} onChange={(url: string) => setForm({ ...form, featuredImage: url })} label="Featured Image URL" folder="lookbooks" />
+              <MediaPicker value={form.coverImageUrl} onChange={(url: string, publicId?: string) => setForm({ ...form, coverImageUrl: url, coverImagePublicId: publicId ?? "" })} label="Featured Image URL" folder="lookbooks" />
             </div>
           </section>
 

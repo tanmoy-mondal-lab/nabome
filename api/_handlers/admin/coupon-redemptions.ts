@@ -3,8 +3,8 @@ import { success, badRequest, notFound, serverError } from "../../_lib/response"
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
 
-export async function handleAdminCouponRedemptionRequest(req: Request, _ctx: RequestContext, _params: string[], action: string): Promise<Response> {
-  const adminGuard = requireAdmin(_ctx);
+export async function handleAdminCouponRedemptionRequest(req: Request, ctx: RequestContext, _params: string[], action: string): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
   switch (action) {
     case "list": return handleList(req, ctx.env);
@@ -28,6 +28,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
       { profile: { email: { contains: search, mode: "insensitive" } } },
     ];
   }
+  const prisma = getPrisma(env);
   const [items, total] = await Promise.all([
     prisma.couponRedemption.findMany({
       where: where as never,

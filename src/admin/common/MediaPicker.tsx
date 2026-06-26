@@ -4,7 +4,7 @@ import { adminApi } from "../../lib/api/admin";
 
 interface MediaPickerProps {
   value: string;
-  onChange: (url: string) => void;
+  onChange: (url: string, publicId?: string) => void;
   label?: string;
   folder?: string;
   accept?: string;
@@ -33,7 +33,7 @@ export function MediaPicker({
     setUploading(true);
     try {
       const res = await adminApi.uploadFile(file, folder);
-      onChange(res.url);
+      onChange(res.url, res.publicId);
     } catch {
       setError("Upload failed — try again");
     } finally {

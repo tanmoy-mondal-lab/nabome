@@ -16,6 +16,7 @@ export async function handleAdminProductAttributeRequest(req: Request, ctx: Requ
 }
 
 async function handleList(req: Request, env: any): Promise<Response> {
+  const prisma = getPrisma(env);
   const url = new URL(req.url);
   const productId = url.searchParams.get("productId");
   const where: Record<string, unknown> = {};
@@ -35,6 +36,7 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
 }
 
 async function handleUpdate(id: string, req: Request, env: any): Promise<Response> {
+  const prisma = getPrisma(env);
   const body = await req.json();
   const existing = await prisma.productAttribute.findUnique({ where: { id } });
   if (!existing) return notFound("Attribute not found");
@@ -42,7 +44,6 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
   if (body.name !== undefined) data.name = body.name;
   if (body.value !== undefined) data.value = body.value;
   try {
-    const prisma = getPrisma(env);
     const updated = await prisma.productAttribute.update({ where: { id }, data: data as never });
     return success(updated);
   } catch (err) { return serverError(err); }

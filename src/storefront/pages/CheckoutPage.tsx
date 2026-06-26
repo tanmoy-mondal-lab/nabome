@@ -220,9 +220,10 @@ export default function CheckoutPage() {
     setCouponError("");
     setCouponApplying(true);
     try {
-      const res = await fetch("/api/coupons?action=validate", {
+      const csrfToken = document.cookie.split('; ').find(c => c.startsWith('csrf_token='))?.split('=')[1] || '';
+      const res = await fetch("/api/coupons/validate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
         body: JSON.stringify({ code: couponInput.trim(), subtotal }),
       });
       const data = await res.json();

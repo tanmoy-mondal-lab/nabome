@@ -7,8 +7,8 @@ import { useFormDirty } from "@/hooks/useFormDirty";
 export default function BrandStoryPage() {
   const { toast } = useToast();
   const [form, setForm] = useState({
-    heading: "", subheading: "", body: "", imageUrl: "",
-    videoUrl: "", values: [{ title: "", description: "" }],
+    heading: "", subheading: "", body: "", imageUrl: "", imagePublicId: "",
+    videoUrl: "", videoPublicId: "", values: [{ title: "", description: "" }],
     metaTitle: "", metaDescription: "",
   });
   const [saving, setSaving] = useState(false);
@@ -36,7 +36,9 @@ export default function BrandStoryPage() {
           subheading: (story.subtitle as string) ?? "",
           body: (story.content as string) ?? "",
           imageUrl: (story.heroImageUrl as string) ?? "",
-          videoUrl: "",
+          imagePublicId: (story.heroImagePublicId as string) ?? "",
+          videoUrl: (story.videoUrl as string) ?? "",
+          videoPublicId: (story.videoPublicId as string) ?? "",
           values: (story.values as { title: string; description: string }[]) ?? [{ title: "", description: "" }],
           metaTitle: "",
           metaDescription: "",
@@ -64,6 +66,9 @@ export default function BrandStoryPage() {
         subtitle: form.subheading,
         content: form.body,
         heroImageUrl: form.imageUrl,
+        heroImagePublicId: form.imagePublicId || undefined,
+        videoUrl: form.videoUrl || undefined,
+        videoPublicId: form.videoPublicId || undefined,
         values: form.values,
       });
       toast("Brand story saved", "success");
@@ -113,10 +118,10 @@ export default function BrandStoryPage() {
         </div>
         <div className="grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <MediaPicker value={form.imageUrl} onChange={(url: string) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="brand-story" />
+            <MediaPicker value={form.imageUrl} onChange={(url: string, publicId?: string) => setForm({ ...form, imageUrl: url, imagePublicId: publicId ?? "" })} label="Image URL" folder="brand-story" />
           </div>
           <div>
-            <MediaPicker value={form.videoUrl} onChange={(url: string) => setForm({ ...form, videoUrl: url })} label="Video URL" folder="brand-story" accept="video/mp4,video/webm,video/quicktime" />
+            <MediaPicker value={form.videoUrl} onChange={(url: string, publicId?: string) => setForm({ ...form, videoUrl: url, videoPublicId: publicId ?? "" })} label="Video URL" folder="brand-story" accept="video/mp4,video/webm,video/quicktime" />
           </div>
         </div>
 

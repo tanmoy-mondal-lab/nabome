@@ -8,7 +8,9 @@ interface Settings {
   siteName: string;
   tagline: string;
   logoUrl: string;
+  logoPublicId: string;
   faviconUrl: string;
+  faviconPublicId: string;
   contactEmail: string;
   contactPhone: string;
   address: string;
@@ -31,7 +33,7 @@ interface Settings {
 }
 
 const DEFAULT_SETTINGS: Settings = {
-  siteName: "नबME", tagline: "", logoUrl: "", faviconUrl: "",
+  siteName: "नबME", tagline: "", logoUrl: "", logoPublicId: "", faviconUrl: "", faviconPublicId: "",
   contactEmail: "", contactPhone: "", address: "",
   currency: "INR", taxRate: 18, freeShippingThreshold: 5000,
   preferences: {
@@ -50,7 +52,9 @@ function buildSettings(raw: Record<string, unknown>, fallback: Settings): Settin
     siteName: (raw.siteName as string) ?? fallback.siteName,
     tagline: (raw.tagline as string) ?? "",
     logoUrl: (raw.logoUrl as string) ?? "",
+    logoPublicId: (raw.logoPublicId as string) ?? "",
     faviconUrl: (raw.faviconUrl as string) ?? "",
+    faviconPublicId: (raw.faviconPublicId as string) ?? "",
     contactEmail: (raw.contactEmail as string) ?? "",
     contactPhone: (raw.contactPhone as string) ?? "",
     address: (raw.address as string) ?? "",
@@ -132,10 +136,10 @@ export default function SettingsPage() {
                 className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
-              <MediaPicker value={form.logoUrl} onChange={(url) => setForm({ ...form, logoUrl: url })} label="Logo URL" folder="branding" />
+              <MediaPicker value={form.logoUrl} onChange={(url, publicId) => setForm({ ...form, logoUrl: url, logoPublicId: publicId ?? "" })} label="Logo URL" folder="branding" />
             </div>
             <div>
-              <MediaPicker value={form.faviconUrl} onChange={(url) => setForm({ ...form, faviconUrl: url })} label="Favicon URL" folder="branding" accept="image/png,image/x-icon,image/svg+xml" />
+              <MediaPicker value={form.faviconUrl} onChange={(url, publicId) => setForm({ ...form, faviconUrl: url, faviconPublicId: publicId ?? "" })} label="Favicon URL" folder="branding" accept="image/png,image/x-icon,image/svg+xml" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Contact Email</label>

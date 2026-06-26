@@ -17,6 +17,7 @@ export async function handleAdminCampaignRequest(req: Request, ctx: RequestConte
 }
 
 async function handleList(req: Request, env: any): Promise<Response> {
+  const prisma = getPrisma(env);
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -41,12 +42,14 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
 }
 
 async function handleDetail(id: string, env: any): Promise<Response> {
+  const prisma = getPrisma(env);
   const item = await prisma.campaign.findUnique({ where: { id } });
   if (!item) return notFound("Campaign not found");
   return success({ campaign: item });
 }
 
 async function handleUpdate(id: string, req: Request, env: any): Promise<Response> {
+  const prisma = getPrisma(env);
   const body = await req.json();
   const existing = await prisma.campaign.findUnique({ where: { id } });
   if (!existing) return notFound("Campaign not found");
@@ -55,7 +58,6 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
   if (body.startDate) data.startDate = new Date(body.startDate);
   if (body.endDate !== undefined) data.endDate = body.endDate ? new Date(body.endDate) : null;
   try {
-    const prisma = getPrisma(env);
     const updated = await prisma.campaign.update({ where: { id }, data: data as never });
     return success(updated);
   } catch (err) { return serverError(err); }

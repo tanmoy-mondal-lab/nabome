@@ -7,18 +7,25 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Plugin to copy functions directory to dist
+// Plugin to copy functions + api directories to dist for Cloudflare Pages Functions
 function copyFunctionsPlugin() {
   return {
     name: 'copy-functions',
     closeBundle() {
-      const srcDir = path.resolve(__dirname, 'functions');
-      const destDir = path.resolve(__dirname, 'dist', 'functions');
-      
-      if (fs.existsSync(srcDir)) {
-        fs.mkdirSync(destDir, { recursive: true });
-        fs.cpSync(srcDir, destDir, { recursive: true });
-        console.log('✓ Copied functions directory to dist/functions');
+      const functionsSrc = path.resolve(__dirname, 'functions');
+      const functionsDest = path.resolve(__dirname, 'dist', 'functions');
+      if (fs.existsSync(functionsSrc)) {
+        fs.mkdirSync(functionsDest, { recursive: true });
+        fs.cpSync(functionsSrc, functionsDest, { recursive: true });
+        console.log('✓ Copied functions/ to dist/functions/');
+      }
+
+      const apiSrc = path.resolve(__dirname, 'api');
+      const apiDest = path.resolve(__dirname, 'dist', 'api');
+      if (fs.existsSync(apiSrc)) {
+        fs.mkdirSync(apiDest, { recursive: true });
+        fs.cpSync(apiSrc, apiDest, { recursive: true });
+        console.log('✓ Copied api/ to dist/api/ (needed by Cloudflare Pages Functions)');
       }
     }
   };

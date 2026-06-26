@@ -135,7 +135,10 @@ function FieldRenderer({
         <div>
           <MediaPicker
             value={String(value ?? "")}
-            onChange={(url: string) => onChange(field.key, url)}
+            onChange={(url: string, publicId?: string) => {
+              onChange(field.key, url);
+              onChange(field.key + "PublicId", publicId ?? "");
+            }}
             label={field.label}
             folder="page-builder"
           />

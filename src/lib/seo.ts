@@ -119,8 +119,6 @@ export type ImgOptions = {
   format?: "auto" | "webp" | "avif" | "jpg" | "png";
 };
 
-const CLOUD_NAME = "dewwv3uzt";
-
 export function img(url: string | undefined | null, options?: ImgOptions): string {
   if (!url) return "/placeholder.svg";
   // Only apply transforms to Cloudinary URLs

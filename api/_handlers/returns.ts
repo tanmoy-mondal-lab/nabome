@@ -7,8 +7,10 @@ async function createNotification(
   orderId: string | undefined,
   type: string,
   title: string,
-  body?: string
+  body?: string,
+  env?: any
 ) {
+  const prisma = getPrisma(env);
   await prisma.notification.create({
     data: {
       profileId,
@@ -29,14 +31,14 @@ export async function handleReturnRequest(
   action: string
 ): Promise<Response> {
   switch (action) {
-    case "create": return handleCreate(req, ctx);
-    case "listMy": return handleListMy(ctx);
-    case "detailMy": return handleDetailMy(params[0], ctx);
+    case "create": return handleCreate(req, ctx, ctx.env);
+    case "listMy": return handleListMy(ctx, ctx.env);
+    case "detailMy": return handleDetailMy(params[0], ctx, ctx.env);
     case "adminList": return handleAdminList(req, ctx.env);
     case "adminDetail": return handleAdminDetail(params[0], ctx.env);
-    case "approve": return handleApprove(params[0], ctx);
-    case "reject": return handleReject(params[0], req, ctx);
-    case "receive": return handleReceive(params[0], ctx);
+    case "approve": return handleApprove(params[0], ctx, ctx.env);
+    case "reject": return handleReject(params[0], req, ctx, ctx.env);
+    case "receive": return handleReceive(params[0], ctx, ctx.env);
     default: return badRequest("Unknown action");
   }
 }
@@ -97,7 +99,8 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
       orderId,
       "return_requested",
       "Return Request Submitted",
-      `Return request for order ${returnRequest.order.orderNumber} has been submitted.`
+      `Return request for order ${returnRequest.order.orderNumber} has been submitted.`,
+      env
     );
 
     return created(returnRequest);
@@ -228,7 +231,8 @@ async function handleApprove(returnId: string, ctx: RequestContext, env: any): P
       returnRequest.orderId,
       "return_approved",
       "Return Request Approved",
-      `Your return request for order ${returnRequest.order.orderNumber} has been approved.`
+      `Your return request for order ${returnRequest.order.orderNumber} has been approved.`,
+      env
     );
 
     return success(updated);
@@ -268,7 +272,8 @@ async function handleReject(returnId: string, req: Request, ctx: RequestContext,
       "Return Request Rejected",
       adminNote
         ? `Your return request for order ${returnRequest.order.orderNumber} was rejected: ${adminNote}`
-        : `Your return request for order ${returnRequest.order.orderNumber} was rejected.`
+        : `Your return request for order ${returnRequest.order.orderNumber} was rejected.`,
+      env
     );
 
     return success(updated);
@@ -315,7 +320,8 @@ async function handleReceive(returnId: string, ctx: RequestContext, env: any): P
       returnRequest.orderId,
       "refund_processed",
       "Item Received",
-      `We've received your return for order ${returnRequest.order.orderNumber}. Refund will be processed soon.`
+      `We've received your return for order ${returnRequest.order.orderNumber}. Refund will be processed soon.`,
+      env
     );
 
     return success(updated);

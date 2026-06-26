@@ -4,6 +4,7 @@ import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../../src/lib/utils/format";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { requireAdmin } from "../../_lib/auth";
+import { destroyCloudinaryAsset } from "../../_lib/cloudinary";
 
 export async function handleAdminCategoryRequest(
   req: Request,
@@ -18,11 +19,11 @@ export async function handleAdminCategoryRequest(
     case "list":
       return handleList(ctx.env);
     case "create":
-      return handleCreate(req, ctx);
+      return handleCreate(req, ctx, ctx.env);
     case "update":
-      return handleUpdate(params[0], req, ctx);
+      return handleUpdate(params[0], req, ctx, ctx.env);
     case "delete":
-      return handleDelete(params[0], req, ctx);
+      return handleDelete(params[0], req, ctx, ctx.env);
     default:
       return badRequest("Unknown action");
   }
@@ -48,22 +49,23 @@ async function handleList(env: any): Promise<Response> {
 
 async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
-  const { name, description, imageUrl, parentId, sortOrder, isActive, metaTitle, metaDesc } = body;
+  const { name, description, imageUrl, imagePublicId, parentId, sortOrder, isActive, metaTitle, metaDesc } = body;
 
   if (!name) return badRequest("Category name is required");
 
+  const prisma = getPrisma(env);
   const slug = slugify(name);
   const slugExists = await prisma.category.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
-    const prisma = getPrisma(env);
     const category = await prisma.category.create({
       data: {
         name,
         slug: finalSlug,
         description: description ?? null,
         imageUrl: imageUrl ?? null,
+        imagePublicId: imagePublicId ?? null,
         parentId: parentId || null,
         sortOrder: sortOrder ?? 0,
         isActive: isActive ?? true,
@@ -76,7 +78,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
     // Also create subcategory if parentId is provided and no subcategory table entry needed
     // The subcategory model exists for finer-grained categorization
 
-    logAction(ctx.userId,  ctx.userId, "admin.category.create", {
+    logAction(ctx.userId, "admin.category.create", {
       entity: "category",
       entityId: category.id,
       metadata: { name: category.name, slug: category.slug },
@@ -98,7 +100,7 @@ async function handleUpdate(categoryId: string, req: Request, ctx: RequestContex
     if (!existing) return notFound("Category not found");
 
     const data: Record<string, unknown> = {};
-    const fields = ["name", "description", "imageUrl", "sortOrder", "isActive", "metaTitle", "metaDesc"];
+    const fields = ["name", "description", "imageUrl", "imagePublicId", "sortOrder", "isActive", "metaTitle", "metaDesc"];
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = body[field];
     }
@@ -114,7 +116,7 @@ async function handleUpdate(categoryId: string, req: Request, ctx: RequestContex
       include: { _count: { select: { products: true, children: true } }, parent: { select: { id: true, name: true } } },
     });
 
-    logAction(ctx.userId,  ctx.userId, "admin.category.update", {
+    logAction(ctx.userId, "admin.category.update", {
       entity: "category",
       entityId: categoryId,
       metadata: { name: category.name },
@@ -130,6 +132,9 @@ async function handleUpdate(categoryId: string, req: Request, ctx: RequestContex
 async function handleDelete(categoryId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const category = await prisma.category.findUnique({ where: { id: categoryId } });
+    if (!category) return notFound("Category not found");
+
     const productCount = await prisma.product.count({ where: { categoryId } });
     if (productCount > 0) {
       return badRequest(`Cannot delete category: ${productCount} products are assigned to it. Move them first.`);
@@ -140,9 +145,13 @@ async function handleDelete(categoryId: string, req: Request, ctx: RequestContex
       return badRequest(`Cannot delete category: ${subCount} subcategories are assigned to it. Remove them first.`);
     }
 
+    if (category.imagePublicId) {
+      await destroyCloudinaryAsset(category.imagePublicId, env);
+    }
+
     await prisma.category.delete({ where: { id: categoryId } });
 
-    logAction(ctx.userId,  ctx.userId, "admin.category.delete", {
+    logAction(ctx.userId, "admin.category.delete", {
       entity: "category",
       entityId: categoryId,
       metadata: {},

@@ -244,7 +244,7 @@ export default function OrderDetailPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            {order.status === "pending" && (
+            {(order.status === "pending" || order.status === "confirmed") && (
               <button
                 onClick={() => { if (window.confirm("Are you sure you want to cancel this order?")) cancelMutation.mutate(); }}
                 disabled={cancelMutation.isPending}

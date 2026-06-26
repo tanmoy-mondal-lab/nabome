@@ -1,38 +1,39 @@
-import { getPrisma } from "./prisma";
+// ─────────────────────────────────────────────────────────────
+// EMAIL MODULE — Send transactional emails via Resend
+// ─────────────────────────────────────────────────────────────
+// This module is SELF-CONTAINED. It does NOT import Prisma.
+// Email sending is a standalone operation that cannot fail
+// due to database issues, enum mismatches, or Prisma errors.
+// ─────────────────────────────────────────────────────────────
+
 import { getEmailTemplate } from "./email-templates";
 import type { EmailType } from "./email-templates";
-import type { NotificationEvent } from "@prisma/client";
-import type { Env } from "./env";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
-function getAdminEmails(env?: Env): string[] {
-  const raw = env?.ADMIN_EMAILS || env?.ADMIN_EMAIL;
-  if (!raw) return [];
-  return raw.split(",").map((e) => e.trim()).filter(Boolean);
+export interface EmailSendResult {
+  success: boolean;
+  messageId?: string;
+  error?: string;
 }
 
-interface SendEmailResult {
-  messageId: string | null;
-  error: string | null;
-}
-
+/**
+ * Send a single email via Resend API.
+ * This is the ONLY function that touches the network.
+ * No DB, no Prisma, no side effects.
+ */
 async function sendViaResend(
+  apiKey: string,
+  from: string,
   to: string,
   subject: string,
   html: string,
-  replyTo: string | undefined,
-  env?: Env
-): Promise<{ messageId: string | null; error: string | null }> {
-  const apiKey = env?.RESEND_API_KEY;
-  if (!apiKey) {
-    return { messageId: null, error: "RESEND_API_KEY not configured" };
-  }
-
-  const from = env?.EMAIL_FROM || "noreply@nabome.online";
+  replyTo?: string
+): Promise<EmailSendResult> {
+  console.log(`[EMAIL] → Sending "${subject}" to ${to} from ${from}`);
 
   try {
-    const res = await fetch("https://api.resend.com/emails", {
+    const res = await fetch(RESEND_API_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -47,98 +48,145 @@ async function sendViaResend(
       }),
     });
 
+    const status = res.status;
+    const body = await res.text();
+
     if (!res.ok) {
-      const errBody = await res.text();
-      return { messageId: null, error: `Resend API error: ${errBody}` };
+      const msg = `Resend API error HTTP ${status}: ${body}`;
+      console.error(`[EMAIL] ✗ ${msg}`);
+      return { success: false, error: msg };
     }
 
-    const data = (await res.json()) as { id: string };
-    return { messageId: data.id, error: null };
+    const data = JSON.parse(body) as { id: string };
+    console.log(`[EMAIL] ✓ Resend accepted — id=${data.id}`);
+    return { success: true, messageId: data.id };
   } catch (err) {
-    return { messageId: null, error: (err as Error).message };
+    const msg = `Network error: ${(err as Error).message}`;
+    console.error(`[EMAIL] ✗ ${msg}`);
+    return { success: false, error: msg };
   }
 }
 
+/**
+ * Send an email notification.
+ *
+ * Flow:
+ *   1. Build HTML template from type
+ *   2. Resolve recipients
+ *   3. Send email(s) via Resend — THIS IS THE CRITICAL PATH
+ *   4. Record in DB (fire-and-forget, non-blocking)
+ *
+ * @param type - Email type (e.g. "email_verification", "order_confirmation")
+ * @param data - Template data (must include `email` for customer emails)
+ * @param env - Environment with RESEND_API_KEY, EMAIL_FROM, ADMIN_EMAILS
+ */
 export async function sendEmailNotification(
   type: EmailType,
   data: Record<string, unknown>,
-  options?: { profileId?: string | null; orderId?: string | null },
-  env?: Env
+  env?: { RESEND_API_KEY?: string; EMAIL_FROM?: string; ADMIN_EMAILS?: string }
 ): Promise<void> {
+  console.log(`[EMAIL] sendEmailNotification(type=${type})`);
+
+  // ── 1. Validate env ──
+  if (!env?.RESEND_API_KEY) {
+    console.error("[EMAIL] ✗ RESEND_API_KEY is not set. Emails will NOT be sent.");
+    console.error("[EMAIL] Check: wrangler pages secret put RESEND_API_KEY --project-name=nabome --env production");
+    return;
+  }
+
+  // ── 2. Build template ──
   const template = getEmailTemplate(type, data);
-  if (!template) return;
+  if (!template) {
+    console.error(`[EMAIL] ✗ No template for type="${type}". Check email-templates.ts TEMPLATES registry.`);
+    return;
+  }
 
-  const prisma = getPrisma(env);
-
+  // ── 3. Resolve recipients ──
+  const from = env.EMAIL_FROM || "noreply@nabome.online";
   const isAdminEmail = type.startsWith("admin_");
-  const recipients = isAdminEmail
-    ? getAdminEmails(env)
-    : data.email
-      ? [data.email as string]
-      : [];
+  let recipients: string[];
 
-  if (recipients.length === 0) return;
+  if (isAdminEmail) {
+    const raw = env.ADMIN_EMAILS || "";
+    recipients = raw.split(",").map((e) => e.trim()).filter(Boolean);
+    if (recipients.length === 0) {
+      console.error("[EMAIL] ✗ No admin recipients. Set ADMIN_EMAILS env var.");
+      return;
+    }
+  } else {
+    const email = data.email as string | undefined;
+    if (!email) {
+      console.error(`[EMAIL] ✗ No recipient email in data.email for type="${type}".`);
+      return;
+    }
+    recipients = [email];
+  }
 
-  // Create notification record
-  const notification = await prisma.notification.create({
-    data: {
-      profileId: options?.profileId || null,
-      orderId: options?.orderId || null,
-      type: template.notificationEvent as NotificationEvent,
-      channel: "email",
-      title: template.subject,
-      body: template.preview,
-      data: { emailType: type, ...data },
-      emailTo: recipients.join(", "),
-    },
-  });
+  console.log(`[EMAIL] Recipients: ${recipients.join(", ")}`);
 
+  // ── 4. Send emails (CRITICAL PATH — must succeed) ──
+  const results: EmailSendResult[] = [];
   for (const to of recipients) {
-    const { messageId, error } = await sendViaResend(
+    const result = await sendViaResend(
+      env.RESEND_API_KEY,
+      from,
       to,
       template.subject,
       template.html,
-      data.replyTo as string | undefined,
-      env
+      data.replyTo as string | undefined
     );
-
-    if (messageId) {
-      await prisma.notification.update({
-        where: { id: notification.id },
-        data: { sentAt: new Date() },
-      });
-    } else {
-      await prisma.notification.update({
-        where: { id: notification.id },
-        data: {
-          errorMessage: error,
-          retryCount: { increment: 1 },
-        },
-      });
-      console.error(`[EMAIL] Failed to send ${type} to ${to}: ${error}`);
-    }
+    results.push(result);
   }
 
-  // Send admin notifications for customer events
-  if (!isAdminEmail && template.adminNotification) {
+  // ── 5. Log results ──
+  const succeeded = results.filter((r) => r.success);
+  const failed = results.filter((r) => !r.success);
+
+  if (failed.length > 0) {
+    console.error(`[EMAIL] ✗ ${type}: ${failed.length}/${results.length} emails FAILED`);
+    for (const f of failed) {
+      console.error(`[EMAIL]   Error: ${f.error}`);
+    }
+  } else {
+    console.log(`[EMAIL] ✓ ${type}: All ${results.length} emails sent successfully`);
+  }
+
+  // ── 6. Send admin notifications for customer events (fire-and-forget) ──
+  if (!isAdminEmail && template.adminNotification && env.ADMIN_EMAILS) {
     const adminType = template.adminNotification as EmailType;
-    const adminTemplate = getEmailTemplate(adminType, {
-      ...data,
-      email: recipients[0],
-    });
+    const adminTemplate = getEmailTemplate(adminType, { ...data, email: recipients[0] });
     if (adminTemplate) {
-      for (const adminEmail of getAdminEmails(env)) {
-        const { error } = await sendViaResend(
-          adminEmail,
-          adminTemplate.subject,
-          adminTemplate.html,
-          undefined,
-          env
-        );
-        if (error) {
-          console.error(`[EMAIL] Failed to send admin ${adminType} to ${adminEmail}: ${error}`);
-        }
+      const adminRecipients = env.ADMIN_EMAILS.split(",").map((e) => e.trim()).filter(Boolean);
+      for (const adminEmail of adminRecipients) {
+        // Fire-and-forget — don't await, don't block
+        sendViaResend(env.RESEND_API_KEY, from, adminEmail, adminTemplate.subject, adminTemplate.html)
+          .then((r) => {
+            if (!r.success) console.error(`[EMAIL] ✗ Admin ${adminType} to ${adminEmail}: ${r.error}`);
+            else console.log(`[EMAIL] ✓ Admin ${adminType} sent to ${adminEmail}`);
+          })
+          .catch(() => {});
       }
     }
   }
+}
+
+/**
+ * Test email sending — call this to verify email config works.
+ * Returns the raw result for debugging.
+ */
+export async function testEmail(
+  env: { RESEND_API_KEY?: string; EMAIL_FROM?: string },
+  to: string
+): Promise<EmailSendResult> {
+  if (!env.RESEND_API_KEY) {
+    return { success: false, error: "RESEND_API_KEY not set" };
+  }
+  const from = env.EMAIL_FROM || "noreply@nabome.online";
+  return sendViaResend(
+    env.RESEND_API_KEY,
+    from,
+    to,
+    "নবME — Test Email",
+    "<h1>Email is working!</h1><p>If you received this, the Resend integration is configured correctly.</p>"
+  );
 }

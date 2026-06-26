@@ -328,7 +328,7 @@ ${button(`https://www.nabome.online/admin/returns/${data.returnId || ""}`, "View
     subject: `[Admin] Refund Request — Order ${orderNumber}`,
     preview: `${customerName} has requested a refund for order ${orderNumber}.`,
     html: baseLayout(body),
-    notificationEvent: "refund_processed",
+    notificationEvent: "return_requested",
   };
 }
 
@@ -353,7 +353,7 @@ ${button(`https://www.nabome.online/admin/contact`, "View in Admin")}`;
     subject: `[Admin] Contact Form — ${subject}`,
     preview: `New contact submission from ${name}: ${subject}`,
     html: baseLayout(body),
-    notificationEvent: "order_placed",
+    notificationEvent: "contact_form",
   };
 }
 
@@ -429,7 +429,7 @@ function emailVerification(data: Record<string, unknown>): EmailTemplate {
     subject: "Verify Your নবME Email Address",
     preview: `Welcome, ${firstName}! Your verification code: ${verificationCode}`,
     html: baseLayout(body),
-    notificationEvent: "welcome",
+    notificationEvent: "email_verification",
   };
 }
 

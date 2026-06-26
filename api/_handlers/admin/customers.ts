@@ -42,6 +42,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const [customers, total] = await Promise.all([
       prisma.profile.findMany({
         where: where as never,

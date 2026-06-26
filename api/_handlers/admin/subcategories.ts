@@ -36,15 +36,15 @@ async function handleList(env: any): Promise<Response> {
 
 async function handleCreate(req: Request, env: any): Promise<Response> {
   const body = await req.json();
-  const { name, categoryId, description, imageUrl, sortOrder } = body;
+  const { name, categoryId, description, imageUrl, imagePublicId, sortOrder } = body as { name?: string; categoryId?: string; description?: string; imageUrl?: string; imagePublicId?: string; sortOrder?: number };
   if (!name || !categoryId) return badRequest("Name and categoryId are required");
   const slug = slugify(name);
+  const prisma = getPrisma(env);
   const slugExists = await prisma.subcategory.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
   try {
-    const prisma = getPrisma(env);
     const sub = await prisma.subcategory.create({
-      data: { name, slug: finalSlug, categoryId: toNull(categoryId), description, imageUrl, sortOrder: sortOrder ?? 0 },
+      data: { name, slug: finalSlug, categoryId: (toNull(categoryId) ?? categoryId) as string, description: description ?? null, imageUrl: imageUrl ?? null, imagePublicId: imagePublicId ?? null, sortOrder: sortOrder ?? 0 },
     });
     return created(sub);
   } catch (err) { return serverError(err); }
@@ -55,7 +55,7 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
   try {
     const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
-    const fields = ["name", "categoryId", "description", "imageUrl", "sortOrder", "isActive"];
+    const fields = ["name", "categoryId", "description", "imageUrl", "imagePublicId", "sortOrder", "isActive"];
     for (const f of fields) { if (body[f] !== undefined) data[f] = f === "categoryId" ? toNull(body[f]) : body[f]; }
     if (body.name) data.slug = slugify(body.name);
     const sub = await prisma.subcategory.update({ where: { id }, data: data as never });

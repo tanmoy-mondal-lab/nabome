@@ -12,11 +12,11 @@ export async function handleWishlistRequest(
 
   switch (action) {
     case "add":
-      return handleAdd(ctx.userId, req);
+      return handleAdd(ctx.userId, req, ctx.env);
     case "remove":
-      return handleRemove(ctx.userId, params[0]);
+      return handleRemove(ctx.userId, params[0], ctx.env);
     default:
-      return handleList(ctx.userId);
+      return handleList(ctx.userId, ctx.env);
   }
 }
 

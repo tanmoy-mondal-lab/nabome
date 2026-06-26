@@ -61,6 +61,7 @@ export default function MediaLibrary() {
   const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [editAsset, setEditAsset] = useState<Asset | null>(null);
   const [editForm, setEditForm] = useState({ altText: "", folder: "" });
+  const [deleteConfirmAsset, setDeleteConfirmAsset] = useState<Asset | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -108,6 +109,7 @@ export default function MediaLibrary() {
   const doUpload = async (files: { file: File; folder: string }[]) => {
     setUploading(true);
     let completed = 0;
+    let failed = 0;
     for (const item of files) {
       try {
         const res = await adminApi.uploadFile(item.file, item.folder, item.file.name);
@@ -124,14 +126,22 @@ export default function MediaLibrary() {
           mimeType: res.mimeType || item.file.type,
         });
         completed++;
-      } catch { /* non-critical: failed to upload media file */ }
+      } catch {
+        failed++;
+      }
     }
     setUploading(false);
     setUploadModalOpen(false);
     setUploadQueue([]);
     if (completed > 0) {
       queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
+    }
+    if (completed > 0 && failed > 0) {
+      toast(`${completed} uploaded, ${failed} failed`, "error");
+    } else if (completed > 0) {
       toast(`${completed} file${completed !== 1 ? "s" : ""} uploaded`, "success");
+    } else if (failed > 0) {
+      toast(`Upload failed — ${failed} file${failed !== 1 ? "s" : ""} not uploaded`, "error");
     }
   };
 
@@ -165,7 +175,15 @@ export default function MediaLibrary() {
   };
 
   const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
+    const asset = assets.find(a => a.id === id);
+    if (asset) setDeleteConfirmAsset(asset);
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirmAsset) {
+      deleteMutation.mutate(deleteConfirmAsset.id);
+      setDeleteConfirmAsset(null);
+    }
   };
 
   const copyUrl = (url: string) => {
@@ -469,6 +487,26 @@ export default function MediaLibrary() {
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setEditAsset(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
               <button onClick={saveEdit} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">Save</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete confirmation modal */}
+      <Modal open={!!deleteConfirmAsset} onClose={() => setDeleteConfirmAsset(null)} title="Delete Asset" size="sm">
+        {deleteConfirmAsset && (
+          <div className="space-y-4">
+            <p className="text-sm text-neutral-600">
+              Are you sure you want to delete <strong>{deleteConfirmAsset.altText || "this asset"}</strong>?
+            </p>
+            <p className="text-xs text-red-500">
+              This will permanently delete the file from Cloudinary and the database.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setDeleteConfirmAsset(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+              <button onClick={confirmDelete} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700">
+                Delete
+              </button>
             </div>
           </div>
         )}

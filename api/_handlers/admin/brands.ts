@@ -16,10 +16,10 @@ export async function handleAdminBrandRequest(
 
   switch (action) {
     case "list": return handleList(ctx.env);
-    case "create": return handleCreate(req, ctx);
+    case "create": return handleCreate(req, ctx, ctx.env);
     case "detail": return handleDetail(params[0], ctx.env);
-    case "update": return handleUpdate(params[0], req, ctx);
-    case "delete": return handleDelete(params[0], req, ctx);
+    case "update": return handleUpdate(params[0], req, ctx, ctx.env);
+    case "delete": return handleDelete(params[0], req, ctx, ctx.env);
     default: return badRequest("Unknown action");
   }
 }
@@ -49,17 +49,17 @@ async function handleDetail(id: string, env: any): Promise<Response> {
 
 async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
-  const { name, description, logoUrl, websiteUrl, sortOrder } = body;
+  const { name, description, logoUrl, logoPublicId, websiteUrl, sortOrder } = body;
   if (!name) return badRequest("Brand name is required");
+  const prisma = getPrisma(env);
   const slug = slugify(name);
   const slugExists = await prisma.brand.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
   try {
-    const prisma = getPrisma(env);
     const brand = await prisma.brand.create({
-      data: { name, slug: finalSlug, description, logoUrl, websiteUrl, sortOrder: sortOrder ?? 0 },
+      data: { name, slug: finalSlug, description, logoUrl, logoPublicId, websiteUrl, sortOrder: sortOrder ?? 0 },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.brands.create", {
+    logAction(ctx.userId, "admin.brands.create", {
       entity: "brand",
       entityId: brand.id,
       metadata: { name: brand.name, slug: brand.slug },
@@ -76,11 +76,11 @@ async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: 
     const existing = await prisma.brand.findUnique({ where: { id } });
     if (!existing) return notFound("Brand not found");
     const data: Record<string, unknown> = {};
-    const fields = ["name", "description", "logoUrl", "websiteUrl", "sortOrder", "isActive"];
+    const fields = ["name", "description", "logoUrl", "logoPublicId", "websiteUrl", "sortOrder", "isActive"];
     for (const f of fields) { if (body[f] !== undefined) data[f] = body[f]; }
     if (body.name) data.slug = slugify(body.name);
     const brand = await prisma.brand.update({ where: { id }, data: data as never });
-    logAction(ctx.userId,  ctx.userId, "admin.brands.update", {
+    logAction(ctx.userId, "admin.brands.update", {
       entity: "brand",
       entityId: brand.id,
       metadata: { name: brand.name },
@@ -94,7 +94,7 @@ async function handleDelete(id: string, req: Request, ctx: RequestContext, env: 
   try {
     const prisma = getPrisma(env);
     await prisma.brand.update({ where: { id }, data: { isActive: false } });
-    logAction(ctx.userId,  ctx.userId, "admin.brands.delete", {
+    logAction(ctx.userId, "admin.brands.delete", {
       entity: "brand",
       entityId: id,
       ...extractRequestMeta(req),

@@ -7,8 +7,10 @@ async function createNotification(
   orderId: string | undefined,
   type: string,
   title: string,
-  body?: string
+  body?: string,
+  env?: any
 ) {
+  const prisma = getPrisma(env);
   await prisma.notification.create({
     data: {
       profileId,
@@ -29,19 +31,19 @@ export async function handleRefundRequest(
   action: string
 ): Promise<Response> {
   switch (action) {
-    case "list": return handleList(req);
-    case "detail": return handleDetail(params[0]);
-    case "listMy": return handleListMy(req, ctx);
-    case "detailMy": return handleDetailMy(params[0], ctx);
-    case "create": return handleCreate(req, ctx);
-    case "process": return handleProcess(params[0]);
-    case "complete": return handleComplete(params[0], ctx);
-    case "fail": return handleFail(params[0], req);
+    case "list": return handleList(req, ctx.env);
+    case "detail": return handleDetail(params[0], ctx.env);
+    case "listMy": return handleListMy(req, ctx, ctx.env);
+    case "detailMy": return handleDetailMy(params[0], ctx, ctx.env);
+    case "create": return handleCreate(req, ctx, ctx.env);
+    case "process": return handleProcess(params[0], ctx.env);
+    case "complete": return handleComplete(params[0], ctx, ctx.env);
+    case "fail": return handleFail(params[0], req, ctx.env);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request): Promise<Response> {
+async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -53,6 +55,7 @@ async function handleList(req: Request): Promise<Response> {
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const [refunds, total] = await Promise.all([
       prisma.refund.findMany({
         where: where as never,
@@ -79,8 +82,9 @@ async function handleList(req: Request): Promise<Response> {
   }
 }
 
-async function handleDetail(refundId: string): Promise<Response> {
+async function handleDetail(refundId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const refund = await prisma.refund.findUnique({
       where: { id: refundId },
       include: {
@@ -101,7 +105,7 @@ async function handleDetail(refundId: string): Promise<Response> {
   }
 }
 
-async function handleListMy(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleListMy(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   if (!ctx.userId) return badRequest("Unauthorized");
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
@@ -109,6 +113,7 @@ async function handleListMy(req: Request, ctx: RequestContext): Promise<Response
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(env);
     const where = { returnRequest: { profileId: ctx.userId } };
     const [refunds, total] = await Promise.all([
       prisma.refund.findMany({
@@ -132,13 +137,14 @@ async function handleListMy(req: Request, ctx: RequestContext): Promise<Response
   }
 }
 
-async function handleDetailMy(refundId: string, ctx: RequestContext): Promise<Response> {
+async function handleDetailMy(refundId: string, ctx: RequestContext, env: any): Promise<Response> {
   if (!ctx.userId) return badRequest("Unauthorized");
   try {
+    const prisma = getPrisma(env);
     const refund = await prisma.refund.findFirst({
       where: { id: refundId, returnRequest: { profileId: ctx.userId } },
       include: {
-        returnRequest: { include: { items: true } },
+        returnRequest: { include: { orderItem: true } },
         order: { select: { orderNumber: true, total: true, paymentStatus: true } },
       },
     });
@@ -149,7 +155,7 @@ async function handleDetailMy(refundId: string, ctx: RequestContext): Promise<Re
   }
 }
 
-async function handleCreate(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   const body = await req.json();
   const { orderId, returnRequestId, amount, type, notes } = body;
 
@@ -162,6 +168,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   }
 
   try {
+    const prisma = getPrisma(env);
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
 
@@ -183,8 +190,9 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   }
 }
 
-async function handleProcess(refundId: string): Promise<Response> {
+async function handleProcess(refundId: string, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const refund = await prisma.refund.findUnique({ where: { id: refundId } });
     if (!refund) return notFound("Refund not found");
     if (refund.status !== "pending") return badRequest("Can only process pending refunds");
@@ -200,8 +208,9 @@ async function handleProcess(refundId: string): Promise<Response> {
   }
 }
 
-async function handleComplete(refundId: string, ctx: RequestContext): Promise<Response> {
+async function handleComplete(refundId: string, ctx: RequestContext, env: any): Promise<Response> {
   try {
+    const prisma = getPrisma(env);
     const refund = await prisma.refund.findUnique({
       where: { id: refundId },
       include: {
@@ -242,7 +251,8 @@ async function handleComplete(refundId: string, ctx: RequestContext): Promise<Re
       refund.order.id,
       "refund_processed",
       "Refund Processed",
-      `A refund of ${refund.amount} for order ${refund.order.orderNumber} has been processed.`
+      `A refund of ${refund.amount} for order ${refund.order.orderNumber} has been processed.`,
+      env
     );
 
     return success(updated);
@@ -251,11 +261,12 @@ async function handleComplete(refundId: string, ctx: RequestContext): Promise<Re
   }
 }
 
-async function handleFail(refundId: string, req: Request): Promise<Response> {
+async function handleFail(refundId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { notes } = body;
 
   try {
+    const prisma = getPrisma(env);
     const refund = await prisma.refund.findUnique({ where: { id: refundId } });
     if (!refund) return notFound("Refund not found");
     if (!["pending", "processing"].includes(refund.status)) {

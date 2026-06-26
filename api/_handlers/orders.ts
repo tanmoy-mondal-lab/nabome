@@ -14,35 +14,36 @@ export async function handleOrderRequest(
 
   // GET /api/orders — list customer orders
   if (method === "GET" && !params.length && (!action || action === "list")) {
-    return handleList(ctx, req);
+    return handleList(ctx, req, ctx.env);
   }
 
   // GET /api/orders/stats — customer order statistics
   if (method === "GET" && action === "stats") {
-    return handleStats(ctx);
+    return handleStats(ctx, ctx.env);
   }
 
   // GET /api/orders/:id
   if (method === "GET" && params.length && action === "detail") {
-    return handleDetail(ctx, params[0]);
+    return handleDetail(ctx, params[0], ctx.env);
   }
 
   // POST /api/orders/:id/cancel
   if (method === "POST" && params.length && action === "cancel") {
-    return handleCancel(req, ctx, params[0]);
+    return handleCancel(req, ctx, params[0], ctx.env);
   }
 
   // GET /api/orders/:id/tracking
   if (method === "GET" && params.length && action === "tracking") {
-    return handleTracking(ctx, params[0]);
+    return handleTracking(ctx, params[0], ctx.env);
   }
 
   return notFound();
 }
 
-async function handleStats(ctx: RequestContext): Promise<Response> {
+async function handleStats(ctx: RequestContext, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
   try {
+    const prisma = getPrisma(ctx.env);
     const [orders, aggregation] = await Promise.all([
       prisma.order.findMany({
         where: { profileId: ctx.userId },
@@ -66,7 +67,7 @@ async function handleStats(ctx: RequestContext): Promise<Response> {
   }
 }
 
-async function handleList(ctx: RequestContext, req: Request): Promise<Response> {
+async function handleList(ctx: RequestContext, req: Request, env: any): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
   }
@@ -82,6 +83,7 @@ async function handleList(ctx: RequestContext, req: Request): Promise<Response> 
   const skip = (page - 1) * limit;
 
   try {
+    const prisma = getPrisma(ctx.env);
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where: where as never,
@@ -106,12 +108,13 @@ async function handleList(ctx: RequestContext, req: Request): Promise<Response> 
   }
 }
 
-async function handleDetail(ctx: RequestContext, orderId: string): Promise<Response> {
+async function handleDetail(ctx: RequestContext, orderId: string, env: any): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
   }
 
   try {
+    const prisma = getPrisma(ctx.env);
     const order = await prisma.order.findFirst({
       where: {
         id: orderId,
@@ -143,7 +146,7 @@ async function handleDetail(ctx: RequestContext, orderId: string): Promise<Respo
   }
 }
 
-async function handleCancel(req: Request, ctx: RequestContext, orderId: string): Promise<Response> {
+async function handleCancel(req: Request, ctx: RequestContext, orderId: string, env: any): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
   }
@@ -157,6 +160,7 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string):
   }
 
   try {
+    const prisma = getPrisma(ctx.env);
     const order = await prisma.order.findFirst({
       where: { id: orderId, profileId: ctx.userId },
       include: { items: true },
@@ -258,12 +262,13 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string):
   }
 }
 
-async function handleTracking(ctx: RequestContext, orderId: string): Promise<Response> {
+async function handleTracking(ctx: RequestContext, orderId: string, env: any): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
   }
 
   try {
+    const prisma = getPrisma(ctx.env);
     const order = await prisma.order.findFirst({
       where: { id: orderId, profileId: ctx.userId },
       select: {
@@ -286,8 +291,6 @@ async function handleTracking(ctx: RequestContext, orderId: string): Promise<Res
       timeline: order.statusHistory ?? [],
       shipping: order.shippingAddress ?? null,
       currentStatus: order.status,
-      trackingNumber: order.trackingNumber,
-      estimatedDelivery: order.estimatedDelivery,
       shippedAt: order.shippedAt,
       deliveredAt: order.deliveredAt,
     });

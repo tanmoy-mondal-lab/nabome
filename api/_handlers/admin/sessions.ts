@@ -3,8 +3,8 @@ import { success, badRequest, notFound, serverError } from "../../_lib/response"
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
 
-export async function handleAdminSessionRequest(req: Request, _ctx: RequestContext, params: string[], action: string): Promise<Response> {
-  const adminGuard = requireAdmin(_ctx);
+export async function handleAdminSessionRequest(req: Request, ctx: RequestContext, params: string[], action: string): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
   switch (action) {
     case "list": return handleList(req, ctx.env);
@@ -23,6 +23,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   if (profileId) where.profileId = profileId;
   if (isActive === "true") where.isActive = true;
   if (isActive === "false") where.isActive = false;
+  const prisma = getPrisma(env);
   const [items, total] = await Promise.all([
     prisma.authSession.findMany({
       where: where as never,

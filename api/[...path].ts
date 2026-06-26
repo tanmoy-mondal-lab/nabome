@@ -5,12 +5,11 @@
 // Cloudflare Pages Functions entry point.
 // ─────────────────────────────────────────────────────────────
 
-import { getPrisma } from "./_lib/prisma";
 import { authenticateRequest, requireAdmin } from "./_lib/auth";
 import { notFound, serverError, error } from "./_lib/response";
-import { checkRateLimit, RATE_LIMIT_CONFIG, rateLimitResponse } from "./_lib/rate-limit";
-import { logAction, extractRequestMeta } from "./_lib/audit";
+import { checkRateLimit, RATE_LIMIT_CONFIG, rateLimitResponse, getRateLimitKey } from "./_lib/rate-limit";
 import { setCsrfCookie, validateCsrf, csrfError } from "./_lib/csrf";
+import type { RequestContext } from "./_lib/types";
 
 const ALLOWED_ORIGINS = [
   "https://www.nabome.online",
@@ -52,9 +51,6 @@ function securityHeaders(): Record<string, string> {
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-    "Cross-Origin-Opener-Policy": "same-origin",
-    "Cross-Origin-Embedder-Policy": "require-corp",
-    "Cross-Origin-Resource-Policy": "same-origin",
   };
 }
 
@@ -94,14 +90,7 @@ function isAuthPath(path: string): boolean {
     path.includes("/auth/verify-reset-code");
 }
 
-function calculateKey(request: Request, path: string): string {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-    || request.headers.get("x-real-ip")
-    || "unknown";
-  const ua = request.headers.get("user-agent")?.slice(0, 50) || "unknown";
-  const endpoint = path.replace(/\/\d+/g, "/:id");
-  return `${ip}:${ua}:${endpoint}`;
-}
+
 
 // ─── Route handler registry ───
 type RouteHandler = (req: Request, ctx: RequestContext, params: string[]) => Promise<Response>;
@@ -196,8 +185,20 @@ import { handleAdminProductAttributeRequest } from "./_handlers/admin/product-at
 import { handleAdminAddressRequest } from "./_handlers/admin/addresses";
 import { handleAdminSessionRequest } from "./_handlers/admin/sessions";
 import { handleAdminLoginAttemptRequest } from "./_handlers/admin/login-attempts";
+import { GET as handleSitemap } from "./sitemap.xml";
+import { GET as handleHealth } from "./health";
+import { GET as handleTestEmail } from "./test-email";
 
 // ─── Route registration ───
+
+// Health check
+route("GET", "/api/health", (req, ctx) => handleHealth(req, { env: ctx.env }));
+
+// Test email (temporary — remove after verification)
+route("GET", "/api/test-email", (req, ctx) => handleTestEmail(req, { env: ctx.env }));
+
+// Sitemap
+route("GET", "/sitemap.xml", (req, ctx) => handleSitemap(req, { env: ctx.env }));
 
 // Public routes
 route("GET", "/api/auth/me", (req, ctx) => handleAuthRequest(req, ctx, [], "me"));
@@ -496,7 +497,7 @@ route("POST", "/api/payments/verify", (req, ctx) => handlePaymentRequest(req, ct
 route("POST", "/api/payments/failed", (req, ctx) => handlePaymentRequest(req, ctx, [], "failed"));
 route("POST", "/api/payments/retry", (req, ctx) => handlePaymentRequest(req, ctx, [], "retry"));
 route("POST", "/api/payments/refund", (req, ctx) => handlePaymentRequest(req, ctx, [], "refund"), { auth: true });
-route("POST", "/api/payments/webhook", (req) => handlePaymentRequest(req, {} as RequestContext, [], "webhook"));
+route("POST", "/api/payments/webhook", (req, ctx) => handlePaymentRequest(req, ctx, [], "webhook"));
 
 // Admin Webhooks
 route("GET", "/api/admin/webhooks/events", (req, ctx) => handleAdminWebhookRequest(req, ctx, [], "events"), { auth: true, admin: true });
@@ -585,48 +586,35 @@ route("GET", "/api/admin/login-attempts", (req, ctx) => handleAdminLoginAttemptR
 // ─── Router ───
 
 // Cloudflare Pages Functions format
-export async function GET(request: Request, opts?: { env?: Record<string, string> }): Promise<Response> {
+export async function GET(request: Request, opts?: { env?: any }): Promise<Response> {
   return handleRequest("GET", request, opts?.env);
 }
 
-export async function POST(request: Request, opts?: { env?: Record<string, string> }): Promise<Response> {
+export async function POST(request: Request, opts?: { env?: any }): Promise<Response> {
   return handleRequest("POST", request, opts?.env);
 }
 
-export async function PUT(request: Request, opts?: { env?: Record<string, string> }): Promise<Response> {
+export async function PUT(request: Request, opts?: { env?: any }): Promise<Response> {
   return handleRequest("PUT", request, opts?.env);
 }
 
-export async function DELETE(request: Request, opts?: { env?: Record<string, string> }): Promise<Response> {
+export async function DELETE(request: Request, opts?: { env?: any }): Promise<Response> {
   return handleRequest("DELETE", request, opts?.env);
 }
 
-export async function PATCH(request: Request, opts?: { env?: Record<string, string> }): Promise<Response> {
+export async function PATCH(request: Request, opts?: { env?: any }): Promise<Response> {
   return handleRequest("PATCH", request, opts?.env);
 }
 
-export async function OPTIONS(request: Request, opts?: { env?: Record<string, string> }): Promise<Response> {
+export async function OPTIONS(request: Request, opts?: { env?: any }): Promise<Response> {
   return handleRequest("OPTIONS", request, opts?.env);
 }
 
-async function handleRequest(method: string, request: Request, env?: Record<string, string>): Promise<Response> {
+async function handleRequest(method: string, request: Request, env?: any): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname;
 
-  // Rate limiting
-  const key = calculateKey(request, path);
-  let rateConfig = RATE_LIMIT_CONFIG.standard;
-  if (isAuthPath(path)) {
-    rateConfig = path.includes("/contact") ? RATE_LIMIT_CONFIG.contact : RATE_LIMIT_CONFIG.auth;
-  } else if (path.includes("/api/admin/")) {
-    rateConfig = RATE_LIMIT_CONFIG.admin;
-  }
-  const rateResult = await checkRateLimit(key, rateConfig);
-  if (!rateResult.allowed) {
-    return withCors(rateLimitResponse(rateConfig.message || "Too many requests", rateResult.resetAt), request, path);
-  }
-
-  // Body size limit
+  // Body size limit (check early to reject oversized payloads fast)
   const contentLength = request.headers.get("content-length");
   if (contentLength && ["POST", "PUT", "PATCH"].includes(method)) {
     const isUpload = path === "/api/upload" || path.startsWith("/api/admin/media");
@@ -636,7 +624,7 @@ async function handleRequest(method: string, request: Request, env?: Record<stri
     }
   }
 
-  // Try to match a route
+  // Try to match a route first (rate limiting only applies to matched routes)
   for (const r of routes) {
     if (r.method !== method) continue;
 
@@ -667,6 +655,26 @@ async function handleRequest(method: string, request: Request, env?: Record<stri
     if (r.admin) {
       const forbidden = requireAdmin(context);
       if (forbidden) return withCors(forbidden, request, path);
+    }
+
+    // Rate limiting — applied AFTER route match and auth, so we can use userId
+    // and don't waste rate limit budget on 404s or OPTIONS preflights
+    let rateConfig = RATE_LIMIT_CONFIG.standard;
+    if (isAuthPath(path)) {
+      rateConfig = path.includes("/contact") ? RATE_LIMIT_CONFIG.contact : RATE_LIMIT_CONFIG.auth;
+    } else if (path.includes("/api/admin/")) {
+      rateConfig = RATE_LIMIT_CONFIG.admin;
+    }
+    const rateKey = getRateLimitKey(
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+        ?? request.headers.get("cf-connecting-ip")
+        ?? "unknown",
+      path,
+      context.userId,
+    );
+    const rateResult = await checkRateLimit(rateKey, rateConfig, env);
+    if (!rateResult.allowed) {
+      return withCors(rateLimitResponse(rateConfig.message || "Too many requests", rateResult.resetAt), request, path);
     }
 
     try {

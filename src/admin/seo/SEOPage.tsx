@@ -8,6 +8,7 @@ interface SEOData {
   globalMetaTitle: string;
   globalMetaDescription: string;
   ogImage: string;
+  ogImagePublicId?: string;
   facebookPixelId: string;
   googleTagManagerId: string;
   canonicalUrl: string;
@@ -17,7 +18,7 @@ interface SEOData {
 }
 
 const defaultForm: SEOData = {
-  globalMetaTitle: "", globalMetaDescription: "", ogImage: "",
+  globalMetaTitle: "", globalMetaDescription: "", ogImage: "", ogImagePublicId: "",
   facebookPixelId: "", googleTagManagerId: "", canonicalUrl: "",
   robotsTxt: "", structuredData: "", sitemapEnabled: true,
 };
@@ -28,6 +29,7 @@ function extractSEO(settings: Record<string, unknown> | undefined): SEOData {
     globalMetaTitle: s?.globalMetaTitle ?? "",
     globalMetaDescription: s?.globalMetaDescription ?? "",
     ogImage: s?.ogImage ?? "",
+    ogImagePublicId: s?.ogImagePublicId ?? "",
     facebookPixelId: s?.facebookPixelId ?? "",
     googleTagManagerId: s?.googleTagManagerId ?? "",
     canonicalUrl: s?.canonicalUrl ?? "",
@@ -92,7 +94,7 @@ export default function SEOPage() {
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
             <div>
-              <MediaPicker value={form.ogImage} onChange={(url) => setForm({ ...form, ogImage: url })} label="OG Image URL" folder="seo" />
+              <MediaPicker value={form.ogImage} onChange={(url, publicId) => setForm({ ...form, ogImage: url, ogImagePublicId: publicId ?? "" })} label="OG Image URL" folder="seo" />
             </div>
         </div>
         <div>

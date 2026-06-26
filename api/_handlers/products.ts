@@ -249,6 +249,11 @@ async function handleSearch(req: Request, env: any): Promise<Response> {
           OR: [
             { name: { contains: q, mode: "insensitive" } },
             { description: { contains: q, mode: "insensitive" } },
+            { shortDescription: { contains: q, mode: "insensitive" } },
+            { material: { contains: q, mode: "insensitive" } },
+            { brand: { name: { contains: q, mode: "insensitive" } } },
+            { variants: { some: { sku: { contains: q, mode: "insensitive" } } } },
+            { productTags: { some: { tag: { name: { contains: q, mode: "insensitive" } } } } },
           ],
         },
       }),

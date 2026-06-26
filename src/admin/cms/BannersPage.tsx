@@ -14,6 +14,7 @@ interface Banner {
   title: string;
   subtitle: string;
   imageUrl: string;
+  imagePublicId?: string;
   linkUrl: string;
   position: string;
   isActive: boolean;
@@ -30,7 +31,7 @@ export default function BannersPage() {
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Banner | null>(null);
-  const [form, setForm] = useState({ title: "", subtitle: "", imageUrl: "", linkUrl: "", position: "hero", isActive: true });
+  const [form, setForm] = useState({ title: "", subtitle: "", imageUrl: "", imagePublicId: "", linkUrl: "", position: "hero", isActive: true });
 
   const { data: sections = [], isLoading } = useQuery({
     queryKey: ["admin", "homepage"],
@@ -89,13 +90,13 @@ export default function BannersPage() {
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ title: "", subtitle: "", imageUrl: "", linkUrl: "", position: "hero", isActive: true });
+    setForm({ title: "", subtitle: "", imageUrl: "", imagePublicId: "", linkUrl: "", position: "hero", isActive: true });
     setModalOpen(true);
   };
 
   const openEdit = (banner: Banner) => {
     setEditItem(banner);
-    setForm({ title: banner.title, subtitle: banner.subtitle, imageUrl: banner.imageUrl, linkUrl: banner.linkUrl, position: banner.position, isActive: banner.isActive });
+    setForm({ title: banner.title, subtitle: banner.subtitle, imageUrl: banner.imageUrl, imagePublicId: banner.imagePublicId ?? "", linkUrl: banner.linkUrl, position: banner.position, isActive: banner.isActive });
     setModalOpen(true);
   };
 
@@ -191,7 +192,7 @@ export default function BannersPage() {
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
           </div>
           <div>
-            <MediaPicker value={form.imageUrl} onChange={(url: string) => setForm({ ...form, imageUrl: url })} label="Image URL" folder="banners" />
+            <MediaPicker value={form.imageUrl} onChange={(url: string, publicId?: string) => setForm({ ...form, imageUrl: url, imagePublicId: publicId ?? "" })} label="Image URL" folder="banners" />
           </div>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Link URL</label>

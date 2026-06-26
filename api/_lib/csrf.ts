@@ -16,7 +16,7 @@ const TOKEN_LENGTH = 32;
 const CSRF_COOKIE_NAME = "csrf_token";
 const CSRF_HEADER_NAME = "x-csrf-token";
 
-function generateToken(): string {
+export function generateToken(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let token = "";
   const bytes = new Uint8Array(TOKEN_LENGTH);
@@ -68,7 +68,7 @@ export function validateCsrf(request: Request): boolean {
   return cookieToken === headerToken;
 }
 
-function parseCookies(cookieHeader: string): Record<string, string> {
+export function parseCookies(cookieHeader: string): Record<string, string> {
   const cookies: Record<string, string> = {};
   cookieHeader.split(";").forEach((pair) => {
     const [key, ...val] = pair.trim().split("=");

@@ -18,6 +18,7 @@ export default function ShopTheLookManager({ lookId, onSave, onClose }: ShopTheL
     slug: "",
     description: "",
     image: "",
+    imagePublicId: "",
     products: [],
     tags: [],
     status: "draft",
@@ -75,7 +76,7 @@ export default function ShopTheLookManager({ lookId, onSave, onClose }: ShopTheL
             className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div>
-          <MediaPicker value={form.image} onChange={(url) => setForm({ ...form, image: url })} label="Look Image URL" folder="lookbooks" />
+          <MediaPicker value={form.image} onChange={(url, publicId) => setForm({ ...form, image: url, imagePublicId: publicId ?? "" })} label="Look Image URL" folder="lookbooks" />
         </div>
       </div>
       <div>

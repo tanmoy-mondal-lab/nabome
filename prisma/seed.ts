@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Seeding database...");
 
-  // Clean existing data
+  // Clean existing data (order matters due to foreign keys)
   await prisma.inventoryMovement.deleteMany();
-  await prisma.relatedProduct.deleteMany();
   await prisma.inventoryAlert.deleteMany();
+  await prisma.relatedProduct.deleteMany();
   await prisma.productLabelOnProduct.deleteMany();
   await prisma.productTagOnProduct.deleteMany();
   await prisma.review.deleteMany();
@@ -46,6 +46,21 @@ async function main() {
   await prisma.productLabel.deleteMany();
   await prisma.sizeGuide.deleteMany();
   await prisma.brand.deleteMany();
+  // Clean transactional/audit tables
+  await prisma.notification.deleteMany();
+  await prisma.notificationTemplate.deleteMany();
+  await prisma.userActionLog.deleteMany();
+  await prisma.loginAttempt.deleteMany();
+  await prisma.authSession.deleteMany();
+  await prisma.analyticsEvent.deleteMany();
+  await prisma.webhookEvent.deleteMany();
+  await prisma.returnRequest.deleteMany();
+  await prisma.refund.deleteMany();
+  await prisma.supportTicketReply.deleteMany();
+  await prisma.supportTicket.deleteMany();
+  await prisma.fAQ.deleteMany();
+  await prisma.shippingRate.deleteMany();
+  await prisma.shippingZone.deleteMany();
 
   // ─── Categories ───
   const menCategory = await prisma.category.create({
@@ -333,7 +348,7 @@ async function main() {
     await prisma.productImage.create({
       data: {
         productId: product.id,
-        url: `https://res.cloudinary.com/dewwv3uzt/image/upload/v1/products/product${(i % 3) + 1}`,
+        url: `https://placehold.co/600x800/1B2A4A/FFFFFF?text=${encodeURIComponent(pd.name)}`,
         altText: pd.shortDescription,
         sortOrder: 0,
         isPrimary: true,
@@ -345,7 +360,7 @@ async function main() {
       await prisma.productImage.create({
         data: {
           productId: product.id,
-          url: `https://res.cloudinary.com/dewwv3uzt/image/upload/v1/products/product${(i % 3) + 1}_${j}`,
+          url: `https://placehold.co/600x800/F8F7F4/1A1A1A?text=${encodeURIComponent(`${pd.name} View ${j + 1}`)}`,
           altText: `${pd.name} - View ${j + 1}`,
           sortOrder: j,
           isPrimary: false,
@@ -390,8 +405,8 @@ async function main() {
         subtitle: "Lightweight linen and cotton for the warmer months",
         content: {
           slides: [
-            { image: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/hero/slide1", cta: { text: "Shop Now", link: "/collections/summer-essentials" } },
-            { image: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/hero/slide2", cta: { text: "Explore", link: "/collections/heritage-revival" } },
+            { image: "https://placehold.co/1920x800/1B2A4A/C9A84C?text=Summer+Essentials", cta: { text: "Shop Now", link: "/collections/summer-essentials" } },
+            { image: "https://placehold.co/1920x800/C9A84C/1B2A4A?text=Heritage+Revival", cta: { text: "Explore", link: "/collections/heritage-revival" } },
           ],
         },
         sortOrder: 1,
@@ -507,7 +522,7 @@ async function main() {
           blocks: [
             { type: "heading", content: "The নবME Story" },
             { type: "text", content: "Founded in 2020, নবME was created with a singular vision: to bring the finest of Indian craftsmanship to the global stage. Every piece in our collection is a testament to the skill of our artisans and the richness of our heritage." },
-            { type: "image", url: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/about/workshop" },
+            { type: "image", url: "https://placehold.co/800x600/F8F7F4/1A1A1A?text=Our+Workshop" },
             { type: "heading", content: "Our Craft" },
             { type: "text", content: "From the handloom weavers of Varanasi to the embroiderers of Lucknow, we work directly with artisan communities across India, ensuring fair wages and preserving centuries-old techniques." },
           ],
@@ -539,7 +554,7 @@ async function main() {
     data: {
       title: "Our Heritage",
       subtitle: "Where tradition meets modernity",
-      heroImageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/about/hero",
+      heroImageUrl: "https://placehold.co/1920x800/1B2A4A/C9A84C?text=Our+Heritage",
       content: { blocks: [
         { type: "text", content: "নবME represents the confluence of India's rich textile heritage and contemporary design sensibility. Each creation is a narrative woven with threads of tradition and innovation." },
       ]},
@@ -586,7 +601,7 @@ async function main() {
       name: "Summer Solstice 2024",
       slug: "summer-solstice-2024",
       description: "Embrace the warmth with our curated summer edit — where lightweight fabrics meet effortless elegance.",
-      coverImageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/summer-cover",
+      coverImageUrl: "https://placehold.co/800x600/1B2A4A/C9A84C?text=Summer+Solstice",
       season: "Summer", year: 2024, layout: "editorial",
       story: { narrative: "Inspired by the golden hour, this collection captures the essence of sun-drenched days and balmy evenings. Each piece is designed to move with you, from morning coffees to sunset soirees." },
       tags: ["summer", "linen", "editorial"], isActive: true, sortOrder: 1,
@@ -594,9 +609,9 @@ async function main() {
   });
   await prisma.lookbookItem.createMany({
     data: [
-      { lookbookId: summerLookbook.id, imageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/summer-1", caption: "Linen in the golden hour", sortOrder: 1 },
-      { lookbookId: summerLookbook.id, imageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/summer-2", caption: "Effortless silhouettes", sortOrder: 2 },
-      { lookbookId: summerLookbook.id, imageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/summer-3", caption: "Sunset hues", sortOrder: 3 },
+      { lookbookId: summerLookbook.id, imageUrl: "https://placehold.co/600x800/F8F7F4/1A1A1A?text=Linen+Golden+Hour", caption: "Linen in the golden hour", sortOrder: 1 },
+      { lookbookId: summerLookbook.id, imageUrl: "https://placehold.co/600x800/F8F7F4/1A1A1A?text=Effortless+Silhouettes", caption: "Effortless silhouettes", sortOrder: 2 },
+      { lookbookId: summerLookbook.id, imageUrl: "https://placehold.co/600x800/F8F7F4/1A1A1A?text=Sunset+Hues", caption: "Sunset hues", sortOrder: 3 },
     ],
   });
 
@@ -605,7 +620,7 @@ async function main() {
       name: "Heritage Revival",
       slug: "heritage-revival",
       description: "A tribute to the master artisans who keep India's textile traditions alive.",
-      coverImageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/heritage-cover",
+      coverImageUrl: "https://placehold.co/800x600/C9A84C/1B2A4A?text=Heritage+Revival",
       season: "Festive", year: 2024, layout: "masonry",
       story: { narrative: "Each piece in this lookbook tells a story of generations of craftsmanship. From the handloom weavers of Varanasi to the embroiderers of Lucknow, we celebrate the hands that create magic." },
       tags: ["heritage", "craftsmanship", "festive"], isActive: true, sortOrder: 2,
@@ -613,8 +628,8 @@ async function main() {
   });
   await prisma.lookbookItem.createMany({
     data: [
-      { lookbookId: heritageLookbook.id, imageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/heritage-1", caption: "Banarasi elegance", sortOrder: 1 },
-      { lookbookId: heritageLookbook.id, imageUrl: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/lookbooks/heritage-2", caption: "Zari detailing", sortOrder: 2 },
+      { lookbookId: heritageLookbook.id, imageUrl: "https://placehold.co/600x800/F8F7F4/1A1A1A?text=Banarasi+Elegance", caption: "Banarasi elegance", sortOrder: 1 },
+      { lookbookId: heritageLookbook.id, imageUrl: "https://placehold.co/600x800/F8F7F4/1A1A1A?text=Zari+Detailing", caption: "Zari detailing", sortOrder: 2 },
     ],
   });
 
@@ -710,8 +725,8 @@ async function main() {
   // ─── Media Assets (placeholder) ───
   await prisma.mediaAsset.createMany({
     data: [
-      { url: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/logo/logo", type: "image", folder: "logo", tags: ["logo", "brand"] },
-      { url: "https://res.cloudinary.com/dewwv3uzt/image/upload/v1/hero/main", type: "image", folder: "hero", tags: ["hero", "homepage"] },
+      { url: "https://placehold.co/200x200/1B2A4A/C9A84C?text=Logo", type: "image", folder: "logo", tags: ["logo", "brand"] },
+      { url: "https://placehold.co/1920x800/1B2A4A/C9A84C?text=Hero+Main", type: "image", folder: "hero", tags: ["hero", "homepage"] },
     ],
   });
 

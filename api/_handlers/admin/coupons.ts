@@ -17,11 +17,11 @@ export async function handleAdminCouponRequest(
     case "list":
       return handleList(req, ctx.env);
     case "create":
-      return handleCreate(req, ctx);
+      return handleCreate(req, ctx, ctx.env);
     case "update":
-      return handleUpdate(params[0], req, ctx);
+      return handleUpdate(params[0], req, ctx, ctx.env);
     case "delete":
-      return handleDelete(params[0], req, ctx);
+      return handleDelete(params[0], req, ctx, ctx.env);
     default:
       return badRequest("Unknown action");
   }
@@ -61,6 +61,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
     return badRequest("Code, discount type, discount value, start date, and end date are required");
   }
 
+  const prisma = getPrisma(env);
   const existingCode = await prisma.coupon.findUnique({ where: { code: code.toUpperCase() } });
   if (existingCode) return badRequest("A coupon with this code already exists");
 
@@ -81,7 +82,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
         endDate: new Date(endDate),
       },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.coupons.create", {
+    logAction(ctx.userId, "admin.coupons.create", {
       entity: "coupon",
       entityId: coupon.id,
       metadata: { code: coupon.code, discountType: coupon.discountType },
@@ -115,7 +116,7 @@ async function handleUpdate(couponId: string, req: Request, ctx: RequestContext,
       where: { id: couponId },
       data: data as never,
     });
-    logAction(ctx.userId,  ctx.userId, "admin.coupons.update", {
+    logAction(ctx.userId, "admin.coupons.update", {
       entity: "coupon",
       entityId: coupon.id,
       metadata: { code: coupon.code },
@@ -134,7 +135,7 @@ async function handleDelete(couponId: string, req: Request, ctx: RequestContext,
       where: { id: couponId },
       data: { isActive: false },
     });
-    logAction(ctx.userId,  ctx.userId, "admin.coupons.delete", {
+    logAction(ctx.userId, "admin.coupons.delete", {
       entity: "coupon",
       entityId: couponId,
       ...extractRequestMeta(req),

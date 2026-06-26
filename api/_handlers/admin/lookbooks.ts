@@ -74,22 +74,23 @@ async function handleDetail(id: string, env: any): Promise<Response> {
 
 async function handleCreate(req: Request, env: any): Promise<Response> {
   const body = await req.json();
-  const { name, description, coverImageUrl, season, year, layout, story, tags, metaTitle, metaDesc, isActive, sortOrder } = body;
+  const { name, description, coverImageUrl, coverImagePublicId, season, year, layout, story, tags, metaTitle, metaDesc, isActive, sortOrder } = body;
 
   if (!name) return badRequest("Name is required");
 
   const slug = slugify(name);
+  const prisma = getPrisma(env);
   const slugExists = await prisma.lookbook.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
-    const prisma = getPrisma(env);
     const lookbook = await prisma.lookbook.create({
       data: {
         name,
         slug: finalSlug,
         description: description ?? null,
         coverImageUrl: coverImageUrl ?? "",
+        coverImagePublicId: coverImagePublicId ?? null,
         season: season ?? null,
         year: year ? parseInt(String(year)) : null,
         layout: layout ?? "grid",
@@ -115,7 +116,7 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
     if (!existing) return notFound("Lookbook not found");
 
     const data: Record<string, unknown> = {};
-    const fields = ["name", "description", "coverImageUrl", "layout", "metaTitle", "metaDesc", "isActive", "sortOrder"];
+    const fields = ["name", "description", "coverImageUrl", "coverImagePublicId", "layout", "metaTitle", "metaDesc", "isActive", "sortOrder"];
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = body[field];
     }
@@ -147,7 +148,7 @@ async function handleDelete(lookbookId: string, env: any): Promise<Response> {
 
 async function handleAddItem(lookbookId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
-  const { imageUrl, productId, hotspotX, hotspotY, caption, sortOrder, linkUrl, linkText, type } = body;
+  const { imageUrl, imagePublicId, productId, hotspotX, hotspotY, caption, sortOrder, linkUrl, linkText, type } = body;
 
   if (!imageUrl) return badRequest("Image URL is required");
 
@@ -157,6 +158,7 @@ async function handleAddItem(lookbookId: string, req: Request, env: any): Promis
       data: {
         lookbookId,
         imageUrl,
+        imagePublicId: imagePublicId ?? null,
         productId: toNull(productId),
         hotspotX: hotspotX ? parseFloat(String(hotspotX)) : null,
         hotspotY: hotspotY ? parseFloat(String(hotspotY)) : null,
@@ -175,7 +177,7 @@ async function handleUpdateItem(lookbookId: string, itemId: string, req: Request
   try {
     const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
-    const fields = ["imageUrl", "productId", "caption", "sortOrder"];
+    const fields = ["imageUrl", "imagePublicId", "productId", "caption", "sortOrder"];
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = field === "productId" ? toNull(body[field]) : body[field];
     }
