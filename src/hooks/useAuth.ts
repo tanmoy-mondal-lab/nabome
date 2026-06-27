@@ -104,10 +104,10 @@ export function useAuth() {
     queryClient.clear();
   }, [store, queryClient]);
 
-  const resendVerification = useCallback(async (email: string) => {
+  const resendVerification = useCallback(async (email: string, turnstileToken?: string) => {
     setError(null);
     try {
-      return await authApi.resendVerification(email);
+      return await authApi.resendVerification(email, turnstileToken);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to resend verification email";
       setError(message);
@@ -115,10 +115,10 @@ export function useAuth() {
     }
   }, []);
 
-  const forgotPassword = useCallback(async (email: string) => {
+  const forgotPassword = useCallback(async (email: string, turnstileToken?: string) => {
     setError(null);
     try {
-      return await authApi.forgotPassword(email);
+      return await authApi.forgotPassword(email, turnstileToken);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to send reset code";
       setError(message);
@@ -126,10 +126,10 @@ export function useAuth() {
     }
   }, []);
 
-  const verifyResetCode = useCallback(async (email: string, code: string) => {
+  const verifyResetCode = useCallback(async (email: string, code: string, turnstileToken?: string) => {
     setError(null);
     try {
-      return await authApi.verifyResetCode(email, code);
+      return await authApi.verifyResetCode(email, code, turnstileToken);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Invalid verification code";
       setError(message);
@@ -137,10 +137,10 @@ export function useAuth() {
     }
   }, []);
 
-  const resetPassword = useCallback(async (email: string, code: string, password: string) => {
+  const resetPassword = useCallback(async (email: string, code: string, password: string, turnstileToken?: string) => {
     setError(null);
     try {
-      return await authApi.resetPassword(email, code, password);
+      return await authApi.resetPassword(email, code, password, turnstileToken);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Failed to reset password";
       setError(message);

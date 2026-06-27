@@ -15,7 +15,7 @@ export async function handleAdminLoginAttemptRequest(req: Request, ctx: RequestC
 async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
-  const limit = Math.max(1, parseInt(url.searchParams.get("limit") ?? "25") || 25);
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "25") || 25));
   const email = url.searchParams.get("email");
   const successFilter = url.searchParams.get("success");
   const where: Record<string, unknown> = {};

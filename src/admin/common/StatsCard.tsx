@@ -12,16 +12,18 @@ interface StatsCardProps {
 export function StatsCard({ label, value, change, changeType = "neutral", icon: Icon, onClick }: StatsCardProps) {
   return (
     <div
-      className={`bg-white border border-neutral-200 rounded p-6 ${onClick ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
+      className={`premium-card rounded-2xl p-6 ${onClick ? "cursor-pointer premium-card-lift" : ""}`}
       onClick={onClick}
     >
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs uppercase tracking-wider text-neutral-500 font-medium">{label}</p>
-        <Icon size={18} className="text-neutral-300" />
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-neutral-500 font-medium">{label}</p>
+        <div className="w-9 h-9 rounded-full bg-brand-50 flex items-center justify-center">
+          <Icon size={16} className="text-brand-600" />
+        </div>
       </div>
-      <p className="font-display text-3xl text-neutral-900">{value}</p>
+      <p className="font-display text-3xl text-neutral-900 leading-none">{value}</p>
       {change !== undefined && (
-        <p className={`text-xs mt-1 ${
+        <p className={`text-xs mt-2 ${
           changeType === "positive" ? "text-green-600" :
           changeType === "negative" ? "text-red-600" :
           "text-neutral-400"

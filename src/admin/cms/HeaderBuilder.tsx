@@ -184,7 +184,10 @@ export default function HeaderBuilder() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading navigation…</span>
+        </div>
       </div>
     );
   }
@@ -192,7 +195,7 @@ export default function HeaderBuilder() {
   return (
     <div>
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
           {error}
           <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
         </div>
@@ -203,21 +206,19 @@ export default function HeaderBuilder() {
           <p className="text-sm text-neutral-500 mt-1">Manage navigation menus, mega menus, and header layout</p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium">
+          className="btn-primary">
           <Plus size={16} /> Add Menu
         </button>
       </div>
 
       {menus.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
-          <EmptyState icon={Menu} title="No menus yet" description="Create navigation menus for header, mega menu, etc."
-            action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm">Add Menu</button>}
-          />
-        </div>
+        <EmptyState icon={Menu} title="No menus yet" description="Create navigation menus for header, mega menu, etc."
+          action={<button onClick={openCreate} className="btn-primary">Add Menu</button>}
+        />
       ) : (
         <div className="space-y-3">
           {menus.map((menu) => (
-            <div key={menu.id} className="bg-white border border-neutral-200 rounded overflow-hidden">
+            <div key={menu.id} className="premium-card rounded-2xl overflow-hidden">
               <div className="flex items-center justify-between p-4">
                 <div>
                   <h3 className="font-medium text-sm text-neutral-900">{menu.name}</h3>
@@ -255,7 +256,7 @@ export default function HeaderBuilder() {
       {/* Edit/Create Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editMenu ? "Edit Menu" : "New Menu"} size="xl">
         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Menu Name *</label>
               <input required value={form.name}
@@ -286,10 +287,10 @@ export default function HeaderBuilder() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-neutral-500">Menu Items</span>
               <div className="flex gap-1">
-                <button onClick={() => addItem("link")} className="text-[10px] px-2 py-1 bg-neutral-100 rounded hover:bg-neutral-200">+ Link</button>
-                <button onClick={() => addItem("dropdown")} className="text-[10px] px-2 py-1 bg-neutral-100 rounded hover:bg-neutral-200">+ Dropdown</button>
-                <button onClick={() => addItem("mega_menu")} className="text-[10px] px-2 py-1 bg-neutral-100 rounded hover:bg-neutral-200">+ Mega Menu</button>
-                <button onClick={() => addItem("promotional")} className="text-[10px] px-2 py-1 bg-neutral-100 rounded hover:bg-neutral-200">+ Promo</button>
+                <button onClick={() => addItem("link")} className="text-[10px] px-2 py-1 bg-neutral-100 rounded-xl hover:bg-neutral-200">+ Link</button>
+                <button onClick={() => addItem("dropdown")} className="text-[10px] px-2 py-1 bg-neutral-100 rounded-xl hover:bg-neutral-200">+ Dropdown</button>
+                <button onClick={() => addItem("mega_menu")} className="text-[10px] px-2 py-1 bg-neutral-100 rounded-xl hover:bg-neutral-200">+ Mega Menu</button>
+                <button onClick={() => addItem("promotional")} className="text-[10px] px-2 py-1 bg-neutral-100 rounded-xl hover:bg-neutral-200">+ Promo</button>
               </div>
             </div>
             <div className="space-y-2">
@@ -297,25 +298,25 @@ export default function HeaderBuilder() {
                 <p className="text-xs text-neutral-400 text-center py-4">No menu items. Add links, dropdowns, or mega menus.</p>
               ) : (
                 form.items.map((item, idx) => (
-                  <div key={item.id} className="bg-neutral-50 rounded border border-neutral-100 p-3 space-y-2">
+                  <div key={item.id} className="bg-neutral-50 rounded-xl border border-neutral-100 p-3 space-y-2">
                     <div className="flex items-center gap-2">
                       <GripVertical size={14} className="text-neutral-300 shrink-0" />
                       <select value={item.type}
                         onChange={(e) => updateItem(idx, "type", e.target.value as NavigationItem["type"])}
-                        className="text-xs px-1.5 py-1 border border-neutral-200 rounded bg-white">
+                        className="text-xs px-1.5 py-1 border border-neutral-200 rounded-xl bg-white">
                         <option value="link">Link</option>
                         <option value="dropdown">Dropdown</option>
                         <option value="mega_menu">Mega Menu</option>
                         <option value="promotional">Promotional</option>
                         <option value="divider">Divider</option>
                       </select>
-                      <input placeholder="Label" value={item.label}
-                        onChange={(e) => updateItem(idx, "label", e.target.value)}
-                        className="flex-1 px-2 py-1 text-xs border border-neutral-200 rounded" />
+                        <input placeholder="Label" value={item.label}
+                          onChange={(e) => updateItem(idx, "label", e.target.value)}
+                          className="flex-1 px-2 py-1 text-xs border border-neutral-200 rounded-xl" />
                       {item.type !== "divider" && (
                         <input placeholder="URL" value={item.url}
                           onChange={(e) => updateItem(idx, "url", e.target.value)}
-                          className="w-32 px-2 py-1 text-xs border border-neutral-200 rounded" />
+                          className="w-32 px-2 py-1 text-xs border border-neutral-200 rounded-xl" />
                       )}
                       <input type="text" placeholder="Badge" value={item.badge ?? ""}
                         onChange={(e) => updateItem(idx, "badge", e.target.value)}
@@ -358,7 +359,7 @@ export default function HeaderBuilder() {
                     {/* Mega Menu Columns */}
                     {item.type === "mega_menu" && (
                       <div className="ml-6 space-y-2">
-                        <div className="grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           {item.megaMenuColumns?.map((col, ci) => (
                             <div key={col.id} className="bg-white rounded border border-neutral-100 p-2">
                               <input placeholder="Column title" value={col.title}

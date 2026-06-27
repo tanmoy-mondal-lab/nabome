@@ -2,6 +2,15 @@ import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function generateInvoiceHTML(order: Record<string, unknown>): string {
   const o = order as {
     orderNumber: string;
@@ -54,14 +63,14 @@ function generateInvoiceHTML(order: Record<string, unknown>): string {
     } | null;
   };
 
-  const fmt = (n: number) => `${o.currency} ${n.toFixed(2)}`;
+  const fmt = (n: number) => `${escapeHtml(o.currency)} ${n.toFixed(2)}`;
   const date = new Date(o.createdAt).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
 
   const itemsHtml = o.items.map((item) => `
             <tr>
               <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">
-                <strong>${item.productName}</strong><br>
-                <small style="color: #718096;">${item.variantLabel} | SKU: ${item.sku}</small>
+                <strong>${escapeHtml(item.productName)}</strong><br>
+                <small style="color: #718096;">${escapeHtml(item.variantLabel)} | SKU: ${escapeHtml(item.sku)}</small>
               </td>
               <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${item.quantity}</td>
               <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">${fmt(Number(item.unitPrice))}</td>
@@ -70,8 +79,8 @@ function generateInvoiceHTML(order: Record<string, unknown>): string {
 
   const addrHtml = (addr: typeof o.shippingAddress, label: string) => addr ? `
             <div style="margin-bottom: 16px;">
-              <strong style="color: #4a5568; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">${label}</strong>
-              <p style="margin: 4px 0; color: #2d3748;">${addr.fullName}<br>${addr.line1}${addr.line2 ? `<br>${addr.line2}` : ""}<br>${addr.city}, ${addr.state} ${addr.pincode}<br>${addr.country}<br>Phone: ${addr.phone}</p>
+              <strong style="color: #4a5568; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">${escapeHtml(label)}</strong>
+              <p style="margin: 4px 0; color: #2d3748;">${escapeHtml(addr.fullName)}<br>${escapeHtml(addr.line1)}${addr.line2 ? `<br>${escapeHtml(addr.line2)}` : ""}<br>${escapeHtml(addr.city)}, ${escapeHtml(addr.state)} ${escapeHtml(addr.pincode)}<br>${escapeHtml(addr.country)}<br>Phone: ${escapeHtml(addr.phone)}</p>
             </div>` : "";
 
   return `<!DOCTYPE html>
@@ -110,7 +119,7 @@ function generateInvoiceHTML(order: Record<string, unknown>): string {
       </div>
       <div class="meta">
         <div><strong>INVOICE</strong></div>
-        <div>${o.orderNumber}</div>
+        <div>${escapeHtml(o.orderNumber)}</div>
         <div>Date: ${date}</div>
       </div>
     </div>
@@ -119,17 +128,17 @@ function generateInvoiceHTML(order: Record<string, unknown>): string {
         <div style="flex: 1;">
           <div class="section-title">Customer</div>
           <p style="margin: 4px 0; color: #2d3748;">
-            ${o.profile ? `${o.profile.firstName} ${o.profile.lastName ?? ""}`.trim() : "Guest"}<br>
-            Email: ${o.email}<br>
-            ${o.profile?.phone ? `Phone: ${o.profile.phone}` : ""}
+            ${o.profile ? `${escapeHtml(o.profile.firstName)} ${escapeHtml(o.profile.lastName ?? "")}`.trim() : "Guest"}<br>
+            Email: ${escapeHtml(o.email)}<br>
+            ${o.profile?.phone ? `Phone: ${escapeHtml(o.profile.phone)}` : ""}
           </p>
         </div>
         <div style="flex: 1;">
           <div class="section-title">Payment</div>
           <p style="margin: 4px 0; color: #2d3748;">
-            Method: ${o.paymentMethod}<br>
-            Status: ${o.paymentStatus}<br>
-            Order Status: ${o.status}
+            Method: ${escapeHtml(o.paymentMethod)}<br>
+            Status: ${escapeHtml(o.paymentStatus)}<br>
+            Order Status: ${escapeHtml(o.status)}
           </p>
         </div>
       </div>
@@ -155,8 +164,8 @@ function generateInvoiceHTML(order: Record<string, unknown>): string {
         <p class="grand-total">Total: ${fmt(Number(o.total))}</p>
       </div>
 
-      ${o.notes ? `<div style="margin-top: 16px; padding: 12px; background: #fffbeb; border-radius: 8px; font-size: 13px;"><strong>Notes:</strong> ${o.notes}</div>` : ""}
-      ${o.giftMessage ? `<div style="margin-top: 8px; padding: 12px; background: #f0fff4; border-radius: 8px; font-size: 13px;"><strong>Gift Message:</strong> ${o.giftMessage}</div>` : ""}
+      ${o.notes ? `<div style="margin-top: 16px; padding: 12px; background: #fffbeb; border-radius: 8px; font-size: 13px;"><strong>Notes:</strong> ${escapeHtml(o.notes)}</div>` : ""}
+      ${o.giftMessage ? `<div style="margin-top: 8px; padding: 12px; background: #f0fff4; border-radius: 8px; font-size: 13px;"><strong>Gift Message:</strong> ${escapeHtml(o.giftMessage)}</div>` : ""}
 
       <div class="payment-info">
         <strong>Thank you for shopping with নবME!</strong><br>

@@ -6,6 +6,7 @@ import { useUIStore } from "../stores/ui-store";
 import { useSearch } from "../hooks/useProducts";
 import { useCategories } from "../hooks/useCategories";
 import { SafeImage } from "../../components/SafeImage";
+import { formatPrice } from "../../lib/utils/format";
 
 const TRENDING = ["Summer Dresses", "Linen Shirts", "Leather Bags", "Sneakers", "Silk Scarves"];
 
@@ -157,7 +158,7 @@ export function SearchOverlay() {
                           <SafeImage src={images[0]?.url} alt={p.name as string} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         </div>
                         <p className="text-sm font-medium text-neutral-900 truncate">{p.name as string}</p>
-                        <p className="text-sm text-brand-600">₹{Number(p.basePrice).toLocaleString("en-IN")}</p>
+                        <p className="text-sm text-brand-600">{formatPrice(Number(p.basePrice))}</p>
                       </Link>
                     );
                   })}

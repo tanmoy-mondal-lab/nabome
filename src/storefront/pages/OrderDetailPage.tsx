@@ -262,9 +262,14 @@ export default function OrderDetailPage() {
               </Link>
             )}
             {(order.status === "shipped" || order.status === "processing") && (
-              <button className="btn-ghost flex items-center gap-2">
+              <a
+                href={`https://www.google.com/search?q=track+${order.orderNumber}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-ghost flex items-center gap-2"
+              >
                 <Truck className="w-3 h-3" /> Track Package
-              </button>
+              </a>
             )}
             <Link
               to={`/api/orders/${order.id}/invoice`}

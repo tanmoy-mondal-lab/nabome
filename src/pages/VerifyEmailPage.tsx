@@ -2,6 +2,7 @@ import { useState, useRef, type KeyboardEvent, type ClipboardEvent } from "react
 import { useSearchParams, Link } from "react-router-dom";
 import { authApi } from "../lib/api/auth";
 import { AlertCircle, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
+import { AuthShell } from "./AuthShell";
 
 const OTP_LENGTH = 6;
 
@@ -89,39 +90,54 @@ export default function VerifyEmailPage() {
 
   if (!email) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-sm border border-neutral-200 p-8 text-center">
+      <AuthShell
+        title="Verify your email"
+        subtitle="We could not find an email address to verify"
+        heroTitle="Security First"
+        heroSubtitle="Confirm your identity before you enter the store"
+      >
+        <div className="premium-card rounded-2xl p-8 text-center">
           <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
           <h1 className="text-xl font-semibold text-neutral-900 mb-2">Missing Email</h1>
           <p className="text-neutral-500 text-sm mb-6">No email address was provided. Please sign up again.</p>
-          <Link to="/auth/register" className="inline-block px-6 py-2.5 bg-neutral-900 text-white text-sm font-medium rounded hover:bg-neutral-800 transition-colors">Sign Up</Link>
+          <Link to="/auth/register" className="btn-primary">Sign Up</Link>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   if (state === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-sm border border-neutral-200 p-8 text-center">
+      <AuthShell
+        title="Verify your email"
+        subtitle="Please wait while we confirm your code"
+        heroTitle="Security First"
+        heroSubtitle="Confirm your identity before you enter the store"
+      >
+        <div className="premium-card rounded-2xl p-8 text-center">
           <Loader2 className="w-12 h-12 animate-spin text-brand-500 mx-auto mb-4" />
           <h1 className="text-xl font-semibold text-neutral-900 mb-2">Verifying your email…</h1>
           <p className="text-neutral-500 text-sm">Please wait while we confirm your code.</p>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   if (state === "success") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-sm border border-neutral-200 p-8 text-center">
+      <AuthShell
+        title="Email verified"
+        subtitle="Your account is ready"
+        heroTitle="Welcome In"
+        heroSubtitle="You can now sign in and continue shopping"
+      >
+        <div className="premium-card rounded-2xl p-8 text-center">
           <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
           <h1 className="text-xl font-semibold text-neutral-900 mb-2">Email Verified!</h1>
           <p className="text-neutral-500 text-sm mb-6">{message || "Your email has been verified successfully."}</p>
-          <Link to="/auth/login" className="inline-block px-6 py-2.5 bg-neutral-900 text-white text-sm font-medium rounded hover:bg-neutral-800 transition-colors">Sign In</Link>
+          <Link to="/auth/login" className="btn-primary">Sign In</Link>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
@@ -129,8 +145,13 @@ export default function VerifyEmailPage() {
   const isComplete = code.length === OTP_LENGTH;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-sm border border-neutral-200 p-8">
+    <AuthShell
+      title="Verify your email"
+      subtitle="Enter the 6-digit code we sent to your inbox"
+      heroTitle="Premium Access"
+      heroSubtitle="A verified email keeps your account secure"
+    >
+      <div className="premium-card rounded-2xl p-8">
         <Link to="/auth/login" className="inline-flex items-center text-sm text-neutral-500 hover:text-neutral-700 mb-6">
           <ArrowLeft className="w-4 h-4 mr-1" /> Back to Sign In
         </Link>
@@ -185,6 +206,6 @@ export default function VerifyEmailPage() {
           </button>
         </p>
       </div>
-    </div>
+    </AuthShell>
   );
 }

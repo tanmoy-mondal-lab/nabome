@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { PhoneInput } from "../components/PhoneInput";
 import { PasswordInput } from "../components/PasswordInput";
+import { TurnstileWidget } from "../components/TurnstileWidget";
+import { turnstileEnabled, turnstileSiteKey } from "../lib/config";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -16,6 +18,9 @@ export default function RegisterPage() {
     confirmPassword: "",
   });
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileError, setTurnstileError] = useState("");
+  const [turnstileNonce, setTurnstileNonce] = useState(0);
 
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -33,7 +38,12 @@ export default function RegisterPage() {
       setValidationError("Passwords do not match");
       return;
     }
+    if (turnstileEnabled && !turnstileToken) {
+      setValidationError("Please complete the verification challenge");
+      return;
+    }
 
+    const shouldResetTurnstile = turnstileEnabled && !!turnstileToken;
     try {
       await register({
         email: form.email,
@@ -41,14 +51,20 @@ export default function RegisterPage() {
         firstName: form.firstName,
         lastName: form.lastName || undefined,
         phone: form.phone || undefined,
+        turnstileToken: turnstileToken || undefined,
       });
       navigate(`/auth/verify-email?email=${encodeURIComponent(form.email)}`);
     } catch {
       // Error set by hook
+    } finally {
+      if (shouldResetTurnstile) {
+        setTurnstileToken("");
+        setTurnstileNonce((value) => value + 1);
+      }
     }
   };
 
-  const displayError = validationError || error;
+  const displayError = validationError || turnstileError || error;
 
   return (
     <div className="min-h-screen flex">
@@ -112,7 +128,19 @@ export default function RegisterPage() {
               <PasswordInput id="confirmPassword" value={form.confirmPassword} onChange={(v) => setForm((p) => ({ ...p, confirmPassword: v }))} placeholder="Re-enter password" required autoComplete="new-password" />
             </div>
 
-            <button type="submit" disabled={isLoading} className="btn-primary w-full mt-6">
+            {turnstileEnabled && (
+              <TurnstileWidget
+                key={turnstileNonce}
+                siteKey={turnstileSiteKey}
+                onTokenChange={(token) => {
+                  setTurnstileToken(token);
+                  if (token) setTurnstileError("");
+                }}
+                onError={setTurnstileError}
+              />
+            )}
+
+            <button type="submit" disabled={isLoading || (turnstileEnabled && !turnstileToken)} className="btn-primary w-full mt-6">
               {isLoading ? "Creating account…" : "Create Account"}
             </button>
           </form>

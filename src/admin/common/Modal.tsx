@@ -13,11 +13,19 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === "Escape") onClose();
+      };
+      document.addEventListener("keydown", handleEscape);
+      return () => {
+        document.body.style.overflow = "";
+        document.removeEventListener("keydown", handleEscape);
+      };
     } else {
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [open]);
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -31,14 +39,14 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className={`relative w-full ${sizeClasses[size]} bg-white rounded-xl shadow-xl max-h-[90vh] flex flex-col`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100">
+      <div className={`relative w-full ${sizeClasses[size]} bg-white rounded-2xl shadow-modal max-h-[90vh] flex flex-col overflow-hidden`}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 bg-white/90 backdrop-blur-sm">
           <h2 className="font-display text-lg text-neutral-900">{title}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors">
+          <button onClick={onClose} className="p-2 rounded-full text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors">
             <X size={18} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
           {children}
         </div>
       </div>

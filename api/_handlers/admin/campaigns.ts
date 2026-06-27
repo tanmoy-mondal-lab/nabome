@@ -34,6 +34,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
 async function handleCreate(req: Request, env: any): Promise<Response> {
   const body = await req.json();
   if (!body.name || !body.type || !body.startDate) return badRequest("Name, type, and startDate are required");
+  if (body.endDate && new Date(body.endDate) < new Date(body.startDate)) return badRequest("End date must be after start date");
   try {
     const prisma = getPrisma(env);
     const item = await prisma.campaign.create({ data: { name: body.name, description: body.description ?? null, type: body.type, startDate: new Date(body.startDate), endDate: body.endDate ? new Date(body.endDate) : null, isActive: body.isActive ?? true, metadata: body.metadata ?? null } });

@@ -6,7 +6,6 @@ import { Grid3X3, List, SlidersHorizontal, X, ChevronDown, RefreshCw } from "luc
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 import { ProductGrid } from "../components/ProductGrid";
-import { QuickViewModal } from "../components/QuickViewModal";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { PriceDisplay } from "../components/PriceDisplay";
 import { cn } from "../../lib/utils/cn";
@@ -35,7 +34,6 @@ export default function ProductListingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
-  const [quickViewProduct, setQuickViewProduct] = useState<Record<string, unknown> | null>(null);
   const [aggregations, setAggregations] = useState<Aggregation>({});
   const queryClient = useQueryClient();
 
@@ -340,9 +338,6 @@ export default function ProductListingPage() {
         </div>
       </div>
 
-      {quickViewProduct && (
-        <QuickViewModal isOpen={true} product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
-      )}
     </>
   );
 }

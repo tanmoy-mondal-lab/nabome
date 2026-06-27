@@ -77,7 +77,7 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
       {/* Video backgrounds */}
       {slides.map((s, i) => (
         <video
-          key={s.id}
+          key={`${s.id || s.title || "slide"}-${i}`}
           ref={(el) => { videoRefs.current[i] = el; }}
           src={s.videoUrl}
           poster={s.posterUrl || undefined}
@@ -148,7 +148,7 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
           <div className="flex items-center gap-2">
             {slides.map((_, i) => (
               <button
-                key={i}
+                key={`dot-${i}`}
                 onClick={() => goTo(i)}
                 className={`w-2 h-2 rounded-full transition-all duration-500 ${
                   i === current ? "bg-white w-6" : "bg-white/40 hover:bg-white/60"

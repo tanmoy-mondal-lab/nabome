@@ -232,8 +232,17 @@ export default function ProductsPage() {
 
   async function handleExport() {
     try {
-      const res = await adminApi.exportProducts("csv");
-      const blob = new Blob([JSON.stringify(res)], { type: "text/csv" });
+      const res = await adminApi.exportProducts("csv") as Record<string, unknown>;
+      const products = (res.products ?? res) as Product[];
+      const headers = ["Name", "Slug", "Base Price", "Sale Price", "Category", "Subcategory", "Collection", "Brand", "Gender", "Stock", "Active", "Featured", "New", "Created At"];
+      const rows = products.map((p) => [
+        p.name, p.slug, p.basePrice ?? 0, p.salePrice ?? "",
+        p.category?.name ?? "", p.subcategory?.name ?? "", p.collection?.name ?? "", p.brand?.name ?? "",
+        p.gender, p.totalStock ?? 0, p.isActive ? "Yes" : "No", p.isFeatured ? "Yes" : "No", p.isNew ? "Yes" : "No",
+        p.createdAt ?? "",
+      ]);
+      const csv = [headers.join(","), ...rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))].join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

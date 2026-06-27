@@ -1,9 +1,11 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { slugify } from "../../../src/lib/utils/format";
+import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
+import { destroyCloudinaryAssetIfReplaced } from "../../_lib/cloudinary";
+import { toNull } from "../../_lib/sanitize";
 
 export async function handleAdminBrandRequest(
   req: Request,
@@ -76,9 +78,19 @@ async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: 
     const existing = await prisma.brand.findUnique({ where: { id } });
     if (!existing) return notFound("Brand not found");
     const data: Record<string, unknown> = {};
-    const fields = ["name", "description", "logoUrl", "logoPublicId", "websiteUrl", "sortOrder", "isActive"];
+    const fields = ["name", "description", "logoUrl", "websiteUrl", "sortOrder", "isActive"];
     for (const f of fields) { if (body[f] !== undefined) data[f] = body[f]; }
-    if (body.name) data.slug = slugify(body.name);
+    if (body.logoUrl !== undefined) data.logoUrl = toNull(body.logoUrl);
+    if (body.logoPublicId !== undefined) {
+      data.logoPublicId = await destroyCloudinaryAssetIfReplaced(existing.logoPublicId, body.logoPublicId, env);
+    }
+    if (body.name) {
+      const newSlug = slugify(body.name);
+      const slugExists = await prisma.brand.findFirst({
+        where: { slug: newSlug, id: { not: id } },
+      });
+      data.slug = slugExists ? `${newSlug}-${Date.now().toString(36)}` : newSlug;
+    }
     const brand = await prisma.brand.update({ where: { id }, data: data as never });
     logAction(ctx.userId, "admin.brands.update", {
       entity: "brand",

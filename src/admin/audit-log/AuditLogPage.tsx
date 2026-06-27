@@ -1,8 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
+import { DataTable } from "../common/DataTable";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { ClipboardList, Search, FileText } from "lucide-react";
+import { formatDate } from "../../lib/utils/format";
 
 interface Log {
   id: string;
@@ -15,38 +18,68 @@ interface Log {
 }
 
 export default function AuditLogPage() {
-  const [logs, setLogs] = useState<Log[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState<{ page: number; perPage: number; total: number; totalPages: number } | null>(null);
   const [actionFilter, setActionFilter] = useState("");
   const [entityFilter, setEntityFilter] = useState("");
   const [metadataModal, setMetadataModal] = useState<Log | null>(null);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "auditLog", page, actionFilter, entityFilter],
+    queryFn: async () => {
       const params: Record<string, string | number | undefined> = { page, limit: 20 };
       if (actionFilter) params.action = actionFilter;
       if (entityFilter) params.entity = entityFilter;
       const res = await adminApi.getAuditLog(params);
-      setLogs((res.logs as Log[]) ?? []);
-      setPagination((res.pagination as typeof pagination) ?? null);
-    } catch { /* non-critical: failed to fetch audit logs */ } finally {
-      setLoading(false);
-    }
-  }, [page, actionFilter, entityFilter]);
+      return {
+        logs: (res.logs as Log[]) ?? [],
+        pagination: (res.pagination as { total: number; totalPages: number }) ?? { total: 0, totalPages: 1 },
+      };
+    },
+  });
 
-  useEffect(() => { fetch(); }, [fetch]);
+  const logs = data?.logs ?? [];
+  const pagination = data?.pagination;
 
-  const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-
-  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
-
-  if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>;
-  }
+  const columns = [
+    {
+      key: "action", label: "Action",
+      render: (l: Log) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-neutral-100 text-neutral-700">
+          {l.action}
+        </span>
+      ),
+    },
+    {
+      key: "entity", label: "Entity",
+      render: (l: Log) => <span className="text-neutral-700 capitalize">{l.entity}</span>,
+    },
+    {
+      key: "entityId", label: "Entity ID",
+      render: (l: Log) => <span className="text-neutral-500 font-mono text-xs">{l.entityId.slice(0, 8)}...</span>,
+    },
+    {
+      key: "profile", label: "User",
+      render: (l: Log) => (
+        <div>
+          <p className="text-neutral-700">{l.profile.firstName} {l.profile.lastName}</p>
+          <p className="text-xs text-neutral-400">{l.profile.email}</p>
+        </div>
+      ),
+    },
+    {
+      key: "createdAt", label: "Timestamp",
+      render: (l: Log) => <span className="text-neutral-500 whitespace-nowrap">{formatDate(l.createdAt)}</span>,
+    },
+    {
+      key: "metadata", label: "",
+      render: (l: Log) => l.metadata ? (
+        <button onClick={(ev) => { ev.stopPropagation(); setMetadataModal(l); }}
+          className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-700 text-xs font-medium">
+          <FileText size={14} /> View
+        </button>
+      ) : null,
+    },
+  ];
 
   return (
     <div>
@@ -62,7 +95,7 @@ export default function AuditLogPage() {
               value={actionFilter}
               onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
               placeholder="Filter by action..."
-              className="pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 w-44"
+              className="pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 w-44"
             />
           </div>
           <div className="relative">
@@ -71,87 +104,22 @@ export default function AuditLogPage() {
               value={entityFilter}
               onChange={(e) => { setEntityFilter(e.target.value); setPage(1); }}
               placeholder="Filter by entity..."
-              className="pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 w-44"
+              className="pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 w-44"
             />
           </div>
         </div>
       </div>
 
-      {logs.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
-          <EmptyState icon={ClipboardList} title="No audit log entries" description={actionFilter || entityFilter ? "Try different filters" : undefined} />
-        </div>
+      {logs.length === 0 && !isLoading ? (
+        <EmptyState icon={ClipboardList} title="No audit log entries" description={actionFilter || entityFilter ? "Try different filters" : undefined} />
       ) : (
-        <div className="bg-white border border-neutral-200 rounded overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-neutral-200 bg-neutral-50">
-                <th className="text-left px-4 py-3 font-medium text-neutral-600">Action</th>
-                <th className="text-left px-4 py-3 font-medium text-neutral-600">Entity</th>
-                <th className="text-left px-4 py-3 font-medium text-neutral-600">Entity ID</th>
-                <th className="text-left px-4 py-3 font-medium text-neutral-600">User</th>
-                <th className="text-left px-4 py-3 font-medium text-neutral-600">Timestamp</th>
-                <th className="text-right px-4 py-3 font-medium text-neutral-600">Details</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((l) => (
-                <tr key={l.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-neutral-100 text-neutral-700">
-                      {l.action}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-neutral-700 capitalize">{l.entity}</td>
-                  <td className="px-4 py-3 text-neutral-500 font-mono text-xs">{l.entityId}</td>
-                  <td className="px-4 py-3 text-neutral-700">
-                    {l.profile.firstName} {l.profile.lastName}
-                    <p className="text-xs text-neutral-400">{l.profile.email}</p>
-                  </td>
-                  <td className="px-4 py-3 text-neutral-500 whitespace-nowrap">{formatDate(l.createdAt)}</td>
-                  <td className="px-4 py-3 text-right">
-                    {l.metadata && (
-                      <button
-                        onClick={() => setMetadataModal(l)}
-                        className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-700 text-xs font-medium"
-                      >
-                        <FileText size={14} /> View
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 text-sm">
-          <span className="text-neutral-500">
-            Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
-          </span>
-          <div className="flex gap-2">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage(page - 1)}
-              className="px-3 py-1.5 border border-neutral-200 rounded text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <button
-              disabled={page >= pagination.totalPages}
-              onClick={() => setPage(page + 1)}
-              className="px-3 py-1.5 border border-neutral-200 rounded text-neutral-600 hover:bg-neutral-50 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <DataTable columns={columns} data={logs} isLoading={isLoading}
+          page={page} totalPages={pagination?.totalPages ?? 1} onPageChange={setPage}
+          emptyMessage="No audit log entries" />
       )}
 
       <Modal open={!!metadataModal} onClose={() => setMetadataModal(null)} title="Metadata Details" size="lg">
-        <pre className="text-xs bg-neutral-50 border border-neutral-200 rounded p-4 overflow-auto max-h-96 text-neutral-800 font-mono leading-relaxed">
+        <pre className="text-xs bg-neutral-50 border border-neutral-200 rounded-xl p-4 overflow-auto max-h-96 text-neutral-800 font-mono leading-relaxed">
           {JSON.stringify(metadataModal?.metadata, null, 2)}
         </pre>
       </Modal>

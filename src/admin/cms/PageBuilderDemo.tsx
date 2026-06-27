@@ -98,7 +98,10 @@ export function PageBuilderDemo() {
   if (loadingPage) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading page builder…</span>
+        </div>
       </div>
     );
   }
@@ -132,7 +135,7 @@ export function PageBuilderDemo() {
         <h1 className="font-display text-2xl text-neutral-900">Page Builder</h1>
         <p className="text-sm text-neutral-500 mt-1">Drag and drop to build your page. Add, reorder, and configure sections.</p>
       </div>
-      <div className="mb-4 bg-white border border-neutral-200 rounded-lg p-4">
+      <div className="mb-4 premium-card rounded-2xl p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Page Title *</label>
@@ -145,7 +148,7 @@ export function PageBuilderDemo() {
                 }
               }}
               placeholder="Enter page title"
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           <div>
@@ -154,7 +157,7 @@ export function PageBuilderDemo() {
               value={pageSlug}
               onChange={(e) => setPageSlug(e.target.value)}
               placeholder="page-url-slug"
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
         </div>

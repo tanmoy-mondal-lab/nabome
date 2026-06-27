@@ -141,7 +141,8 @@ async function handleUpdate(customerId: string, req: Request, env: any): Promise
     if (!existing) return notFound("Customer not found");
 
     const data: Record<string, unknown> = {};
-    const fields = ["firstName", "lastName", "email", "phone", "avatarUrl", "isActive", "role", "marketingOptIn"];
+    // Role is excluded from bulk update to prevent privilege escalation
+    const fields = ["firstName", "lastName", "phone", "avatarUrl", "isActive", "marketingOptIn"];
     for (const f of fields) {
       if (body[f] !== undefined) data[f] = body[f];
     }

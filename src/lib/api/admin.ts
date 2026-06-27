@@ -109,6 +109,8 @@ export const adminApi = {
     api.get<{ reviews: unknown[]; pagination: unknown }>("/admin/reviews", { params }),
   approveReview: (id: string, approved: boolean) =>
     api.put<unknown>(`/admin/reviews/${id}/approve`, { approved }),
+  deleteReview: (id: string) =>
+    api.delete<{ message: string }>(`/admin/reviews/${id}`),
 
   // Analytics
   getSalesAnalytics: (params?: Record<string, string | undefined>) =>

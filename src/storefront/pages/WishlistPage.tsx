@@ -24,8 +24,8 @@ export default function WishlistPage() {
       setLoading(false);
       return;
     }
-    // Wishlist hook auto-fetches, just wait a tick
-    const timer = setTimeout(() => setLoading(false), 500);
+    // Wait for wishlist data to load from hook
+    const timer = setTimeout(() => setLoading(false), 300);
     return () => clearTimeout(timer);
   }, [isAuthenticated]);
 

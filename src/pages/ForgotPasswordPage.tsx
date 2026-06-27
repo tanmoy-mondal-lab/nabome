@@ -1,8 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { PasswordInput } from "../components/PasswordInput";
 import { ApiError } from "../lib/api/client";
+import { TurnstileWidget } from "../components/TurnstileWidget";
+import { turnstileEnabled, turnstileSiteKey } from "../lib/config";
+import { AuthShell } from "./AuthShell";
 
 const OTP_LENGTH = 6;
 
@@ -16,18 +19,41 @@ export default function ForgotPasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileError, setTurnstileError] = useState("");
+  const [turnstileNonce, setTurnstileNonce] = useState(0);
   const otpRefs = useRef<(HTMLInputElement | null)[]>(Array(OTP_LENGTH).fill(null));
+
+  useEffect(() => {
+    if (step === "email") {
+      setTurnstileToken("");
+      setTurnstileError("");
+      setTurnstileNonce((value) => value + 1);
+    }
+  }, [step]);
 
   async function handleSendCode(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setTurnstileError("");
+    if (turnstileEnabled && !turnstileToken) {
+      setError("Please complete the verification challenge");
+      return;
+    }
+
+    const shouldResetTurnstile = turnstileEnabled && !!turnstileToken;
     try {
-      await forgotPassword(email);
+      await forgotPassword(email, turnstileToken || undefined);
       setSent(true);
       setStep("otp");
       setTimeout(() => otpRefs.current[0]?.focus(), 100);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to send code");
+    } finally {
+      if (shouldResetTurnstile) {
+        setTurnstileToken("");
+        setTurnstileNonce((value) => value + 1);
+      }
     }
   }
 
@@ -119,28 +145,38 @@ export default function ForgotPasswordPage() {
     }
   }
 
+  const shellTitle =
+    step === "email" ? "Forgot password" : step === "otp" ? "Check your email" : "Reset your password";
+  const shellSubtitle =
+    step === "email"
+      ? "Enter your email and we'll send you a verification code"
+      : step === "otp"
+        ? `Enter the 6-digit code sent to ${email}`
+        : "Choose a new password for your account";
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <Link to="/" className="font-display text-3xl tracking-widest text-brand-500">
-            নবME
-          </Link>
-          <h1 className="mt-6 font-display text-2xl text-neutral-900">
-            {step === "email" && "Forgot password"}
-            {step === "otp" && "Check your email"}
-            {step === "password" && "Reset your password"}
-          </h1>
-          <p className="mt-2 text-sm text-neutral-500">
-            {step === "email" && "Enter your email and we'll send you a verification code"}
-            {step === "otp" && `Enter the 6-digit code sent to ${email}`}
-            {step === "password" && "Choose a new password for your account"}
-          </p>
+    <AuthShell
+      title={shellTitle}
+      subtitle={shellSubtitle}
+      heroTitle="Account Recovery"
+      heroSubtitle="Secure recovery flows keep the storefront trustworthy"
+    >
+      <div className="premium-card rounded-2xl p-8">
+        <div className="text-center mb-8">
+          <h2 className="font-display text-2xl text-neutral-900">
+            {step === "password" ? "Set a new password" : shellTitle}
+          </h2>
+          <p className="mt-2 text-sm text-neutral-500">{shellSubtitle}</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
             <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+        {turnstileError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <p className="text-sm text-red-700">{turnstileError}</p>
           </div>
         )}
 
@@ -161,7 +197,18 @@ export default function ForgotPasswordPage() {
                 placeholder="your@email.com"
               />
             </div>
-            <button type="submit" disabled={isLoading} className="btn-primary w-full">
+            {turnstileEnabled && (
+              <TurnstileWidget
+                key={turnstileNonce}
+                siteKey={turnstileSiteKey}
+                onTokenChange={(token) => {
+                  setTurnstileToken(token);
+                  if (token) setTurnstileError("");
+                }}
+                onError={setTurnstileError}
+              />
+            )}
+            <button type="submit" disabled={isLoading || (turnstileEnabled && !turnstileToken)} className="btn-primary w-full">
               {isLoading ? "Sending…" : "Send Verification Code"}
             </button>
           </form>
@@ -251,6 +298,6 @@ export default function ForgotPasswordPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }

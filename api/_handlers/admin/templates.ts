@@ -1,8 +1,10 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { slugify } from "../../../src/lib/utils/format";
+import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth";
+import { destroyCloudinaryAssetIfReplaced, destroyCloudinaryAsset } from "../../_lib/cloudinary";
+import { toNull } from "../../_lib/sanitize";
 
 export async function handleAdminTemplateRequest(
   req: Request,
@@ -92,9 +94,12 @@ async function handleUpdate(templateId: string, req: Request, env: any): Promise
     if (!existing) return notFound("Template not found");
 
     const data: Record<string, unknown> = {};
-    const fields = ["name", "description", "category", "thumbnail", "thumbnailPublicId", "sections", "metadata", "isActive"];
+    const fields = ["name", "description", "category", "thumbnail", "sections", "metadata", "isActive"];
     for (const field of fields) {
-      if (body[field] !== undefined) data[field] = body[field];
+      if (body[field] !== undefined) data[field] = field === "thumbnail" ? toNull(body[field]) : body[field];
+    }
+    if (body.thumbnailPublicId !== undefined) {
+      data.thumbnailPublicId = await destroyCloudinaryAssetIfReplaced(existing.thumbnailPublicId, body.thumbnailPublicId, env);
     }
     if (body.name) data.slug = slugify(body.name);
 
@@ -111,6 +116,11 @@ async function handleUpdate(templateId: string, req: Request, env: any): Promise
 async function handleDelete(templateId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const template = await prisma.pageTemplate.findUnique({ where: { id: templateId } });
+    if (!template) return notFound("Template not found");
+    if (template.thumbnailPublicId) {
+      await destroyCloudinaryAsset(template.thumbnailPublicId, env);
+    }
     await prisma.pageTemplate.delete({ where: { id: templateId } });
     return success({ message: "Template deleted" });
   } catch (err) {

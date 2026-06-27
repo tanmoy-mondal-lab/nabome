@@ -23,11 +23,14 @@ import { addRecentlyViewed } from "../lib/recommendations";
 import { cn } from "../../lib/utils/cn";
 import { canonical, productSchema, breadcrumbSchema } from "../../lib/seo";
 import { img } from "../../lib/seo";
+import { useSettings } from "../hooks/useSettings";
+import { formatPrice } from "../../lib/utils/format";
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { data: productData, isLoading: loading, error: queryError } = useProduct(slug);
+  const { data: settingsData } = useSettings();
   const product = (productData as { product?: Record<string, unknown> })?.product;
   const related = (product?.relatedProducts as Record<string, unknown>[]) ?? [];
   const [selectedSize, setSelectedSize] = useState("");
@@ -43,6 +46,11 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (product?.slug) addRecentlyViewed(product.slug as string);
   }, [product?.slug]);
+
+  useEffect(() => {
+    if (!product?.name) return;
+    document.title = `${product.name as string} — নবME`;
+  }, [product?.name]);
 
   const error = queryError ? "Failed to load product." : null;
 
@@ -152,10 +160,12 @@ export default function ProductDetailPage() {
   const reviews = product.reviews as { average?: number; distribution?: number[]; items?: Record<string, unknown>[] } | undefined;
   const averageRating = reviews?.average ?? 0;
 
+  const freeShippingThreshold = Number((settingsData?.preferences as Record<string, unknown>)?.freeShippingThreshold ?? 500);
+  const sizeGuideData = product.sizeGuide as { measurements?: { size: string; chest?: string; waist?: string; length?: string }[] } | undefined;
+
   return (
     <div className="bg-white">
       <Helmet>
-        <title>{product.name as string} — নবME</title>
         <meta name="description" content={(product.description as string)?.slice(0, 160)} />
         <link rel="canonical" href={canonical(`/products/${slug}`)} />
         <meta name="robots" content="index, follow" />
@@ -171,7 +181,6 @@ export default function ProductDetailPage() {
         )}
 
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:site" content="@নবME" />
         <meta name="twitter:title" content={`${product.name as string} — নবME`} />
         <meta name="twitter:description" content={(product.description as string)?.slice(0, 160)} />
         {(product.images as { url: string }[])?.[0] && (
@@ -344,7 +353,7 @@ export default function ProductDetailPage() {
 
             <div className="grid grid-cols-3 gap-px bg-neutral-100 overflow-hidden">
               {[
-                { icon: Truck, label: "Free Shipping", desc: "Orders above ₹999" },
+                { icon: Truck, label: "Free Shipping", desc: `Orders above ${formatPrice(freeShippingThreshold)}` },
                 { icon: RotateCcw, label: "Easy Returns", desc: "30-day policy" },
                 { icon: Shield, label: "Secure", desc: "Checkout" },
               ].map((item) => (
@@ -534,20 +543,30 @@ export default function ProductDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {[
-                    { size: "XS", chest: "34-36", length: "26" },
-                    { size: "S", chest: "36-38", length: "27" },
-                    { size: "M", chest: "38-40", length: "28" },
-                    { size: "L", chest: "40-42", length: "29" },
-                    { size: "XL", chest: "42-44", length: "30" },
-                    { size: "XXL", chest: "44-46", length: "31" },
-                  ].map((row) => (
-                    <tr key={row.size} className="border-b border-neutral-50">
-                      <td className="py-3 font-medium text-neutral-900">{row.size}</td>
-                      <td className="py-3 text-neutral-600">{row.chest}</td>
-                      <td className="py-3 text-neutral-600">{row.length}</td>
-                    </tr>
-                  ))}
+                  {sizeGuideData?.measurements && sizeGuideData.measurements.length > 0 ? (
+                    sizeGuideData.measurements.map((row) => (
+                      <tr key={row.size} className="border-b border-neutral-50">
+                        <td className="py-3 font-medium text-neutral-900">{row.size}</td>
+                        <td className="py-3 text-neutral-600">{row.chest || "-"}</td>
+                        <td className="py-3 text-neutral-600">{row.length || row.waist || "-"}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    [
+                      { size: "XS", chest: "34-36", length: "26" },
+                      { size: "S", chest: "36-38", length: "27" },
+                      { size: "M", chest: "38-40", length: "28" },
+                      { size: "L", chest: "40-42", length: "29" },
+                      { size: "XL", chest: "42-44", length: "30" },
+                      { size: "XXL", chest: "44-46", length: "31" },
+                    ].map((row) => (
+                      <tr key={row.size} className="border-b border-neutral-50">
+                        <td className="py-3 font-medium text-neutral-900">{row.size}</td>
+                        <td className="py-3 text-neutral-600">{row.chest}</td>
+                        <td className="py-3 text-neutral-600">{row.length}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

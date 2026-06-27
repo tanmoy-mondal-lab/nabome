@@ -32,10 +32,6 @@ function parsePeriod(periodParam: string): { days: number; groupBy: "day" | "wee
     case "30d": return { days: 30, groupBy: "day" };
     case "90d": return { days: 90, groupBy: "week" };
     case "1y": return { days: 365, groupBy: "month" };
-    case "day": return { days: 1, groupBy: "day" };
-    case "week": return { days: 7, groupBy: "day" };
-    case "month": return { days: 30, groupBy: "day" };
-    case "year": return { days: 365, groupBy: "month" };
     default: return { days: 30, groupBy: "day" };
   }
 }
@@ -242,15 +238,28 @@ async function handleCustomers(env: any): Promise<Response> {
       }),
     ]);
 
-    const acquisitionByDay = await prisma.profile.groupBy({
-      by: ["createdAt"],
+    const rawCustomers = await prisma.profile.findMany({
       where: {
         role: "customer",
         createdAt: { gte: thirtyDaysAgo },
       },
-      _count: true,
+      select: { createdAt: true },
       orderBy: { createdAt: "asc" },
     });
+
+    const acquisitionByDayMap = new Map<string, { date: Date; count: number }>();
+    for (const c of rawCustomers) {
+      const key = c.createdAt.toISOString().slice(0, 10);
+      const existing = acquisitionByDayMap.get(key);
+      if (existing) {
+        existing.count++;
+      } else {
+        acquisitionByDayMap.set(key, { date: new Date(key), count: 1 });
+      }
+    }
+    const acquisitionByDay = Array.from(acquisitionByDayMap.values()).sort(
+      (a, b) => a.date.getTime() - b.date.getTime()
+    );
 
     return success({
       totalCustomers,
@@ -261,8 +270,8 @@ async function handleCustomers(env: any): Promise<Response> {
         ? Math.round((repeatCustomers / totalCustomers) * 100)
         : 0,
       acquisitionByDay: acquisitionByDay.map((d) => ({
-        date: d.createdAt,
-        count: d._count,
+        date: d.date,
+        count: d.count,
       })),
     });
   } catch (err) {
@@ -295,7 +304,7 @@ async function handleDeliveryAddresses(req: Request, env: any): Promise<Response
           },
         },
       },
-      take: 10000,
+      take: 50000,
     });
 
     const countryMap = new Map<string, number>();

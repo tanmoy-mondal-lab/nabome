@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 import { ProductGrid } from "../components/ProductGrid";
 
@@ -22,26 +21,23 @@ export default function ProductGridSection({ section }: ProductGridSectionProps)
   const limit = (content.limit as number) ?? 8;
   const isNew = source === "new";
 
-  const [products, setProducts] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
+  const endpoint = isNew ? "/api/products/new" : "/api/products/featured";
 
-  useEffect(() => {
-    setLoading(true);
-    const endpoint = isNew ? "/api/products/new" : "/api/products/featured";
-    api.get<{ products: Record<string, unknown>[] }>(endpoint)
-      .then((res) => {
-        const all = res.products ?? [];
-        setProducts(all.slice(0, limit));
-      })
-      .catch(() => setProducts([]))
-      .finally(() => setLoading(false));
-  }, [source, limit, isNew]);
+  const { data: res, isLoading: loading } = useQuery({
+    queryKey: ["products", "section", endpoint, limit],
+    queryFn: () => api.get<{ products: Record<string, unknown>[] }>(endpoint),
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const products = (res?.products ?? []).slice(0, limit);
 
   if (loading) {
     return (
       <section className="container-wide section-padding">
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="aspect-[3/4] bg-neutral-100 animate-pulse rounded" />
+          ))}
         </div>
       </section>
     );

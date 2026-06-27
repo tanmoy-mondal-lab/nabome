@@ -10,6 +10,15 @@ import {
   RotateCcw, Banknote, Search, X,
 } from "lucide-react";
 
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 interface Order {
   id: string;
   orderNumber: string;
@@ -62,6 +71,7 @@ export default function OrdersPage() {
   const [stats, setStats] = useState<OrderStats | null>(null);
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const navigate = useNavigate();
@@ -79,7 +89,7 @@ export default function OrdersPage() {
       const statusKey = STATUS_MAP[activeTab];
       const params: Record<string, string | number | undefined> = { page, limit: 20 };
       if (statusKey) params.status = statusKey;
-      if (searchQuery) params.search = searchQuery;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (dateFrom) params.from = dateFrom;
       if (dateTo) params.to = dateTo;
       const res = await adminApi.getOrders(params);
@@ -89,7 +99,7 @@ export default function OrdersPage() {
     } catch { /* non-critical, keep existing data */ } finally {
       setLoading(false);
     }
-  }, [page, activeTab, searchQuery, dateFrom, dateTo]);
+  }, [page, activeTab, debouncedSearch, dateFrom, dateTo]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
   useEffect(() => { setPage(1); }, [activeTab, searchQuery, dateFrom, dateTo]);

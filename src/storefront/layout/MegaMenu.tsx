@@ -35,7 +35,7 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
       <div className="container-wide py-10">
         <div className="grid grid-cols-12 gap-8">
           {linkColumns.map((col, i) => (
-            <div key={i} className={cn("col-span-2", !hasBanner && "col-span-3")}>
+            <div key={`${col.id || col.label}-${i}`} className={cn("col-span-2", !hasBanner && "col-span-3")}>
               {col.link || col.url ? (
                 <Link to={(col.link || col.url) as string} onClick={() => setActiveMegaMenu(null)}
                   className="block text-xs uppercase tracking-[0.15em] text-neutral-900 font-medium mb-5 hover:text-brand-500 transition-colors"
@@ -48,7 +48,7 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
               {col.children && (
                 <ul className="space-y-3">
                   {col.children.map((child, j) => (
-                    <li key={j}>
+                    <li key={`${child.id || child.label}-${j}`}>
                       <Link to={(child.link || child.url) as string || "#"} onClick={() => setActiveMegaMenu(null)}
                         className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors duration-200"
                       >
@@ -86,7 +86,7 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
                 </div>
               )}
               {featuredItems.map((item, i) => (
-                <Link key={i} to={(item.link || item.url) as string || "#"} onClick={() => setActiveMegaMenu(null)}
+                <Link key={`${item.id || item.label}-${i}`} to={(item.link || item.url) as string || "#"} onClick={() => setActiveMegaMenu(null)}
                   className="flex items-center gap-3 py-2.5 border-t border-neutral-50 hover:bg-neutral-50/50 -mx-4 px-4 transition-colors"
                 >
                   <div className="flex-1 min-w-0">

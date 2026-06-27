@@ -18,6 +18,13 @@ export function createMockPrisma() {
       findUnique: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue({}),
       update: vi.fn().mockResolvedValue({}),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    productImage: {
+      findMany: vi.fn().mockResolvedValue([]),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      delete: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
     },
     address: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -76,6 +83,7 @@ export function createMockPrisma() {
       update: vi.fn().mockResolvedValue({}),
       updateMany: vi.fn().mockResolvedValue({}),
     },
+    $transaction: vi.fn(async (operations: Promise<unknown>[]) => Promise.all(operations)),
   };
 }
 

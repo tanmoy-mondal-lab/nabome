@@ -9,6 +9,7 @@ import { authenticateRequest, requireAdmin } from "./_lib/auth";
 import { notFound, serverError, error } from "./_lib/response";
 import { checkRateLimit, RATE_LIMIT_CONFIG, rateLimitResponse, getRateLimitKey } from "./_lib/rate-limit";
 import { setCsrfCookie, validateCsrf, csrfError } from "./_lib/csrf";
+import { verifyTurnstileToken } from "./_lib/turnstile";
 import type { RequestContext } from "./_lib/types";
 
 const ALLOWED_ORIGINS = [
@@ -88,6 +89,14 @@ function isAuthPath(path: string): boolean {
     path.includes("/contact") || path.includes("/auth/forgot-password") ||
     path.includes("/auth/reset-password") ||
     path.includes("/auth/verify-reset-code");
+}
+
+function requiresTurnstile(path: string): boolean {
+  return path === "/api/auth/login" ||
+    path === "/api/auth/register" ||
+    path === "/api/auth/forgot-password" ||
+    path === "/api/contact" ||
+    path === "/api/newsletter";
 }
 
 
@@ -396,6 +405,7 @@ route("DELETE", "/api/admin/coupons/:id", (req, ctx, p) => handleAdminCouponRequ
 
 route("GET", "/api/admin/reviews", (req, ctx) => handleAdminReviewRequest(req, ctx, [], "list"), { auth: true, admin: true });
 route("PUT", "/api/admin/reviews/:id/approve", (req, ctx, p) => handleAdminReviewRequest(req, ctx, p, "approve"), { auth: true, admin: true });
+route("DELETE", "/api/admin/reviews/:id", (req, ctx, p) => handleAdminReviewRequest(req, ctx, p, "delete"), { auth: true, admin: true });
 
 route("GET", "/api/admin/analytics/sales", (req, ctx) => handleAdminAnalyticsRequest(req, ctx, [], "sales"), { auth: true, admin: true });
 route("GET", "/api/admin/analytics/products", (req, ctx) => handleAdminAnalyticsRequest(req, ctx, [], "products"), { auth: true, admin: true });
@@ -677,6 +687,13 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
     const rateResult = await checkRateLimit(rateKey, rateConfig, env);
     if (!rateResult.allowed) {
       return withCors(rateLimitResponse(rateConfig.message || "Too many requests", rateResult.resetAt), request, path);
+    }
+
+    if (requiresTurnstile(path)) {
+      const turnstileResult = await verifyTurnstileToken(request, context);
+      if (turnstileResult) {
+        return withCors(turnstileResult, request, path);
+      }
     }
 
     try {

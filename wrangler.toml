@@ -39,3 +39,7 @@ id = "6969b592bba74117b3f27545dcf47e7a"
 
 # Site URL
 # SITE_URL
+
+# Cloudflare Turnstile
+# VITE_TURNSTILE_SITE_KEY
+# TURNSTILE_SECRET_KEY

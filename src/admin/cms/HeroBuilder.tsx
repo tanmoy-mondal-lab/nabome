@@ -147,7 +147,10 @@ export default function HeroBuilder() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading hero slides…</span>
+        </div>
       </div>
     );
   }
@@ -164,33 +167,33 @@ export default function HeroBuilder() {
             <span className="text-xs">Interval (ms):</span>
             <input type="number" value={config.interval}
               onChange={(e) => updateInterval(Number(e.target.value))}
-              className="w-20 px-2 py-1.5 text-sm border border-neutral-200 rounded focus:outline-none" />
+              className="w-20 px-2 py-1.5 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <button onClick={openCreate}
-            className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-neutral-800">
+            className="btn-primary">
             <Plus size={16} /> Add Slide
           </button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-4 text-xs text-neutral-500 bg-amber-50 border border-amber-200 rounded px-4 py-2">
+      <div className="premium-card rounded-2xl flex items-center gap-2 mb-4 text-xs text-neutral-500 bg-amber-50/70 border-amber-200 px-4 py-2">
         <Film size={14} className="text-amber-500" />
         Upload MP4/WebM videos as hero backgrounds. Each slide auto-advances after the interval. Customers can toggle sound on/off.
       </div>
 
-      {error && <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">{error}<button onClick={() => setError(null)} className="ml-2 text-red-500 hover:text-red-700">×</button></div>}
+      {error && <div className="mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3">{error}<button onClick={() => setError(null)} className="ml-2 text-red-500 hover:text-red-700">×</button></div>}
 
       {config.slides.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
+        <div className="premium-card rounded-2xl">
           <EmptyState icon={Film} title="No hero slides"
             description="Add video or image slides to create a stunning homepage hero carousel"
-            action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm">Add Slide</button>}
+            action={<button onClick={openCreate} className="btn-primary">Add Slide</button>}
           />
         </div>
       ) : (
         <div className="space-y-3">
           {config.slides.map((slide, i) => (
-            <div key={slide.id} className="bg-white border border-neutral-200 rounded overflow-hidden">
+            <div key={slide.id} className="premium-card rounded-2xl overflow-hidden">
               <div className="flex gap-4 p-4">
                 <div className="flex flex-col items-center gap-1 pt-1">
                   <button onClick={() => moveSlide(i, -1)} disabled={i === 0}
@@ -220,10 +223,10 @@ export default function HeroBuilder() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => openEdit(i)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded">
+                  <button onClick={() => openEdit(i)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-xl">
                     <Edit3 size={14} />
                   </button>
-                  <button onClick={() => setDeleteConfirm(i)} className="p-1.5 text-red-400 hover:text-red-600 rounded">
+                  <button onClick={() => setDeleteConfirm(i)} className="p-1.5 text-red-400 hover:text-red-600 rounded-xl">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -246,14 +249,14 @@ export default function HeroBuilder() {
             <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
               placeholder="Discover the new arrivals" className={inputClass} />
           </div>
-          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Video URL *</label>
               <div className="flex gap-2">
                 <input value={form.videoUrl} onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
                   placeholder="https://res.cloudinary.com/…/video.mp4" className={`flex-1 ${inputClass}`} />
                 <button onClick={() => fileRef.current?.click()}
-                  className="shrink-0 px-3 py-2 text-xs border border-neutral-200 rounded hover:bg-neutral-50">
+                  className="shrink-0 px-3 py-2 text-xs font-medium rounded-xl border border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors">
                   {uploadingFor === "video" ? "…" : "Upload"}
                 </button>
               </div>
@@ -266,7 +269,7 @@ export default function HeroBuilder() {
                 <input value={form.posterUrl} onChange={(e) => setForm({ ...form, posterUrl: e.target.value })}
                   placeholder="Fallback image URL" className={`flex-1 ${inputClass}`} />
                 <button onClick={() => posterRef.current?.click()}
-                  className="shrink-0 px-3 py-2 text-xs border border-neutral-200 rounded hover:bg-neutral-50">
+                  className="shrink-0 px-3 py-2 text-xs font-medium rounded-xl border border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors">
                   {uploadingFor === "poster" ? "…" : "Upload"}
                 </button>
               </div>
@@ -274,7 +277,7 @@ export default function HeroBuilder() {
                 onChange={(e) => handleVideoUpload(e, "posterUrl")} />
             </div>
           </div>
-          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">CTA Text</label>
               <input value={form.ctaText} onChange={(e) => setForm({ ...form, ctaText: e.target.value })}
@@ -292,8 +295,8 @@ export default function HeroBuilder() {
             <span className="text-xs text-neutral-600">Enable sound by default (customer can toggle)</span>
           </label>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSaveSlide} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">Save Slide</button>
+            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700">Cancel</button>
+            <button onClick={handleSaveSlide} className="btn-primary">Save Slide</button>
           </div>
         </div>
       </Modal>
@@ -301,8 +304,8 @@ export default function HeroBuilder() {
       <Modal open={deleteConfirm !== null} onClose={() => setDeleteConfirm(null)} title="Delete Slide" size="sm">
         <p className="text-sm text-neutral-600 mb-6">Delete this hero slide?</p>
         <div className="flex justify-end gap-2">
-          <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-          <button onClick={handleDelete} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
+          <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700">Cancel</button>
+          <button onClick={handleDelete} className="px-4 py-2 rounded-xl text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors">Delete</button>
         </div>
       </Modal>
     </div>

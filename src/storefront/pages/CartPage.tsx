@@ -21,6 +21,7 @@ export default function CartPage() {
   const siteSettings = {
     freeShippingThreshold: Number(settings?.preferences && typeof settings.preferences === 'object' ? (settings.preferences as Record<string, unknown>).freeShippingThreshold ?? 500 : 500),
     shippingCost: Number(settings?.preferences && typeof settings.preferences === 'object' ? (settings.preferences as Record<string, unknown>).shippingCost ?? 99 : 99),
+    taxRate: Number(settings?.preferences && typeof settings.preferences === 'object' ? (settings.preferences as Record<string, unknown>).taxRate ?? 5 : 5),
   };
 
   async function handleApplyCoupon() {
@@ -54,7 +55,8 @@ export default function CartPage() {
   }
 
   const shipping = subtotal >= siteSettings.freeShippingThreshold ? 0 : siteSettings.shippingCost;
-  const finalTotal = total + shipping;
+  const tax = Math.round(subtotal * siteSettings.taxRate) / 100;
+  const finalTotal = total + shipping + tax;
   const freeShippingProgress = Math.min((subtotal / siteSettings.freeShippingThreshold) * 100, 100);
 
   if (items.length === 0) {
@@ -235,6 +237,10 @@ export default function CartPage() {
                     <span className="font-body font-medium">-{formatPrice(discountAmount)}</span>
                   </div>
                 )}
+                <div className="flex justify-between text-neutral-600">
+                  <span className="font-body">Tax ({siteSettings.taxRate}%)</span>
+                  <span className="font-body font-medium">{formatPrice(tax)}</span>
+                </div>
                 <div className="border-t border-neutral-200 pt-4 flex justify-between">
                   <span className="text-[11px] font-body font-semibold tracking-[0.15em] uppercase text-neutral-900">
                     Total

@@ -1,9 +1,20 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { slugify } from "../../../src/lib/utils/format";
+import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
+import { destroyCloudinaryAsset, destroyCloudinaryAssetIfReplaced, destroyCloudinaryDiff } from "../../_lib/cloudinary";
+import { toNull } from "../../_lib/sanitize";
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" ? value as Record<string, unknown> : null;
+}
+
+async function cleanupSectionMedia(existingContent: unknown, nextContent: unknown, env: any): Promise<unknown> {
+  await destroyCloudinaryDiff(existingContent, nextContent, env);
+  return nextContent;
+}
 
 export async function handleAdminCMSRequest(
   req: Request,
@@ -119,7 +130,10 @@ async function handleUpdatePage(pageId: string, req: Request, ctx: RequestContex
     const data: Record<string, unknown> = {};
     const fields = ["title", "content", "template", "metaTitle", "metaDesc", "ogImage"];
     for (const field of fields) {
-      if (body[field] !== undefined) data[field] = body[field];
+      if (body[field] !== undefined) data[field] = field === "ogImage" ? toNull(body[field]) : body[field];
+    }
+    if (body.ogImage !== undefined) {
+      data.ogImage = toNull(body.ogImage);
     }
     if (body.isPublished !== undefined) {
       data.isPublished = body.isPublished;
@@ -145,6 +159,11 @@ async function handleUpdatePage(pageId: string, req: Request, ctx: RequestContex
 async function handleDeletePage(pageId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const page = await prisma.staticPage.findUnique({ where: { id: pageId } });
+    if (!page) return notFound("Page not found");
+    if (page.ogImage) {
+      await destroyCloudinaryAsset(page.ogImage, env);
+    }
     await prisma.staticPage.delete({ where: { id: pageId } });
     logAction(ctx.userId, "admin.cms.page.delete", {
       entity: "staticPage",
@@ -153,7 +172,7 @@ async function handleDeletePage(pageId: string, req: Request, ctx: RequestContex
     });
     return success({ message: "Page deleted" });
   } catch (err) {
-    return notFound("Page not found");
+    return serverError(err);
   }
 }
 
@@ -206,10 +225,16 @@ async function handleUpdateHomeSection(sectionId: string, req: Request, ctx: Req
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
+    const existing = await prisma.homepageSection.findUnique({ where: { id: sectionId } });
+    if (!existing) return notFound("Section not found");
+
     const data: Record<string, unknown> = {};
     const fields = ["sectionType", "title", "subtitle", "content", "sortOrder", "isActive", "visibility"];
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = body[field];
+    }
+    if (body.content !== undefined) {
+      data.content = await cleanupSectionMedia(existing.content, body.content, env);
     }
 
     const section = await prisma.homepageSection.update({
@@ -231,6 +256,13 @@ async function handleUpdateHomeSection(sectionId: string, req: Request, ctx: Req
 async function handleDeleteHomeSection(sectionId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const section = await prisma.homepageSection.findUnique({ where: { id: sectionId } });
+    if (!section) return notFound("Section not found");
+    const cleaned = await cleanupSectionMedia(section.content, section.content, env);
+    const sectionContent = asRecord(cleaned);
+    if (sectionContent?.imagePublicId) {
+      await destroyCloudinaryAsset(String(sectionContent.imagePublicId), env);
+    }
     await prisma.homepageSection.delete({ where: { id: sectionId } });
     logAction(ctx.userId, "admin.cms.homepage.delete", {
       entity: "homepageSection",
@@ -239,7 +271,7 @@ async function handleDeleteHomeSection(sectionId: string, req: Request, ctx: Req
     });
     return success({ message: "Section deleted" });
   } catch (err) {
-    return notFound("Section not found");
+    return serverError(err);
   }
 }
 
@@ -346,7 +378,7 @@ async function handleDeleteNavigation(menuId: string, req: Request, ctx: Request
     });
     return success({ message: "Menu deleted" });
   } catch (err) {
-    return notFound("Menu not found");
+    return serverError(err);
   }
 }
 
@@ -375,10 +407,14 @@ async function handleUpdateBrandStory(req: Request, ctx: RequestContext, env: an
         data: {
           title: title ?? existing.title,
           subtitle: subtitle ?? existing.subtitle,
-          heroImageUrl: heroImageUrl ?? existing.heroImageUrl,
-          heroImagePublicId: heroImagePublicId ?? existing.heroImagePublicId,
-          videoUrl: videoUrl ?? existing.videoUrl,
-          videoPublicId: videoPublicId ?? existing.videoPublicId,
+          heroImageUrl: heroImageUrl !== undefined ? toNull(heroImageUrl) : existing.heroImageUrl,
+          heroImagePublicId: heroImagePublicId !== undefined
+            ? await destroyCloudinaryAssetIfReplaced(existing.heroImagePublicId, heroImagePublicId, env)
+            : existing.heroImagePublicId,
+          videoUrl: videoUrl !== undefined ? toNull(videoUrl) : existing.videoUrl,
+          videoPublicId: videoPublicId !== undefined
+            ? await destroyCloudinaryAssetIfReplaced(existing.videoPublicId, videoPublicId, env, "video")
+            : existing.videoPublicId,
           content: content ?? existing.content,
           mission: mission ?? existing.mission,
           vision: vision ?? existing.vision,
@@ -501,6 +537,6 @@ async function handleDeleteFooter(sectionId: string, req: Request, ctx: RequestC
     });
     return success({ message: "Footer section deleted" });
   } catch (err) {
-    return notFound("Section not found");
+    return serverError(err);
   }
 }

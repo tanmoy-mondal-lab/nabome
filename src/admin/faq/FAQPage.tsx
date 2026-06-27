@@ -84,6 +84,14 @@ export default function FAQPage() {
   };
 
   const handleSave = () => {
+    if (!form.question.trim()) {
+      toast("Question is required", "error");
+      return;
+    }
+    if (!form.answer.trim()) {
+      toast("Answer is required", "error");
+      return;
+    }
     if (editItem) {
       updateMutation.mutate({
         id: editItem.id,
@@ -119,7 +127,14 @@ export default function FAQPage() {
   }, {});
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading FAQs…</span>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -129,22 +144,23 @@ export default function FAQPage() {
           <h1 className="font-display text-2xl text-neutral-900">FAQ Management</h1>
           <p className="text-sm text-neutral-500 mt-1">{faqs.length} frequently asked questions</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-neutral-800">
+        <button onClick={openCreate} className="btn-primary">
           <Plus size={16} /> Add FAQ
         </button>
       </div>
 
       {faqs.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
-          <EmptyState icon={HelpCircle} title="No FAQs yet"
-            action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm">Create FAQ</button>} />
-        </div>
+        <EmptyState
+          icon={HelpCircle}
+          title="No FAQs yet"
+          action={<button onClick={openCreate} className="btn-primary">Create FAQ</button>}
+        />
       ) : (
         <div className="space-y-6">
           {Object.entries(grouped).map(([cat, items]) => (
             <div key={cat}>
               <h3 className="text-xs uppercase tracking-wider text-neutral-400 font-medium mb-2 px-1">{cat}</h3>
-              <div className="bg-white border border-neutral-200 rounded overflow-hidden">
+              <div className="premium-card rounded-2xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-neutral-200 bg-neutral-50">
@@ -205,7 +221,7 @@ export default function FAQPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+            <button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending} className="btn-primary disabled:opacity-50">
               {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save"}
             </button>
           </div>
@@ -216,7 +232,7 @@ export default function FAQPage() {
         <p className="text-sm text-neutral-600 mb-6">Delete this FAQ entry?</p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-          <button onClick={() => handleDelete(deleteConfirm!)} disabled={deleteMutation.isPending} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+          <button onClick={() => handleDelete(deleteConfirm!)} disabled={deleteMutation.isPending} className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50">
             {deleteMutation.isPending ? "Deleting..." : "Delete"}
           </button>
         </div>

@@ -276,6 +276,7 @@ export default function HomepageBuilder() {
   };
 
   const handleDelete = (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this section?")) return;
     deleteMutation.mutate(id);
   };
 
@@ -418,7 +419,7 @@ export default function HomepageBuilder() {
             </select>
           </Field>
 
-          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Title">
               <input value={form.title} onChange={(e) => updateForm({ title: e.target.value })} className={inputClass} placeholder="Section title" />
             </Field>
@@ -428,7 +429,7 @@ export default function HomepageBuilder() {
           </div>
 
           {form.sectionType === "product_grid" && (
-            <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Product Source">
                 <select value={form.productSource} onChange={(e) => updateForm({ productSource: e.target.value })} className="w-full px-3 py-2.5 text-sm border border-neutral-200 focus:outline-none focus:border-neutral-400 transition-colors">
                   <option value="featured">Featured Products</option>
@@ -508,7 +509,7 @@ export default function HomepageBuilder() {
               <Field label="Image URL">
                 <MediaPicker value={form.bannerImageUrl} onChange={(url: string, publicId?: string) => updateForm({ bannerImageUrl: url, bannerImagePublicId: publicId ?? "" })} folder="banners" />
               </Field>
-              <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="CTA Text">
                   <input value={form.bannerCtaText} onChange={(e) => updateForm({ bannerCtaText: e.target.value })} className={inputClass} placeholder="Shop Now" />
                 </Field>

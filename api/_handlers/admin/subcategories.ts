@@ -1,9 +1,10 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { slugify } from "../../../src/lib/utils/format";
+import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth";
 import { toNull } from "../../_lib/sanitize";
+import { destroyCloudinaryAssetIfReplaced } from "../../_lib/cloudinary";
 
 export async function handleAdminSubcategoryRequest(
   req: Request, ctx: RequestContext, params: string[], action: string
@@ -54,13 +55,28 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
+    const existing = await prisma.subcategory.findUnique({ where: { id } });
+    if (!existing) return notFound("Subcategory not found");
     const data: Record<string, unknown> = {};
-    const fields = ["name", "categoryId", "description", "imageUrl", "imagePublicId", "sortOrder", "isActive"];
+    const fields = ["name", "categoryId", "description", "imageUrl", "sortOrder", "isActive"];
     for (const f of fields) { if (body[f] !== undefined) data[f] = f === "categoryId" ? toNull(body[f]) : body[f]; }
-    if (body.name) data.slug = slugify(body.name);
+    if (body.imageUrl !== undefined) data.imageUrl = toNull(body.imageUrl);
+    if (body.imagePublicId !== undefined) {
+      data.imagePublicId = await destroyCloudinaryAssetIfReplaced(existing.imagePublicId, body.imagePublicId, env);
+    }
+    if (body.name) {
+      const newSlug = slugify(body.name);
+      const slugExists = await prisma.subcategory.findFirst({
+        where: { slug: newSlug, id: { not: id } },
+      });
+      data.slug = slugExists ? `${newSlug}-${Date.now().toString(36)}` : newSlug;
+    }
     const sub = await prisma.subcategory.update({ where: { id }, data: data as never });
     return success(sub);
-  } catch (err) { return notFound("Subcategory not found"); }
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Subcategory not found");
+    return serverError(err);
+  }
 }
 
 async function handleDelete(id: string, env: any): Promise<Response> {

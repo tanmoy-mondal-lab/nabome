@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { StatsCard } from "../common/StatsCard";
 import { formatPrice } from "../../lib/utils/format";
@@ -40,41 +41,27 @@ type Tab = "sales" | "delivery";
 export default function AnalyticsPage() {
   const [tab, setTab] = useState<Tab>("sales");
   const [period, setPeriod] = useState("30d");
-  const [salesData, setSalesData] = useState<SalesData | null>(null);
-  const [deliveryData, setDeliveryData] = useState<DeliveryData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchSales = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await adminApi.getSalesAnalytics({ period }) as SalesData;
-      setSalesData(res);
-    } catch (err) {
-      console.error("Failed to fetch sales analytics:", err);
-      setError(err instanceof Error ? err.message : "Failed to load analytics");
-      setSalesData(null);
-    } finally { setLoading(false); }
-  }, [period]);
+  const { data: salesData, isLoading: salesLoading, error: salesError } = useQuery<SalesData>({
+    queryKey: ["admin", "analytics", "sales", period],
+    queryFn: async () => {
+      const res = await adminApi.getSalesAnalytics({ period });
+      return res as unknown as SalesData;
+    },
+    enabled: tab === "sales",
+  });
 
-  const fetchDelivery = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await adminApi.getDeliveryAddressAnalytics({ period }) as DeliveryData;
-      setDeliveryData(res);
-    } catch (err) {
-      console.error("Failed to fetch delivery analytics:", err);
-      setError(err instanceof Error ? err.message : "Failed to load analytics");
-      setDeliveryData(null);
-    } finally { setLoading(false); }
-  }, [period]);
+  const { data: deliveryData, isLoading: deliveryLoading, error: deliveryError } = useQuery<DeliveryData>({
+    queryKey: ["admin", "analytics", "delivery", period],
+    queryFn: async () => {
+      const res = await adminApi.getDeliveryAddressAnalytics({ period });
+      return res as unknown as DeliveryData;
+    },
+    enabled: tab === "delivery",
+  });
 
-  useEffect(() => {
-    if (tab === "sales") fetchSales();
-    else fetchDelivery();
-  }, [tab, period, fetchSales, fetchDelivery]);
+  const loading = tab === "sales" ? salesLoading : deliveryLoading;
+  const error = tab === "sales" ? salesError : deliveryError;
 
   return (
     <div>
@@ -113,11 +100,14 @@ export default function AnalyticsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+            <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-neutral-500">Loading analytics…</span>
+          </div>
         </div>
       ) : error ? (
-        <div className="bg-red-50 border border-red-200 rounded p-6 text-center">
-          <p className="text-red-600 font-medium">{error}</p>
+        <div className="premium-card rounded-2xl p-6 text-center bg-red-50/70 border-red-200">
+          <p className="text-red-600 font-medium">Failed to load analytics</p>
           <p className="text-sm text-red-500 mt-1">Please try again or check your connection.</p>
         </div>
       ) : tab === "sales" ? (
@@ -131,7 +121,7 @@ export default function AnalyticsPage() {
 
 // ─── Sales Tab ───
 
-function SalesTab({ data }: { data: SalesData | null }) {
+function SalesTab({ data }: { data: SalesData | undefined }) {
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -142,7 +132,7 @@ function SalesTab({ data }: { data: SalesData | null }) {
       </div>
 
       {/* Revenue Chart */}
-      <div className="bg-white border border-neutral-200 rounded p-6 mb-6">
+      <div className="premium-card rounded-2xl p-6 mb-6">
         <h3 className="font-medium text-sm text-neutral-900 mb-4">Revenue Trend</h3>
         {data?.revenueByPeriod?.length ? (
           <div className="h-48 flex items-end gap-1">
@@ -162,7 +152,7 @@ function SalesTab({ data }: { data: SalesData | null }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white border border-neutral-200 rounded p-6">
+        <div className="premium-card rounded-2xl p-6">
           <h3 className="font-medium text-sm text-neutral-900 mb-4">Orders</h3>
           {data?.ordersByPeriod?.length ? (
             <div className="h-40 flex items-end gap-1">
@@ -181,7 +171,7 @@ function SalesTab({ data }: { data: SalesData | null }) {
           )}
         </div>
 
-        <div className="bg-white border border-neutral-200 rounded p-6">
+        <div className="premium-card rounded-2xl p-6">
           <h3 className="font-medium text-sm text-neutral-900 mb-4">Top Products</h3>
           {data?.topProducts?.length ? (
             <div className="space-y-3">
@@ -209,13 +199,13 @@ function SalesTab({ data }: { data: SalesData | null }) {
 
 // ─── Delivery Addresses Tab ───
 
-function DeliveryTab({ data }: { data: DeliveryData | null }) {
+function DeliveryTab({ data }: { data: DeliveryData | undefined }) {
   const [expandedCountries, setExpandedCountries] = useState<Set<string>>(new Set());
   const [expandedStates, setExpandedStates] = useState<Set<string>>(new Set());
 
   if (!data || data.total === 0) {
     return (
-      <div className="bg-white border border-neutral-200 rounded p-12 text-center">
+      <div className="premium-card rounded-2xl p-12 text-center">
         <MapPin className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
         <p className="text-neutral-500 font-medium">No delivery data yet</p>
         <p className="text-sm text-neutral-400 mt-1">Delivered orders will appear here</p>
@@ -253,7 +243,7 @@ function DeliveryTab({ data }: { data: DeliveryData | null }) {
       </div>
 
       {/* Country Distribution Bar */}
-      <div className="bg-white border border-neutral-200 rounded p-6 mb-6">
+      <div className="premium-card rounded-2xl p-6 mb-6">
         <h3 className="font-medium text-sm text-neutral-900 mb-4">Orders by Country</h3>
         <div className="space-y-3">
           {data.byCountry.map((c) => (
@@ -270,7 +260,7 @@ function DeliveryTab({ data }: { data: DeliveryData | null }) {
       </div>
 
       {/* Drill-down: Country → State → City */}
-      <div className="bg-white border border-neutral-200 rounded mb-6">
+      <div className="premium-card rounded-2xl mb-6 overflow-hidden">
         <div className="px-6 py-4 border-b border-neutral-200">
           <h3 className="font-medium text-sm text-neutral-900">Geographic Drill-down</h3>
           <p className="text-xs text-neutral-400 mt-0.5">Click a country to see states, then click a state to see cities</p>
@@ -336,7 +326,7 @@ function DeliveryTab({ data }: { data: DeliveryData | null }) {
 function DataTable({ title, icon: Icon, items }: { title: string; icon: React.ElementType; items: GeoItem[] }) {
   const max = items[0]?.count ?? 1;
   return (
-    <div className="bg-white border border-neutral-200 rounded p-6">
+    <div className="premium-card rounded-2xl p-6">
       <div className="flex items-center gap-2 mb-4">
         <Icon size={14} className="text-brand-500" />
         <h3 className="font-medium text-sm text-neutral-900">{title}</h3>

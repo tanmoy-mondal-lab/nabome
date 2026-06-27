@@ -1,4 +1,6 @@
 import { Truck, RotateCcw, Shield, Headphones } from "lucide-react";
+import { useSettings } from "../hooks/useSettings";
+import { formatPrice } from "../../lib/utils/format";
 
 interface SectionData {
   sectionType: string;
@@ -16,13 +18,6 @@ interface TrustItem {
   description: string;
 }
 
-const defaultItems: TrustItem[] = [
-  { title: "Free Shipping", description: "On orders above ₹999" },
-  { title: "Easy Returns", description: "30-day return policy" },
-  { title: "Secure Payment", description: "100% secure checkout" },
-  { title: "Premium Service", description: "Dedicated support" },
-];
-
 const iconMap: Record<string, typeof Truck> = {
   Truck,
   RotateCcw,
@@ -33,7 +28,15 @@ const iconMap: Record<string, typeof Truck> = {
 const defaultIcons = [Truck, RotateCcw, Shield, Headphones];
 
 export default function TrustBarSection({ section }: TrustBarSectionProps) {
+  const { data: settingsData } = useSettings();
+  const freeShippingThreshold = Number((settingsData?.preferences as Record<string, unknown>)?.freeShippingThreshold ?? 500);
   const content = section.content ?? {};
+  const defaultItems: TrustItem[] = [
+    { title: "Free Shipping", description: `On orders above ${formatPrice(freeShippingThreshold)}` },
+    { title: "Easy Returns", description: "30-day return policy" },
+    { title: "Secure Payment", description: "100% secure checkout" },
+    { title: "Premium Service", description: "Dedicated support" },
+  ];
   const items = (content.items as TrustItem[] | undefined) ?? defaultItems;
   const icons = items.map((_, i) => defaultIcons[i] ?? Truck);
 

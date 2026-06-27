@@ -70,6 +70,8 @@ export default function BrandStoryPage() {
         videoUrl: form.videoUrl || undefined,
         videoPublicId: form.videoPublicId || undefined,
         values: form.values,
+        metaTitle: form.metaTitle || undefined,
+        metaDesc: form.metaDescription || undefined,
       });
       toast("Brand story saved", "success");
       markClean();
@@ -83,7 +85,10 @@ export default function BrandStoryPage() {
   if (!loaded) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading brand story…</span>
+        </div>
       </div>
     );
   }
@@ -95,28 +100,28 @@ export default function BrandStoryPage() {
         <p className="text-sm text-neutral-500 mt-1">Edit the brand story page</p>
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded p-6 space-y-4 max-w-4xl">
-        <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="premium-card rounded-2xl p-6 space-y-4 max-w-4xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Heading</label>
             <input value={form.heading}
               onChange={(e) => { setForm({ ...form, heading: e.target.value }); markDirty(); }}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Subheading</label>
             <input value={form.subheading}
               onChange={(e) => { setForm({ ...form, subheading: e.target.value }); markDirty(); }}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
         </div>
         <div>
           <label className="block text-xs text-neutral-500 mb-1">Body</label>
           <textarea rows={6} value={form.body}
             onChange={(e) => { setForm({ ...form, body: e.target.value }); markDirty(); }}
-            className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
-        <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <MediaPicker value={form.imageUrl} onChange={(url: string, publicId?: string) => setForm({ ...form, imageUrl: url, imagePublicId: publicId ?? "" })} label="Image URL" folder="brand-story" />
           </div>
@@ -128,43 +133,43 @@ export default function BrandStoryPage() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-xs text-neutral-500">Brand Values</label>
-            <button type="button" onClick={addValue} className="text-xs text-brand-600">+ Add</button>
+            <button type="button" onClick={addValue} className="text-xs font-medium text-brand-600 hover:text-brand-700">+ Add</button>
           </div>
           <div className="space-y-2">
             {form.values.map((v, i) => (
               <div key={i} className="flex gap-2 items-start">
                 <input placeholder="Title" value={v.title}
                   onChange={(e) => updateValue(i, "title", e.target.value)}
-                  className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+                  className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 <input placeholder="Description" value={v.description}
                   onChange={(e) => updateValue(i, "description", e.target.value)}
-                  className="flex-[2] px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+                  className="flex-[2] px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 {form.values.length > 1 && (
-                  <button onClick={() => removeValue(i)} className="text-red-400 hover:text-red-600 p-2">✕</button>
+                  <button onClick={() => removeValue(i)} className="text-red-400 hover:text-red-600 p-2 rounded-xl">✕</button>
                 )}
               </div>
             ))}
           </div>
         </div>
 
-        <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Meta Title</label>
             <input value={form.metaTitle}
               onChange={(e) => { setForm({ ...form, metaTitle: e.target.value }); markDirty(); }}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Meta Description</label>
             <input value={form.metaDescription}
               onChange={(e) => { setForm({ ...form, metaDescription: e.target.value }); markDirty(); }}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
         </div>
 
         <div className="flex justify-end pt-2">
           <button onClick={handleSave} disabled={saving}
-            className="bg-neutral-900 text-white px-6 py-2.5 rounded text-sm font-medium hover:bg-neutral-800 disabled:opacity-50">
+            className="btn-primary disabled:opacity-50">
             {saving ? "Saving…" : "Save Brand Story"}
           </button>
         </div>

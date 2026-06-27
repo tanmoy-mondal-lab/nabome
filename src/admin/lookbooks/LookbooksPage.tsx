@@ -17,15 +17,15 @@ interface LookbookItem {
 
 interface Lookbook {
   id: string;
-  title: string;
+  name: string;
   slug: string;
   description?: string;
   story?: string;
   season?: string;
   year?: number;
-  featuredImage?: string;
+  coverImageUrl?: string;
   layout?: string;
-  status: string;
+  isActive: boolean;
   tags?: string[];
   items?: LookbookItem[];
   createdAt: string;
@@ -56,23 +56,24 @@ export default function LookbooksPage() {
   });
 
   const handleDelete = (id: string) => {
+    if (!window.confirm("Delete this lookbook? This cannot be undone.")) return;
     deleteMutation.mutate(id);
   };
 
   const columns = [
     {
-      key: "title", label: "Lookbook", sortable: true,
+      key: "name", label: "Lookbook", sortable: true,
       render: (l: Lookbook) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-neutral-100 rounded overflow-hidden shrink-0 flex items-center justify-center">
-            {l.featuredImage ? (
-              <img src={l.featuredImage} alt="" className="w-full h-full object-cover" />
+            {l.coverImageUrl ? (
+              <img src={l.coverImageUrl} alt="" className="w-full h-full object-cover" />
             ) : (
               <BookOpen size={16} className="text-neutral-400" />
             )}
           </div>
           <div>
-            <p className="font-medium text-neutral-900">{l.title}</p>
+            <p className="font-medium text-neutral-900">{l.name}</p>
             <p className="text-xs text-neutral-400">{l.season} {l.year}</p>
           </div>
         </div>
@@ -80,8 +81,8 @@ export default function LookbooksPage() {
     },
     { key: "slug", label: "Slug", render: (l: Lookbook) => <span className="text-sm text-neutral-500">/{l.slug}</span> },
     {
-      key: "status", label: "Status",
-      render: (l: Lookbook) => <StatusBadge status={l.status} />,
+      key: "isActive", label: "Status",
+      render: (l: Lookbook) => <StatusBadge status={l.isActive ? "active" : "inactive"} />,
     },
     {
       key: "items", label: "Items",
@@ -106,7 +107,7 @@ export default function LookbooksPage() {
         </div>
         <button
           onClick={() => navigate("/admin/lookbooks/new")}
-          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-neutral-800"
+          className="btn-primary"
         >
           <Plus size={16} /> Create Lookbook
         </button>
@@ -122,13 +123,13 @@ export default function LookbooksPage() {
           <div className="flex justify-end gap-1">
             <button
               onClick={(e) => { e.stopPropagation(); navigate(`/admin/lookbooks/${l.id}/edit`); }}
-              className="p-2 hover:bg-neutral-100 rounded text-neutral-400 hover:text-neutral-600"
+              className="p-2 hover:bg-neutral-100 rounded-xl text-neutral-400 hover:text-neutral-600"
             >
               <Edit3 size={14} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); handleDelete(l.id); }}
-              className="p-2 hover:bg-red-50 rounded text-neutral-400 hover:text-red-500"
+              className="p-2 hover:bg-red-50 rounded-xl text-neutral-400 hover:text-red-500"
             >
               <Trash2 size={14} />
             </button>

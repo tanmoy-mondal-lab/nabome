@@ -1,4 +1,4 @@
-const SITE_URL = "https://www.নবME.online";
+const SITE_URL = "https://www.nabome.online";
 const SITE_NAME = "নবME — Premium Fashion";
 
 export function canonical(url: string): string {
@@ -8,7 +8,7 @@ export function canonical(url: string): string {
 }
 
 export function ogImageFallback(): string {
-  return `${SITE_URL}/og-image.jpg`;
+  return `${SITE_URL}/og-image.svg`;
 }
 
 export function websiteSchema() {

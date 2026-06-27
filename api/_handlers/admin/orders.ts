@@ -1,7 +1,7 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { ORDER_STATUS_FLOW } from "../../../src/lib/constants";
+import { ORDER_STATUS_FLOW } from "../../_lib/utils";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { sendEmailNotification } from "../../_lib/email";
 import { requireAdmin } from "../../_lib/auth";

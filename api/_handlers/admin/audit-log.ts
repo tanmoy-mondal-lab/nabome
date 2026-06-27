@@ -23,14 +23,18 @@ async function handleList(req: Request, env: any): Promise<Response> {
   if (action) where.action = { contains: action, mode: "insensitive" };
   if (entity) where.entity = entity;
   if (profileId) where.profileId = profileId;
-  const prisma = getPrisma(env);
-  const [items, total] = await Promise.all([
-    prisma.userActionLog.findMany({
-      where: where as never,
-      include: { profile: { select: { id: true, firstName: true, lastName: true, email: true } } },
-      orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit,
-    }),
-    prisma.userActionLog.count({ where: where as never }),
-  ]);
-  return success({ logs: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
+  try {
+    const prisma = getPrisma(env);
+    const [items, total] = await Promise.all([
+      prisma.userActionLog.findMany({
+        where: where as never,
+        include: { profile: { select: { id: true, firstName: true, lastName: true, email: true } } },
+        orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit,
+      }),
+      prisma.userActionLog.count({ where: where as never }),
+    ]);
+    return success({ logs: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
+  } catch (err) {
+    return serverError(err);
+  }
 }

@@ -10,17 +10,18 @@ export default function ImportExportPage() {
   const handleExport = async (type: "products" | "orders") => {
     setExporting(type);
     try {
-      const data = type === "products"
+      const res = type === "products"
         ? await adminApi.exportProducts("csv")
         : await adminApi.exportOrders("csv");
-      const blob = new Blob([data as unknown as string], { type: "text/csv" });
+      const { csv, filename } = res as { csv: string; filename: string };
+      const blob = new Blob([csv], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${type}-${new Date().toISOString().split("T")[0]}.csv`;
+      a.download = filename.replace(".csv", `-${new Date().toISOString().split("T")[0]}.csv`);
       a.click();
       URL.revokeObjectURL(url);
-    } catch { /* non-critical: failed to export data, download will not trigger */ } finally {
+    } catch { /* non-critical: failed to export data */ } finally {
       setExporting(null);
     }
   };
@@ -49,7 +50,7 @@ export default function ImportExportPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <section className="bg-white border border-neutral-200 rounded p-6">
+        <section className="premium-card rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-4">
             <Download size={20} className="text-neutral-400" />
             <h2 className="font-medium text-sm text-neutral-900">Export</h2>
@@ -77,7 +78,7 @@ export default function ImportExportPage() {
           </div>
         </section>
 
-        <section className="bg-white border border-neutral-200 rounded p-6">
+        <section className="premium-card rounded-2xl p-6">
           <div className="flex items-center gap-3 mb-4">
             <Upload size={20} className="text-neutral-400" />
             <h2 className="font-medium text-sm text-neutral-900">Import</h2>

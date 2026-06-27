@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { adminApi } from "../../lib/api/admin";
+import { useToast } from "../../components/ui/Toast";
 import { Search, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
 import { formatDateTime } from "../../lib/utils/format";
 
 export default function SearchIndexPage() {
+  const { toast } = useToast();
   const [status, setStatus] = useState<{ indexed: boolean; count: number; lastIndexed: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [building, setBuilding] = useState(false);
@@ -17,8 +19,8 @@ export default function SearchIndexPage() {
     try {
       const res = await adminApi.getSearchIndexStatus();
       setStatus(res);
-    } catch { /* non-critical: failed to fetch search index status */ } finally { setLoading(false); }
-  }, []);
+    } catch { toast("Failed to load search index status", "error"); } finally { setLoading(false); }
+  }, [toast]);
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
 
@@ -29,7 +31,7 @@ export default function SearchIndexPage() {
       const res = await adminApi.buildSearchIndex();
       setBuildResult(res);
       fetchStatus();
-    } catch { /* non-critical: failed to rebuild search index */ } finally {
+    } catch { toast("Failed to rebuild search index", "error"); } finally {
       setBuilding(false);
     }
   };
@@ -40,7 +42,7 @@ export default function SearchIndexPage() {
     try {
       const res = await adminApi.searchIndex(searchQuery);
       setSearchResults(res);
-    } catch { /* non-critical: failed to search index */ } finally {
+    } catch { toast("Search failed", "error"); } finally {
       setSearching(false);
     }
   };
@@ -61,7 +63,7 @@ export default function SearchIndexPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white border border-neutral-200 rounded p-4">
+        <div className="premium-card rounded-2xl p-4">
           <p className="text-xs text-neutral-500 mb-1">Status</p>
           <div className="flex items-center gap-2">
             {status?.indexed ? (
@@ -74,11 +76,11 @@ export default function SearchIndexPage() {
             </span>
           </div>
         </div>
-        <div className="bg-white border border-neutral-200 rounded p-4">
+        <div className="premium-card rounded-2xl p-4">
           <p className="text-xs text-neutral-500 mb-1">Indexed Items</p>
           <p className="text-sm font-medium text-neutral-900">{status?.count ?? 0}</p>
         </div>
-        <div className="bg-white border border-neutral-200 rounded p-4">
+        <div className="premium-card rounded-2xl p-4">
           <p className="text-xs text-neutral-500 mb-1">Last Indexed</p>
           <p className="text-sm font-medium text-neutral-900">
             {status?.lastIndexed ? formatDateTime(status.lastIndexed) : "Never"}
@@ -86,15 +88,18 @@ export default function SearchIndexPage() {
         </div>
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded p-6 mb-6">
+      <div className="premium-card rounded-2xl p-6 mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-medium text-sm text-neutral-900">Rebuild Index</h2>
           <button onClick={handleRebuild} disabled={building}
-            className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium hover:bg-neutral-800 disabled:opacity-50">
+            className="btn-primary disabled:opacity-50">
             <RefreshCw size={14} className={building ? "animate-spin" : ""} />
             {building ? "Building…" : "Rebuild Index"}
           </button>
         </div>
+        <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+          Note: The search index is in-memory and resets on server restart. Build the index after each deployment.
+        </p>
         {buildResult && (
           <div className="p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700">
             <p className="font-medium">Index rebuilt successfully</p>
@@ -110,15 +115,15 @@ export default function SearchIndexPage() {
         )}
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded p-6">
+      <div className="premium-card rounded-2xl p-6">
         <h2 className="font-medium text-sm text-neutral-900 mb-4">Test Search</h2>
         <div className="flex gap-2 mb-4">
           <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder="Search products, pages…"
-            className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
           <button onClick={handleSearch} disabled={searching}
-            className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium hover:bg-neutral-800 disabled:opacity-50">
+            className="btn-primary disabled:opacity-50">
             <Search size={14} /> Search
           </button>
         </div>

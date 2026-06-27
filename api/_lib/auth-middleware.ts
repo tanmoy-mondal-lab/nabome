@@ -7,6 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 import { unauthorized, forbidden, serverError } from "./response";
 import { withRateLimit, getRateLimitKey, RATE_LIMIT_CONFIG } from "./rate-limit";
 import { validateCsrf, csrfError } from "./csrf";
+import { getPrisma } from "./prisma";
 import type { RequestContext } from "./types";
 import type { Env } from "./env";
 
@@ -89,9 +90,16 @@ export async function authenticate(
         return unauthorized("Invalid or expired token");
       }
 
+      // Read role from the profile table (source of truth), not from JWT metadata
+      const prisma = getPrisma(env);
+      const profile = await prisma.profile.findUnique({
+        where: { id: user.id },
+        select: { role: true },
+      });
+
       const ctx: RequestContext = {
         userId: user.id,
-        userRole: user.user_metadata?.role as string ?? "customer",
+        userRole: profile?.role ?? "customer",
       };
 
       // 4. Role check
@@ -111,10 +119,16 @@ export async function authenticate(
       const supabase = getSupabaseAdmin(env);
       const { data: { user } } = await supabase.auth.getUser(authHeader.slice(7));
       if (user) {
+        // Read role from DB, not JWT
+        const prisma = getPrisma(env);
+        const profile = await prisma.profile.findUnique({
+          where: { id: user.id },
+          select: { role: true },
+        });
         return {
           ctx: {
             userId: user.id,
-            userRole: user.user_metadata?.role as string ?? "customer",
+            userRole: profile?.role ?? "customer",
           },
         };
       }

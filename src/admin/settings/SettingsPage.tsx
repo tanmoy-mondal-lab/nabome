@@ -1,5 +1,5 @@
 import { MediaPicker } from "../common/MediaPicker";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { useToast } from "../../components/ui/Toast";
@@ -82,12 +82,30 @@ export default function SettingsPage() {
   const [form, setForm] = useState<Settings>(DEFAULT_SETTINGS);
   const [formInitialized, setFormInitialized] = useState(false);
 
-  if (settings && !formInitialized) {
-    setForm(settings);
-    setFormInitialized(true);
-  }
+  useEffect(() => {
+    if (settings && !formInitialized) {
+      setForm(settings);
+      setFormInitialized(true);
+    }
+  }, [settings, formInitialized]);
 
   const handleSave = async () => {
+    if (!form.siteName.trim()) {
+      toast("Store name is required", "error");
+      return;
+    }
+    if (form.taxRate < 0 || form.taxRate > 100) {
+      toast("Tax rate must be between 0 and 100", "error");
+      return;
+    }
+    if (form.freeShippingThreshold < 0) {
+      toast("Free shipping threshold must be a positive number", "error");
+      return;
+    }
+    if (form.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail)) {
+      toast("Invalid contact email format", "error");
+      return;
+    }
     setSaving(true);
     try {
       await adminApi.updateSettings(form);
@@ -106,7 +124,10 @@ export default function SettingsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading settings…</span>
+        </div>
       </div>
     );
   }
@@ -120,7 +141,7 @@ export default function SettingsPage() {
 
       <div className="max-w-4xl space-y-6">
         {/* Store Info */}
-        <section className="bg-white border border-neutral-200 rounded-lg p-6 space-y-4">
+        <section className="premium-card rounded-2xl p-6 space-y-4">
           <h2 className="font-medium text-sm text-neutral-900">Store Information</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -174,7 +195,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Tax & Shipping */}
-        <section className="bg-white border border-neutral-200 rounded-lg p-6 space-y-4">
+        <section className="premium-card rounded-2xl p-6 space-y-4">
           <h2 className="font-medium text-sm text-neutral-900">Tax & Shipping</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
@@ -205,7 +226,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Notifications & Preferences */}
-        <section className="bg-white border border-neutral-200 rounded-lg p-6 space-y-4">
+        <section className="premium-card rounded-2xl p-6 space-y-4">
           <h2 className="font-medium text-sm text-neutral-900">Preferences</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -238,7 +259,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Footer & Promo */}
-        <section className="bg-white border border-neutral-200 rounded-lg p-6 space-y-4">
+        <section className="premium-card rounded-2xl p-6 space-y-4">
           <h2 className="font-medium text-sm text-neutral-900">Footer &amp; Promo</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -286,7 +307,7 @@ export default function SettingsPage() {
 
           <div className="flex justify-end">
             <button onClick={handleSave} disabled={saving}
-              className="bg-neutral-900 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">
+              className="btn-primary">
               {saving ? "Saving…" : "Save Settings"}
             </button>
           </div>

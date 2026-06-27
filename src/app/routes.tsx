@@ -22,6 +22,11 @@ const CollectionPage = lazy(() => import("../storefront/pages/CollectionPage"));
 const CheckoutPage = lazy(() => import("../storefront/pages/CheckoutPage"));
 const LookbookPage = lazy(() => import("../storefront/pages/LookbookPage"));
 const LookbookDetailPage = lazy(() => import("../storefront/pages/LookbookDetailPage"));
+const PrivacyPage = lazy(() => import("../storefront/pages/PrivacyPage"));
+const TermsPage = lazy(() => import("../storefront/pages/TermsPage"));
+const FaqPage = lazy(() => import("../storefront/pages/FaqPage"));
+const ShippingPage = lazy(() => import("../storefront/pages/ShippingPage"));
+const CollectionsIndexPage = lazy(() => import("../storefront/pages/CollectionsIndexPage"));
 
 // Dashboard pages
 const DashboardOverview = lazy(() => import("../storefront/pages/DashboardPage"));
@@ -41,8 +46,13 @@ export const STOREFRONT_ROUTES = (
     <Route path="search" element={<SearchResultsPage />} />
     <Route path="cart" element={<CartPage />} />
     <Route path="wishlist" element={<WishlistPage />} />
+    <Route path="collections" element={<CollectionsIndexPage />} />
     <Route path="collections/:slug" element={<CollectionPage />} />
     <Route path="checkout" element={<CheckoutPage />} />
+    <Route path="privacy" element={<PrivacyPage />} />
+    <Route path="terms" element={<TermsPage />} />
+    <Route path="faq" element={<FaqPage />} />
+    <Route path="shipping" element={<ShippingPage />} />
     <Route path="lookbooks" element={<LookbookPage />} />
     <Route path="lookbooks/:slug" element={<LookbookDetailPage />} />
     <Route path="account" element={<ProtectedRoute><DashboardOverview /></ProtectedRoute>} />

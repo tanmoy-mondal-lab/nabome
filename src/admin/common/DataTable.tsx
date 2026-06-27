@@ -53,7 +53,7 @@ export function DataTable<T>({
 
   if (isLoading) {
     return (
-      <div className="bg-white border border-neutral-200 rounded-xl">
+      <div className="premium-card rounded-2xl overflow-hidden">
         <div className="p-8 text-center">
           <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto" />
         </div>
@@ -62,7 +62,7 @@ export function DataTable<T>({
   }
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-xl">
+    <div className="premium-card rounded-2xl overflow-hidden">
       {/* Search */}
       {onSearch && (
         <div className="p-4 border-b border-neutral-100">

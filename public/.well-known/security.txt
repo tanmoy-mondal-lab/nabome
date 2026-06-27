@@ -1,0 +1,5 @@
+Contact: mailto:hello@nabome.online
+Expires: 2027-06-26T00:00:00.000Z
+Preferred-Languages: en
+Policy: https://www.nabome.online/
+Canonical: https://www.nabome.online/security.txt

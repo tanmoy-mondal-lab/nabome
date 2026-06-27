@@ -57,6 +57,14 @@ export default function SEOPage() {
   }, [data]);
 
   const handleSave = async () => {
+    if (form.structuredData.trim()) {
+      try {
+        JSON.parse(form.structuredData);
+      } catch {
+        toast("Invalid JSON in Structured Data field", "error");
+        return;
+      }
+    }
     try {
       const current = await adminApi.getSettings();
       const settings = current.settings as Record<string, unknown> ?? {};
@@ -72,7 +80,10 @@ export default function SEOPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading SEO settings…</span>
+        </div>
       </div>
     );
   }
@@ -84,7 +95,7 @@ export default function SEOPage() {
         <p className="text-sm text-neutral-500 mt-1">Manage search engine optimization</p>
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded p-6 space-y-5 max-w-4xl">
+      <div className="premium-card rounded-2xl p-6 space-y-5 max-w-4xl">
         <h2 className="font-medium text-sm text-neutral-900">Global Meta</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -92,6 +103,9 @@ export default function SEOPage() {
             <input value={form.globalMetaTitle}
               onChange={(e) => setForm({ ...form, globalMetaTitle: e.target.value })}
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <p className={`text-xs mt-1 ${form.globalMetaTitle.length > 60 ? 'text-amber-500' : 'text-neutral-400'}`}>
+              {form.globalMetaTitle.length}/60 characters
+            </p>
           </div>
             <div>
               <MediaPicker value={form.ogImage} onChange={(url, publicId) => setForm({ ...form, ogImage: url, ogImagePublicId: publicId ?? "" })} label="OG Image URL" folder="seo" />
@@ -102,6 +116,9 @@ export default function SEOPage() {
           <textarea rows={2} value={form.globalMetaDescription}
             onChange={(e) => setForm({ ...form, globalMetaDescription: e.target.value })}
             className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
+          <p className={`text-xs mt-1 ${form.globalMetaDescription.length > 160 ? 'text-amber-500' : 'text-neutral-400'}`}>
+            {form.globalMetaDescription.length}/160 characters
+          </p>
         </div>
 
         <hr className="border-neutral-100" />
@@ -155,10 +172,10 @@ export default function SEOPage() {
 
         <div className="flex justify-end pt-2">
           <button onClick={handleSave} disabled={isLoading}
-            className="bg-neutral-900 text-white px-6 py-2.5 rounded text-sm font-medium hover:bg-neutral-800 disabled:opacity-50">
-            Save SEO Settings
-          </button>
-        </div>
+          className="btn-primary disabled:opacity-50">
+          Save SEO Settings
+        </button>
+      </div>
       </div>
     </div>
   );

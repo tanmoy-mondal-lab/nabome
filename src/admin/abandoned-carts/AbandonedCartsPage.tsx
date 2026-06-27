@@ -1,8 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
-import { ShoppingBag, Search, Eye } from "lucide-react";
+import { DataTable } from "../common/DataTable";
+import { ShoppingBag, Eye } from "lucide-react";
+import { formatPrice } from "../../lib/utils/format";
 
 interface CartItem {
   id: string;
@@ -24,43 +27,30 @@ interface Cart {
   items: CartItem[];
 }
 
-interface Pagination {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-
 export default function AbandonedCartsPage() {
-  const [carts, setCarts] = useState<Cart[]>([]);
-  const [pagination, setPagination] = useState<Pagination | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [minAge, setMinAge] = useState("24");
   const [page, setPage] = useState(1);
+  const [minAge, setMinAge] = useState("24");
   const [selectedCart, setSelectedCart] = useState<Cart | null>(null);
   const limit = 10;
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "abandonedCarts", page, minAge],
+    queryFn: async () => {
       const params: Record<string, string | number | undefined> = {
         minAge: Number(minAge) || 24,
         page,
         limit,
       };
       const res = await adminApi.getAbandonedCarts(params);
-      setCarts((res.carts as Cart[]) ?? []);
-      setPagination((res.pagination as Pagination) ?? null);
-    } catch {
-      /* non-critical: failed to fetch abandoned carts */
-    } finally {
-      setLoading(false);
-    }
-  }, [minAge, page]);
+      return {
+        carts: (res.carts as Cart[]) ?? [],
+        pagination: (res.pagination as { total: number; totalPages: number }) ?? { total: 0, totalPages: 1 },
+      };
+    },
+  });
 
-  useEffect(() => {
-    fetch();
-  }, [fetch]);
+  const carts = data?.carts ?? [];
+  const pagination = data?.pagination;
 
   const total = (item: Cart) =>
     item.items.reduce((sum, i) => sum + i.quantity * i.variant.price, 0);
@@ -74,151 +64,75 @@ export default function AbandonedCartsPage() {
     return `${days}d ago`;
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  const columns = [
+    {
+      key: "profile", label: "Customer",
+      render: (c: Cart) => <span className="font-medium text-neutral-900">{c.profile.firstName} {c.profile.lastName}</span>,
+    },
+    {
+      key: "email", label: "Email",
+      render: (c: Cart) => <span className="text-neutral-600">{c.profile.email}</span>,
+    },
+    {
+      key: "items", label: "Items",
+      render: (c: Cart) => <span className="text-neutral-600 text-center">{c.items.reduce((s, i) => s + i.quantity, 0)}</span>,
+    },
+    {
+      key: "total", label: "Total",
+      render: (c: Cart) => <span className="text-neutral-900 font-medium">{formatPrice(total(c))}</span>,
+    },
+    {
+      key: "updatedAt", label: "Last Active",
+      render: (c: Cart) => <span className="text-neutral-500 text-xs">{relativeTime(c.updatedAt)}</span>,
+    },
+    {
+      key: "actions", label: "",
+      render: (c: Cart) => (
+        <button onClick={(ev) => { ev.stopPropagation(); setSelectedCart(c); }}
+          className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100" title="View items">
+          <Eye size={14} />
+        </button>
+      ),
+    },
+  ];
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-2xl text-neutral-900">
-            Abandoned Carts
-          </h1>
-          <p className="text-sm text-neutral-500 mt-1">
-            {pagination?.total ?? 0} abandoned carts
-          </p>
+          <h1 className="font-display text-2xl text-neutral-900">Abandoned Carts</h1>
+          <p className="text-sm text-neutral-500 mt-1">{pagination?.total ?? 0} abandoned carts</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative">
+          <div>
+            <label className="block text-xs text-neutral-500 mb-1">Min hours inactive</label>
             <input
               type="number"
               min="1"
               value={minAge}
-              onChange={(e) => {
-                setMinAge(e.target.value);
-                setPage(1);
-              }}
-              className="w-32 pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
-              placeholder="Min hours"
-            />
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+              onChange={(e) => setMinAge(e.target.value)}
+              className="w-28 px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
         </div>
       </div>
 
-      {carts.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
-          <EmptyState
-            icon={ShoppingBag}
-            title="No abandoned carts"
-            description="Carts will appear here when customers leave items in their cart."
-          />
-        </div>
+      {carts.length === 0 && !isLoading ? (
+        <EmptyState
+          icon={ShoppingBag}
+          title="No abandoned carts"
+          description="Carts will appear here when customers leave items in their cart for too long."
+        />
       ) : (
-        <>
-          <div className="bg-white border border-neutral-200 rounded overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-neutral-200 bg-neutral-50">
-                  <th className="text-left px-4 py-3 font-medium text-neutral-600">
-                    Customer
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-neutral-600">
-                    Email
-                  </th>
-                  <th className="text-center px-4 py-3 font-medium text-neutral-600">
-                    Items
-                  </th>
-                  <th className="text-right px-4 py-3 font-medium text-neutral-600">
-                    Total
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-neutral-600">
-                    Last Active
-                  </th>
-                  <th className="text-right px-4 py-3 font-medium text-neutral-600">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {carts.map((cart) => (
-                  <tr
-                    key={cart.id}
-                    className="border-b border-neutral-100 hover:bg-neutral-50"
-                  >
-                    <td className="px-4 py-3 font-medium text-neutral-900">
-                      {cart.profile.firstName} {cart.profile.lastName}
-                    </td>
-                    <td className="px-4 py-3 text-neutral-600">
-                      {cart.profile.email}
-                    </td>
-                    <td className="px-4 py-3 text-center text-neutral-600">
-                      {cart.items.reduce((s, i) => s + i.quantity, 0)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-neutral-900 font-medium">
-                      ${total(cart).toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 text-neutral-500 text-xs">
-                      {relativeTime(cart.updatedAt)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => setSelectedCart(cart)}
-                        className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded"
-                        title="View items"
-                      >
-                        <Eye size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-xs text-neutral-500">
-                Page {pagination.page} of {pagination.totalPages} (
-                {pagination.total} total)
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="px-3 py-1.5 text-xs font-medium border border-neutral-200 rounded disabled:opacity-30 hover:bg-neutral-50"
-                >
-                  Previous
-                </button>
-                <button
-                  disabled={page >= pagination.totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="px-3 py-1.5 text-xs font-medium border border-neutral-200 rounded disabled:opacity-30 hover:bg-neutral-50"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          )}
-        </>
+        <DataTable columns={columns} data={carts} isLoading={isLoading}
+          page={page} totalPages={pagination?.totalPages ?? 1} onPageChange={setPage}
+          emptyMessage="No abandoned carts" />
       )}
 
       <Modal
         open={!!selectedCart}
         onClose={() => setSelectedCart(null)}
-        title={
-          selectedCart
-            ? `${selectedCart.profile.firstName} ${selectedCart.profile.lastName}'s Cart`
-            : "Cart Details"
-        }
+        title={selectedCart ? `${selectedCart.profile.firstName} ${selectedCart.profile.lastName}'s Cart` : "Cart Details"}
         size="lg"
       >
         {selectedCart && (
@@ -226,59 +140,34 @@ export default function AbandonedCartsPage() {
             <div className="grid grid-cols-2 gap-4 pb-4 border-b border-neutral-200">
               <div>
                 <p className="text-xs text-neutral-500 mb-0.5">Customer</p>
-                <p className="text-sm text-neutral-900">
-                  {selectedCart.profile.firstName}{" "}
-                  {selectedCart.profile.lastName}
-                </p>
+                <p className="text-sm text-neutral-900">{selectedCart.profile.firstName} {selectedCart.profile.lastName}</p>
               </div>
               <div>
                 <p className="text-xs text-neutral-500 mb-0.5">Email</p>
-                <p className="text-sm text-neutral-900">
-                  {selectedCart.profile.email}
-                </p>
+                <p className="text-sm text-neutral-900">{selectedCart.profile.email}</p>
               </div>
               <div>
                 <p className="text-xs text-neutral-500 mb-0.5">Phone</p>
-                <p className="text-sm text-neutral-900">
-                  {selectedCart.profile.phone || "—"}
-                </p>
+                <p className="text-sm text-neutral-900">{selectedCart.profile.phone || "-"}</p>
               </div>
               <div>
                 <p className="text-xs text-neutral-500 mb-0.5">Last Active</p>
-                <p className="text-sm text-neutral-900">
-                  {relativeTime(selectedCart.updatedAt)}
-                </p>
+                <p className="text-sm text-neutral-900">{relativeTime(selectedCart.updatedAt)}</p>
               </div>
             </div>
 
             <div>
-              <p className="text-xs uppercase tracking-wider text-neutral-400 font-medium mb-2">
-                Cart Items ({selectedCart.items.length})
-              </p>
+              <p className="text-xs uppercase tracking-wider text-neutral-400 font-medium mb-2">Cart Items ({selectedCart.items.length})</p>
               <div className="space-y-2">
                 {selectedCart.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between bg-neutral-50 rounded px-3 py-2"
-                  >
+                  <div key={item.id} className="flex items-center justify-between bg-neutral-50 rounded-xl px-3 py-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-neutral-900 truncate">
-                        {item.variant.product.name}
-                      </p>
-                      <p className="text-xs text-neutral-500">
-                        SKU: {item.variant.sku} &middot; $
-                        {item.variant.price.toFixed(2)} each
-                      </p>
+                      <p className="text-sm font-medium text-neutral-900 truncate">{item.variant.product.name}</p>
+                      <p className="text-xs text-neutral-500">SKU: {item.variant.sku} - {formatPrice(item.variant.price)} each</p>
                     </div>
                     <div className="text-right ml-4 flex-shrink-0">
-                      <p className="text-sm text-neutral-900">
-                        {item.quantity} &times; ${
-                          item.variant.price.toFixed(2)
-                        }
-                      </p>
-                      <p className="text-xs text-neutral-500">
-                        ${(item.quantity * item.variant.price).toFixed(2)}
-                      </p>
+                      <p className="text-sm text-neutral-900">{item.quantity} x {formatPrice(item.variant.price)}</p>
+                      <p className="text-xs text-neutral-500">{formatPrice(item.quantity * item.variant.price)}</p>
                     </div>
                   </div>
                 ))}
@@ -287,9 +176,7 @@ export default function AbandonedCartsPage() {
 
             <div className="flex items-center justify-between pt-3 border-t border-neutral-200">
               <p className="text-sm text-neutral-600">Cart Total</p>
-              <p className="text-lg font-display text-neutral-900">
-                ${total(selectedCart).toFixed(2)}
-              </p>
+              <p className="text-lg font-display text-neutral-900">{formatPrice(total(selectedCart))}</p>
             </div>
           </div>
         )}

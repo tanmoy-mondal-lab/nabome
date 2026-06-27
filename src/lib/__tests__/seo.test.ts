@@ -13,7 +13,7 @@ import {
 describe('canonical', () => {
   it('should prepend site URL to relative path', () => {
     const result = canonical('/products/test');
-    expect(result).toContain('নবME.online');
+    expect(result).toContain('nabome.online');
     expect(result).toContain('/products/test');
   });
 
@@ -29,15 +29,15 @@ describe('canonical', () => {
 
   it('should handle root path', () => {
     const result = canonical('/');
-    expect(result).toContain('নবME.online');
+    expect(result).toContain('nabome.online');
   });
 });
 
 describe('ogImageFallback', () => {
   it('should return OG image URL', () => {
     const result = ogImageFallback();
-    expect(result).toContain('og-image.jpg');
-    expect(result).toContain('নবME.online');
+    expect(result).toContain('og-image.svg');
+    expect(result).toContain('nabome.online');
   });
 });
 

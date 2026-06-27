@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 import { SafeImage } from "../../components/SafeImage";
 
@@ -20,24 +19,21 @@ export default function CollectionGridSection({ section }: CollectionGridSection
   const content = section.content ?? {};
   const limit = (content.limit as number) ?? 3;
 
-  const [collections, setCollections] = useState<Record<string, unknown>[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: res, isLoading: loading } = useQuery({
+    queryKey: ["collections", "grid", limit],
+    queryFn: () => api.get<{ collections: Record<string, unknown>[] }>("/api/collections", { params: { action: "list" } }),
+    staleTime: 1000 * 60 * 10,
+  });
 
-  useEffect(() => {
-    setLoading(true);
-    api.get<{ collections: Record<string, unknown>[] }>("/api/collections", { params: { action: "list" } })
-      .then((res) => {
-        setCollections((res.collections ?? []).slice(0, limit));
-      })
-      .catch(() => setCollections([]))
-      .finally(() => setLoading(false));
-  }, [limit]);
+  const collections = (res?.collections ?? []).slice(0, limit);
 
   if (loading) {
     return (
       <section className="container-wide section-padding">
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="aspect-[3/4] bg-neutral-100 animate-pulse rounded-sm" />
+          ))}
         </div>
       </section>
     );

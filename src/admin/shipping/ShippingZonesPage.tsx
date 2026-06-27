@@ -193,7 +193,10 @@ export default function ShippingZonesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading shipping zones…</span>
+        </div>
       </div>
     );
   }
@@ -207,14 +210,14 @@ export default function ShippingZonesPage() {
         </div>
         <button
           onClick={openAddZone}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors"
+          className="btn-primary"
         >
           <Plus size={16} /> Add Zone
         </button>
       </div>
 
       {zones.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded-lg p-12 text-center">
+        <div className="premium-card rounded-2xl p-12 text-center">
           <Truck size={40} className="text-neutral-300 mx-auto mb-4" />
           <p className="font-display text-lg text-neutral-500">No shipping zones</p>
           <p className="text-sm text-neutral-400 mt-1">Add your first shipping zone to get started</p>

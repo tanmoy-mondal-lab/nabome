@@ -1,7 +1,7 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { slugify } from "../../../src/lib/utils/format";
+import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth";
 
 export async function handleAdminImportExportRequest(
@@ -64,12 +64,7 @@ async function handleExportProducts(req: Request, env: any): Promise<Response> {
     });
 
     if (format === "json") {
-      return new Response(JSON.stringify({ products }), {
-        headers: {
-          "Content-Type": "application/json",
-          "Content-Disposition": "attachment; filename=products-export.json",
-        },
-      });
+      return success({ data: { products }, filename: "products-export.json" });
     }
 
     const headers = [
@@ -91,12 +86,7 @@ async function handleExportProducts(req: Request, env: any): Promise<Response> {
     ]);
 
     const csv = toCSV(headers, rows);
-    return new Response(csv, {
-      headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": "attachment; filename=products-export.csv",
-      },
-    });
+    return success({ csv, filename: "products-export.csv" });
   } catch (err) {
     return serverError(err);
   }
@@ -223,12 +213,7 @@ async function handleExportOrders(req: Request, env: any): Promise<Response> {
     });
 
     if (format === "json") {
-      return new Response(JSON.stringify({ orders }), {
-        headers: {
-          "Content-Type": "application/json",
-          "Content-Disposition": "attachment; filename=orders-export.json",
-        },
-      });
+      return success({ data: { orders }, filename: "orders-export.json" });
     }
 
     const headers = [
@@ -246,12 +231,7 @@ async function handleExportOrders(req: Request, env: any): Promise<Response> {
     ]);
 
     const csv = toCSV(headers, rows);
-    return new Response(csv, {
-      headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": "attachment; filename=orders-export.csv",
-      },
-    });
+    return success({ csv, filename: "orders-export.csv" });
   } catch (err) {
     return serverError(err);
   }

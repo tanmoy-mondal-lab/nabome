@@ -7,6 +7,7 @@ import { api } from "./client";
 export interface LoginRequest {
   email: string;
   password: string;
+  turnstileToken?: string;
 }
 
 export interface RegisterRequest {
@@ -15,6 +16,7 @@ export interface RegisterRequest {
   firstName: string;
   lastName?: string;
   phone?: string;
+  turnstileToken?: string;
 }
 
 export interface AuthResponse {
@@ -83,14 +85,14 @@ export const authApi = {
   updateMe: (data: Partial<Pick<UserProfile, "firstName" | "lastName" | "phone" | "avatarUrl"> & { preferences: Record<string, unknown> }>) =>
     api.put<{ user: UserProfile }>("/auth/me", data),
 
-  forgotPassword: (email: string) =>
-    api.post<{ message: string }>("/auth/forgot-password", { email }),
+  forgotPassword: (email: string, turnstileToken?: string) =>
+    api.post<{ message: string }>("/auth/forgot-password", { email, turnstileToken }),
 
-  verifyResetCode: (email: string, code: string) =>
-    api.post<{ message: string }>("/auth/verify-reset-code", { email, code }),
+  verifyResetCode: (email: string, code: string, turnstileToken?: string) =>
+    api.post<{ message: string }>("/auth/verify-reset-code", { email, code, turnstileToken }),
 
-  resetPassword: (email: string, code: string, password: string) =>
-    api.post<{ message: string }>("/auth/reset-password", { email, code, password }),
+  resetPassword: (email: string, code: string, password: string, turnstileToken?: string) =>
+    api.post<{ message: string }>("/auth/reset-password", { email, code, password, turnstileToken }),
 
   changePassword: (currentPassword: string, newPassword: string) =>
     api.post<{ message: string }>("/auth/change-password", { currentPassword, newPassword }),
@@ -101,11 +103,11 @@ export const authApi = {
   deleteSession: (sessionId: string) =>
     api.delete<{ message: string }>(`/auth/sessions/${sessionId}`),
 
-  verifyEmail: (data: { email: string; code: string }) =>
+  verifyEmail: (data: { email: string; code: string; turnstileToken?: string }) =>
     api.post<{ message: string }>("/auth/verify-email", data),
 
-  resendVerification: (email: string) =>
-    api.post<{ message: string }>("/auth/resend-verification", { email }),
+  resendVerification: (email: string, turnstileToken?: string) =>
+    api.post<{ message: string }>("/auth/resend-verification", { email, turnstileToken }),
 
   changeEmail: (newEmail: string) =>
     api.post<{ message: string }>("/auth/change-email", { newEmail }),

@@ -1,5 +1,6 @@
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError, created } from "../_lib/response";
+import { requireAdmin } from "../_lib/auth";
 import type { RequestContext } from "../_lib/types";
 
 async function createNotification(
@@ -30,6 +31,13 @@ export async function handleReturnRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  // Defense-in-depth: verify admin role for admin actions
+  const adminActions = ["adminList", "adminDetail", "approve", "reject", "receive"];
+  if (adminActions.includes(action)) {
+    const adminGuard = requireAdmin(ctx);
+    if (adminGuard) return adminGuard;
+  }
+
   switch (action) {
     case "create": return handleCreate(req, ctx, ctx.env);
     case "listMy": return handleListMy(ctx, ctx.env);

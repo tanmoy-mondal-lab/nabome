@@ -118,7 +118,10 @@ export default function ReturnDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading return details…</span>
+        </div>
       </div>
     );
   }
@@ -154,7 +157,7 @@ export default function ReturnDetailPage() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
           {/* Customer & Reason */}
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="premium-card rounded-2xl p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-4">Return Details</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
@@ -188,7 +191,7 @@ export default function ReturnDetailPage() {
 
           {/* Evidence Images */}
           {returnDetail.evidenceImages && returnDetail.evidenceImages.length > 0 && (
-            <div className="bg-white border border-neutral-200 rounded p-6">
+            <div className="premium-card rounded-2xl p-6">
               <h3 className="font-medium text-sm text-neutral-900 mb-4">Evidence Images</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {returnDetail.evidenceImages.map((url, i) => (
@@ -201,7 +204,7 @@ export default function ReturnDetailPage() {
           )}
 
           {/* Status Timeline */}
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="premium-card rounded-2xl p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-4">Status History</h3>
             <ol className="relative border-l border-neutral-200 ml-2 space-y-4">
               {returnDetail.createdAt && (
@@ -236,7 +239,7 @@ export default function ReturnDetailPage() {
 
           {/* Refund Section */}
           {returnDetail.refund && (
-            <div className="bg-white border border-neutral-200 rounded p-6">
+            <div className="premium-card rounded-2xl p-6">
               <h3 className="font-medium text-sm text-neutral-900 mb-4">Refund Details</h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -269,7 +272,7 @@ export default function ReturnDetailPage() {
         {/* Sidebar Actions */}
         <div className="space-y-4">
           {/* Actions */}
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="premium-card rounded-2xl p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-4">Actions</h3>
             <div className="space-y-3">
               {canApprove && (
@@ -348,7 +351,7 @@ export default function ReturnDetailPage() {
                     }
                   }}
                   disabled={actionLoading}
-                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50"
                 >
                   <CheckCircle size={14} /> Complete Refund
                 </button>
@@ -366,7 +369,7 @@ export default function ReturnDetailPage() {
                     }
                   }}
                   disabled={actionLoading}
-                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50"
                 >
                   <XCircle size={14} /> Fail Refund
                 </button>
@@ -378,7 +381,7 @@ export default function ReturnDetailPage() {
           </div>
 
           {/* Order Link */}
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="premium-card rounded-2xl p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-2">Order</h3>
             <button
               onClick={() => navigate(`/admin/orders/${returnDetail.order?.id}`)}

@@ -17,16 +17,13 @@ const CustomersPage = lazy(() => import("./customers/CustomersPage"));
 const CMSPagesPage = lazy(() => import("./cms/CMSPagesPage"));
 const HomepageBuilder = lazy(() => import("./cms/HomepageBuilder"));
 const PageBuilderDemo = lazy(() => import("./cms/PageBuilderDemo").then((m) => ({ default: m.PageBuilderDemo })));
-const NavigationBuilder = lazy(() => import("./cms/NavigationBuilder"));
 const HeaderBuilder = lazy(() => import("./cms/HeaderBuilder"));
 const FooterBuilder = lazy(() => import("./cms/FooterBuilder"));
 const BrandStoryPage = lazy(() => import("./cms/BrandStoryPage"));
 const BannersPage = lazy(() => import("./cms/BannersPage"));
 const HeroBuilder = lazy(() => import("./cms/HeroBuilder"));
 const MediaLibrary = lazy(() => import("./media/MediaLibrary"));
-const MarketingPage = lazy(() => import("./marketing/MarketingPage"));
 const SEOPage = lazy(() => import("./seo/SEOPage"));
-const ThemePage = lazy(() => import("./theme/ThemePage"));
 const ThemeBuilder = lazy(() => import("./theme/ThemeBuilder"));
 const AnalyticsPage = lazy(() => import("./analytics/AnalyticsPage"));
 const SettingsPage = lazy(() => import("./settings/SettingsPage"));
@@ -35,7 +32,6 @@ const LookbookFormPage = lazy(() => import("./lookbooks/LookbookFormPage"));
 const BrandsPage = lazy(() => import("./brands/BrandsPage"));
 const SizeGuidesPage = lazy(() => import("./size-guides/SizeGuidesPage"));
 const LabelsPage = lazy(() => import("./labels/LabelsPage"));
-const SubcategoriesPage = lazy(() => import("./subcategories/SubcategoriesPage"));
 const InventoryPage = lazy(() => import("./inventory/InventoryPage"));
 const CouponsPage = lazy(() => import("./coupons/CouponsPage"));
 const ReviewsPage = lazy(() => import("./reviews/ReviewsPage"));
@@ -52,29 +48,20 @@ const NotificationsPage = lazy(() => import("./notifications/NotificationsPage")
 const WebhookEventsPage = lazy(() => import("./webhooks/WebhookEventsPage"));
 const PageTemplatesPage = lazy(() => import("./templates/PageTemplatesPage"));
 const CampaignsPage = lazy(() => import("./campaigns/CampaignsPage"));
-const CouponRedemptionsPage = lazy(() => import("./coupon-redemptions/CouponRedemptionsPage"));
 const AbandonedCartsPage = lazy(() => import("./abandoned-carts/AbandonedCartsPage"));
+const AuthActivityPage = lazy(() => import("./auth/AuthActivityPage"));
 const AuditLogPage = lazy(() => import("./audit-log/AuditLogPage"));
 const WishlistsPage = lazy(() => import("./wishlists/WishlistsPage"));
-const ProductAttributesPage = lazy(() => import("./product-attributes/ProductAttributesPage"));
-const AddressesPage = lazy(() => import("./addresses/AddressesPage"));
-const SessionsPage = lazy(() => import("./sessions/SessionsPage"));
-const LoginAttemptsPage = lazy(() => import("./login-attempts/LoginAttemptsPage"));
 
 function AdminFallback() {
   return (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{
-          width: 40,
-          height: 40,
-          border: "4px solid #e5e7eb",
-          borderTopColor: "#2563eb",
-          borderRadius: "50%",
-          animation: "spin 0.8s linear infinite",
-          margin: "0 auto 16px",
-        }} />
-        <p style={{ color: "#6b7280", fontSize: 14 }}>Loading...</p>
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
+      <div className="premium-card rounded-2xl px-8 py-10 text-center shadow-elevated">
+        <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center mx-auto mb-4">
+          <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        </div>
+        <p className="font-display text-lg text-neutral-900">Loading admin…</p>
+        <p className="text-sm text-neutral-500 mt-1">Preparing the dashboard experience</p>
       </div>
     </div>
   );
@@ -121,7 +108,6 @@ export default function AdminRoutes() {
           <Route path="brands" element={<BrandsPage />} />
           <Route path="size-guides" element={<SizeGuidesPage />} />
           <Route path="labels" element={<LabelsPage />} />
-          <Route path="subcategories" element={<SubcategoriesPage />} />
           <Route path="inventory" element={<InventoryPage />} />
 
           {/* CMS Routes */}
@@ -130,16 +116,13 @@ export default function AdminRoutes() {
           <Route path="cms/page-builder/:id" element={<PageBuilderDemo />} />
           <Route path="cms/homepage" element={<HomepageBuilder />} />
           <Route path="cms/hero-builder" element={<HeroBuilder />} />
-          <Route path="cms/navigation" element={<NavigationBuilder />} />
           <Route path="cms/header" element={<HeaderBuilder />} />
           <Route path="cms/footer" element={<FooterBuilder />} />
           <Route path="cms/brand-story" element={<BrandStoryPage />} />
           <Route path="cms/banners" element={<BannersPage />} />
 
           <Route path="media" element={<MediaLibrary />} />
-          <Route path="marketing" element={<MarketingPage />} />
           <Route path="seo" element={<SEOPage />} />
-          <Route path="theme" element={<ThemePage />} />
           <Route path="theme/builder" element={<ThemeBuilder />} />
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="settings" element={<SettingsPage />} />
@@ -158,14 +141,10 @@ export default function AdminRoutes() {
           <Route path="webhooks" element={<WebhookEventsPage />} />
           <Route path="page-templates" element={<PageTemplatesPage />} />
           <Route path="campaigns" element={<CampaignsPage />} />
-          <Route path="coupon-redemptions" element={<CouponRedemptionsPage />} />
           <Route path="abandoned-carts" element={<AbandonedCartsPage />} />
+          <Route path="auth" element={<AuthActivityPage />} />
           <Route path="audit-log" element={<AuditLogPage />} />
           <Route path="wishlists" element={<WishlistsPage />} />
-          <Route path="product-attributes" element={<ProductAttributesPage />} />
-          <Route path="addresses" element={<AddressesPage />} />
-          <Route path="sessions" element={<SessionsPage />} />
-          <Route path="login-attempts" element={<LoginAttemptsPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Route>
       </Routes>

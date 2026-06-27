@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { PasswordInput } from "../components/PasswordInput";
+import { AuthShell } from "./AuthShell";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -41,18 +42,20 @@ export default function ResetPasswordPage() {
   const displayError = validationError || error;
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-md">
+    <AuthShell
+      title="Reset your password"
+      subtitle="Choose a new password for your account"
+      heroTitle="Fresh Start"
+      heroSubtitle="Create a stronger password and keep your account protected"
+    >
+      <div className="premium-card rounded-2xl p-8">
         <div className="text-center mb-10">
-          <Link to="/" className="font-display text-3xl tracking-widest text-brand-500">
-            নবME
-          </Link>
-          <h1 className="mt-6 font-display text-2xl text-neutral-900">Reset your password</h1>
+          <h2 className="font-display text-2xl text-neutral-900">Set a new password</h2>
           <p className="mt-2 text-sm text-neutral-500">Choose a new password for your account</p>
         </div>
 
         {displayError && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
             <p className="text-sm text-red-700">{displayError}</p>
           </div>
         )}
@@ -83,6 +86,6 @@ export default function ResetPasswordPage() {
           </Link>
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }

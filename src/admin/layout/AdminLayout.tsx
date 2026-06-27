@@ -9,7 +9,6 @@ import {
   PackageSearch, RotateCcw, Truck, Tag, MessageSquare, Mail,
   MessageCircle, Link2, Download, Activity, FileJson,
   Target, Receipt, ShoppingBag, ClipboardList, Heart,
-  SlidersHorizontal, MapPin, Clock, ShieldAlert,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -17,7 +16,6 @@ const NAV_ITEMS = [
   {
     label: "Products", icon: Package, children: [
       { label: "All Products", href: "/admin/products" },
-      { label: "Subcategories", href: "/admin/subcategories" },
       { label: "Brands", href: "/admin/brands" },
       { label: "Size Guides", href: "/admin/size-guides" },
       { label: "Labels & Tags", href: "/admin/labels" },
@@ -37,7 +35,6 @@ const NAV_ITEMS = [
       { label: "Homepage Builder", href: "/admin/cms/homepage" },
       { label: "Hero Slides", href: "/admin/cms/hero-builder" },
       { label: "Header Builder", href: "/admin/cms/header" },
-      { label: "Navigation", href: "/admin/cms/navigation" },
       { label: "Footer Builder", href: "/admin/cms/footer" },
       { label: "Brand Story", href: "/admin/cms/brand-story" },
       { label: "Banners", href: "/admin/cms/banners" },
@@ -45,7 +42,6 @@ const NAV_ITEMS = [
   },
   { label: "Lookbooks", icon: BookOpen, href: "/admin/lookbooks" },
   { label: "Media Library", icon: Image, href: "/admin/media" },
-  { label: "Marketing", icon: Percent, href: "/admin/marketing" },
   { label: "Coupons", icon: Tag, href: "/admin/coupons" },
   { label: "Announcements", icon: Megaphone, href: "/admin/announcements" },
   { label: "Reviews", icon: MessageSquare, href: "/admin/reviews" },
@@ -70,23 +66,18 @@ const NAV_ITEMS = [
   { label: "Page Templates", icon: FileJson, href: "/admin/page-templates" },
   {
     label: "Theme", icon: Palette, children: [
-      { label: "Theme Settings", href: "/admin/theme" },
       { label: "Theme Builder", href: "/admin/theme/builder" },
     ],
   },
-  { label: "Coupon Redemptions", icon: Receipt, href: "/admin/coupon-redemptions" },
   { label: "Abandoned Carts", icon: ShoppingBag, href: "/admin/abandoned-carts" },
   { label: "Campaigns", icon: Target, href: "/admin/campaigns" },
   {
     label: "System", icon: Settings, children: [
       { label: "Audit Log", href: "/admin/audit-log" },
-      { label: "Sessions", href: "/admin/sessions" },
-      { label: "Login Attempts", href: "/admin/login-attempts" },
+      { label: "Auth Activity", href: "/admin/auth" },
     ],
   },
   { label: "Wishlists", icon: Heart, href: "/admin/wishlists" },
-  { label: "Product Attributes", icon: SlidersHorizontal, href: "/admin/product-attributes" },
-  { label: "Addresses", icon: MapPin, href: "/admin/addresses" },
   { label: "Analytics", icon: BarChart4, href: "/admin/analytics" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];

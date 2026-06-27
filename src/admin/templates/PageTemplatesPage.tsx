@@ -98,7 +98,7 @@ export default function PageTemplatesPage() {
     deleteMutation.mutate(id, { onSuccess: () => setDeleteConfirm(null) });
   };
 
-  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
+  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500";
 
   if (loading) {
     return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>;
@@ -111,7 +111,7 @@ export default function PageTemplatesPage() {
           <h1 className="font-display text-2xl text-neutral-900">Page Templates</h1>
           <p className="text-sm text-neutral-500 mt-1">{templates.length} templates for page layouts</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-neutral-800">
+        <button onClick={openCreate} className="btn-primary">
           <Plus size={16} /> Add Template
         </button>
       </div>
@@ -119,7 +119,7 @@ export default function PageTemplatesPage() {
       {templates.length === 0 ? (
         <div className="bg-white border border-neutral-200 rounded">
           <EmptyState icon={FileJson} title="No templates yet"
-            action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm">Create Template</button>} />
+            action={<button onClick={openCreate} className="btn-primary">Create Template</button>} />
         </div>
       ) : (
         <div className="bg-white border border-neutral-200 rounded overflow-hidden">
@@ -147,8 +147,8 @@ export default function PageTemplatesPage() {
                   <td className="px-4 py-3"><StatusBadge status={t.isActive ? "active" : "inactive"} /></td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => openEdit(t)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded"><Edit3 size={14} /></button>
-                      <button onClick={() => setDeleteConfirm(t.id)} className="p-1.5 text-red-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
+                      <button onClick={() => openEdit(t)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100"><Edit3 size={14} /></button>
+                      <button onClick={() => setDeleteConfirm(t.id)} className="p-1.5 text-red-400 hover:text-red-600 rounded-lg hover:bg-red-50"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -203,10 +203,11 @@ export default function PageTemplatesPage() {
       </Modal>
 
       <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Template" size="sm">
-        <p className="text-sm text-neutral-600 mb-6">Delete this page template?</p>
+        <p className="text-sm text-neutral-600 mb-2">Are you sure you want to delete this template?</p>
+        <p className="text-xs text-neutral-400 mb-6">This action cannot be undone.</p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-          <button onClick={() => handleDelete(deleteConfirm!)} disabled={deleteMutation.isPending} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+          <button onClick={() => handleDelete(deleteConfirm!)} disabled={deleteMutation.isPending} className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50">
             {deleteMutation.isPending ? "Deleting..." : "Delete"}
           </button>
         </div>

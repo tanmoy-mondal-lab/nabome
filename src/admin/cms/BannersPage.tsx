@@ -22,7 +22,7 @@ interface Banner {
 
 interface HeroSection {
   id: string;
-  type: string;
+  sectionType: string;
   config: { banners?: Banner[]; [key: string]: unknown };
 }
 
@@ -42,10 +42,10 @@ export default function BannersPage() {
   });
 
   const banners = sections
-    .filter((s) => s.type === "hero")
+    .filter((s) => s.sectionType === "hero_slider")
     .flatMap((s) => Array.isArray(s.config?.banners) ? (s.config.banners as Banner[]) : []);
 
-  const heroSection = sections.find((s) => s.type === "hero");
+  const heroSection = sections.find((s) => s.sectionType === "hero_slider");
 
   const saveMutation = useMutation({
     mutationFn: async (updatedBanners: Banner[]) => {
@@ -56,7 +56,7 @@ export default function BannersPage() {
         });
       } else {
         await adminApi.createHomeSection({
-          type: "hero",
+          sectionType: "hero_slider",
           sortOrder: 0,
           isActive: true,
           config: { banners: updatedBanners },
@@ -111,13 +111,17 @@ export default function BannersPage() {
   };
 
   const handleDelete = (bannerId: string) => {
+    if (!window.confirm("Delete this banner? This cannot be undone.")) return;
     deleteMutation.mutate(bannerId);
   };
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading banners…</span>
+        </div>
       </div>
     );
   }
@@ -130,21 +134,21 @@ export default function BannersPage() {
           <p className="text-sm text-neutral-500 mt-1">Manage promotional banners</p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium">
+          className="btn-primary">
           <Plus size={16} /> Add Banner
         </button>
       </div>
 
       {banners.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
+        <div className="premium-card rounded-2xl">
           <EmptyState icon={Images} title="No banners yet"
-            action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm">Add Banner</button>}
+            action={<button onClick={openCreate} className="btn-primary">Add Banner</button>}
           />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {banners.map((banner) => (
-            <div key={banner.id} className="bg-white border border-neutral-200 rounded overflow-hidden group">
+            <div key={banner.id} className="premium-card rounded-2xl overflow-hidden group">
               <div className="aspect-[16/9] bg-neutral-100 relative">
                 {banner.imageUrl ? (
                   <SafeImage src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover" useTransform={false} />
@@ -170,7 +174,7 @@ export default function BannersPage() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Edit Banner" : "New Banner"}>
         <div className="space-y-4">
-          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Title</label>
               <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -179,7 +183,7 @@ export default function BannersPage() {
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Position</label>
               <select value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded">
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="hero">Hero</option>
                 <option value="promo">Promo Strip</option>
                 <option value="sidebar">Sidebar</option>
@@ -189,7 +193,7 @@ export default function BannersPage() {
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Subtitle</label>
             <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <MediaPicker value={form.imageUrl} onChange={(url: string, publicId?: string) => setForm({ ...form, imageUrl: url, imagePublicId: publicId ?? "" })} label="Image URL" folder="banners" />
@@ -197,7 +201,7 @@ export default function BannersPage() {
           <div>
             <label className="block text-xs text-neutral-500 mb-1">Link URL</label>
             <input value={form.linkUrl} onChange={(e) => setForm({ ...form, linkUrl: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded" />
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" checked={form.isActive}
@@ -207,7 +211,7 @@ export default function BannersPage() {
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
             <button onClick={handleSave} disabled={saveMutation.isPending}
-              className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+              className="btn-primary disabled:opacity-50">
               {saveMutation.isPending ? "Saving..." : "Save"}
             </button>
           </div>

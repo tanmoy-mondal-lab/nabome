@@ -95,6 +95,7 @@ export default function CategoriesPage() {
   };
 
   const handleDelete = (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this category? This action cannot be undone.")) return;
     deleteMutation.mutate(id);
   };
 

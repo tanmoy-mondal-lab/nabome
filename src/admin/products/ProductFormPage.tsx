@@ -39,7 +39,7 @@ function Section({
   return (
     <motion.section
       layout="position"
-      className="bg-white border border-neutral-200 rounded-xl overflow-hidden"
+      className="premium-card rounded-2xl overflow-hidden"
     >
       <button
         onClick={() => setOpen(!open)}
@@ -107,6 +107,7 @@ export default function ProductFormPage() {
 
   const initialImageIdsRef = useRef<Set<string>>(new Set());
   const initialVariantIdsRef = useRef<Set<string>>(new Set());
+  const initialVariantImageIdsRef = useRef<Map<string, Set<string>>>(new Map());
   const { dirty, setInitial, resetDirty } = useFormDirty(form, variants, images, selectedLabels);
   const handleSaveRef = useRef<(() => Promise<void>) | undefined>(undefined);
 
@@ -119,6 +120,7 @@ export default function ProductFormPage() {
       setSelectedLabels([]);
       initialImageIdsRef.current = new Set();
       initialVariantIdsRef.current = new Set();
+      initialVariantImageIdsRef.current = new Map();
       setInitialized(true);
       resetDirty();
       return;
@@ -140,6 +142,12 @@ export default function ProductFormPage() {
     );
     initialVariantIdsRef.current = new Set(
       loadedVariants.map((v) => v.id).filter((vId) => !vId.startsWith("new-"))
+    );
+    initialVariantImageIdsRef.current = new Map(
+      loadedVariants.map((variant) => [
+        variant.id,
+        new Set((variant.images ?? []).filter((img) => img.id).map((img) => img.id!)),
+      ])
     );
 
     setSlugManuallyEdited(false);
@@ -307,6 +315,16 @@ export default function ProductFormPage() {
         const deletedImageIds = [...initialImageIdsRef.current].filter((imgId) => !currentImageIds.has(imgId));
         if (deletedImageIds.length > 0) {
           await Promise.all(deletedImageIds.map((imgId) => adminApi.deleteProductImage(productId, imgId)));
+        }
+
+        // Delete removed variant images for variants that still exist.
+        const deletedVariantImageIds = variants.flatMap((variant) => {
+          const currentImageIds = new Set((variant.images ?? []).filter((img) => img.id).map((img) => img.id!));
+          const initialImageIds = initialVariantImageIdsRef.current.get(variant.id) ?? new Set<string>();
+          return [...initialImageIds].filter((imgId) => !currentImageIds.has(imgId));
+        });
+        if (deletedVariantImageIds.length > 0) {
+          await Promise.all(deletedVariantImageIds.map((imgId) => adminApi.deleteProductImage(productId, imgId)));
         }
 
         // Add new product-level images
@@ -657,7 +675,7 @@ export default function ProductFormPage() {
                   onClick={() => setSelectedLabels((prev) => prev.includes(l.id) ? prev.filter((id) => id !== l.id) : [...prev, l.id])}
                   className={`px-2.5 py-1 text-[11px] rounded-full border transition-all ${
                     selectedLabels.includes(l.id)
-                      ? "bg-neutral-900 text-white border-neutral-900 shadow-sm"
+                      ? "bg-brand-600 text-white border-brand-600 shadow-sm"
                       : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400"
                   }`}
                   style={selectedLabels.includes(l.id) && l.color ? { backgroundColor: l.color, borderColor: l.color } : {}}
@@ -755,7 +773,7 @@ export default function ProductFormPage() {
                 <button onClick={skipAltText} className="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors">
                   Skip
                 </button>
-                <button onClick={confirmAltText} className="px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors shadow-sm">
+                <button onClick={confirmAltText} className="btn-primary">
                   Add Image
                 </button>
               </div>

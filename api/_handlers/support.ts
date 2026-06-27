@@ -1,5 +1,6 @@
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError, created } from "../_lib/response";
+import { requireAdmin } from "../_lib/auth";
 import type { RequestContext } from "../_lib/types";
 
 export async function handleSupportRequest(
@@ -9,6 +10,13 @@ export async function handleSupportRequest(
   action?: string
 ): Promise<Response> {
   const method = req.method;
+
+  // Defense-in-depth: verify admin role for admin actions
+  const adminActions = ["adminList", "adminDetail", "adminUpdateStatus", "adminAssign", "adminReply", "adminFaqList", "adminFaqCreate", "adminFaqUpdate", "adminFaqDelete"];
+  if (action && adminActions.includes(action)) {
+    const adminGuard = requireAdmin(ctx);
+    if (adminGuard) return adminGuard;
+  }
 
   // Public
   if (action === "createTicket") {

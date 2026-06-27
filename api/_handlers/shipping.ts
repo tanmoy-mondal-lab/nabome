@@ -1,5 +1,6 @@
 import { getPrisma } from "../_lib/prisma";
-import { success, badRequest, notFound, serverError, created } from "../_lib/response";
+import { success, badRequest, notFound, serverError, created, forbidden } from "../_lib/response";
+import { requireAdmin } from "../_lib/auth";
 import type { RequestContext } from "../_lib/types";
 
 export async function handleShippingRequest(
@@ -8,6 +9,13 @@ export async function handleShippingRequest(
   params: string[],
   action: string
 ): Promise<Response> {
+  // Defense-in-depth: verify admin role for admin actions
+  const adminActions = ["adminListZones", "createZone", "updateZone", "deleteZone", "addRate", "updateRate", "deleteRate"];
+  if (adminActions.includes(action)) {
+    const adminGuard = requireAdmin(ctx);
+    if (adminGuard) return adminGuard;
+  }
+
   switch (action) {
     case "listZones": return handleListZones(ctx.env);
     case "calculateRates": return handleCalculateRates(req, ctx.env);

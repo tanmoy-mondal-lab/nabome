@@ -81,8 +81,13 @@ export default function FooterBuilder() {
 
   const openEdit = (sec: FooterSection) => {
     setEditItem(sec);
+    const content = typeof sec.content === "string" ? (() => {
+      try { return JSON.parse(sec.content) as Record<string, unknown>; } catch { return {}; }
+    })() : (sec.content as Record<string, unknown> | undefined) ?? {};
     setForm({
-      title: sec.title, contentType: sec.contentType, content: typeof sec.content === 'object' ? JSON.stringify(sec.content) : (sec.content ?? ""),
+      title: sec.title,
+      contentType: sec.contentType,
+      content: typeof content.text === "string" ? content.text : typeof content.html === "string" ? content.html : "",
       isActive: sec.isActive, links: sec.links ?? [], column: (sec as unknown as { column?: number }).column ?? 1,
     });
     setModalOpen(true);
@@ -90,8 +95,19 @@ export default function FooterBuilder() {
 
   const handleSave = () => {
     const payload: Record<string, unknown> = {
-      title: form.title, contentType: form.contentType, content: form.contentType === 'links' ? JSON.stringify({ links: form.links }) : form.content,
-      isActive: form.isActive, sortOrder: editItem?.sortOrder ?? sections.length, column: form.column,
+      title: form.title,
+      contentType: form.contentType,
+      content:
+        form.contentType === "links"
+          ? { links: form.links }
+          : form.contentType === "text"
+            ? { text: form.content }
+            : form.contentType === "newsletter"
+              ? { text: form.content }
+              : { content: form.content },
+      isActive: form.isActive,
+      sortOrder: editItem?.sortOrder ?? sections.length,
+      column: form.column,
     };
     saveMutation.mutate({ id: editItem?.id, data: payload });
   };
@@ -146,7 +162,10 @@ export default function FooterBuilder() {
     <div>
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+            <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-neutral-500">Loading footer…</span>
+          </div>
         </div>
       ) : (
         <>
@@ -161,21 +180,19 @@ export default function FooterBuilder() {
               <p className="text-sm text-neutral-500 mt-1">Manage footer sections and links</p>
             </div>
             <button onClick={openCreate}
-              className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium">
+              className="btn-primary">
               <Plus size={16} /> Add Section
             </button>
           </div>
 
           {sections.length === 0 ? (
-            <div className="bg-white border border-neutral-200 rounded">
-              <EmptyState icon={LayoutList} title="No footer sections" description="Add columns to your footer"
-                action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm">Add Section</button>}
-              />
-            </div>
+            <EmptyState icon={LayoutList} title="No footer sections" description="Add columns to your footer"
+              action={<button onClick={openCreate} className="btn-primary">Add Section</button>}
+            />
           ) : (
             <div className="space-y-3">
               {sections.map((sec) => (
-                <div key={sec.id} className="bg-white border border-neutral-200 rounded p-4 flex items-center justify-between">
+                <div key={sec.id} className="premium-card rounded-2xl p-4 flex items-center justify-between">
                   <div>
                     <h3 className="font-medium text-sm text-neutral-900">{sec.title}</h3>
                     <p className="text-xs text-neutral-500 capitalize">{sec.contentType} · {(sec as unknown as { links?: [] }).links?.length ?? 0} links</p>
@@ -195,7 +212,7 @@ export default function FooterBuilder() {
 
           <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Edit Section" : "New Section"} size="lg">
             <div className="space-y-4">
-              <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-neutral-500 mb-1">Title *</label>
                   <input required value={form.title}
@@ -206,7 +223,7 @@ export default function FooterBuilder() {
                   <label className="block text-xs text-neutral-500 mb-1">Type</label>
                   <select value={form.contentType}
                     onChange={(e) => setForm({ ...form, contentType: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-neutral-200 rounded">
+                    className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500">
                     <option value="links">Links</option>
                     <option value="text">Text/About</option>
                     <option value="newsletter">Newsletter</option>
@@ -230,11 +247,11 @@ export default function FooterBuilder() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-xs text-neutral-500">Links</label>
-                    <button onClick={openAddLink} className="text-xs bg-brand-500 text-white px-2 py-1 rounded hover:bg-brand-600">
+                <button onClick={openAddLink} className="text-xs bg-brand-500 text-white px-2 py-1 rounded-xl hover:bg-brand-600">
                       + Add Link
                     </button>
                   </div>
-                  <div className="border border-neutral-200 rounded divide-y divide-neutral-100">
+                  <div className="border border-neutral-200 rounded-xl divide-y divide-neutral-100">
                     {form.links.length === 0 ? (
                       <div className="p-4 text-center text-sm text-neutral-400">
                         No links yet. Click "+ Add Link" to add footer links.
@@ -266,7 +283,7 @@ export default function FooterBuilder() {
               <div className="flex justify-end gap-2 pt-2">
                 <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
                 <button onClick={handleSave} disabled={saveMutation.isPending}
-                  className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+                  className="btn-primary disabled:opacity-50">
                   {saveMutation.isPending ? "Saving..." : editItem ? "Update" : "Create"}
                 </button>
               </div>

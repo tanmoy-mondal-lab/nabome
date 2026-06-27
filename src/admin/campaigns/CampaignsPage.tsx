@@ -6,6 +6,7 @@ import { Modal } from "../common/Modal";
 import { StatusBadge } from "../common/StatusBadge";
 import { EmptyState } from "../common/EmptyState";
 import { Megaphone, Plus, Edit3, Trash2 } from "lucide-react";
+import { formatDate } from "../../lib/utils/format";
 
 interface Campaign {
   id: string;
@@ -19,7 +20,7 @@ interface Campaign {
   createdAt: string;
 }
 
-const CAMPAIGN_TYPES = ["seasonal", "promotional", "launch", "event"];
+const CAMPAIGN_TYPES = ["email", "banner", "popup", "discount"];
 
 export default function CampaignsPage() {
   const queryClient = useQueryClient();
@@ -27,7 +28,7 @@ export default function CampaignsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Campaign | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", type: "seasonal", startDate: "", endDate: "", isActive: true });
+  const [form, setForm] = useState({ name: "", description: "", type: "email", startDate: "", endDate: "", isActive: true });
 
   const { data: campaigns = [], isLoading: loading } = useQuery({
     queryKey: ["admin", "campaigns"],
@@ -77,7 +78,7 @@ export default function CampaignsPage() {
 
   const openCreate = () => {
     setEditItem(null);
-    setForm({ name: "", description: "", type: "seasonal", startDate: "", endDate: "", isActive: true });
+    setForm({ name: "", description: "", type: "email", startDate: "", endDate: "", isActive: true });
     setModalOpen(true);
   };
 
@@ -88,6 +89,12 @@ export default function CampaignsPage() {
   };
 
   const handleSave = () => {
+    if (!form.name.trim()) { toast("Name is required", "error"); return; }
+    if (!form.startDate) { toast("Start date is required", "error"); return; }
+    if (form.endDate && new Date(form.endDate) < new Date(form.startDate)) {
+      toast("End date must be after start date", "error");
+      return;
+    }
     if (editItem) {
       updateMutation.mutate({
         id: editItem.id,
@@ -113,7 +120,14 @@ export default function CampaignsPage() {
   const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading campaigns…</span>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -123,18 +137,19 @@ export default function CampaignsPage() {
           <h1 className="font-display text-2xl text-neutral-900">Campaigns</h1>
           <p className="text-sm text-neutral-500 mt-1">{campaigns.length} campaigns</p>
         </div>
-        <button onClick={openCreate} className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-neutral-800">
+        <button onClick={openCreate} className="btn-primary">
           <Plus size={16} /> Add Campaign
         </button>
       </div>
 
       {campaigns.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
-          <EmptyState icon={Megaphone} title="No campaigns yet"
-            action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm">Create Campaign</button>} />
-        </div>
+        <EmptyState
+          icon={Megaphone}
+          title="No campaigns yet"
+          action={<button onClick={openCreate} className="btn-primary">Create Campaign</button>}
+        />
       ) : (
-        <div className="bg-white border border-neutral-200 rounded overflow-hidden">
+        <div className="premium-card rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-200 bg-neutral-50">
@@ -154,8 +169,8 @@ export default function CampaignsPage() {
                     {c.description && <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">{c.description}</p>}
                   </td>
                   <td className="px-4 py-3 capitalize text-neutral-600">{c.type}</td>
-                  <td className="px-4 py-3 text-neutral-500">{c.startDate}</td>
-                  <td className="px-4 py-3 text-neutral-500">{c.endDate ?? "—"}</td>
+                  <td className="px-4 py-3 text-neutral-500">{formatDate(c.startDate)}</td>
+                  <td className="px-4 py-3 text-neutral-500">{c.endDate ? formatDate(c.endDate) : "—"}</td>
                   <td className="px-4 py-3"><StatusBadge status={c.isActive ? "active" : "inactive"} /></td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
@@ -206,7 +221,7 @@ export default function CampaignsPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} disabled={isSaving} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50">
+            <button onClick={handleSave} disabled={isSaving} className="btn-primary disabled:opacity-50">
               {isSaving ? "Saving..." : "Save"}
             </button>
           </div>
@@ -220,7 +235,7 @@ export default function CampaignsPage() {
           <button
             onClick={() => handleDelete(deleteConfirm!)}
             disabled={deleteMutation.isPending}
-            className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50"
+            className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
           >
             {deleteMutation.isPending ? "Deleting..." : "Delete"}
           </button>

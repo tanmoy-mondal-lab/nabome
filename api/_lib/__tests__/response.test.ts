@@ -155,16 +155,16 @@ describe('response helpers', () => {
       expect(res.status).toBe(500);
     });
 
-    it('should handle Error objects', async () => {
+    it('should handle Error objects without exposing internal message', async () => {
       const res = serverError(new Error('Database connection failed'));
       const body = await parseBody(res);
-      expect(body.error.message).toBe('Database connection failed');
+      expect(body.error.message).toBe('Internal server error');
     });
 
-    it('should handle string errors', async () => {
+    it('should handle string errors without exposing internal message', async () => {
       const res = serverError('Something went wrong');
       const body = await parseBody(res);
-      expect(body.error.message).toBe('Something went wrong');
+      expect(body.error.message).toBe('Internal server error');
     });
 
     it('should handle unknown errors', async () => {

@@ -4,6 +4,7 @@ import { useAuthStore } from "../../stores/auth-store";
 import { PriceDisplay } from "./PriceDisplay";
 import { formatPrice } from "../../lib/utils/format";
 import { SafeImage } from "../../components/SafeImage";
+import { useSettings } from "../hooks/useSettings";
 
 interface FrequentlyBoughtTogetherProps {
   products: Record<string, unknown>[];
@@ -14,11 +15,13 @@ export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBo
   const addItem = useCartStore((s) => s.addItem);
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { data: settingsData } = useSettings();
   if (!products.length) return null;
 
+  const bundleDiscountPercent = Number((settingsData?.preferences as Record<string, unknown>)?.bundleDiscountPercent ?? 10);
   const mainPrice = Number(mainProduct.basePrice ?? 0);
   const total = products.reduce((sum, p) => sum + Number(p.basePrice ?? 0), mainPrice);
-  const discount = Math.round(total * 0.1);
+  const discount = Math.round(total * bundleDiscountPercent / 100);
   const bundlePrice = total - discount;
 
   function handleAddAll() {

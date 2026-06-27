@@ -1,34 +1,20 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { api } from "../../lib/api/client";
-import { Heart, Instagram, Youtube, Twitter, Facebook, ArrowUp, ChevronRight } from "lucide-react";
+import { Instagram, Youtube, Twitter, Facebook, ArrowUp } from "lucide-react";
 import { useSettings } from "../hooks/useSettings";
 import { useFooter } from "../hooks/useFooter";
+import { NewsletterForm } from "../components/NewsletterForm";
 
 const SOCIAL_ICONS: Record<string, typeof Instagram> = { instagram: Instagram, youtube: Youtube, twitter: Twitter, facebook: Facebook };
 
 export function Footer() {
   const { data: settings } = useSettings();
   const { data: footerSections = [] } = useFooter();
-  const [email, setEmail] = useState("");
-  const [subscribed, setSubscribed] = useState(false);
-
-  async function handleNewsletter(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email) return;
-    try {
-      await api.post("/api/contact", { action: "newsletter", email });
-      setEmail("");
-      setSubscribed(true);
-    } catch { /* non-critical: newsletter submit fallback */ }
-  }
 
   const socialLinks = (settings?.socialLinks as Record<string, string>[]) ?? [];
-  const columns = footerSections.reduce<Record<string, unknown>[][]>((acc, section) => {
+  const columns = footerSections.reduce<Array<typeof footerSections>>((acc, section) => {
     const col = (section.column as number) ?? 0;
     if (!acc[col]) acc[col] = [];
-    acc[col].push(section as unknown as Record<string, unknown>);
+    acc[col].push(section);
     return acc;
   }, []);
 
@@ -45,16 +31,7 @@ export function Footer() {
             <p className="text-xs tracking-[0.2em] uppercase text-accent-goldLight mb-1">{(settings?.preferences as Record<string, unknown>)?.newsletterTitle as string || "Stay Connected"}</p>
             <p className="text-lg font-display text-white">{(settings?.preferences as Record<string, unknown>)?.newsletterSubtitle as string || "Join the নবME Inner Circle"}</p>
           </div>
-          <form onSubmit={handleNewsletter} className="flex w-full max-w-md border-b border-white/20">
-            <input
-              type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email" required
-              className="flex-1 bg-transparent px-3 py-3 text-sm text-white placeholder-neutral-500 focus:outline-none"
-            />
-            <button type="submit" className="text-xs uppercase tracking-widest text-accent-gold hover:text-accent-goldLight px-4 transition-colors whitespace-nowrap">
-              {subscribed ? "Joined ✓" : "Subscribe"}
-            </button>
-          </form>
+          <NewsletterForm layout="inline" />
         </div>
       </div>
 
@@ -88,7 +65,11 @@ export function Footer() {
             <div key={i} className="col-span-1">
               {col.map((section) => {
                 const contentType = section.contentType as string;
-                const content = section.content as Record<string, unknown> | null;
+                const content = typeof section.content === "string"
+                  ? (() => {
+                      try { return JSON.parse(section.content) as Record<string, unknown>; } catch { return {}; }
+                    })()
+                  : (section.content as Record<string, unknown> | null);
                 const links = contentType === "links" ? (content?.links as { label: string; url: string }[] ?? []) : [];
                 const text = contentType === "text" ? (content?.text as string ?? "") : "";
                 return (

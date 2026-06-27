@@ -1,7 +1,7 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { slugify } from "../../../src/lib/utils/format";
+import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth";
 
 export async function handleAdminProductLabelRequest(
@@ -62,7 +62,10 @@ async function handleUpdateLabel(id: string, req: Request, env: any): Promise<Re
     if (body.color !== undefined) data.color = body.color;
     const label = await prisma.productLabel.update({ where: { id }, data: data as never });
     return success(label);
-  } catch (err) { return notFound("Label not found"); }
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Label not found");
+    return serverError(err);
+  }
 }
 
 async function handleDeleteLabel(id: string, env: any): Promise<Response> {
@@ -70,7 +73,10 @@ async function handleDeleteLabel(id: string, env: any): Promise<Response> {
     const prisma = getPrisma(env);
     await prisma.productLabel.delete({ where: { id } });
     return success({ message: "Label deleted" });
-  } catch (err) { return notFound("Label not found"); }
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Label not found");
+    return serverError(err);
+  }
 }
 
 async function handleListTags(env: any): Promise<Response> {
@@ -108,7 +114,10 @@ async function handleUpdateTag(id: string, req: Request, env: any): Promise<Resp
     if (body.name !== undefined) { data.name = body.name; data.slug = slugify(body.name); }
     const tag = await prisma.productTag.update({ where: { id }, data: data as never });
     return success(tag);
-  } catch (err) { return notFound("Tag not found"); }
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Tag not found");
+    return serverError(err);
+  }
 }
 
 async function handleDeleteTag(id: string, env: any): Promise<Response> {
@@ -116,7 +125,10 @@ async function handleDeleteTag(id: string, env: any): Promise<Response> {
     const prisma = getPrisma(env);
     await prisma.productTag.delete({ where: { id } });
     return success({ message: "Tag deleted" });
-  } catch (err) { return notFound("Tag not found"); }
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Tag not found");
+    return serverError(err);
+  }
 }
 
 async function handleAssignLabels(productId: string, req: Request, env: any): Promise<Response> {

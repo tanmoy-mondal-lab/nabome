@@ -40,11 +40,5 @@ export function conflict(message: string): Response {
 
 export function serverError(err?: unknown): Response {
   console.error("Internal server error:", err);
-  const message =
-    err instanceof Error
-      ? err.message
-      : typeof err === "string"
-        ? err
-        : "Internal server error";
-  return error(message, 500);
+  return error("Internal server error", 500);
 }

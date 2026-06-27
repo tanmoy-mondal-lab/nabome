@@ -20,10 +20,11 @@ async function createHMACSHA256(secret: string, data: string, env: any): Promise
 async function callRazorpay(
   path: string,
   method: string,
-  body?: Record<string, unknown>
+  body?: Record<string, unknown>,
+  env?: any
 ): Promise<Record<string, unknown>> {
-  const keyId = process.env.RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const keyId = env?.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID;
+  const keySecret = env?.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET;
   if (!keyId || !keySecret) {
     throw new Error("Razorpay credentials not configured");
   }
@@ -80,7 +81,7 @@ async function handleVerify(req: Request, env: any): Promise<Response> {
       );
     }
 
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    const keySecret = env?.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET;
     if (!keySecret) {
       return serverError(new Error("Razorpay secret not configured"));
     }
@@ -238,7 +239,7 @@ async function handleRetry(req: Request, env: any): Promise<Response> {
       currency: order.currency,
       receipt: order.orderNumber,
       notes: { orderId: order.id },
-    });
+    }, env);
 
     const razorpayOrderId = razorpayData.id as string;
 
@@ -290,7 +291,7 @@ async function handleRefund(req: Request, ctx: RequestContext, env: any): Promis
       payment_id: order.razorpayPaymentId,
       amount: Math.round(refundAmount * 100),
       notes: { order_id: orderId, order_number: order.orderNumber },
-    });
+    }, env);
 
     const isFullRefund = refundAmount >= remaining;
 
@@ -714,7 +715,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
   const signature = req.headers.get("x-razorpay-signature");
 
   // ── 1. Verify secret is configured ──
-  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    const webhookSecret = env?.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_WEBHOOK_SECRET;
   if (!webhookSecret) {
     console.error("[WEBHOOK] Secret not configured");
     return success({ status: "ignored" });
@@ -954,7 +955,7 @@ async function handleReconcileOrder(req: Request, orderId: string, env: any): Pr
   if (!order.razorpayOrderId) return badRequest("Order has no Razorpay order ID");
 
   try {
-    const razorpayOrder = await callRazorpay(`/orders/${order.razorpayOrderId}`, "GET");
+    const razorpayOrder = await callRazorpay(`/orders/${order.razorpayOrderId}`, "GET", undefined, env);
     const razorpayStatus = razorpayOrder.status as string;
     const razorpayAmountDue = Number(razorpayOrder.amount_due || 0);
 
@@ -974,7 +975,7 @@ async function handleReconcileOrder(req: Request, orderId: string, env: any): Pr
       });
     }
 
-    const payments = await callRazorpay(`/orders/${order.razorpayOrderId}/payments`, "GET");
+    const payments = await callRazorpay(`/orders/${order.razorpayOrderId}/payments`, "GET", undefined, env);
     const paymentEntities = payments.items as Array<Record<string, unknown>> || [];
 
     const reconciliation = {

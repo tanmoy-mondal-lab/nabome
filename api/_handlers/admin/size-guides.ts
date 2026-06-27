@@ -1,10 +1,10 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { slugify } from "../../../src/lib/utils/format";
+import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth";
 import { toNull } from "../../_lib/sanitize";
-import { destroyCloudinaryAsset } from "../../_lib/cloudinary";
+import { destroyCloudinaryAsset, destroyCloudinaryAssetIfReplaced } from "../../_lib/cloudinary";
 
 export async function handleAdminSizeGuideRequest(
   req: Request,
@@ -65,10 +65,22 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
-    const fields = ["name", "description", "categoryId", "type", "unit", "imageUrl", "imagePublicId", "measurements", "isActive"];
+    const existing = await prisma.sizeGuide.findUnique({ where: { id } });
+    if (!existing) return notFound("Size guide not found");
+    const fields = ["name", "description", "categoryId", "type", "unit", "imageUrl", "measurements", "isActive"];
     const data: Record<string, unknown> = {};
     for (const f of fields) { if (body[f] !== undefined) data[f] = f === "categoryId" ? toNull(body[f]) : body[f]; }
-    if (body.name) data.slug = slugify(body.name);
+    if (body.imageUrl !== undefined) data.imageUrl = toNull(body.imageUrl);
+    if (body.imagePublicId !== undefined) {
+      data.imagePublicId = await destroyCloudinaryAssetIfReplaced(existing.imagePublicId, body.imagePublicId, env);
+    }
+    if (body.name) {
+      const newSlug = slugify(body.name);
+      const slugExists = await prisma.sizeGuide.findFirst({
+        where: { slug: newSlug, id: { not: id } },
+      });
+      data.slug = slugExists ? `${newSlug}-${Date.now().toString(36)}` : newSlug;
+    }
     const guide = await prisma.sizeGuide.update({ where: { id }, data: data as never });
     return success(guide);
   } catch (err) { return serverError(err); }

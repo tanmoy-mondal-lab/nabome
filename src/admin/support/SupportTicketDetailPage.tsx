@@ -70,7 +70,14 @@ export default function SupportTicketDetailPage() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading ticket…</span>
+        </div>
+      </div>
+    );
   }
   if (!ticket) return null;
 
@@ -102,7 +109,7 @@ export default function SupportTicketDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="premium-card rounded-2xl p-6">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-xs font-medium text-neutral-600 shrink-0">
                 {ticket.name.charAt(0).toUpperCase()}
@@ -116,7 +123,7 @@ export default function SupportTicketDetailPage() {
           </div>
 
           {ticket.replies.map((reply) => (
-            <div key={reply.id} className={`bg-white border border-neutral-200 rounded p-6 ${reply.isStaff ? "border-brand-200 bg-brand-50/30" : ""}`}>
+            <div key={reply.id} className={`premium-card rounded-2xl p-6 ${reply.isStaff ? "border-brand-200 bg-brand-50/30" : ""}`}>
               <div className="flex items-start gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium shrink-0 ${reply.isStaff ? "bg-brand-100 text-brand-700" : "bg-neutral-100 text-neutral-600"}`}>
                   {reply.isStaff ? "S" : ticket.name.charAt(0).toUpperCase()}
@@ -133,7 +140,7 @@ export default function SupportTicketDetailPage() {
             </div>
           ))}
 
-          <div className="bg-white border border-neutral-200 rounded p-4">
+          <div className="premium-card rounded-2xl p-4">
             <textarea value={replyText} onChange={(e) => setReplyText(e.target.value)}
               rows={3} placeholder="Type your reply..."
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
@@ -147,7 +154,7 @@ export default function SupportTicketDetailPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="premium-card rounded-2xl p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-3">Details</h3>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
@@ -164,13 +171,13 @@ export default function SupportTicketDetailPage() {
               </div>
             </div>
           </div>
-          <div className="bg-white border border-neutral-200 rounded p-6">
+          <div className="premium-card rounded-2xl p-6">
             <h3 className="font-medium text-sm text-neutral-900 mb-3">Customer</h3>
             <p className="text-sm text-neutral-900">{ticket.name}</p>
             <p className="text-xs text-neutral-400">{ticket.email}</p>
           </div>
           {ticket.order && (
-            <div className="bg-white border border-neutral-200 rounded p-6">
+            <div className="premium-card rounded-2xl p-6">
               <h3 className="font-medium text-sm text-neutral-900 mb-2">Order</h3>
               <button onClick={() => navigate(`/admin/orders/${ticket.order?.orderNumber}`)}
                 className="text-sm text-brand-600 hover:underline">View Order #{ticket.order.orderNumber} →</button>

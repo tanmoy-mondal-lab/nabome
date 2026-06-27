@@ -1,9 +1,11 @@
 import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 import { useSettings } from "../hooks/useSettings";
 import SectionRenderer from "../sections/SectionRenderer";
 import { canonical, websiteSchema } from "../../lib/seo";
+import { formatPrice } from "../../lib/utils/format";
 
 interface SectionData {
   id: string;
@@ -26,6 +28,10 @@ export default function HomePage() {
   const sections = homepageRes?.sections ?? [];
 
   const hasTrustBar = sections.some((s) => s.sectionType === "trust_bar");
+
+  useEffect(() => {
+    document.title = `${(settings.siteName as string) || "নবME"} — Premium Fashion`;
+  }, [settings.siteName]);
 
   if (loading) {
     return (
@@ -51,7 +57,6 @@ export default function HomePage() {
   return (
     <>
       <Helmet>
-        <title>{(settings.siteName as string) || "নবME"} — Premium Fashion</title>
         <meta name="description" content={(settings.siteDescription as string) || "Discover premium fashion at নবME"} />
         <link rel="canonical" href={canonical("/")} />
         <script type="application/ld+json">{JSON.stringify(websiteSchema())}</script>
@@ -62,7 +67,7 @@ export default function HomePage() {
 
       {!hasTrustBar && (
         <div className="bg-neutral-950 text-white text-center py-2 text-xs tracking-widest uppercase">
-          Free shipping on orders above ₹2,999
+          Free shipping on orders above {formatPrice(Number((settings.preferences as Record<string, unknown>)?.freeShippingThreshold ?? 500))}
         </div>
       )}
 

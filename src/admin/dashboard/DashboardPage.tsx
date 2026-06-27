@@ -32,7 +32,10 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading dashboard…</span>
+        </div>
       </div>
     );
   }
@@ -40,10 +43,12 @@ export default function DashboardPage() {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <p className="text-sm text-red-600">{error}</p>
-        <button onClick={fetchData} className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded hover:bg-brand-700 transition-colors">
+        <div className="premium-card rounded-2xl px-6 py-5 text-center max-w-md">
+          <p className="text-sm text-red-600">{error}</p>
+          <button onClick={fetchData} className="mt-4 btn-primary">
           Retry
-        </button>
+          </button>
+        </div>
       </div>
     );
   }
@@ -91,27 +96,27 @@ export default function DashboardPage() {
       {/* Alerts */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
         {Number(stats?.lowStockVariants) > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded p-4 flex items-center gap-3">
-            <TrendingDown size={18} className="text-amber-600 shrink-0" />
-            <p className="text-sm text-amber-800">
-              <span className="font-medium">{stats?.lowStockVariants} variants</span> with low stock
-            </p>
-          </div>
-        )}
-        {Number(stats?.pendingReviews) > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded p-4 flex items-center gap-3">
-            <TrendingUp size={18} className="text-blue-600 shrink-0" />
-            <p className="text-sm text-blue-800">
-              <span className="font-medium">{stats?.pendingReviews} pending reviews</span> awaiting approval
-            </p>
-          </div>
+        <div className="premium-card rounded-2xl p-4 bg-amber-50/70 border-amber-200 flex items-center gap-3">
+          <TrendingDown size={18} className="text-amber-600 shrink-0" />
+          <p className="text-sm text-amber-800">
+            <span className="font-medium">{stats?.lowStockVariants} variants</span> with low stock
+          </p>
+        </div>
+      )}
+      {Number(stats?.pendingReviews) > 0 && (
+        <div className="premium-card rounded-2xl p-4 bg-blue-50/70 border-blue-200 flex items-center gap-3">
+          <TrendingUp size={18} className="text-blue-600 shrink-0" />
+          <p className="text-sm text-blue-800">
+            <span className="font-medium">{stats?.pendingReviews} pending reviews</span> awaiting approval
+          </p>
+        </div>
         )}
       </div>
 
       {/* Orders by Status + Recent Orders */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Orders by Status */}
-        <div className="bg-white border border-neutral-200 rounded-lg p-6">
+        <div className="premium-card rounded-2xl p-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
@@ -160,7 +165,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Orders */}
-        <div className="bg-white border border-neutral-200 rounded-lg p-6">
+        <div className="premium-card rounded-2xl p-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
@@ -209,7 +214,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Daily Sales Chart */}
-      <div className="bg-white border border-neutral-200 rounded-lg p-6">
+      <div className="premium-card rounded-2xl p-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">

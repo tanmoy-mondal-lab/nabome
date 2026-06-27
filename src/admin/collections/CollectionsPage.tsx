@@ -95,7 +95,10 @@ export default function CollectionsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading collections…</span>
+        </div>
       </div>
     );
   }
@@ -109,29 +112,23 @@ export default function CollectionsPage() {
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors"
+          className="btn-primary"
         >
           <Plus size={16} /> Add Collection
         </button>
       </div>
 
       {collections.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded-lg">
-          <EmptyState
-            icon={LayoutGrid}
-            title="No collections yet"
-            description="Group products into themed collections"
-            action={
-              <button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm transition-colors">
-                Create Collection
-              </button>
-            }
-          />
-        </div>
+        <EmptyState
+          icon={LayoutGrid}
+          title="No collections yet"
+          description="Group products into themed collections"
+          action={<button onClick={openCreate} className="btn-primary">Create Collection</button>}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {collections.map((col) => (
-            <div key={col.id} className="bg-white border border-neutral-200 rounded-lg overflow-hidden group">
+            <div key={col.id} className="premium-card rounded-2xl overflow-hidden group">
               <div className="aspect-[16/9] bg-neutral-100 relative">
                 {col.heroImageUrl ? (
                   <SafeImage src={col.heroImageUrl} alt={col.name} className="w-full h-full object-cover" useTransform={false} />

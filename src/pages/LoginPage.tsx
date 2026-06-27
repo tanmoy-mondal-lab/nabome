@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { PasswordInput } from "../components/PasswordInput";
 import { useToast } from "../components/ui/Toast";
+import { TurnstileWidget } from "../components/TurnstileWidget";
+import { turnstileEnabled, turnstileSiteKey } from "../lib/config";
 
 const VERIFICATION_ERROR = "Please verify your email address before logging in";
 const NO_ACCOUNT_ERROR = "No account found with that email";
@@ -15,11 +17,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [resending, setResending] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [turnstileError, setTurnstileError] = useState("");
+  const [turnstileNonce, setTurnstileNonce] = useState(0);
 
   const state = location.state as { from?: { pathname: string }; registered?: boolean } | null;
   const from = state?.from?.pathname ?? "/";
   const needsVerification = error?.startsWith(VERIFICATION_ERROR);
   const noAccount = error?.startsWith(NO_ACCOUNT_ERROR);
+  const displayError = turnstileError || error;
 
   useEffect(() => {
     if (state?.registered) {
@@ -51,8 +57,14 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (turnstileEnabled && !turnstileToken) {
+      setTurnstileError("Please complete the verification challenge");
+      return;
+    }
+
+    const shouldResetTurnstile = turnstileEnabled && !!turnstileToken;
     try {
-      const user = await login({ email, password });
+      const user = await login({ email, password, turnstileToken: turnstileToken || undefined });
       toast(`Welcome back, ${user.firstName}`, "success");
         if (user.role === "admin") {
         navigate("/admin", { replace: true });
@@ -61,6 +73,11 @@ export default function LoginPage() {
       }
     } catch {
       // Error is set in useAuth
+    } finally {
+      if (shouldResetTurnstile) {
+        setTurnstileToken("");
+        setTurnstileNonce((value) => value + 1);
+      }
     }
   };
 
@@ -77,9 +94,9 @@ export default function LoginPage() {
             <p className="mt-2 text-sm text-neutral-500">Sign in to your account</p>
           </div>
 
-          {error && (
+          {displayError && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded">
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-red-700">{displayError}</p>
               {needsVerification && (
                 <button
                   onClick={handleResend}
@@ -123,6 +140,18 @@ export default function LoginPage() {
               />
             </div>
 
+            {turnstileEnabled && (
+              <TurnstileWidget
+                key={turnstileNonce}
+                siteKey={turnstileSiteKey}
+                onTokenChange={(token) => {
+                  setTurnstileToken(token);
+                  if (token) setTurnstileError("");
+                }}
+                onError={setTurnstileError}
+              />
+            )}
+
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2">
                 <input type="checkbox" className="w-4 h-4 border-neutral-300 rounded" />
@@ -133,7 +162,7 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            <button type="submit" disabled={isLoading} className="btn-primary w-full">
+            <button type="submit" disabled={isLoading || (turnstileEnabled && !turnstileToken)} className="btn-primary w-full">
               {isLoading ? "Signing in…" : "Sign In"}
             </button>
           </form>

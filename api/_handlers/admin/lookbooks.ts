@@ -1,9 +1,10 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { slugify } from "../../../src/lib/utils/format";
+import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth";
 import { toNull } from "../../_lib/sanitize";
+import { destroyCloudinaryAsset, destroyCloudinaryAssetIfReplaced, destroyCloudinaryAssets } from "../../_lib/cloudinary";
 
 export async function handleAdminLookbookRequest(
   req: Request,
@@ -116,9 +117,12 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
     if (!existing) return notFound("Lookbook not found");
 
     const data: Record<string, unknown> = {};
-    const fields = ["name", "description", "coverImageUrl", "coverImagePublicId", "layout", "metaTitle", "metaDesc", "isActive", "sortOrder"];
+    const fields = ["name", "description", "coverImageUrl", "layout", "metaTitle", "metaDesc", "isActive", "sortOrder"];
     for (const field of fields) {
-      if (body[field] !== undefined) data[field] = body[field];
+      if (body[field] !== undefined) data[field] = field === "coverImageUrl" ? toNull(body[field]) : body[field];
+    }
+    if (body.coverImagePublicId !== undefined) {
+      data.coverImagePublicId = await destroyCloudinaryAssetIfReplaced(existing.coverImagePublicId, body.coverImagePublicId, env);
     }
     if (body.name) data.slug = slugify(body.name);
     if (body.season !== undefined) data.season = body.season;
@@ -139,6 +143,14 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
 async function handleDelete(lookbookId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const lookbook = await prisma.lookbook.findUnique({
+      where: { id: lookbookId },
+      include: { items: { select: { imagePublicId: true } } },
+    });
+    if (!lookbook) return notFound("Lookbook not found");
+    const itemPublicIds = lookbook.items.map((item) => item.imagePublicId).filter(Boolean) as string[];
+    const coverPublicIds = [lookbook.coverImagePublicId].filter(Boolean) as string[];
+    await destroyCloudinaryAssets([...coverPublicIds, ...itemPublicIds], env);
     await prisma.lookbook.delete({ where: { id: lookbookId } });
     return success({ message: "Lookbook deleted" });
   } catch (err) {
@@ -176,10 +188,16 @@ async function handleUpdateItem(lookbookId: string, itemId: string, req: Request
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
+    const existing = await prisma.lookbookItem.findUnique({ where: { id: itemId } });
+    if (!existing) return notFound("Item not found");
     const data: Record<string, unknown> = {};
-    const fields = ["imageUrl", "imagePublicId", "productId", "caption", "sortOrder"];
+    const fields = ["imageUrl", "productId", "caption", "sortOrder"];
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = field === "productId" ? toNull(body[field]) : body[field];
+    }
+    if (body.imageUrl !== undefined) data.imageUrl = toNull(body.imageUrl);
+    if (body.imagePublicId !== undefined) {
+      data.imagePublicId = await destroyCloudinaryAssetIfReplaced(existing.imagePublicId, body.imagePublicId, env);
     }
     if (body.hotspotX !== undefined) data.hotspotX = parseFloat(String(body.hotspotX));
     if (body.hotspotY !== undefined) data.hotspotY = parseFloat(String(body.hotspotY));
@@ -197,8 +215,16 @@ async function handleUpdateItem(lookbookId: string, itemId: string, req: Request
 async function handleRemoveItem(lookbookId: string, itemId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const item = await prisma.lookbookItem.findUnique({
+      where: { id: itemId },
+      select: { id: true, lookbookId: true, imagePublicId: true },
+    });
+    if (!item || item.lookbookId !== lookbookId) return notFound("Item not found");
+    if (item.imagePublicId) {
+      await destroyCloudinaryAsset(item.imagePublicId, env);
+    }
     await prisma.lookbookItem.delete({
-      where: { id: itemId, lookbookId },
+      where: { id: itemId },
     });
     return success({ message: "Item removed from lookbook" });
   } catch (err) {

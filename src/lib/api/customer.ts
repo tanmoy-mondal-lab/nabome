@@ -15,7 +15,7 @@ export const customerApi = {
 
   // Profile
   getProfile: () => api.get<{ profile: unknown }>("/profile"),
-  updateProfile: (data: { firstName?: string; lastName?: string; phone?: string }) =>
+  updateProfile: (data: { firstName?: string; lastName?: string; phone?: string; preferences?: Record<string, boolean> }) =>
     api.put<{ profile: unknown }>("/profile", data),
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.put<{ message: string }>("/profile/password", data),

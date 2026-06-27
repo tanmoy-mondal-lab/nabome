@@ -107,7 +107,10 @@ export default function CMSPagesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading pages…</span>
+        </div>
       </div>
     );
   }
@@ -121,20 +124,18 @@ export default function CMSPagesPage() {
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-neutral-800"
+          className="btn-primary"
         >
           <Plus size={16} /> Add Page
         </button>
       </div>
 
       {pages.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
-          <EmptyState icon={FileText} title="No pages yet" description="Create pages like About, Contact, etc."
-            action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm">Create Page</button>}
-          />
-        </div>
+        <EmptyState icon={FileText} title="No pages yet" description="Create pages like About, Contact, etc."
+          action={<button onClick={openCreate} className="btn-primary">Create Page</button>}
+        />
       ) : (
-        <div className="bg-white border border-neutral-200 rounded overflow-hidden">
+        <div className="premium-card rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-100 bg-neutral-50">
@@ -173,7 +174,7 @@ export default function CMSPagesPage() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editItem ? "Edit Page" : "New Page"} size="lg">
         <div className="space-y-4">
-          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Title *</label>
               <input required value={form.title}
@@ -184,7 +185,7 @@ export default function CMSPagesPage() {
               <label className="block text-xs text-neutral-500 mb-1">Slug</label>
               <input value={form.slug}
                 onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div>
@@ -193,18 +194,18 @@ export default function CMSPagesPage() {
               onChange={(e) => setForm({ ...form, content: e.target.value })}
               className="w-full px-3 py-2 text-sm font-mono border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <div className="grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Meta Title</label>
               <input value={form.metaTitle}
                 onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Status</label>
               <select value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none">
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
               </select>
@@ -214,11 +215,11 @@ export default function CMSPagesPage() {
             <label className="block text-xs text-neutral-500 mb-1">Meta Description</label>
             <textarea rows={2} value={form.metaDescription}
               onChange={(e) => setForm({ ...form, metaDescription: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">
+            <button onClick={handleSave} className="btn-primary">
               {editItem ? "Update" : "Create"}
             </button>
           </div>

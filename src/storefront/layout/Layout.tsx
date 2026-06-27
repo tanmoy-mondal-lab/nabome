@@ -45,7 +45,6 @@ export function StorefrontLayout() {
     <div className="min-h-screen bg-white flex flex-col">
       <Helmet>
         <html lang="en" />
-        <title>{siteTitle}</title>
         <meta name="description" content={siteDescription} />
         <link rel="canonical" href={currentUrl} />
         <link rel="icon" type={faviconUrl.endsWith(".ico") ? "image/x-icon" : "image/svg+xml"} href={faviconUrl || "/favicon.svg"} />
@@ -61,10 +60,7 @@ export function StorefrontLayout() {
         <meta property="og:image" content={ogImage} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:image:type" content="image/svg+xml" />
-
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:site" content="@{siteName}" />
         <meta name="twitter:title" content={siteTitle} />
         <meta name="twitter:description" content={siteDescription} />
         <meta name="twitter:image" content={ogImage} />

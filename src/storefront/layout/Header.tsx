@@ -96,12 +96,12 @@ export function Header() {
                 <Menu className="w-5 h-5" />
               </button>
               <nav className="hidden md:flex items-center gap-1">
-                {(navItems ?? []).slice(0, 5).map((menu) => {
+                {(navItems ?? []).slice(0, 5).map((menu, index) => {
                   const hasChildren = (menu.children?.length ?? 0) > 0;
                   const isActive = activeMegaMenu === menu.label;
                   return (
                     <div
-                      key={menu.id}
+                      key={`${menu.id || menu.label}-${index}`}
                       className="relative"
                       onMouseEnter={() => {
                         if (hasChildren) {

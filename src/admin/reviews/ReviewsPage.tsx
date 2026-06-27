@@ -53,7 +53,10 @@ export default function ReviewsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading reviews…</span>
+        </div>
       </div>
     );
   }
@@ -81,15 +84,13 @@ export default function ReviewsPage() {
       </div>
 
       {reviews.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
-          <EmptyState icon={MessageSquare} title="No reviews found"
-            description={filter !== "all" ? "Try changing the filter" : "No reviews have been submitted yet"}
-          />
-        </div>
+        <EmptyState icon={MessageSquare} title="No reviews found"
+          description={filter !== "all" ? "Try changing the filter" : "No reviews have been submitted yet"}
+        />
       ) : (
         <div className="space-y-3">
           {reviews.map((r) => (
-            <div key={r.id} className="bg-white border border-neutral-200 rounded p-4">
+            <div key={r.id} className="premium-card rounded-2xl p-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">

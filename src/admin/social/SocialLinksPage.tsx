@@ -7,8 +7,8 @@ import { Plus, Edit3, Trash2, Link2 } from "lucide-react";
 import { useToast } from "../../components/ui/Toast";
 
 const PLATFORM_ICONS: Record<string, string> = {
-  instagram: "📸", facebook: "👍", twitter: "🐦", youtube: "▶️",
-  pinterest: "📌", tiktok: "🎵", linkedin: "💼", whatsapp: "💬",
+  instagram: "IG", facebook: "FB", twitter: "X", youtube: "YT",
+  pinterest: "PT", tiktok: "TT", linkedin: "LI", whatsapp: "WA",
 };
 
 interface SocialLink {
@@ -49,6 +49,7 @@ export default function SocialLinksPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "socialLinks"] });
       setModalOpen(false);
+      setEditItem(null);
       toast(editItem ? "Social link updated" : "Social link created", "success");
     },
     onError: () => {
@@ -83,7 +84,16 @@ export default function SocialLinksPage() {
   };
 
   const handleSave = () => {
-    if (!form.url.trim()) return;
+    if (!form.url.trim()) {
+      toast("URL is required", "error");
+      return;
+    }
+    try {
+      new URL(form.url);
+    } catch {
+      toast("Please enter a valid URL", "error");
+      return;
+    }
     saveMutation.mutate({
       platform: form.platform,
       url: form.url,
@@ -99,12 +109,15 @@ export default function SocialLinksPage() {
     deleteMutation.mutate(deleteConfirm);
   };
 
-  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
+  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500";
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
+          <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-neutral-500">Loading social links...</span>
+        </div>
       </div>
     );
   }
@@ -117,19 +130,17 @@ export default function SocialLinksPage() {
           <p className="text-sm text-neutral-500 mt-1">Manage social media links displayed on the storefront</p>
         </div>
         <button onClick={openCreate}
-          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded text-sm font-medium hover:bg-neutral-800">
+          className="btn-primary">
           <Plus size={16} /> Add Link
         </button>
       </div>
 
       {links.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
-          <EmptyState icon={Link2} title="No social links"
-            action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm">Add Social Link</button>}
-          />
-        </div>
+        <EmptyState icon={Link2} title="No social links"
+          action={<button onClick={openCreate} className="btn-primary">Add Social Link</button>}
+        />
       ) : (
-        <div className="bg-white border border-neutral-200 rounded overflow-hidden">
+        <div className="premium-card rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-200 bg-neutral-50">
@@ -145,7 +156,9 @@ export default function SocialLinksPage() {
               {links.map((l) => (
                 <tr key={l.id} className="border-b border-neutral-100 hover:bg-neutral-50">
                   <td className="px-4 py-3">
-                    <span className="mr-2">{PLATFORM_ICONS[l.platform] ?? "🔗"}</span>
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-neutral-100 text-xs font-bold text-neutral-600 mr-2">
+                      {PLATFORM_ICONS[l.platform] ?? "LN"}
+                    </span>
                     <span className="capitalize text-neutral-900">{l.platform}</span>
                   </td>
                   <td className="px-4 py-3">
@@ -154,21 +167,21 @@ export default function SocialLinksPage() {
                       {l.url}
                     </a>
                   </td>
-                  <td className="px-4 py-3 text-neutral-500">{l.label ?? "—"}</td>
+                  <td className="px-4 py-3 text-neutral-500">{l.label ?? "-"}</td>
                   <td className="px-4 py-3 text-neutral-500">{l.sortOrder}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-block text-xs px-2.5 py-1 rounded-full border font-medium capitalize ${
-                      l.isActive ? "bg-green-50 text-green-700 border-green-200" : "bg-red-50 text-red-700 border-red-200"
+                      l.isActive ? "bg-green-50 text-green-700 border-green-200" : "bg-neutral-50 text-neutral-500 border-neutral-200"
                     }`}>
                       {l.isActive ? "Active" : "Inactive"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => openEdit(l)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded">
+                      <button onClick={() => openEdit(l)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg hover:bg-neutral-100">
                         <Edit3 size={14} />
                       </button>
-                      <button onClick={() => setDeleteConfirm(l.id)} className="p-1.5 text-red-400 hover:text-red-600 rounded">
+                      <button onClick={() => setDeleteConfirm(l.id)} className="p-1.5 text-red-400 hover:text-red-600 rounded-lg hover:bg-red-50">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -187,7 +200,7 @@ export default function SocialLinksPage() {
             <select value={form.platform} onChange={(e) => setForm({ ...form, platform: e.target.value })}
               className={inputClass}>
               {Object.keys(PLATFORM_ICONS).map((p) => (
-                <option key={p} value={p} className="capitalize">{PLATFORM_ICONS[p]} {p}</option>
+                <option key={p} value={p} className="capitalize">{p}</option>
               ))}
             </select>
           </div>
@@ -215,7 +228,10 @@ export default function SocialLinksPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">Save</button>
+            <button onClick={handleSave} disabled={saveMutation.isPending}
+              className="btn-primary disabled:opacity-50">
+              {saveMutation.isPending ? "Saving..." : "Save"}
+            </button>
           </div>
         </div>
       </Modal>
@@ -224,7 +240,10 @@ export default function SocialLinksPage() {
         <p className="text-sm text-neutral-600 mb-6">Delete this social link?</p>
         <div className="flex justify-end gap-2">
           <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-          <button onClick={handleDelete} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium">Delete</button>
+          <button onClick={handleDelete} disabled={deleteMutation.isPending}
+            className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50">
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </button>
         </div>
       </Modal>
     </div>

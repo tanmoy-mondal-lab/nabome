@@ -1,9 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { RefreshCw } from "lucide-react";
 import { formatDateTime } from "../../lib/utils/format";
+import { useToast } from "../../components/ui/Toast";
 
 interface WebhookEvent {
   id: string;
@@ -18,36 +20,38 @@ interface WebhookEvent {
 }
 
 export default function WebhookEventsPage() {
-  const [events, setEvents] = useState<WebhookEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
-  const [reprocessing, setReprocessing] = useState<string | null>(null);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin", "webhooks", page, statusFilter],
+    queryFn: async () => {
       const params: Record<string, string | number | undefined> = { page, limit: 25 };
       if (statusFilter) params.status = statusFilter;
-      const res = await adminApi.getWebhookEvents(params) as { events: WebhookEvent[]; pagination?: { totalPages: number } };
-      setEvents(res.events ?? []);
-      setTotalPages(res.pagination?.totalPages ?? 1);
-    } catch { /* non-critical: failed to fetch webhook events */ } finally { setLoading(false); }
-  }, [page, statusFilter]);
+      const res = await adminApi.getWebhookEvents(params) as { events: WebhookEvent[]; pagination?: { totalPages: number; total: number } };
+      return {
+        events: res.events ?? [],
+        totalPages: res.pagination?.totalPages ?? 1,
+        total: res.pagination?.total ?? 0,
+      };
+    },
+  });
 
-  useEffect(() => { setPage(1); }, [statusFilter]);
-  useEffect(() => { fetch(); }, [fetch]);
+  const events = data?.events ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
-  const handleReprocess = async (eventId: string) => {
-    setReprocessing(eventId);
-    try {
-      await adminApi.reprocessWebhookEvent(eventId);
-      fetch();
-    } catch { /* non-critical: failed to reprocess webhook event */ } finally {
-      setReprocessing(null);
-    }
-  };
+  const reprocessMutation = useMutation({
+    mutationFn: (eventId: string) => adminApi.reprocessWebhookEvent(eventId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "webhooks"] });
+      toast("Event reprocessed", "success");
+    },
+    onError: () => {
+      toast("Failed to reprocess event", "error");
+    },
+  });
 
   const columns = [
     {
@@ -64,7 +68,7 @@ export default function WebhookEventsPage() {
     },
     {
       key: "orderId", label: "Order",
-      render: (e: WebhookEvent) => <span className="text-xs text-neutral-500">{e.orderId ? e.orderId.slice(0, 8) : "—"}</span>,
+      render: (e: WebhookEvent) => <span className="text-xs text-neutral-500">{e.orderId ? e.orderId.slice(0, 8) : "-"}</span>,
     },
     {
       key: "retryCount", label: "Retries",
@@ -77,10 +81,10 @@ export default function WebhookEventsPage() {
     {
       key: "actions", label: "",
       render: (e: WebhookEvent) => e.status === "failed" || e.status === "error" ? (
-        <button onClick={(ev) => { ev.stopPropagation(); handleReprocess(e.id); }}
-          disabled={reprocessing === e.id}
-          className="p-1.5 text-neutral-400 hover:text-brand-600 rounded">
-          <RefreshCw size={14} className={reprocessing === e.id ? "animate-spin" : ""} />
+        <button onClick={(ev) => { ev.stopPropagation(); reprocessMutation.mutate(e.id); }}
+          disabled={reprocessMutation.isPending && reprocessMutation.variables === e.id}
+          className="p-1.5 text-neutral-400 hover:text-brand-600 rounded-lg hover:bg-neutral-100">
+          <RefreshCw size={14} className={reprocessMutation.isPending && reprocessMutation.variables === e.id ? "animate-spin" : ""} />
         </button>
       ) : null,
     },
@@ -95,14 +99,14 @@ export default function WebhookEventsPage() {
 
       <div className="flex gap-1 mb-4">
         {["", "received", "processed", "failed", "error"].map((s) => (
-          <button key={s} onClick={() => setStatusFilter(s)}
+          <button key={s} onClick={() => { setStatusFilter(s); setPage(1); }}
             className={`whitespace-nowrap px-3 py-1.5 text-sm rounded-full font-medium transition-colors ${statusFilter === s ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"}`}>
             {s ? s.replace(/_/g, " ") : "All"}
           </button>
         ))}
       </div>
 
-      <DataTable columns={columns} data={events} isLoading={loading}
+      <DataTable columns={columns} data={events} isLoading={isLoading}
         page={page} totalPages={totalPages} onPageChange={setPage}
         emptyMessage="No webhook events" />
     </div>

@@ -23,16 +23,20 @@ async function handleList(req: Request, env: any): Promise<Response> {
   if (profileId) where.profileId = profileId;
   if (isActive === "true") where.isActive = true;
   if (isActive === "false") where.isActive = false;
-  const prisma = getPrisma(env);
-  const [items, total] = await Promise.all([
-    prisma.authSession.findMany({
-      where: where as never,
-      include: { profile: { select: { id: true, firstName: true, lastName: true, email: true } } },
-      orderBy: { lastActiveAt: "desc" }, skip: (page - 1) * limit, take: limit,
-    }),
-    prisma.authSession.count({ where: where as never }),
-  ]);
-  return success({ sessions: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
+  try {
+    const prisma = getPrisma(env);
+    const [items, total] = await Promise.all([
+      prisma.authSession.findMany({
+        where: where as never,
+        include: { profile: { select: { id: true, firstName: true, lastName: true, email: true } } },
+        orderBy: { lastActiveAt: "desc" }, skip: (page - 1) * limit, take: limit,
+      }),
+      prisma.authSession.count({ where: where as never }),
+    ]);
+    return success({ sessions: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
+  } catch (err) {
+    return serverError(err);
+  }
 }
 
 async function handleRevoke(sessionId: string, env: any): Promise<Response> {

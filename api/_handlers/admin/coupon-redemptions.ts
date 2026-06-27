@@ -28,14 +28,18 @@ async function handleList(req: Request, env: any): Promise<Response> {
       { profile: { email: { contains: search, mode: "insensitive" } } },
     ];
   }
-  const prisma = getPrisma(env);
-  const [items, total] = await Promise.all([
-    prisma.couponRedemption.findMany({
-      where: where as never,
-      include: { coupon: { select: { code: true } }, order: { select: { orderNumber: true, total: true } }, profile: { select: { firstName: true, lastName: true, email: true } } },
-      orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit,
-    }),
-    prisma.couponRedemption.count({ where: where as never }),
-  ]);
-  return success({ redemptions: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
+  try {
+    const prisma = getPrisma(env);
+    const [items, total] = await Promise.all([
+      prisma.couponRedemption.findMany({
+        where: where as never,
+        include: { coupon: { select: { code: true } }, order: { select: { orderNumber: true, total: true } }, profile: { select: { firstName: true, lastName: true, email: true } } },
+        orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit,
+      }),
+      prisma.couponRedemption.count({ where: where as never }),
+    ]);
+    return success({ redemptions: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
+  } catch (err) {
+    return serverError(err);
+  }
 }

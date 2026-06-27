@@ -1061,7 +1061,7 @@ export default function CheckoutPage() {
                 )}
               </div>
               <div className="flex justify-between text-neutral-600">
-                <span>Tax (5%)</span>
+                <span>Tax ({siteSettings.taxRate}%)</span>
                 <span>{formatPrice(tax)}</span>
               </div>
               {discountAmount > 0 && (
@@ -1076,9 +1076,9 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {subtotal < 999 && (
+            {subtotal < siteSettings.freeShippingThreshold && (
               <p className="text-xs text-amber-600 text-center trust-badge">
-                Add {formatPrice(999 - subtotal)} more for free shipping!
+                Add {formatPrice(siteSettings.freeShippingThreshold - subtotal)} more for free shipping!
               </p>
             )}
 

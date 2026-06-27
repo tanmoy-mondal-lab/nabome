@@ -107,7 +107,14 @@ async function handleUpdate(couponId: string, req: Request, ctx: RequestContext,
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = body[field];
     }
-    if (body.code) data.code = body.code.toUpperCase();
+    if (body.code) {
+      const newCode = body.code.toUpperCase();
+      const codeExists = await prisma.coupon.findFirst({
+        where: { code: newCode, id: { not: couponId } },
+      });
+      if (codeExists) return badRequest("Coupon code already exists");
+      data.code = newCode;
+    }
     if (body.startDate) data.startDate = new Date(body.startDate);
     if (body.endDate) data.endDate = new Date(body.endDate);
     if (body.isActive !== undefined) data.isActive = body.isActive;
@@ -131,6 +138,8 @@ async function handleUpdate(couponId: string, req: Request, ctx: RequestContext,
 async function handleDelete(couponId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const existing = await prisma.coupon.findUnique({ where: { id: couponId } });
+    if (!existing) return notFound("Coupon not found");
     await prisma.coupon.update({
       where: { id: couponId },
       data: { isActive: false },
@@ -142,6 +151,6 @@ async function handleDelete(couponId: string, req: Request, ctx: RequestContext,
     });
     return success({ message: "Coupon deactivated" });
   } catch (err) {
-    return notFound("Coupon not found");
+    return serverError(err);
   }
 }

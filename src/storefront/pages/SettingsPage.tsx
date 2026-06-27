@@ -68,12 +68,20 @@ export default function SettingsPage() {
   }, [profileData]);
 
   const updateProfileMutation = useMutation({
-    mutationFn: (data: { firstName?: string; lastName?: string; phone?: string }) =>
+    mutationFn: (data: { firstName?: string; lastName?: string; phone?: string; preferences?: Record<string, boolean> }) =>
       customerApi.updateProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customer", "profile"] });
       setProfileSuccess("Profile updated successfully.");
       setTimeout(() => setProfileSuccess(""), 3000);
+    },
+  });
+
+  const savePreferencesMutation = useMutation({
+    mutationFn: (prefs: Record<string, boolean>) =>
+      customerApi.updateProfile({ preferences: prefs }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customer", "profile"] });
     },
   });
 
@@ -381,7 +389,11 @@ export default function SettingsPage() {
                   <p className="text-xs text-neutral-400">Receive marketing and promotional communications</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" checked={preferences.marketingOptIn} onChange={(e) => setPreferences({ ...preferences, marketingOptIn: e.target.checked })} className="sr-only peer" />
+                  <input type="checkbox" checked={preferences.marketingOptIn} onChange={(e) => {
+                    const updated = { ...preferences, marketingOptIn: e.target.checked };
+                    setPreferences(updated);
+                    savePreferencesMutation.mutate(updated);
+                  }} className="sr-only peer" />
                   <div className="w-9 h-5 bg-neutral-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-neutral-900 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
                 </label>
               </div>
@@ -393,12 +405,19 @@ export default function SettingsPage() {
                     <input
                       type="checkbox"
                       checked={preferences[opt.key]}
-                      onChange={(e) => setPreferences({ ...preferences, [opt.key]: e.target.checked })}
+                      onChange={(e) => {
+                        const updated = { ...preferences, [opt.key]: e.target.checked };
+                        setPreferences(updated);
+                        savePreferencesMutation.mutate(updated);
+                      }}
                       className="accent-neutral-900"
                     />
                   </div>
                 ))}
               </div>
+              {savePreferencesMutation.isPending && (
+                <p className="text-xs text-neutral-400">Saving preferences...</p>
+              )}
             </div>
           </div>
         </div>

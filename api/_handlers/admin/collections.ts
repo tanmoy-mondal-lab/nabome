@@ -1,9 +1,11 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { slugify } from "../../../src/lib/utils/format";
+import { slugify } from "../../_lib/utils";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { requireAdmin } from "../../_lib/auth";
+import { destroyCloudinaryAssetIfReplaced } from "../../_lib/cloudinary";
+import { toNull } from "../../_lib/sanitize";
 
 export async function handleAdminCollectionRequest(
   req: Request,
@@ -91,15 +93,22 @@ async function handleUpdate(collectionId: string, req: Request, ctx: RequestCont
     if (!existing) return notFound("Collection not found");
 
     const data: Record<string, unknown> = {};
-    const fields = ["name", "description", "heroImageUrl", "heroImagePublicId", "isActive", "isFeatured", "sortOrder", "metaTitle", "metaDesc"];
+    const fields = ["name", "description", "heroImageUrl", "isActive", "isFeatured", "sortOrder", "metaTitle", "metaDesc"];
     for (const field of fields) {
-      if (body[field] !== undefined) data[field] = body[field];
+      if (body[field] !== undefined) data[field] = field === "heroImageUrl" ? toNull(body[field]) : body[field];
     }
     if (body.startDate !== undefined) data.startDate = body.startDate ? new Date(body.startDate) : null;
     if (body.endDate !== undefined) data.endDate = body.endDate ? new Date(body.endDate) : null;
+    if (body.heroImagePublicId !== undefined) {
+      data.heroImagePublicId = await destroyCloudinaryAssetIfReplaced(existing.heroImagePublicId, body.heroImagePublicId, env);
+    }
 
     if (body.name && body.name !== existing.name) {
-      data.slug = slugify(body.name);
+      const newSlug = slugify(body.name);
+      const slugExists = await prisma.collection.findFirst({
+        where: { slug: newSlug, id: { not: collectionId } },
+      });
+      data.slug = slugExists ? `${newSlug}-${Date.now().toString(36)}` : newSlug;
     }
 
     const collection = await prisma.collection.update({

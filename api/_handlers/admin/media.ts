@@ -33,10 +33,17 @@ async function handleList(req: Request, env: any): Promise<Response> {
   const limit = parseInt(url.searchParams.get("limit") ?? "50");
   const type = url.searchParams.get("type");
   const folder = url.searchParams.get("folder");
+  const search = url.searchParams.get("search");
 
   const where: Record<string, unknown> = {};
   if (type) where.type = type;
   if (folder) where.folder = folder;
+  if (search) {
+    where.OR = [
+      { altText: { contains: search, mode: "insensitive" } },
+      { folder: { contains: search, mode: "insensitive" } },
+    ];
+  }
 
   const skip = (page - 1) * limit;
 
@@ -101,7 +108,7 @@ async function handleDelete(assetId: string, env: any): Promise<Response> {
     const prisma = getPrisma(env);
     const asset = await prisma.mediaAsset.findUnique({ where: { id: assetId } });
     if (!asset) return notFound("Asset not found");
-    if (asset.publicId) await destroyCloudinaryAsset(asset.publicId);
+    if (asset.publicId) await destroyCloudinaryAsset(asset.publicId, env);
     await prisma.mediaAsset.delete({ where: { id: assetId } });
     return success({ message: "Asset deleted" });
   } catch (err) {
@@ -111,13 +118,14 @@ async function handleDelete(assetId: string, env: any): Promise<Response> {
 
 async function handleUpdate(assetId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
-  const { altText, folder } = body;
+  const { altText, folder, tags } = body;
 
   try {
     const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
     if (altText !== undefined) data.altText = altText;
     if (folder !== undefined) data.folder = folder;
+    if (tags !== undefined) data.tags = tags;
 
     const asset = await prisma.mediaAsset.update({
       where: { id: assetId },

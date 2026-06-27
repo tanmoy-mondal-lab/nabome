@@ -4,9 +4,10 @@ import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { StatusBadge } from "../common/StatusBadge";
-import { formatPrice, formatDate } from "../../lib/utils/format";
-import { Plus, Edit3, Trash2, Percent } from "lucide-react";
+import { formatPrice, formatDate, formatDateTime } from "../../lib/utils/format";
+import { Plus, Edit3, Trash2, Percent, Receipt } from "lucide-react";
 import { useToast } from "../../components/ui/Toast";
+import { cn } from "../../lib/utils/cn";
 
 interface Coupon {
   id: string;
@@ -26,12 +27,25 @@ interface Coupon {
   createdAt: string;
 }
 
+interface Redemption {
+  id: string;
+  couponCode: string;
+  orderId: string;
+  orderNumber: string;
+  discountAmount: number;
+  profileEmail: string;
+  createdAt: string;
+}
+
+type Tab = "coupons" | "redemptions";
+
 export default function CouponsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Coupon | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("coupons");
   const [form, setForm] = useState({
     code: "", discountType: "percentage" as "percentage" | "fixed", discountValue: 0,
     description: "", minOrderValue: "", maxDiscount: "", usageLimit: "", perUserLimit: "1",
@@ -47,9 +61,18 @@ export default function CouponsPage() {
     },
   });
 
+  const { data: redemptions = [], isLoading: loadingRedemptions } = useQuery<Redemption[]>({
+    queryKey: ["admin", "couponRedemptions"],
+    queryFn: async () => {
+      const res = await adminApi.getCouponRedemptions();
+      return (res.redemptions as Redemption[]) ?? [];
+    },
+  });
+
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ["coupons"] });
     queryClient.invalidateQueries({ queryKey: ["admin", "coupons"] });
+    queryClient.invalidateQueries({ queryKey: ["admin", "couponRedemptions"] });
   };
 
   const saveMutation = useMutation({
@@ -144,16 +167,72 @@ export default function CouponsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-display text-2xl text-neutral-900">Coupons & Discounts</h1>
-          <p className="text-sm text-neutral-500 mt-1">Create and manage promotional coupon codes</p>
+          <h1 className="font-display text-2xl text-neutral-900">Coupons</h1>
+          <p className="text-sm text-neutral-500 mt-1">Manage promotional codes and redemption history</p>
         </div>
-        <button onClick={openCreate}
-          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">
-          <Plus size={16} /> Add Coupon
-        </button>
+        {tab === "coupons" && (
+          <button onClick={openCreate}
+            className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">
+            <Plus size={16} /> Add Coupon
+          </button>
+        )}
       </div>
 
-      {coupons.length === 0 ? (
+      <div className="flex items-center gap-1 border-b border-neutral-200 mb-6">
+        {([
+          { key: "coupons" as const, label: "Coupons", icon: Percent },
+          { key: "redemptions" as const, label: "Redemptions", icon: Receipt },
+        ]).map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={cn(
+              "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
+              tab === t.key
+                ? "border-neutral-900 text-neutral-900"
+                : "border-transparent text-neutral-500 hover:text-neutral-700"
+            )}
+          >
+            <t.icon size={14} />
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "redemptions" ? (
+        <div className="bg-white border border-neutral-200 rounded-lg overflow-hidden">
+          {loadingRedemptions ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : redemptions.length === 0 ? (
+            <EmptyState icon={Receipt} title="No redemptions yet" description="Coupon usage will appear here." />
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-neutral-200 bg-neutral-50">
+                  <th className="text-left px-4 py-3 font-medium text-neutral-600">Coupon</th>
+                  <th className="text-left px-4 py-3 font-medium text-neutral-600">Order</th>
+                  <th className="text-left px-4 py-3 font-medium text-neutral-600">Customer</th>
+                  <th className="text-left px-4 py-3 font-medium text-neutral-600">Discount</th>
+                  <th className="text-left px-4 py-3 font-medium text-neutral-600">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {redemptions.map((r) => (
+                  <tr key={r.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                    <td className="px-4 py-3 font-mono text-sm font-medium text-neutral-900">{r.couponCode}</td>
+                    <td className="px-4 py-3 text-neutral-600">#{r.orderNumber}</td>
+                    <td className="px-4 py-3 text-neutral-600">{r.profileEmail}</td>
+                    <td className="px-4 py-3 text-red-600 font-medium">{formatPrice(r.discountAmount)}</td>
+                    <td className="px-4 py-3 text-neutral-500 text-xs">{formatDateTime(r.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ) : coupons.length === 0 ? (
         <div className="bg-white border border-neutral-200 rounded-lg">
           <EmptyState icon={Percent} title="No coupons yet"
             action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm transition-colors">Create Coupon</button>}

@@ -3,8 +3,8 @@ import { success, badRequest, notFound, serverError, created } from "../../_lib/
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
-import { destroyCloudinaryAsset, destroyCloudinaryAssets } from "../../_lib/cloudinary";
-import { slugify } from "../../../src/lib/utils/format";
+import { destroyCloudinaryAsset, destroyCloudinaryAssetIfReplaced, destroyCloudinaryAssets } from "../../_lib/cloudinary";
+import { slugify } from "../../_lib/utils";
 import { toNull } from "../../_lib/sanitize";
 
 const productInclude = {
@@ -253,6 +253,9 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
     if (body.isActive && !existing.publishedAt) {
       data.publishedAt = new Date();
     }
+    if (body.sizeChartPublicId !== undefined) {
+      data.sizeChartPublicId = await destroyCloudinaryAssetIfReplaced(existing.sizeChartPublicId, body.sizeChartPublicId, ctx.env);
+    }
 
     const product = await prisma.product.update({
       where: { id: productId },
@@ -315,26 +318,56 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
 
   const prisma = getPrisma(env);
   try {
-    // Separate existing variants (updates) from new variants (creates)
-    const toUpdate = variants.filter(v => v.id && !String(v.id).startsWith("new-"));
-    const toCreate = variants.filter(v => !v.id || String(v.id).startsWith("new-"));
+    const existingVariants = await prisma.productVariant.findMany({
+      where: { productId },
+      select: { id: true, videoPublicId: true },
+    });
+    const existingVideoById = new Map(existingVariants.map((variant) => [variant.id, variant.videoPublicId]));
+    const incomingIds = new Set(
+      variants
+        .map((variant) => variant.id)
+        .filter((id) => id && !String(id).startsWith("new-"))
+        .map((id) => String(id))
+    );
+    const removedVariantIds = existingVariants
+      .map((variant) => variant.id)
+      .filter((id) => !incomingIds.has(id));
 
-    // Clean up old variant videos that are being replaced
-    if (toUpdate.length > 0) {
-      const oldVariants = await prisma.productVariant.findMany({
-        where: { id: { in: toUpdate.map(v => v.id!) } },
-        select: { id: true, videoPublicId: true },
+    // Clean up old videos that are being replaced on update.
+    const replacementVideoIds = variants
+      .map((variant) => {
+        if (!variant.id || String(variant.id).startsWith("new-")) return null;
+        const existingVideo = existingVideoById.get(String(variant.id));
+        const incomingVideo = (variant as { videoPublicId?: string }).videoPublicId ?? null;
+        return existingVideo && existingVideo !== incomingVideo ? existingVideo : null;
+      })
+      .filter(Boolean) as string[];
+
+    const removedVideoIds = removedVariantIds
+      .map((id) => existingVideoById.get(id))
+      .filter(Boolean) as string[];
+
+    const videoIdsToClean = [...new Set([...replacementVideoIds, ...removedVideoIds])];
+    if (videoIdsToClean.length > 0) {
+      await destroyCloudinaryAssets(videoIdsToClean, env, "video");
+    }
+
+    if (removedVariantIds.length > 0) {
+      const removedImages = await prisma.productImage.findMany({
+        where: { productId, variantId: { in: removedVariantIds } },
+        select: { publicId: true },
       });
-      const toClean: string[] = [];
-      for (const old of oldVariants) {
-        const incoming = toUpdate.find(v => v.id === old.id);
-        if (old.videoPublicId && incoming?.videoPublicId !== old.videoPublicId) {
-          toClean.push(old.videoPublicId);
-        }
+      const removedImageIds = removedImages.map((img) => img.publicId).filter(Boolean) as string[];
+      if (removedImageIds.length > 0) {
+        await destroyCloudinaryAssets(removedImageIds, env);
       }
-      if (toClean.length > 0) {
-        await destroyCloudinaryAssets(toClean, env, "video");
-      }
+
+      await prisma.productImage.deleteMany({
+        where: { productId, variantId: { in: removedVariantIds } },
+      });
+      await prisma.productVariant.deleteMany({
+        where: { productId, id: { in: removedVariantIds } },
+      });
     }
 
     const variantData = (v: typeof variants[0]) => ({
@@ -350,34 +383,27 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
       isActive: v.isActive ?? true,
     });
 
-    // Execute updates and creates in parallel
-    const [updatedResults, createdResults] = await Promise.all([
-      toUpdate.length > 0
-        ? Promise.all(
-            toUpdate.map(v =>
-              prisma.productVariant.update({
-                where: { id: v.id!, productId },
-                data: variantData(v),
-              })
-            )
-          )
-        : Promise.resolve([]),
-      toCreate.length > 0
-        ? prisma.productVariant.createMany({
-            data: toCreate.map(v => ({
-              productId,
-              ...variantData(v),
-            })),
-          }).then(() =>
-            // fetch created variants since createMany doesn't return them
-            prisma.productVariant.findMany({
-              where: { productId, sku: { in: toCreate.map(v => v.sku) } },
-            })
-          )
-        : Promise.resolve([]),
-    ]);
+    const savedVariants = variants.length > 0
+      ? await prisma.$transaction(
+          variants.map((variant) => {
+            const payload = variantData(variant);
+            if (variant.id && !String(variant.id).startsWith("new-")) {
+              return prisma.productVariant.update({
+                where: { id: String(variant.id) },
+                data: payload,
+              });
+            }
+            return prisma.productVariant.create({
+              data: {
+                productId,
+                ...payload,
+              },
+            });
+          })
+        )
+      : [];
 
-    return success({ variants: [...updatedResults, ...createdResults] });
+    return success({ variants: savedVariants });
   } catch (err) {
     return serverError(err);
   }
