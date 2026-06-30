@@ -42,10 +42,12 @@ export default function ReturnsPage() {
   const [actionType, setActionType] = useState<"approve" | "reject">("approve");
   const [adminNote, setAdminNote] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const fetch = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const status = TAB_STATUS_MAP[activeTab];
       const params: Record<string, string | number | undefined> = { page, limit: 20 };
@@ -54,7 +56,9 @@ export default function ReturnsPage() {
       setReturns((res.returns as ReturnEntry[]) ?? []);
       const pag = res.pagination as { totalPages?: number } | undefined;
       setTotalPages(pag?.totalPages ?? 1);
-    } catch { /* non-critical: failed to fetch returns */ } finally {
+    } catch {
+      setFetchError("Failed to load returns");
+    } finally {
       setLoading(false);
     }
   }, [page, activeTab]);
@@ -80,7 +84,9 @@ export default function ReturnsPage() {
       }
       setModalOpen(false);
       fetch();
-    } catch { /* non-critical: failed to process return action */ } finally {
+    } catch {
+      setFetchError("Failed to process return action");
+    } finally {
       setActionLoading(false);
     }
   };
@@ -131,6 +137,9 @@ export default function ReturnsPage() {
 
   return (
     <div>
+      {fetchError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{fetchError}</div>
+      )}
       <div className="mb-6">
         <h1 className="font-display text-2xl text-neutral-900">Returns & Refunds</h1>
         <p className="text-sm text-neutral-500 mt-1">Manage return requests and process refunds</p>

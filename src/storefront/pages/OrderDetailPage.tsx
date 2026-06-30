@@ -6,6 +6,8 @@ import { formatPrice } from "../../lib/utils/format";
 import { formatDate } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
+import { Helmet } from "react-helmet-async";
+import { Breadcrumbs } from "../components/Breadcrumbs";
 import { SafeImage } from "../../components/SafeImage";
 
 interface Order {
@@ -90,6 +92,10 @@ export default function OrderDetailPage() {
   if (isLoading) {
     return (
       <div className="container-page py-8">
+        <Helmet>
+          <title>Order Details — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <div className="grid lg:grid-cols-4 gap-8">
           <DashboardSidebar />
           <div className="lg:col-span-3 space-y-4">
@@ -103,6 +109,10 @@ export default function OrderDetailPage() {
   if (!order.id) {
     return (
       <div className="container-page py-8">
+        <Helmet>
+          <title>Order Details — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <div className="grid lg:grid-cols-4 gap-8">
           <DashboardSidebar />
           <div className="lg:col-span-3 text-center py-12">
@@ -118,6 +128,10 @@ export default function OrderDetailPage() {
 
   return (
     <div className="container-page py-8">
+      <Helmet>
+        <title>Order Details — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="grid lg:grid-cols-4 gap-8">
         <DashboardSidebar />
         <div className="lg:col-span-3 space-y-8">

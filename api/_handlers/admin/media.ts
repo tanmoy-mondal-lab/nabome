@@ -1,7 +1,7 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { requireAdmin } from "../../_lib/auth";
+import { requireAdmin } from "../../_lib/auth-middleware";
 import { destroyCloudinaryAsset } from "../../_lib/cloudinary";
 
 export async function handleAdminMediaRequest(

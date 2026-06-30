@@ -1,7 +1,7 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { requireAdmin } from "../../_lib/auth";
+import { requireAdmin } from "../../_lib/auth-middleware";
 
 export async function handleAdminSessionRequest(req: Request, ctx: RequestContext, params: string[], action: string): Promise<Response> {
   const adminGuard = requireAdmin(ctx);

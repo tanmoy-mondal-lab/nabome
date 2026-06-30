@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, ShoppingBag, Eye } from "lucide-react";
 import { PriceDisplay } from "./PriceDisplay";
 import { ColorSelector } from "./ColorSelector";
@@ -18,6 +18,7 @@ interface QuickViewModalProps {
 }
 
 export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps) {
+  const prefersReducedMotion = useReducedMotion();
   const addItem = useCartStore((s) => s.addItem);
   const navigate = useNavigate();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -101,18 +102,18 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
       {isOpen && (
         <>
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={prefersReducedMotion ? undefined : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 bg-black/40 z-50"
           />
 
           <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            initial={prefersReducedMotion ? undefined : { x: "100%" }}
+            animate={prefersReducedMotion ? undefined : { x: 0 }}
+            exit={prefersReducedMotion ? undefined : { x: "100%" }}
+            transition={prefersReducedMotion ? undefined : { type: "spring", damping: 30, stiffness: 300 }}
             role="dialog"
             aria-modal="true"
             aria-label="Quick view"
@@ -148,7 +149,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                         selectedImage === i ? "border-neutral-900" : "border-transparent hover:border-neutral-300"
                       )}
                     >
-                      <SafeImage src={image.url} alt="" className="w-full h-full object-cover" />
+                      <SafeImage src={image.url} alt={`${name} - thumbnail ${i + 1}`} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>

@@ -4,6 +4,7 @@ import type { RequestContext } from "../_lib/types";
 import { generateOrderNumber } from "../../src/lib/utils/format";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
+import { cleanSecret } from "../_lib/secrets";
 import type { Env } from "../_lib/env";
 
 const VALID_PAYMENT_METHODS = ["cod", "card", "upi", "netbanking", "wallet", "razorpay"] as const;
@@ -27,8 +28,8 @@ async function createRazorpayOrder(
   receipt: string,
   env?: Env
 ): Promise<string> {
-  const keyId = env?.RAZORPAY_KEY_ID;
-  const keySecret = env?.RAZORPAY_KEY_SECRET;
+  const keyId = cleanSecret(env?.RAZORPAY_KEY_ID);
+  const keySecret = cleanSecret(env?.RAZORPAY_KEY_SECRET);
   if (!keyId || !keySecret) {
     throw new Error("Razorpay credentials not configured");
   }

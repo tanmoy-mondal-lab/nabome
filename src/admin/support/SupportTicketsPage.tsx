@@ -24,17 +24,21 @@ export default function SupportTicketsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const fetch = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const params: Record<string, string | number | undefined> = { page, limit: 25 };
       if (statusFilter) params.status = statusFilter;
       const res = await adminApi.getSupportTickets(params) as { tickets: SupportTicket[]; pagination?: { totalPages: number } };
       setTickets(res.tickets ?? []);
       setTotalPages(res.pagination?.totalPages ?? 1);
-    } catch { /* non-critical: failed to fetch support tickets */ } finally {
+    } catch {
+      setFetchError("Failed to load support tickets");
+    } finally {
       setLoading(false);
     }
   }, [page, statusFilter]);
@@ -84,6 +88,9 @@ export default function SupportTicketsPage() {
 
   return (
     <div>
+      {fetchError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{fetchError}</div>
+      )}
       <div className="mb-6">
         <h1 className="font-display text-2xl text-neutral-900">Support Tickets</h1>
         <p className="text-sm text-neutral-500 mt-1">Manage customer support tickets</p>

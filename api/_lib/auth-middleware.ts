@@ -8,12 +8,13 @@ import { unauthorized, forbidden, serverError } from "./response";
 import { withRateLimit, getRateLimitKey, RATE_LIMIT_CONFIG } from "./rate-limit";
 import { validateCsrf, csrfError } from "./csrf";
 import { getPrisma } from "./prisma";
+import { cleanSecret } from "./secrets";
 import type { RequestContext } from "./types";
 import type { Env } from "./env";
 
 function getSupabaseAdmin(env?: Env) {
-  const url = env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL;
-  const key = env?.SUPABASE_SERVICE_ROLE_KEY;
+  const url = cleanSecret(env?.SUPABASE_URL) || cleanSecret(env?.VITE_SUPABASE_URL);
+  const key = cleanSecret(env?.SUPABASE_SERVICE_ROLE_KEY);
   if (!url || !key) throw new Error("Missing Supabase admin credentials");
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -147,4 +148,31 @@ export async function optionalAuth(request: Request, env?: Env): Promise<Request
   const result = await authenticate(request, { required: false }, env);
   if (result instanceof Response) return {};
   return result.ctx;
+}
+
+/**
+ * Require a specific role. Returns null if authorized, otherwise returns a 403 response.
+ * This is a helper function for use after authentication.
+ */
+export function requireRole(
+  context: RequestContext | Response,
+  role: string
+): Response | null {
+  if (context instanceof Response) return context;
+  if (context.userRole !== role) {
+    return forbidden(`Requires ${role} role`);
+  }
+  return null;
+}
+
+/**
+ * Require admin role. Returns null if authorized, otherwise returns a 403 response.
+ * This is a helper function for use after authentication.
+ */
+export function requireAdmin(context: RequestContext | Response): Response | null {
+  if (context instanceof Response) return context;
+  if (context.userRole !== "admin") {
+    return forbidden("Requires admin role");
+  }
+  return null;
 }

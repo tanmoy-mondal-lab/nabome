@@ -33,7 +33,7 @@ export default function AnnouncementsPage() {
     position: "top", isActive: true, startDate: "", endDate: "",
   });
 
-  const { data: announcements = [], isLoading: loading } = useQuery<Announcement[]>({
+  const { data: announcements = [], isLoading: loading, error: queryError } = useQuery<Announcement[]>({
     queryKey: ["admin", "announcements"],
     queryFn: async () => {
       const res = await adminApi.getAnnouncements();
@@ -42,7 +42,6 @@ export default function AnnouncementsPage() {
   });
 
   const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ["announcements"] });
     queryClient.invalidateQueries({ queryKey: ["admin", "announcements"] });
   };
 
@@ -66,9 +65,10 @@ export default function AnnouncementsPage() {
       }
     },
     onSuccess: () => {
+      const wasEditing = !!editItem;
       setModalOpen(false);
       invalidateAll();
-      toast(editItem ? "Announcement updated" : "Announcement created", "success");
+      toast(wasEditing ? "Announcement updated" : "Announcement created", "success");
     },
     onError: () => {
       toast("Failed to save announcement", "error");
@@ -119,8 +119,13 @@ export default function AnnouncementsPage() {
     );
   }
 
+  const queryErrorMessage = queryError ? (queryError instanceof Error ? queryError.message : "Failed to load announcements") : null;
+
   return (
     <div>
+      {queryErrorMessage && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">{queryErrorMessage}</div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl text-neutral-900">Announcements</h1>

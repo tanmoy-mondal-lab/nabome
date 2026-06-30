@@ -3,6 +3,8 @@ import { Bell, ShoppingBag, Package, Tag, AlertCircle, Megaphone, Star, Clock } 
 import { customerApi } from "../../lib/api/customer";
 import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
+import { Helmet } from "react-helmet-async";
+import { Breadcrumbs } from "../components/Breadcrumbs";
 
 interface Notification {
   id: string;
@@ -62,6 +64,10 @@ export default function NotificationsPage() {
 
   return (
     <div className="container-page py-8">
+      <Helmet>
+        <title>Notifications — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <h1 className="text-2xl md:text-3xl font-display text-neutral-900 mb-8 tracking-fashion">Notifications</h1>
       <div className="grid lg:grid-cols-4 gap-8">
         <DashboardSidebar />

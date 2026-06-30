@@ -14,6 +14,7 @@ import { validateBody, authRegisterSchema, authLoginSchema } from "../_lib/valid
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
 import type { Env } from "../_lib/env";
+import { cleanSecret } from "../_lib/secrets";
 
 function generateVerificationCode(): string {
   const buf = new Uint8Array(4);
@@ -23,22 +24,25 @@ function generateVerificationCode(): string {
 }
 
 function getAnonClient(env?: Env) {
-  const url = env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL ?? 
-    (typeof process !== "undefined" && process.env?.SUPABASE_URL) ??
-    (typeof process !== "undefined" && process.env?.VITE_SUPABASE_URL);
-  const key = env?.SUPABASE_ANON_KEY ?? env?.VITE_SUPABASE_ANON_KEY ??
-    (typeof process !== "undefined" && process.env?.SUPABASE_ANON_KEY) ??
-    (typeof process !== "undefined" && process.env?.VITE_SUPABASE_ANON_KEY);
+  const url = cleanSecret(env?.SUPABASE_URL) ||
+    cleanSecret(env?.VITE_SUPABASE_URL) ||
+    cleanSecret(typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined) ||
+    cleanSecret(typeof process !== "undefined" ? process.env?.VITE_SUPABASE_URL : undefined);
+  const key = cleanSecret(env?.SUPABASE_ANON_KEY) ||
+    cleanSecret(env?.VITE_SUPABASE_ANON_KEY) ||
+    cleanSecret(typeof process !== "undefined" ? process.env?.SUPABASE_ANON_KEY : undefined) ||
+    cleanSecret(typeof process !== "undefined" ? process.env?.VITE_SUPABASE_ANON_KEY : undefined);
   if (!url || !key) throw new Error("Missing Supabase credentials");
   return createClient(url, key);
 }
 
 function getAdminClient(env?: Env) {
-  const url = env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL ??
-    (typeof process !== "undefined" && process.env?.SUPABASE_URL) ??
-    (typeof process !== "undefined" && process.env?.VITE_SUPABASE_URL);
-  const key = env?.SUPABASE_SERVICE_ROLE_KEY ??
-    (typeof process !== "undefined" && process.env?.SUPABASE_SERVICE_ROLE_KEY);
+  const url = cleanSecret(env?.SUPABASE_URL) ||
+    cleanSecret(env?.VITE_SUPABASE_URL) ||
+    cleanSecret(typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined) ||
+    cleanSecret(typeof process !== "undefined" ? process.env?.VITE_SUPABASE_URL : undefined);
+  const key = cleanSecret(env?.SUPABASE_SERVICE_ROLE_KEY) ||
+    cleanSecret(typeof process !== "undefined" ? process.env?.SUPABASE_SERVICE_ROLE_KEY : undefined);
   if (!url || !key) throw new Error("Missing Supabase admin credentials");
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },

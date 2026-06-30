@@ -21,8 +21,15 @@ export async function handleSettingsRequest(
 async function handleHomepage(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const now = new Date();
     const sections = await prisma.homepageSection.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        AND: [
+          { OR: [{ publishAt: null }, { publishAt: { lte: now } }] },
+          { OR: [{ expireAt: null }, { expireAt: { gte: now } }] },
+        ],
+      },
       orderBy: { sortOrder: "asc" },
     });
     return success({ sections });

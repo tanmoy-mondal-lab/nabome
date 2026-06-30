@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 
 export interface SiteSettings {
@@ -25,10 +26,20 @@ export interface SiteSettings {
 }
 
 export function useSettings() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handler = () => {
+      queryClient.invalidateQueries({ queryKey: ["settings", "public"] });
+    };
+    window.addEventListener("settings:updated", handler);
+    return () => window.removeEventListener("settings:updated", handler);
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ["settings", "public"],
     queryFn: () => api.get<SiteSettings>("/api/settings", { params: { action: "public" } }),
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
   });
 }

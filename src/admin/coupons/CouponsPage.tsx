@@ -53,7 +53,7 @@ export default function CouponsPage() {
     startDate: "", endDate: "",
   });
 
-  const { data: coupons = [], isLoading: loading } = useQuery<Coupon[]>({
+  const { data: coupons = [], isLoading: loading, error: queryError } = useQuery<Coupon[]>({
     queryKey: ["admin", "coupons"],
     queryFn: async () => {
       const res = await adminApi.getCoupons();
@@ -61,7 +61,7 @@ export default function CouponsPage() {
     },
   });
 
-  const { data: redemptions = [], isLoading: loadingRedemptions } = useQuery<Redemption[]>({
+  const { data: redemptions = [], isLoading: loadingRedemptions, error: redemptionsError } = useQuery<Redemption[]>({
     queryKey: ["admin", "couponRedemptions"],
     queryFn: async () => {
       const res = await adminApi.getCouponRedemptions();
@@ -70,7 +70,6 @@ export default function CouponsPage() {
   });
 
   const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ["coupons"] });
     queryClient.invalidateQueries({ queryKey: ["admin", "coupons"] });
     queryClient.invalidateQueries({ queryKey: ["admin", "couponRedemptions"] });
   };
@@ -199,8 +198,19 @@ export default function CouponsPage() {
         ))}
       </div>
 
+      {queryError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <p className="text-sm text-red-600">Failed to load coupons. Please try again.</p>
+        </div>
+      )}
+
       {tab === "redemptions" ? (
         <div className="bg-white border border-neutral-200 rounded-lg overflow-hidden">
+          {redemptionsError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-sm text-red-600">Failed to load redemptions. Please try again.</p>
+            </div>
+          )}
           {loadingRedemptions ? (
             <div className="flex items-center justify-center h-64">
               <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />

@@ -32,7 +32,7 @@ export const adminApi = {
   deleteProduct: (id: string) => api.delete<{ message: string }>(`/admin/products/${id}`),
   updateProductVariants: (id: string, variants: unknown[]) =>
     api.put<{ variants: unknown[] }>(`/admin/products/${id}/variants`, { variants }),
-  addProductImage: (id: string, data: { url: string; publicId?: string; altText?: string; isPrimary?: boolean; variantId?: string }) =>
+  addProductImage: (id: string, data: { url: string; publicId?: string; altText?: string; isPrimary?: boolean; sortOrder?: number; variantId?: string; type?: string }) =>
     api.post<unknown>(`/admin/products/${id}/images`, data),
   deleteProductImage: (productId: string, imageId: string) =>
     api.delete(`/admin/products/${productId}/images/${imageId}`),
@@ -87,10 +87,6 @@ export const adminApi = {
   createFooterSection: (data: unknown) => api.post<unknown>("/admin/cms/footer", data),
   updateFooterSection: (id: string, data: unknown) => api.put<unknown>(`/admin/cms/footer/${id}`, data),
   deleteFooterSection: (id: string) => api.delete<{ message: string }>(`/admin/cms/footer/${id}`),
-
-  // Brand Story
-  getBrandStory: () => api.get<{ story: unknown }>("/admin/cms/brand-story"),
-  updateBrandStory: (data: unknown) => api.put<unknown>("/admin/cms/brand-story", data),
 
   // Announcements
   getAnnouncements: () => api.get<{ announcements: unknown[] }>("/admin/cms/announcements"),
@@ -285,9 +281,7 @@ export const adminApi = {
     formData.append("file", file);
     if (folder) formData.append("folder", folder);
     if (altText) formData.append("altText", altText);
-    return api.post<{ url: string; publicId: string; width: number; height: number; format: string; bytes: number; type: string; mimeType: string; folder: string }>("/upload", formData, {
-      headers: {} as Record<string, string>,
-    });
+    return api.post<{ url: string; publicId: string; width: number; height: number; format: string; bytes: number; type: string; mimeType: string; folder: string }>("/upload", formData);
   },
 
   // Enhanced Orders
@@ -295,15 +289,6 @@ export const adminApi = {
   updateOrderInternalNotes: (id: string, notes: string) =>
     api.put<{ order: unknown }>(`/admin/orders/${id}/internal-notes`, { notes }),
   getOrderTimeline: (id: string) => api.get<{ timeline: unknown[] }>(`/admin/orders/${id}/timeline`),
-
-  // Shipping Zones
-  getShippingZones: () => api.get<{ zones: unknown[] }>("/admin/shipping/zones"),
-  createShippingZone: (data: unknown) => api.post<unknown>("/admin/shipping/zones", data),
-  updateShippingZone: (id: string, data: unknown) => api.put<unknown>(`/admin/shipping/zones/${id}`, data),
-  deleteShippingZone: (id: string) => api.delete<{ message: string }>(`/admin/shipping/zones/${id}`),
-  addShippingRate: (zoneId: string, data: unknown) => api.post<unknown>(`/admin/shipping/zones/${zoneId}/rates`, data),
-  updateShippingRate: (id: string, data: unknown) => api.put<unknown>(`/admin/shipping/rates/${id}`, data),
-  deleteShippingRate: (id: string) => api.delete<{ message: string }>(`/admin/shipping/rates/${id}`),
 
   // Returns
   getReturns: (params?: Record<string, string | number | undefined>) =>

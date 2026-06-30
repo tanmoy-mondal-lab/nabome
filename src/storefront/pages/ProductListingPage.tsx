@@ -30,11 +30,17 @@ interface Aggregation {
   maxPrice?: number;
 }
 
+interface CategoryOption {
+  id: string;
+  name: string;
+  slug: string;
+  subcategories?: { id: string; name: string; slug: string; categoryId: string }[];
+}
+
 export default function ProductListingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
-  const [aggregations, setAggregations] = useState<Aggregation>({});
   const queryClient = useQueryClient();
 
   // Pull-to-refresh state
@@ -96,7 +102,7 @@ export default function ProductListingPage() {
 
   const apiUrl = q ? "/api/products/search" : "/api/products";
 
-  const { data: res, isLoading: loading } = useQuery({
+  const { data: res, isLoading: loading, error: queryError } = useQuery({
     queryKey: ["products", apiUrl, params],
     queryFn: () => api.get<{ products: Record<string, unknown>[]; pagination?: { total: number; totalPages: number }; total?: number; totalPages?: number }>(apiUrl, { params }),
     staleTime: 1000 * 60 * 5,
@@ -106,18 +112,20 @@ export default function ProductListingPage() {
   const total = res?.pagination?.total ?? res?.total ?? 0;
   const totalPages = res?.pagination?.totalPages ?? res?.totalPages ?? 1;
 
-  useEffect(() => {
-    Promise.all([
-      api.get<{ categories: { id: string; name: string; slug: string }[] }>("/api/categories", { params: { action: "list" } }).catch(() => null),
-      api.get<{ collections: { id: string; name: string; slug: string }[] }>("/api/collections", { params: { action: "list" } }).catch(() => null),
-    ]).then(([catRes, colRes]) => {
-      setAggregations((prev) => ({
-        ...prev,
-        categories: (catRes as Record<string, unknown>)?.categories as { id: string; name: string; slug: string }[] ?? [],
-        collections: (colRes as Record<string, unknown>)?.collections as { id: string; name: string; slug: string }[] ?? [],
-      }));
-    }).catch(() => {});
-  }, []);
+  const { data: categoriesData } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => api.get<{ categories: CategoryOption[] }>("/api/categories", { params: { action: "list" } }),
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const { data: collectionsData } = useQuery({
+    queryKey: ["collections"],
+    queryFn: () => api.get<{ collections: { id: string; name: string; slug: string }[] }>("/api/collections", { params: { action: "list" } }),
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const categories = categoriesData?.categories ?? [];
+  const collections = collectionsData?.collections ?? [];
 
   function updateParam(key: string, value: string) {
     const next = new URLSearchParams(searchParams);
@@ -219,18 +227,18 @@ export default function ProductListingPage() {
                     <X size={14} />
                   </button>
                 </div>
-                {aggregations.categories && aggregations.categories.length > 0 && (
+                {categories && categories.length > 0 && (
                   <div>
                     <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Category</label>
                     <select value={category} onChange={(e) => { updateParam("category", e.target.value); updateParam("subcategory", ""); }}
                       className="select-field text-sm">
                       <option value="">All</option>
-                      {aggregations.categories.map((c) => <option key={c.id} value={c.slug}>{c.name}</option>)}
+                      {categories.map((c: CategoryOption) => <option key={c.id} value={c.slug}>{c.name}</option>)}
                     </select>
                   </div>
                 )}
-                {category && aggregations.categories && (() => {
-                  const selectedCat = aggregations.categories.find((c) => c.slug === category);
+                {category && categories && (() => {
+                  const selectedCat = categories.find((c: CategoryOption) => c.slug === category);
                   const subs = selectedCat?.subcategories ?? [];
                   if (subs.length === 0) return null;
                   return (
@@ -239,18 +247,18 @@ export default function ProductListingPage() {
                       <select value={subcategory} onChange={(e) => updateParam("subcategory", e.target.value)}
                         className="select-field text-sm">
                         <option value="">All</option>
-                        {subs.map((s) => <option key={s.id} value={s.slug}>{s.name}</option>)}
+                        {subs.map((s: { id: string; name: string; slug: string }) => <option key={s.id} value={s.slug}>{s.name}</option>)}
                       </select>
                     </div>
                   );
                 })()}
-                {aggregations.collections && aggregations.collections.length > 0 && (
+                {collections && collections.length > 0 && (
                   <div>
                     <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Collection</label>
                     <select value={collection} onChange={(e) => updateParam("collection", e.target.value)}
                       className="select-field text-sm">
                       <option value="">All</option>
-                      {aggregations.collections.map((c) => <option key={c.id} value={c.slug}>{c.name}</option>)}
+                      {collections.map((c: { id: string; name: string; slug: string }) => <option key={c.id} value={c.slug}>{c.name}</option>)}
                     </select>
                   </div>
                 )}
@@ -261,18 +269,18 @@ export default function ProductListingPage() {
           {showFilters && (
             <div className="md:hidden bg-white border border-neutral-200 rounded p-4 mb-6">
               <div className="grid grid-cols-2 gap-4">
-                {aggregations.categories && aggregations.categories.length > 0 && (
+                {categories && categories.length > 0 && (
                   <div>
                     <label className="text-xs font-medium text-neutral-500 mb-2 block">Category</label>
                     <select value={category} onChange={(e) => { updateParam("category", e.target.value); updateParam("subcategory", ""); }}
                       className="select-field text-sm">
                       <option value="">All</option>
-                      {aggregations.categories.map((c) => <option key={c.id} value={c.slug}>{c.name}</option>)}
+                      {categories.map((c: CategoryOption) => <option key={c.id} value={c.slug}>{c.name}</option>)}
                     </select>
                   </div>
                 )}
-                {category && aggregations.categories && (() => {
-                  const selectedCat = aggregations.categories.find((c) => c.slug === category);
+                {category && categories && (() => {
+                  const selectedCat = categories.find((c: CategoryOption) => c.slug === category);
                   const subs = selectedCat?.subcategories ?? [];
                   if (subs.length === 0) return null;
                   return (
@@ -281,18 +289,18 @@ export default function ProductListingPage() {
                       <select value={subcategory} onChange={(e) => updateParam("subcategory", e.target.value)}
                         className="select-field text-sm">
                         <option value="">All</option>
-                        {subs.map((s) => <option key={s.id} value={s.slug}>{s.name}</option>)}
+                        {subs.map((s: { id: string; name: string; slug: string }) => <option key={s.id} value={s.slug}>{s.name}</option>)}
                       </select>
                     </div>
                   );
                 })()}
-                {aggregations.collections && aggregations.collections.length > 0 && (
+                {collections && collections.length > 0 && (
                   <div>
                     <label className="text-xs font-medium text-neutral-500 mb-2 block">Collection</label>
                     <select value={collection} onChange={(e) => updateParam("collection", e.target.value)}
                       className="select-field text-sm">
                       <option value="">All</option>
-                      {aggregations.collections.map((c) => <option key={c.id} value={c.slug}>{c.name}</option>)}
+                      {collections.map((c: { id: string; name: string; slug: string }) => <option key={c.id} value={c.slug}>{c.name}</option>)}
                     </select>
                   </div>
                 )}
@@ -301,7 +309,18 @@ export default function ProductListingPage() {
           )}
 
           <div className="flex-1 min-w-0">
-            {loading ? (
+            {queryError ? (
+              <div className="text-center py-20">
+                <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-full flex items-center justify-center">
+                  <RefreshCw className="w-6 h-6 text-red-400" />
+                </div>
+                <p className="text-neutral-500 text-lg mb-2">Failed to load products.</p>
+                <p className="text-neutral-400 text-sm mb-4">Please try again or refresh the page.</p>
+                <button onClick={() => window.location.reload()} className="btn-primary">
+                  Retry
+                </button>
+              </div>
+            ) : loading ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                   <div key={i} className="aspect-[3/4] bg-neutral-100 animate-pulse rounded" />

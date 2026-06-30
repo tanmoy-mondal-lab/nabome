@@ -33,7 +33,6 @@ async function main() {
   await prisma.navigationMenu.deleteMany();
   await prisma.homepageSection.deleteMany();
   await prisma.announcementBar.deleteMany();
-  await prisma.brandStory.deleteMany();
   await prisma.staticPage.deleteMany();
   await prisma.contactSubmission.deleteMany();
   await prisma.newsletterSubscriber.deleteMany();
@@ -448,31 +447,35 @@ async function main() {
   });
 
   // ─── Navigation Menus ───
+  const headerMenuId = crypto.randomUUID();
+  const footerShopId = crypto.randomUUID();
+  const footerSupportId = crypto.randomUUID();
   await prisma.navigationMenu.createMany({
     data: [
       {
+        id: headerMenuId,
         name: "Main Menu",
         location: "header",
         items: [
-          { label: "Men", link: "/products?category=men", children: [
-            { label: "Shirts", link: "/products?category=men&subcategory=shirts" },
-            { label: "Trousers", link: "/products?category=men&subcategory=trousers" },
-            { label: "Blazers", link: "/products?category=men&subcategory=blazers" },
-            { label: "Kurtas", link: "/products?category=men&subcategory=kurtas" },
+          { id: crypto.randomUUID(), type: "dropdown", label: "Men", url: "/products?category=men", link: "/products?category=men", target: "_self", isVisible: true, isHighlighted: false, children: [
+            { id: crypto.randomUUID(), type: "link", label: "Shirts", url: "/products?category=men&subcategory=shirts", link: "/products?category=men&subcategory=shirts", target: "_self", isVisible: true, isHighlighted: false },
+            { id: crypto.randomUUID(), type: "link", label: "Trousers", url: "/products?category=men&subcategory=trousers", link: "/products?category=men&subcategory=trousers", target: "_self", isVisible: true, isHighlighted: false },
+            { id: crypto.randomUUID(), type: "link", label: "Blazers", url: "/products?category=men&subcategory=blazers", link: "/products?category=men&subcategory=blazers", target: "_self", isVisible: true, isHighlighted: false },
+            { id: crypto.randomUUID(), type: "link", label: "Kurtas", url: "/products?category=men&subcategory=kurtas", link: "/products?category=men&subcategory=kurtas", target: "_self", isVisible: true, isHighlighted: false },
           ]},
-          { label: "Women", link: "/products?category=women", children: [
-            { label: "Dresses", link: "/products?category=women&subcategory=dresses" },
-            { label: "Sarees", link: "/products?category=women&subcategory=sarees" },
-            { label: "Suits", link: "/products?category=women&subcategory=suits" },
+          { id: crypto.randomUUID(), type: "dropdown", label: "Women", url: "/products?category=women", link: "/products?category=women", target: "_self", isVisible: true, isHighlighted: false, children: [
+            { id: crypto.randomUUID(), type: "link", label: "Dresses", url: "/products?category=women&subcategory=dresses", link: "/products?category=women&subcategory=dresses", target: "_self", isVisible: true, isHighlighted: false },
+            { id: crypto.randomUUID(), type: "link", label: "Sarees", url: "/products?category=women&subcategory=sarees", link: "/products?category=women&subcategory=sarees", target: "_self", isVisible: true, isHighlighted: false },
+            { id: crypto.randomUUID(), type: "link", label: "Suits", url: "/products?category=women&subcategory=suits", link: "/products?category=women&subcategory=suits", target: "_self", isVisible: true, isHighlighted: false },
           ]},
-          { label: "Accessories", link: "/products?category=accessories", children: [
-            { label: "Bags", link: "/products?category=accessories&subcategory=bags" },
-            { label: "Watches", link: "/products?category=accessories&subcategory=watches" },
-            { label: "Jewellery", link: "/products?category=accessories&subcategory=jewellery" },
+          { id: crypto.randomUUID(), type: "dropdown", label: "Accessories", url: "/products?category=accessories", link: "/products?category=accessories", target: "_self", isVisible: true, isHighlighted: false, children: [
+            { id: crypto.randomUUID(), type: "link", label: "Bags", url: "/products?category=accessories&subcategory=bags", link: "/products?category=accessories&subcategory=bags", target: "_self", isVisible: true, isHighlighted: false },
+            { id: crypto.randomUUID(), type: "link", label: "Watches", url: "/products?category=accessories&subcategory=watches", link: "/products?category=accessories&subcategory=watches", target: "_self", isVisible: true, isHighlighted: false },
+            { id: crypto.randomUUID(), type: "link", label: "Jewellery", url: "/products?category=accessories&subcategory=jewellery", link: "/products?category=accessories&subcategory=jewellery", target: "_self", isVisible: true, isHighlighted: false },
           ]},
-          { label: "Collections", link: "/products" },
-          { label: "Lookbook", link: "/lookbooks" },
-          { label: "Our Story", link: "/pages/our-story" },
+          { id: crypto.randomUUID(), type: "link", label: "Collections", url: "/products", link: "/products", target: "_self", isVisible: true, isHighlighted: false },
+          { id: crypto.randomUUID(), type: "link", label: "Lookbook", url: "/lookbooks", link: "/lookbooks", target: "_self", isVisible: true, isHighlighted: false },
+          { id: crypto.randomUUID(), type: "link", label: "Our Story", url: "/our-story", link: "/our-story", target: "_self", isVisible: true, isHighlighted: false },
         ],
         isActive: true,
       },
@@ -480,11 +483,11 @@ async function main() {
         name: "Footer - Shop",
         location: "footer",
         items: [
-          { label: "Men", link: "/products?category=men" },
-          { label: "Women", link: "/products?category=women" },
-          { label: "Accessories", link: "/products?category=accessories" },
-          { label: "Collections", link: "/products" },
-          { label: "New Arrivals", link: "/products?sort=newest" },
+          { id: crypto.randomUUID(), type: "link", label: "Men", url: "/products?category=men", link: "/products?category=men", target: "_self", isVisible: true, isHighlighted: false },
+          { id: crypto.randomUUID(), type: "link", label: "Women", url: "/products?category=women", link: "/products?category=women", target: "_self", isVisible: true, isHighlighted: false },
+          { id: crypto.randomUUID(), type: "link", label: "Accessories", url: "/products?category=accessories", link: "/products?category=accessories", target: "_self", isVisible: true, isHighlighted: false },
+          { id: crypto.randomUUID(), type: "link", label: "Collections", url: "/products", link: "/products", target: "_self", isVisible: true, isHighlighted: false },
+          { id: crypto.randomUUID(), type: "link", label: "New Arrivals", url: "/products?sort=newest", link: "/products?sort=newest", target: "_self", isVisible: true, isHighlighted: false },
         ],
         isActive: true,
       },
@@ -492,10 +495,10 @@ async function main() {
         name: "Footer - Support",
         location: "footer",
         items: [
-          { label: "Contact Us", link: "/contact" },
-          { label: "Size Guide", link: "/size-guide" },
-          { label: "Shipping & Returns", link: "/pages/shipping-returns" },
-          { label: "FAQ", link: "/faq" },
+          { id: crypto.randomUUID(), type: "link", label: "Contact Us", url: "/contact", link: "/contact", target: "_self", isVisible: true, isHighlighted: false },
+          { id: crypto.randomUUID(), type: "link", label: "Size Guide", url: "/size-guide", link: "/size-guide", target: "_self", isVisible: true, isHighlighted: false },
+          { id: crypto.randomUUID(), type: "link", label: "Shipping & Returns", url: "/shipping-returns", link: "/shipping-returns", target: "_self", isVisible: true, isHighlighted: false },
+          { id: crypto.randomUUID(), type: "link", label: "FAQ", url: "/faq", link: "/faq", target: "_self", isVisible: true, isHighlighted: false },
         ],
         isActive: true,
       },
@@ -506,8 +509,35 @@ async function main() {
   await prisma.footerSection.createMany({
     data: [
       { column: 1, title: "নবME", contentType: "text", content: { text: "Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design." }, sortOrder: 1 },
-      { column: 2, title: "Shop", contentType: "menu", content: { menuSlug: "Footer - Shop" }, sortOrder: 2 },
-      { column: 3, title: "Support", contentType: "menu", content: { menuSlug: "Footer - Support" }, sortOrder: 3 },
+      {
+        column: 2,
+        title: "Shop",
+        contentType: "links",
+        content: {
+          links: [
+            { id: crypto.randomUUID(), label: "Men", url: "/products?category=men" },
+            { id: crypto.randomUUID(), label: "Women", url: "/products?category=women" },
+            { id: crypto.randomUUID(), label: "Accessories", url: "/products?category=accessories" },
+            { id: crypto.randomUUID(), label: "Collections", url: "/products" },
+            { id: crypto.randomUUID(), label: "New Arrivals", url: "/products?sort=newest" },
+          ],
+        },
+        sortOrder: 2,
+      },
+      {
+        column: 3,
+        title: "Support",
+        contentType: "links",
+        content: {
+          links: [
+            { id: crypto.randomUUID(), label: "Contact Us", url: "/contact" },
+            { id: crypto.randomUUID(), label: "Size Guide", url: "/size-guide" },
+            { id: crypto.randomUUID(), label: "Shipping & Returns", url: "/shipping-returns" },
+            { id: crypto.randomUUID(), label: "FAQ", url: "/faq" },
+          ],
+        },
+        sortOrder: 3,
+      },
       { column: 4, title: "Connect", contentType: "social", content: { description: "Follow us on social media for the latest updates." }, sortOrder: 4 },
     ],
   });
@@ -518,50 +548,165 @@ async function main() {
       {
         title: "Our Story",
         slug: "our-story",
-        content: {
-          blocks: [
-            { type: "heading", content: "The নবME Story" },
-            { type: "text", content: "Founded in 2020, নবME was created with a singular vision: to bring the finest of Indian craftsmanship to the global stage. Every piece in our collection is a testament to the skill of our artisans and the richness of our heritage." },
-            { type: "image", url: "https://placehold.co/800x600/F8F7F4/1A1A1A?text=Our+Workshop" },
-            { type: "heading", content: "Our Craft" },
-            { type: "text", content: "From the handloom weavers of Varanasi to the embroiderers of Lucknow, we work directly with artisan communities across India, ensuring fair wages and preserving centuries-old techniques." },
-          ],
-        },
+        content: `<h2 class="font-display text-heading-3 text-neutral-900 mt-8">The নবME Story</h2>
+<p>Founded in 2020, নবME was created with a singular vision: to bring the finest of Indian craftsmanship to the global stage. Every piece in our collection is a testament to the skill of our artisans and the richness of our heritage.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Our Craft</h2>
+<p>From the handloom weavers of Varanasi to the embroiderers of Lucknow, we work directly with artisan communities across India, ensuring fair wages and preserving centuries-old techniques.</p>`,
         isPublished: true,
         publishedAt: new Date(),
         metaTitle: "Our Story — নবME",
         metaDesc: "Discover the story behind নবME — a premium fashion brand celebrating Indian craftsmanship.",
       },
       {
-        title: "Shipping & Returns",
-        slug: "shipping-returns",
-        content: {
-          blocks: [
-            { type: "heading", content: "Shipping Policy" },
-            { type: "text", content: "We offer free shipping on orders above ₹999. Standard delivery takes 3-5 business days. Express shipping is available at checkout." },
-            { type: "heading", content: "Returns & Exchanges" },
-            { type: "text", content: "We accept returns within 14 days of delivery. Items must be unworn with tags attached. Free exchanges on first size change." },
-          ],
-        },
+        title: "Privacy Policy",
+        slug: "privacy",
+        content: `<p>Your privacy is important to us. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and purchase our products.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Information We Collect</h2>
+<p>We may collect information about you in a variety of ways, including:</p>
+<ul class="list-disc pl-6 space-y-2">
+<li><strong>Personal Data:</strong> Name, email address, shipping address, billing address, and payment information.</li>
+<li><strong>Device Information:</strong> Browser type, operating system, IP address, and device identifiers.</li>
+<li><strong>Usage Data:</strong> Pages visited, time spent on pages, click patterns, and referral sources.</li>
+</ul>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">How We Use Your Information</h2>
+<p>We use the information we collect to:</p>
+<ul class="list-disc pl-6 space-y-2">
+<li>Process and fulfill your orders, including shipping and returns</li>
+<li>Send order confirmations, shipping updates, and customer service communications</li>
+<li>Improve our website, products, and customer experience</li>
+<li>Send marketing communications (with your consent)</li>
+<li>Detect and prevent fraud or unauthorized access</li>
+</ul>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Information Sharing</h2>
+<p>We do not sell your personal information. We may share your data with trusted third parties who assist in operating our website, conducting our business, or servicing your orders, including payment processors, shipping carriers, and analytics providers.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Data Security</h2>
+<p>We implement appropriate technical and organizational measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Cookies</h2>
+<p>We use cookies and similar tracking technologies to enhance your browsing experience. You can control cookie settings through your browser preferences.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Your Rights</h2>
+<p>You have the right to access, correct, or delete your personal information. To exercise these rights, please contact us at privacy@nabome.com.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Contact Us</h2>
+<p>If you have questions about this Privacy Policy, please contact us at privacy@nabome.com.</p>`,
         isPublished: true,
         publishedAt: new Date(),
+        metaTitle: "Privacy Policy — নবME",
+        metaDesc: "Privacy policy for নবME online fashion store. Learn how we collect, use, and protect your personal information.",
+      },
+      {
+        title: "Terms of Service",
+        slug: "terms",
+        content: `<p>By accessing or using the নবME website and services, you agree to be bound by these Terms of Service. Please read them carefully before making a purchase.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Products & Orders</h2>
+<p>We reserve the right to limit the quantities of any products or services that we offer. All descriptions of products and pricing are subject to change at any time without notice. We reserve the right to discontinue any product at any time.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Pricing & Payment</h2>
+<p>All prices are listed in Indian Rupees (INR) and include applicable taxes unless stated otherwise. We accept major credit/debit cards, UPI, net banking, and Cash on Delivery (COD). Payment must be received in full before order processing.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Shipping</h2>
+<p>We aim to process and ship orders within 1-2 business days. Standard shipping takes 3-5 business days. Express shipping is available at checkout for faster delivery. Free shipping is available on orders above ₹999.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Returns & Refunds</h2>
+<p>We offer a 14-day return policy on most items. Items must be in their original condition with tags attached. To initiate a return, please contact our customer support team. Refunds are processed within 5-7 business days of receiving the returned item.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Intellectual Property</h2>
+<p>All content on this website, including text, graphics, logos, images, and software, is the property of নবME and is protected by Indian and international copyright laws.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Limitation of Liability</h2>
+<p>নবME shall not be liable for any indirect, incidental, special, or consequential damages resulting from the use or inability to use our products or services.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Governing Law</h2>
+<p>These Terms of Service are governed by and construed in accordance with the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts in Kolkata, West Bengal.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Contact Us</h2>
+<p>If you have questions about these Terms, please contact us at support@nabome.com.</p>`,
+        isPublished: true,
+        publishedAt: new Date(),
+        metaTitle: "Terms of Service — নবME",
+        metaDesc: "Terms and conditions for using the নবME website and purchasing our products.",
+      },
+      {
+        title: "Shipping & Returns",
+        slug: "shipping-returns",
+        content: `<p>We want you to love your নবME purchase. If you're not completely satisfied, we're here to help with easy returns and exchanges.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Shipping Policy</h2>
+<h3 class="font-display text-heading-4 text-neutral-900 mt-6">Standard Shipping</h3>
+<p>Free shipping on all orders above ₹999. For orders below ₹999, a flat shipping fee of ₹99 applies. Standard delivery takes 3-5 business days across India.</p>
+<h3 class="font-display text-heading-4 text-neutral-900 mt-6">Express Shipping</h3>
+<p>Need it faster? Select express shipping at checkout for delivery within 1-2 business days. Express shipping fee is ₹199.</p>
+<h3 class="font-display text-heading-4 text-neutral-900 mt-6">Order Processing</h3>
+<p>Orders are processed within 1-2 business days. You'll receive a confirmation email with tracking information once your order ships.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Returns & Exchanges</h2>
+<h3 class="font-display text-heading-4 text-neutral-900 mt-6">Return Policy</h3>
+<p>We accept returns within 14 days of delivery. To be eligible for a return:</p>
+<ul class="list-disc pl-6 space-y-2">
+<li>Item must be unworn, unwashed, and in original condition</li>
+<li>All original tags must be attached</li>
+<li>Item must be in its original packaging</li>
+<li>Proof of purchase is required</li>
+</ul>
+<h3 class="font-display text-heading-4 text-neutral-900 mt-6">How to Initiate a Return</h3>
+<ol class="list-decimal pl-6 space-y-2">
+<li>Contact our customer support at returns@nabome.com or call +91 1800 123 4567</li>
+<li>Provide your order number and reason for return</li>
+<li>Receive a return authorization and shipping label</li>
+<li>Pack the item securely and ship using the provided label</li>
+</ol>
+<h3 class="font-display text-heading-4 text-neutral-900 mt-6">Exchanges</h3>
+<p>Free exchanges on your first size change. Simply contact us within 14 days of delivery and we'll arrange a replacement at no extra cost.</p>
+<h3 class="font-display text-heading-4 text-neutral-900 mt-6">Refunds</h3>
+<p>Refunds are processed within 5-7 business days of receiving the returned item. The refund will be credited to your original payment method. COD orders will be refunded via bank transfer.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">International Shipping</h2>
+<p>We currently ship within India. International shipping is coming soon. Join our newsletter to be notified when we expand.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Need Help?</h2>
+<p>Contact our customer support team at support@nabome.com or call +91 1800 123 4567 (Mon-Sat, 10am-7pm IST).</p>`,
+        isPublished: true,
+        publishedAt: new Date(),
+        metaTitle: "Shipping & Returns — নবME",
+        metaDesc: "Shipping policy and return procedures for নবME orders. Free shipping on orders above ₹999.",
+      },
+      {
+        title: "Contact Us",
+        slug: "contact",
+        content: `<p>Need help with an order, return, product question, or collaboration? Our support team is here to help.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Customer Support</h2>
+<p>Email us at support@nabome.com with your order number and a short description of the issue. We usually respond within 1 business day.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Returns</h2>
+<p>For return requests, sign in to your account, open the order detail page, and choose "Request Return" so the request stays connected to your order record.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Business Enquiries</h2>
+<p>For partnerships, press, or wholesale enquiries, email hello@nabome.com.</p>`,
+        isPublished: true,
+        publishedAt: new Date(),
+        metaTitle: "Contact Us — নবME",
+        metaDesc: "Contact नवME customer support for orders, returns, product questions, and business enquiries.",
+      },
+      {
+        title: "Size Guide",
+        slug: "size-guide",
+        content: `<p>Use this guide as a starting point, then check product-specific fit notes before ordering.</p>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">How to Measure</h2>
+<ul class="list-disc pl-6 space-y-2">
+<li><strong>Chest/Bust:</strong> Measure around the fullest part while keeping the tape level.</li>
+<li><strong>Waist:</strong> Measure around the narrowest point of your waist.</li>
+<li><strong>Hip:</strong> Measure around the fullest part of your hips.</li>
+<li><strong>Inseam:</strong> Measure from the crotch seam to the bottom hem.</li>
+</ul>
+<h2 class="font-display text-heading-3 text-neutral-900 mt-8">Fit Support</h2>
+<p>If you are between sizes, choose the larger size for relaxed fits and the smaller size for tailored fits. Contact support@nabome.com with product details for personalized help.</p>`,
+        isPublished: true,
+        publishedAt: new Date(),
+        metaTitle: "Size Guide — নবME",
+        metaDesc: "Find measurement guidance and fit support for নবME apparel.",
       },
     ],
   });
 
-  // ─── Brand Story ───
-  await prisma.brandStory.create({
-    data: {
-      title: "Our Heritage",
-      subtitle: "Where tradition meets modernity",
-      heroImageUrl: "https://placehold.co/1920x800/1B2A4A/C9A84C?text=Our+Heritage",
-      content: { blocks: [
-        { type: "text", content: "নবME represents the confluence of India's rich textile heritage and contemporary design sensibility. Each creation is a narrative woven with threads of tradition and innovation." },
-      ]},
-      mission: "To preserve and promote Indian craftsmanship while creating timeless pieces for the modern wardrobe.",
-      vision: "To be the global ambassador of Indian luxury fashion, known for uncompromising quality and authentic craftsmanship.",
-      values: { values: ["Craftsmanship", "Sustainability", "Heritage", "Innovation", "Quality"] },
-    },
+  // ─── FAQ Items ───
+  await prisma.fAQ.createMany({
+    data: [
+      { question: "What payment methods do you accept?", answer: "We accept all major credit/debit cards, UPI, net banking, and Cash on Delivery (COD). All transactions are securely processed through our payment partners.", category: "Payments", sortOrder: 1, isActive: true },
+      { question: "How long does shipping take?", answer: "Standard shipping takes 3-5 business days across India. Express shipping delivers within 1-2 business days. You'll receive tracking information once your order ships.", category: "Shipping", sortOrder: 1, isActive: true },
+      { question: "Do you offer free shipping?", answer: "Yes! Free standard shipping is available on all orders above ₹999. For orders below ₹999, a flat shipping fee of ₹99 applies.", category: "Shipping", sortOrder: 2, isActive: true },
+      { question: "How can I track my order?", answer: "Once your order ships, you'll receive a confirmation email and SMS with a tracking link. You can also track your order from your account dashboard under 'My Orders'.", category: "Shipping", sortOrder: 3, isActive: true },
+      { question: "What is your return policy?", answer: "We offer a 14-day return policy. Items must be unworn, unwashed, and in original condition with all tags attached. Free exchanges are available for your first size change.", category: "Returns", sortOrder: 1, isActive: true },
+      { question: "How do I initiate a return?", answer: "Contact our customer support at returns@nabome.com or call +91 1800 123 4567 with your order number. We'll provide a return authorization and prepaid shipping label.", category: "Returns", sortOrder: 2, isActive: true },
+      { question: "When will I receive my refund?", answer: "Refunds are processed within 5-7 business days of receiving the returned item. The refund will be credited to your original payment method. COD orders are refunded via bank transfer.", category: "Returns", sortOrder: 3, isActive: true },
+      { question: "Are your products authentic?", answer: "Absolutely! All নবME products are 100% authentic, designed in-house and manufactured with premium materials. We work directly with skilled artisans across India.", category: "Products", sortOrder: 1, isActive: true },
+      { question: "How do I find my size?", answer: "Each product page includes a detailed size guide. If you're unsure, our customer support team can help you find the perfect fit. We also offer free size exchanges.", category: "Products", sortOrder: 2, isActive: true },
+      { question: "How do I care for my নবME garments?", answer: "We recommend hand washing or gentle machine wash in cold water with mild detergent. Avoid bleach and tumble drying. Iron on low heat. Specific care instructions are included with each product.", category: "Products", sortOrder: 3, isActive: true },
+    ],
   });
 
   // ─── Coupons ───
@@ -740,6 +885,7 @@ async function main() {
   console.log("   Homepage Sections:", await prisma.homepageSection.count());
   console.log("   Navigation Menus:", await prisma.navigationMenu.count());
   console.log("   Static Pages:", await prisma.staticPage.count());
+  console.log("   FAQ Items:", await prisma.fAQ.count());
   console.log("   Coupons:", await prisma.coupon.count());
   console.log("   Announcements:", await prisma.announcementBar.count());
   console.log("   Social Links:", await prisma.socialMediaLink.count());

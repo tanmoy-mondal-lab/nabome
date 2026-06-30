@@ -1,12 +1,248 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { adminApi } from "../../../lib/api/admin";
 import { sectionRegistry } from "../../../cms/core/section-registry";
 import { type PageSection, type SectionType, type SectionField } from "../../../cms/core/cms-types";
 import { MediaPicker } from "../../common/MediaPicker";
+import { Upload, Loader2 } from "lucide-react";
 
 interface SectionEditorProps {
   section: PageSection;
   onSave: (section: PageSection) => void;
   onCancel: () => void;
+}
+
+function VideoField({
+  field, value, onChange,
+}: {
+  field: SectionField; value: string; onChange: (key: string, value: unknown) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = useCallback(async (file: File) => {
+    if (file.size > 100 * 1024 * 1024) { setError("File exceeds 100MB limit"); return; }
+    setError(""); setUploading(true);
+    try {
+      const res = await adminApi.uploadFile(file, "page-builder");
+      onChange(field.key, res.url);
+    } catch { setError("Upload failed"); }
+    finally { setUploading(false); }
+  }, [field.key, onChange]);
+
+  return (
+    <div>
+      <label className="block text-xs text-neutral-500 mb-1">
+        {field.label}
+        {field.required && <span className="text-red-400 ml-0.5">*</span>}
+      </label>
+      <div className="flex gap-2">
+        <input
+          type="text" value={value}
+          onChange={(e) => onChange(field.key, e.target.value)}
+          placeholder="Paste video URL or upload"
+          className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+        />
+        <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-neutral-200 rounded-lg hover:bg-neutral-50 disabled:opacity-50 whitespace-nowrap transition-colors"
+        >
+          {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+          {uploading ? "Uploading…" : "Upload"}
+        </button>
+      </div>
+      {value && (
+        <video src={value} controls className="w-full max-h-40 mt-2 rounded border border-neutral-200" />
+      )}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={(e) => {
+        const file = e.target.files?.[0]; if (file) handleUpload(file);
+        if (fileRef.current) fileRef.current.value = "";
+      }} />
+    </div>
+  );
+}
+
+function MultiSelectField({
+  field, value, onChange,
+}: {
+  field: SectionField; value: unknown; onChange: (key: string, value: unknown) => void;
+}) {
+  const selected = Array.isArray(value) ? value as string[] : [];
+  return (
+    <div>
+      <label className="block text-xs text-neutral-500 mb-1">{field.label}</label>
+      <div className="space-y-1 max-h-40 overflow-y-auto border border-neutral-200 rounded p-2">
+        {(field.options ?? []).length === 0 ? (
+          <p className="text-xs text-neutral-400">No options defined</p>
+        ) : (field.options ?? []).map((opt) => (
+          <label key={opt.value} className="flex items-center gap-2 cursor-pointer py-0.5">
+            <input type="checkbox" checked={selected.includes(opt.value)}
+              onChange={(e) => onChange(field.key,
+                e.target.checked ? [...selected, opt.value] : selected.filter((v) => v !== opt.value)
+              )}
+              className="accent-brand-500"
+            />
+            <span className="text-xs text-neutral-600">{opt.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LinkField({
+  field, value, onChange,
+}: {
+  field: SectionField; value: unknown; onChange: (key: string, value: unknown) => void;
+}) {
+  const parsed = value && typeof value === "object" ? value as Record<string, string> : {};
+  const link = { url: String(parsed.url ?? value ?? ""), text: String(parsed.text ?? "") };
+  return (
+    <div>
+      <label className="block text-xs text-neutral-500 mb-1">{field.label}</label>
+      <div className="space-y-2">
+        <input type="text" value={link.url}
+          onChange={(e) => {
+            const next = { ...link, url: e.target.value };
+            onChange(field.key, next.text && next.url ? next : e.target.value);
+          }}
+          placeholder="https://… or /path"
+          className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+        />
+        <input type="text" value={link.text}
+          onChange={(e) => {
+            const next = { ...link, text: e.target.value };
+            onChange(field.key, next.text && next.url ? next : next.url);
+          }}
+          placeholder="Link text (optional)"
+          className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+        />
+      </div>
+    </div>
+  );
+}
+
+function CollectionSelectField({
+  field, value, onChange,
+}: {
+  field: SectionField; value: unknown; onChange: (key: string, value: unknown) => void;
+}) {
+  const { data: res } = useQuery({
+    queryKey: ["admin", "collections"],
+    queryFn: () => adminApi.getCollections(),
+    staleTime: 1000 * 60 * 10,
+  });
+  const collections = (res as any)?.collections ?? [];
+  const selected = Array.isArray(value) ? value as string[] : value ? [String(value)] : [];
+
+  const handleToggle = (slug: string) => {
+    const updated = selected.includes(slug)
+      ? selected.filter((s) => s !== slug)
+      : [...selected, slug];
+    onChange(field.key, updated);
+  };
+
+  return (
+    <div>
+      <label className="block text-xs text-neutral-500 mb-1">{field.label}</label>
+      <div className="max-h-48 overflow-y-auto border border-neutral-200 rounded p-2 space-y-1">
+        {!Array.isArray(collections) ? (
+          <p className="text-xs text-neutral-400">Loading…</p>
+        ) : collections.length === 0 ? (
+          <p className="text-xs text-neutral-400">No collections found</p>
+        ) : collections.map((c: any) => (
+          <label key={c.id} className="flex items-center gap-2 cursor-pointer py-0.5">
+            <input type="checkbox" checked={selected.includes(c.slug)}
+              onChange={() => handleToggle(c.slug)}
+              className="accent-brand-500"
+            />
+            <span className="text-xs text-neutral-600">{c.name}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CategorySelectField({
+  field, value, onChange,
+}: {
+  field: SectionField; value: unknown; onChange: (key: string, value: unknown) => void;
+}) {
+  const { data: res } = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: () => adminApi.getCategories(),
+    staleTime: 1000 * 60 * 10,
+  });
+  const categories = (res as any)?.categories ?? [];
+  const selected = Array.isArray(value) ? value as string[] : value ? [String(value)] : [];
+
+  const handleToggle = (slug: string) => {
+    const updated = selected.includes(slug)
+      ? selected.filter((s) => s !== slug)
+      : [...selected, slug];
+    onChange(field.key, updated);
+  };
+
+  return (
+    <div>
+      <label className="block text-xs text-neutral-500 mb-1">{field.label}</label>
+      <div className="max-h-48 overflow-y-auto border border-neutral-200 rounded p-2 space-y-1">
+        {!Array.isArray(categories) ? (
+          <p className="text-xs text-neutral-400">Loading…</p>
+        ) : categories.length === 0 ? (
+          <p className="text-xs text-neutral-400">No categories found</p>
+        ) : categories.map((c: any) => (
+          <label key={c.id} className="flex items-center gap-2 cursor-pointer py-0.5">
+            <input type="checkbox" checked={selected.includes(c.slug)}
+              onChange={() => handleToggle(c.slug)}
+              className="accent-brand-500"
+            />
+            <span className="text-xs text-neutral-600">{c.name}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ProductSelectField({
+  field, value, onChange,
+}: {
+  field: SectionField; value: unknown; onChange: (key: string, value: unknown) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const { data: res } = useQuery({
+    queryKey: ["admin", "products", "list"],
+    queryFn: () => adminApi.getProducts({ limit: 100 }),
+    staleTime: 1000 * 60 * 5,
+  });
+  const products = Array.isArray((res as any)?.products) ? (res as any).products : [];
+  const filtered = search
+    ? products.filter((p: any) => (p.name || p.title || "").toLowerCase().includes(search.toLowerCase()))
+    : products;
+
+  return (
+    <div>
+      <label className="block text-xs text-neutral-500 mb-1">{field.label}</label>
+      <input type="text" value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search products…"
+        className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 mb-1"
+      />
+      <select
+        value={String(value ?? "")}
+        onChange={(e) => onChange(field.key, e.target.value)}
+        className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+      >
+        <option value="">Select product…</option>
+        {filtered.map((p: any) => (
+          <option key={p.id} value={p.id || p.slug}>{p.name || p.title}</option>
+        ))}
+      </select>
+    </div>
+  );
 }
 
 function FieldRenderer({
@@ -130,22 +366,40 @@ function FieldRenderer({
         </div>
       );
 
-    case "image":
-      return (
-        <div>
-          <MediaPicker
-            value={String(value ?? "")}
-            onChange={(url: string, publicId?: string) => {
-              onChange(field.key, url);
-              onChange(field.key + "PublicId", publicId ?? "");
-            }}
-            label={field.label}
-            folder="page-builder"
-          />
-        </div>
-      );
+      case "image":
+        return (
+          <div>
+            <MediaPicker
+              value={String(value ?? "")}
+              onChange={(url: string, publicId?: string) => {
+                onChange(field.key, url);
+                onChange(field.key + "PublicId", publicId ?? "");
+              }}
+              label={field.label}
+              folder="page-builder"
+            />
+          </div>
+        );
 
-    case "repeater":
+      case "video":
+        return <VideoField field={field} value={String(value ?? "")} onChange={onChange} />;
+
+      case "link":
+        return <LinkField field={field} value={value} onChange={onChange} />;
+
+      case "multiselect":
+        return <MultiSelectField field={field} value={value} onChange={onChange} />;
+
+      case "collections":
+        return <CollectionSelectField field={field} value={value} onChange={onChange} />;
+
+      case "categories":
+        return <CategorySelectField field={field} value={value} onChange={onChange} />;
+
+      case "products":
+        return <ProductSelectField field={field} value={value} onChange={onChange} />;
+
+      case "repeater":
       return (
         <div>
           <label className="block text-xs text-neutral-500 mb-1">{field.label}</label>

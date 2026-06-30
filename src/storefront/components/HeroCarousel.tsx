@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Volume2, VolumeX, ChevronDown, Pause, Play } from "lucide-react";
+import { SafeImage } from "../../components/SafeImage";
 
 interface Slide {
   id: string;
@@ -26,8 +27,10 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
   const [videoReady, setVideoReady] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const prefersReducedMotion = useReducedMotion();
 
   const totalSlides = slides.length;
+  const hasVideoSlides = slides.some((slide) => !!slide.videoUrl);
 
   const goTo = useCallback((idx: number) => {
     setVideoReady(false);
@@ -40,10 +43,10 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
   }, [totalSlides]);
 
   useEffect(() => {
-    if (paused || totalSlides <= 1) return;
+    if (paused || prefersReducedMotion || totalSlides <= 1) return;
     timerRef.current = setInterval(goNext, interval);
     return () => clearInterval(timerRef.current);
-  }, [goNext, interval, paused, totalSlides]);
+  }, [goNext, interval, paused, prefersReducedMotion, totalSlides]);
 
   useEffect(() => {
     videoRefs.current.forEach((v, i) => {
@@ -76,20 +79,36 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
     >
       {/* Video backgrounds */}
       {slides.map((s, i) => (
-        <video
+        <div
           key={`${s.id || s.title || "slide"}-${i}`}
-          ref={(el) => { videoRefs.current[i] = el; }}
-          src={s.videoUrl}
-          poster={s.posterUrl || undefined}
-          muted={!soundOn}
-          loop
-          playsInline
-          preload={i === 0 ? "auto" : "metadata"}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+          className={`absolute inset-0 transition-opacity duration-1000 ${
             i === current ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
-          onCanPlay={() => { if (i === current) setVideoReady(true); }}
-        />
+        >
+          {s.videoUrl ? (
+            <video
+              ref={(el) => { videoRefs.current[i] = el; }}
+              src={s.videoUrl}
+              poster={s.posterUrl || undefined}
+              muted={!soundOn}
+              loop
+              playsInline
+              preload={i === 0 ? "auto" : "metadata"}
+              className="w-full h-full object-cover"
+              onCanPlay={() => { if (i === current) setVideoReady(true); }}
+            />
+          ) : s.posterUrl ? (
+            <SafeImage
+              src={s.posterUrl}
+              alt=""
+              className="w-full h-full object-cover"
+              priority={i === 0}
+              responsive={false}
+            />
+          ) : (
+            <div className="w-full h-full bg-neutral-900" />
+          )}
+        </div>
       ))}
 
       {/* Dark overlay */}
@@ -160,13 +179,15 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
       </div>
 
       {/* Sound toggle */}
-      <button
-        onClick={() => setSoundOn(!soundOn)}
-        className="absolute bottom-12 right-8 p-2.5 bg-white/10 backdrop-blur-sm rounded-full text-white hover:bg-white/20 transition-colors"
-        aria-label={soundOn ? "Mute" : "Unmute"}
-      >
-        {soundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
-      </button>
+      {hasVideoSlides && (
+        <button
+          onClick={() => setSoundOn(!soundOn)}
+          className="absolute bottom-12 right-8 p-2.5 bg-white/10 backdrop-blur-sm rounded-full text-white hover:bg-white/20 transition-colors"
+          aria-label={soundOn ? "Mute" : "Unmute"}
+        >
+          {soundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
+        </button>
+      )}
 
       {/* Pause/Play */}
       <button

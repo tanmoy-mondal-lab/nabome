@@ -540,6 +540,7 @@ model ProductImage {
   altText   String? @map("alt_text") @db.VarChar(500)
   sortOrder Int     @default(0) @map("sort_order")
   isPrimary Boolean @default(false) @map("is_primary")
+  type      String? @default("image") @db.VarChar(20)
 
   product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
   variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
@@ -915,13 +916,17 @@ model HomepageSection {
   title       String?     @db.VarChar(200)
   subtitle    String?     @db.VarChar(500)
   content     Json?       @db.JsonB
+  styles      Json?       @db.JsonB
   sortOrder   Int         @default(0) @map("sort_order")
   isActive    Boolean     @default(true) @map("is_active")
   visibility  Visibility  @default(all)
+  publishAt   DateTime?   @map("publish_at") @db.Timestamptz
+  expireAt    DateTime?   @map("expire_at") @db.Timestamptz
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
   @@index([isActive, sortOrder])
+  @@index([publishAt, expireAt])
   @@map("homepage_sections")
 }
 
@@ -934,6 +939,7 @@ model NavigationMenu {
   createdAt DateTime     @default(now()) @map("created_at")
   updatedAt DateTime     @updatedAt @map("updated_at")
 
+  @@unique([name, location])
   @@index([location, isActive])
   @@map("navigation_menus")
 }
@@ -969,24 +975,6 @@ model StaticPage {
 
   @@index([isPublished])
   @@map("static_pages")
-}
-
-model BrandStory {
-  id                String   @id @default(uuid()) @db.Uuid
-  title             String   @db.VarChar(200)
-  subtitle          String?  @db.VarChar(500)
-  heroImageUrl      String?  @map("hero_image_url") @db.Text
-  heroImagePublicId String?  @map("hero_image_public_id") @db.VarChar(500)
-  videoUrl          String?  @map("video_url") @db.Text
-  videoPublicId     String?  @map("video_public_id") @db.VarChar(500)
-  content           Json?    @db.JsonB
-  mission      String?  @db.Text
-  vision       String?  @db.Text
-  values       Json?    @db.JsonB
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  @@map("brand_story")
 }
 
 model Lookbook {
@@ -1203,48 +1191,6 @@ model AnalyticsEvent {
   @@index([sessionId])
   @@index([createdAt])
   @@map("analytics_events")
-}
-
-// ─────────────────────────────────────────────────────────────
-// SHIPPING MODULE
-// ─────────────────────────────────────────────────────────────
-
-model ShippingZone {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String   @db.VarChar(200)
-  countries String[] @default([])
-  states    String[] @default([])
-  pincodes  String[] @default([])
-  isActive  Boolean  @default(true) @map("is_active")
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  rates ShippingRate[]
-
-  @@index([isActive])
-  @@map("shipping_zones")
-}
-
-model ShippingRate {
-  id            String   @id @default(uuid()) @db.Uuid
-  zoneId        String   @map("zone_id") @db.Uuid
-  name          String   @db.VarChar(200)
-  method        String   @default("standard") @db.VarChar(50)
-  minOrderValue Decimal? @map("min_order_value") @db.Decimal(10, 2)
-  maxOrderValue Decimal? @map("max_order_value") @db.Decimal(10, 2)
-  baseRate      Decimal  @default(0) @map("base_rate") @db.Decimal(10, 2)
-  perKgRate     Decimal  @default(0) @map("per_kg_rate") @db.Decimal(10, 2)
-  freeAbove     Decimal? @map("free_above") @db.Decimal(10, 2)
-  estimatedDays String?  @map("estimated_days") @db.VarChar(50)
-  isActive      Boolean  @default(true) @map("is_active")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  zone ShippingZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
-
-  @@index([zoneId, isActive])
-  @@map("shipping_rates")
 }
 
 // ─────────────────────────────────────────────────────────────

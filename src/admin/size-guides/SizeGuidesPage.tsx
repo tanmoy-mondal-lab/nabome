@@ -17,22 +17,20 @@ export default function SizeGuidesPage() {
   const [form, setForm] = useState({ name: "", description: "", categoryId: "", type: "clothing", unit: "inches", imageUrl: "", imagePublicId: "", measurements: "[]", isActive: true });
   const [measurementsArr, setMeasurementsArr] = useState<{ size: string; bust?: string; waist?: string; hips?: string; length?: string; chest?: string; shoulder?: string }[]>([]);
 
-  const { data: sizeGuidesData, isLoading: loading } = useQuery({
+  const { data: sizeGuidesData, isLoading: loading, error: queryError } = useQuery({
     queryKey: ["admin", "sizeGuides"],
     queryFn: async () => {
       const g = await adminApi.getSizeGuides();
       return g.sizeGuides ?? [];
     },
-    throwOnError: false,
   });
 
-  const { data: categoriesData } = useQuery({
+  const { data: categoriesData, error: categoriesError } = useQuery({
     queryKey: ["admin", "categories"],
     queryFn: async () => {
       const c = await adminApi.getCategories();
       return c.categories ?? [];
     },
-    throwOnError: false,
   });
 
   const guides = sizeGuidesData ?? [];
@@ -47,9 +45,11 @@ export default function SizeGuidesPage() {
       }
     },
     onSuccess: () => {
+      const wasEditing = !!edit;
       queryClient.invalidateQueries({ queryKey: ["admin", "sizeGuides"] });
       setShowModal(false);
-      toast(edit ? "Size guide updated" : "Size guide created", "success");
+      setEdit(null);
+      toast(wasEditing ? "Size guide updated" : "Size guide created", "success");
     },
     onError: (err: Error) => {
       toast(`Failed to save size guide: ${err.message ?? "Unknown error"}`, "error");
@@ -115,9 +115,13 @@ export default function SizeGuidesPage() {
   }
 
   const filtered = (guides as Record<string, unknown>[]).filter((g) => !search || ((g.name as string) ?? "").toLowerCase().includes(search.toLowerCase()));
+  const fetchError = queryError ? (queryError instanceof Error ? queryError.message : "Failed to load size guides") : null;
 
   return (
     <div className="p-6 space-y-6">
+      {fetchError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{fetchError}</div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-display text-neutral-900">Size Guides</h1>
@@ -181,7 +185,7 @@ export default function SizeGuidesPage() {
         </div>
         <div className="flex justify-end gap-2 pt-4 border-t mt-4">
           <button onClick={() => setShowModal(false)} type="button" className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
-          <button onClick={handleSave} type="button" className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">Save</button>
+          <button onClick={handleSave} type="button" disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">{saveMutation.isPending ? "Saving..." : "Save"}</button>
         </div>
       </Modal>
     </div>

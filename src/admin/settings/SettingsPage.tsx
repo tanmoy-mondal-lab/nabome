@@ -1,8 +1,10 @@
 import { MediaPicker } from "../common/MediaPicker";
+import { Modal } from "../common/Modal";
 import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { useToast } from "../../components/ui/Toast";
+import { Plus, Trash2, FileText } from "lucide-react";
 
 interface Settings {
   siteName: string;
@@ -42,7 +44,7 @@ const DEFAULT_SETTINGS: Settings = {
     autoPublishReviews: false, maxWishlistItems: 50,
     newsletterTitle: "Stay Connected", newsletterSubtitle: "Join the नबME Inner Circle",
     promoText: "Free shipping on orders above ₹999 · Easy 30-day returns · Secure checkout", promoTagline: "New Season Now Available",
-    footerLinks: [{ label: "Privacy", url: "/privacy" }, { label: "Terms", url: "/terms" }, { label: "FAQ", url: "/faq" }, { label: "Shipping & Returns", url: "/shipping" }],
+    footerLinks: [{ label: "Privacy", url: "/privacy" }, { label: "Terms", url: "/terms" }, { label: "FAQ", url: "/faq" }, { label: "Shipping & Returns", url: "/shipping-returns" }],
   },
 };
 
@@ -70,7 +72,40 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
-  const { data: settings, isLoading } = useQuery({
+  // Page editor state
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [pageForm, setPageForm] = useState({ title: "", content: "" });
+  const [pageSaving, setPageSaving] = useState(false);
+
+  // Fetch CMS pages to find existing ones by slug
+  const { data: cmsPages = [] } = useQuery<{ id: string; title: string; slug: string; content?: string }[]>({
+    queryKey: ["admin", "cmsPages"],
+    queryFn: async () => {
+      const res = await adminApi.getPages();
+      return (res.pages as { id: string; title: string; slug: string; content?: string }[]) ?? [];
+    },
+  });
+
+  const cmsPageMutation = useMutation({
+    mutationFn: async ({ id, payload }: { id?: string; payload: Record<string, unknown> }) => {
+      if (id) return adminApi.updatePage(id, payload);
+      return adminApi.createPage(payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "cmsPages"] });
+      queryClient.invalidateQueries({ queryKey: ["cms"] });
+      queryClient.invalidateQueries({ queryKey: ["cms", "policyPages"] });
+      setEditingSlug(null);
+      setPageSaving(false);
+      toast("Page saved", "success");
+    },
+    onError: () => {
+      setPageSaving(false);
+      toast("Failed to save page", "error");
+    },
+  });
+
+  const { data: settings, isLoading, error: settingsError } = useQuery({
     queryKey: ["admin", "settings"],
     queryFn: async () => {
       const res = await adminApi.getSettings();
@@ -88,6 +123,36 @@ export default function SettingsPage() {
       setFormInitialized(true);
     }
   }, [settings, formInitialized]);
+
+  const openEditPage = (link: { label: string; url: string }) => {
+    const slug = link.url.replace(/^\//, "").split("?")[0].split("#")[0];
+    if (!slug) return;
+    const existing = cmsPages.find((p) => p.slug === slug);
+    setEditingSlug(slug);
+    setPageForm({
+      title: existing?.title ?? link.label,
+      content: existing?.content ?? "",
+    });
+  };
+
+  const handleSavePage = async () => {
+    if (!editingSlug || !pageForm.title.trim()) {
+      toast("Title is required", "error");
+      return;
+    }
+    setPageSaving(true);
+    const existing = cmsPages.find((p) => p.slug === editingSlug);
+    cmsPageMutation.mutate({
+      id: existing?.id,
+      payload: {
+        title: pageForm.title,
+        slug: editingSlug,
+        content: pageForm.content || "<!-- content -->",
+        metaTitle: pageForm.title,
+        isPublished: true,
+      },
+    });
+  };
 
   const handleSave = async () => {
     if (!form.siteName.trim()) {
@@ -109,7 +174,7 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       await adminApi.updateSettings(form);
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["settings", "public"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
       window.dispatchEvent(new Event("settings:updated"));
       toast("Settings saved successfully", "success");
@@ -120,6 +185,16 @@ export default function SettingsPage() {
       setSaving(false);
     }
   };
+
+  if (settingsError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle border border-red-200 bg-red-50">
+          <span className="text-sm text-red-600">Failed to load settings. Please try again.</span>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -288,20 +363,71 @@ export default function SettingsPage() {
             </div>
           </div>
           <div>
-            <label className="block text-xs text-neutral-500 mb-1">Footer Legal Links (JSON)</label>
-              <textarea
-                value={JSON.stringify(form.preferences.footerLinks, null, 2)}
-                onChange={(e) => {
-                  try {
-                    const parsed = JSON.parse(e.target.value) as { label: string; url: string }[];
-                    setForm({ ...form, preferences: { ...form.preferences, footerLinks: parsed } });
-                  } catch (error) {
-                    // invalid JSON, ignore
-                  }
+            <label className="block text-xs text-neutral-500 mb-2">Footer Legal Links</label>
+            <div className="space-y-2">
+              {form.preferences.footerLinks.map((link, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <input
+                    value={link.label}
+                    onChange={(e) => {
+                      const newLinks = [...form.preferences.footerLinks];
+                      newLinks[index] = { ...newLinks[index], label: e.target.value };
+                      setForm({ ...form, preferences: { ...form.preferences, footerLinks: newLinks } });
+                    }}
+                    placeholder="Label"
+                    className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+                  />
+                  <input
+                    value={link.url}
+                    onChange={(e) => {
+                      const newLinks = [...form.preferences.footerLinks];
+                      newLinks[index] = { ...newLinks[index], url: e.target.value };
+                      setForm({ ...form, preferences: { ...form.preferences, footerLinks: newLinks } });
+                    }}
+                    placeholder="URL (e.g., /privacy, /terms, /faq)"
+                    className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+                  />
+                  {link.url && !link.url.startsWith("http") && (
+                    <button
+                      type="button"
+                      onClick={() => openEditPage(link)}
+                      className="p-2 text-neutral-400 hover:text-brand-500 transition-colors"
+                      title="Edit page content"
+                    >
+                      <FileText className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newLinks = form.preferences.footerLinks.filter((_, i) => i !== index);
+                      setForm({ ...form, preferences: { ...form.preferences, footerLinks: newLinks } });
+                    }}
+                    className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setForm({
+                    ...form,
+                    preferences: {
+                      ...form.preferences,
+                      footerLinks: [...form.preferences.footerLinks, { label: "", url: "" }],
+                    },
+                  });
                 }}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors font-mono text-xs"
-                rows={4}
-              />
+                className="flex items-center gap-1.5 text-xs text-brand-600 hover:text-brand-700 transition-colors"
+              >
+                <Plus className="w-3 h-3" /> Add Link
+              </button>
+            </div>
+            <p className="text-xs text-neutral-400 mt-2">
+              Use paths like /privacy, /terms, /faq, /shipping-returns or any CMS page slug.
+            </p>
           </div>
         </section>
 
@@ -312,6 +438,35 @@ export default function SettingsPage() {
             </button>
           </div>
       </div>
+
+      {/* Page Editor Modal */}
+      <Modal open={!!editingSlug} onClose={() => setEditingSlug(null)} title={`Edit ${editingSlug ?? ""} page`} size="lg">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs text-neutral-500 mb-1">Title</label>
+            <input
+              value={pageForm.title}
+              onChange={(e) => setPageForm({ ...pageForm, title: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-neutral-500 mb-1">Content (HTML)</label>
+            <textarea
+              rows={12}
+              value={pageForm.content}
+              onChange={(e) => setPageForm({ ...pageForm, content: e.target.value })}
+              className="w-full px-3 py-2 text-sm font-mono border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={() => setEditingSlug(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+            <button onClick={handleSavePage} disabled={pageSaving} className="btn-primary disabled:opacity-50">
+              {pageSaving ? "Saving..." : "Save Page"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

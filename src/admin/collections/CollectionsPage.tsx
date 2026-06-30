@@ -33,7 +33,7 @@ export default function CollectionsPage() {
   const [editItem, setEditItem] = useState<Collection | null>(null);
   const [form, setForm] = useState({ name: "", slug: "", description: "", isActive: true, isFeatured: false, sortOrder: 0, imageUrl: "", imagePublicId: "", startDate: "", endDate: "", metaTitle: "", metaDesc: "" });
 
-  const { data: collections = [], isLoading: loading } = useQuery<Collection[]>({
+  const { data: collections = [], isLoading: loading, error: queryError } = useQuery<Collection[]>({
     queryKey: ["admin", "collections"],
     queryFn: async () => {
       const res = await adminApi.getCollections();
@@ -43,7 +43,6 @@ export default function CollectionsPage() {
 
   const invalidateCollections = () => {
     queryClient.invalidateQueries({ queryKey: ["admin", "collections"] });
-    queryClient.invalidateQueries({ queryKey: ["collections"] });
   };
 
   const saveMutation = useMutation({
@@ -55,9 +54,10 @@ export default function CollectionsPage() {
       return adminApi.createCollection(payload);
     },
     onSuccess: () => {
+      const wasEditing = !!editItem;
       setModalOpen(false);
       invalidateCollections();
-      toast(editItem ? "Collection updated" : "Collection created", "success");
+      toast(wasEditing ? "Collection updated" : "Collection created", "success");
     },
     onError: () => {
       toast("Failed to save collection", "error");
@@ -103,8 +103,13 @@ export default function CollectionsPage() {
     );
   }
 
+  const queryErrorMessage = queryError ? (queryError instanceof Error ? queryError.message : "Failed to load collections") : null;
+
   return (
     <div>
+      {queryErrorMessage && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{queryErrorMessage}</div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl text-neutral-900">Collections</h1>

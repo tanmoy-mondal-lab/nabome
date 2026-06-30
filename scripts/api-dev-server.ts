@@ -1,8 +1,11 @@
 import http from "http";
 
-const PORT = parseInt(process.env.PORT ?? "3001");
+// Load .env file for local development (Node 21.7+)
+try { process.loadEnvFile(); } catch { /* .env not found */ }
 
-// Load env for local development
+const PORT = parseInt(process.env.PORT ?? "8788");
+
+// Pass all env vars to API handlers
 const devEnv: Record<string, string> = {};
 if (process.env) {
   Object.assign(devEnv, process.env);

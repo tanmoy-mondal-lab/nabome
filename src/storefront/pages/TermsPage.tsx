@@ -6,9 +6,11 @@ export default function TermsPage() {
   return (
     <div className="container-page section-padding">
       <Helmet>
-        <title>Terms of Service — নবME</title>
-        <meta name="description" content="Terms of service for নবME online fashion store." />
+        <title>Terms & Conditions — নবME</title>
+        <meta name="description" content="Read our terms and conditions." />
         <link rel="canonical" href={canonical("/terms")} />
+        <meta property="og:title" content="Terms & Conditions — নবME" />
+        <meta property="og:description" content="Read our terms and conditions." />
       </Helmet>
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Terms of Service" }]} className="mb-8" />
       <div className="max-w-3xl">

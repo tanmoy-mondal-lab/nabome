@@ -9,6 +9,9 @@ import { formatPrice } from "../../lib/utils/format";
 import { SafeImage } from "../../components/SafeImage";
 import { cn } from "../../lib/utils/cn";
 import { useSettings } from "../hooks/useSettings";
+import { api } from "../../lib/api/client";
+import { Helmet } from "react-helmet-async";
+import { canonical } from "../../lib/seo";
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -28,18 +31,20 @@ export default function CartPage() {
     if (!couponInput.trim()) return;
     setCouponError("");
     try {
-      const csrfToken = document.cookie.split('; ').find(c => c.startsWith('csrf_token='))?.split('=')[1] || '';
-      const res = await fetch("/api/coupons/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
-        body: JSON.stringify({ code: couponInput.trim(), subtotal }),
-      });
-      const data = await res.json();
+      const data = await api.post<{
+        valid: boolean;
+        discount?: number;
+        discountType?: "percentage" | "fixed";
+        message?: string;
+        coupon?: { discountAmount?: number; discountType?: "percentage" | "fixed" };
+      }>("/coupons/validate", { code: couponInput.trim(), subtotal });
       if (data.valid) {
-        applyCoupon(couponInput.trim(), data.discount, data.discountType);
+        const discount = data.discount ?? data.coupon?.discountAmount ?? 0;
+        const discountType = data.discountType ?? data.coupon?.discountType ?? "fixed";
+        applyCoupon(couponInput.trim(), discount, discountType);
         setCouponInput("");
       } else {
-        setCouponError(data.error || "Invalid coupon code");
+        setCouponError(data.message || "Invalid coupon code");
       }
     } catch {
       setCouponError("Failed to validate coupon");
@@ -62,6 +67,13 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="container-page section-padding">
+        <Helmet>
+          <title>Shopping Cart — নবME</title>
+          <meta name="description" content="View your shopping cart on নবME." />
+          <link rel="canonical" href={canonical("/cart")} />
+          <meta property="og:title" content="Shopping Cart — নবME" />
+          <meta property="og:description" content="View your shopping cart on নবME." />
+        </Helmet>
         <Breadcrumbs items={[{ label: "Shopping Cart" }]} className="mb-6" />
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md mx-auto">
           <div className="w-24 h-24 mx-auto mb-8 bg-luxe-ivory rounded-full flex items-center justify-center">
@@ -97,6 +109,13 @@ export default function CartPage() {
 
   return (
     <div className="bg-white">
+      <Helmet>
+        <title>Shopping Cart — নবME</title>
+        <meta name="description" content="View your shopping cart on নবME." />
+        <link rel="canonical" href={canonical("/cart")} />
+        <meta property="og:title" content="Shopping Cart — নবME" />
+        <meta property="og:description" content="View your shopping cart on নবME." />
+      </Helmet>
       <div className="container-page pt-8 pb-24">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Shopping Cart" }]} className="mb-8" />
 

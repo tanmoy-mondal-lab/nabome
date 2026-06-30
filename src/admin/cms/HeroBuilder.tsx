@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { Link } from "react-router-dom";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { SafeImage } from "../../components/SafeImage";
-import { Plus, Edit3, Trash2, Film, ChevronUp, ChevronDown, Volume2, VolumeX } from "lucide-react";
+import { Plus, Edit3, Trash2, Film, ChevronUp, ChevronDown, ChevronRight, Volume2, VolumeX, ArrowLeft } from "lucide-react";
+import { normalizeHeroSlides } from "../../cms/core/hero-slides";
 
 interface HeroSlide {
   id: string;
@@ -29,6 +31,7 @@ export default function HeroBuilder() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [expandedSlides, setExpandedSlides] = useState<Set<number>>(new Set());
   const [form, setForm] = useState<HeroSlide>({
     id: "", videoUrl: "", posterUrl: "", title: "", subtitle: "", ctaText: "", ctaUrl: "", soundEnabled: true,
   });
@@ -46,7 +49,13 @@ export default function HeroBuilder() {
       if (heroSection) {
         setSectionId(heroSection.id as string);
         const content = heroSection.content as HeroConfig | null;
-        setConfig(content ?? { slides: [], interval: 7000 });
+        setConfig({
+          slides: normalizeHeroSlides(content?.slides, {
+            title: heroSection.title as string | undefined,
+            subtitle: heroSection.subtitle as string | undefined,
+          }),
+          interval: content?.interval ?? 7000,
+        });
       } else {
         setConfig({ slides: [], interval: 7000 });
         setSectionId(null);
@@ -157,6 +166,9 @@ export default function HeroBuilder() {
 
   return (
     <div>
+      <Link to="/admin/cms" className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 mb-4 transition-colors">
+        <ArrowLeft size={16} /> Back to CMS
+      </Link>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl text-neutral-900">Hero Banner Builder</h1>
@@ -191,48 +203,74 @@ export default function HeroBuilder() {
           />
         </div>
       ) : (
-        <div className="space-y-3">
-          {config.slides.map((slide, i) => (
-            <div key={slide.id} className="premium-card rounded-2xl overflow-hidden">
-              <div className="flex gap-4 p-4">
-                <div className="flex flex-col items-center gap-1 pt-1">
-                  <button onClick={() => moveSlide(i, -1)} disabled={i === 0}
-                    className="p-0.5 text-neutral-300 hover:text-neutral-600 disabled:opacity-30"><ChevronUp size={14} /></button>
-                  <span className="text-xs font-mono text-neutral-400">#{i + 1}</span>
-                  <button onClick={() => moveSlide(i, 1)} disabled={i === config.slides.length - 1}
-                    className="p-0.5 text-neutral-300 hover:text-neutral-600 disabled:opacity-30"><ChevronDown size={14} /></button>
-                </div>
-                <div className="w-32 h-20 bg-neutral-100 rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
-                  {slide.videoUrl ? (
-                    <video src={slide.videoUrl} className="w-full h-full object-cover" muted />
-                  ) : slide.posterUrl ? (
-                    <SafeImage src={slide.posterUrl} alt="" className="w-full h-full object-cover" useTransform={false} />
-                  ) : (
-                    <Film size={24} className="text-neutral-300" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-sm text-neutral-900 truncate">{slide.title || "Untitled"}</span>
-                    {slide.soundEnabled ? <Volume2 size={12} className="text-neutral-400" /> : <VolumeX size={12} className="text-neutral-300" />}
+        <div className="space-y-2">
+          {config.slides.map((slide, i) => {
+            const isExpanded = expandedSlides.has(i);
+            return (
+              <div key={slide.id} className={`premium-card rounded-2xl overflow-hidden transition-all ${isExpanded ? "ring-1 ring-neutral-300" : ""}`}>
+                {/* Collapsed Header — always visible */}
+                <div
+                  className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none hover:bg-neutral-50 transition-colors"
+                  onClick={() => {
+                    setExpandedSlides((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(i)) next.delete(i);
+                      else next.add(i);
+                      return next;
+                    });
+                  }}
+                >
+                  <div className="flex flex-col items-center gap-0.5">
+                    <button onClick={(e) => { e.stopPropagation(); moveSlide(i, -1); }} disabled={i === 0}
+                      className="p-0.5 text-neutral-300 hover:text-neutral-600 disabled:opacity-30"><ChevronUp size={12} /></button>
+                    <span className="text-[10px] font-mono text-neutral-400">#{i + 1}</span>
+                    <button onClick={(e) => { e.stopPropagation(); moveSlide(i, 1); }} disabled={i === config.slides.length - 1}
+                      className="p-0.5 text-neutral-300 hover:text-neutral-600 disabled:opacity-30"><ChevronDown size={12} /></button>
                   </div>
-                  {slide.subtitle && <p className="text-xs text-neutral-500 truncate">{slide.subtitle}</p>}
-                  <div className="flex items-center gap-2 mt-1.5 text-[10px] text-neutral-400">
-                    {slide.ctaText && <span>CTA: {slide.ctaText}</span>}
-                    {slide.ctaUrl && <span>→ {slide.ctaUrl}</span>}
+                  {isExpanded ? <ChevronDown size={14} className="text-neutral-400 shrink-0" /> : <ChevronRight size={14} className="text-neutral-400 shrink-0" />}
+                  {slide.videoUrl ? <Film size={14} className="text-neutral-400 shrink-0" /> : slide.posterUrl ? <span className="w-3.5 h-3.5 rounded bg-blue-100 shrink-0" /> : null}
+                  <span className="text-sm text-neutral-900 font-medium truncate flex-1">{slide.title || "Untitled"}</span>
+                  {slide.soundEnabled ? <Volume2 size={12} className="text-neutral-400 shrink-0" /> : <VolumeX size={12} className="text-neutral-300 shrink-0" />}
+                  {slide.ctaText && <span className="text-[10px] text-neutral-400 hidden sm:inline">CTA: {slide.ctaText}</span>}
+                  <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <button onClick={() => openEdit(i)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-xl">
+                      <Edit3 size={14} />
+                    </button>
+                    <button onClick={() => setDeleteConfirm(i)} className="p-1.5 text-red-400 hover:text-red-600 rounded-xl">
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => openEdit(i)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-xl">
-                    <Edit3 size={14} />
-                  </button>
-                  <button onClick={() => setDeleteConfirm(i)} className="p-1.5 text-red-400 hover:text-red-600 rounded-xl">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+
+                {/* Expanded Body — full preview */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 pt-1 border-t border-neutral-100">
+                    <div className="flex gap-4">
+                      <div className="w-40 h-24 bg-neutral-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
+                        {slide.videoUrl ? (
+                          <video src={slide.videoUrl} className="w-full h-full object-cover" muted />
+                        ) : slide.posterUrl ? (
+                          <SafeImage src={slide.posterUrl} alt="" className="w-full h-full object-cover" useTransform={false} />
+                        ) : (
+                          <Film size={24} className="text-neutral-300" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1">
+                        {slide.subtitle && <p className="text-xs text-neutral-500">{slide.subtitle}</p>}
+                        <div className="flex items-center gap-3 text-[10px] text-neutral-400">
+                          {slide.ctaText && <span>CTA: {slide.ctaText}</span>}
+                          {slide.ctaUrl && <span>→ {slide.ctaUrl}</span>}
+                        </div>
+                        {slide.videoUrl && (
+                          <div className="text-[10px] text-neutral-400 truncate">Video: {slide.videoUrl}</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -296,7 +334,10 @@ export default function HeroBuilder() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700">Cancel</button>
-            <button onClick={handleSaveSlide} className="btn-primary">Save Slide</button>
+            <button onClick={handleSaveSlide} disabled={saving} className="btn-primary disabled:opacity-50 flex items-center gap-2">
+              {saving && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+              {editIdx !== null ? "Save Slide" : "Add Slide"}
+            </button>
           </div>
         </div>
       </Modal>

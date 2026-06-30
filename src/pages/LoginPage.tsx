@@ -5,6 +5,8 @@ import { PasswordInput } from "../components/PasswordInput";
 import { useToast } from "../components/ui/Toast";
 import { TurnstileWidget } from "../components/TurnstileWidget";
 import { turnstileEnabled, turnstileSiteKey } from "../lib/config";
+import { Helmet } from "react-helmet-async";
+import { canonical } from "../lib/seo";
 
 const VERIFICATION_ERROR = "Please verify your email address before logging in";
 const NO_ACCOUNT_ERROR = "No account found with that email";
@@ -83,6 +85,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
+      <Helmet>
+        <title>Sign In — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+        <link rel="canonical" href={canonical("/auth/login")} />
+      </Helmet>
       {/* Left panel — form */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">

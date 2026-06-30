@@ -15,21 +15,97 @@ interface ProductGridSectionProps {
   section: SectionData;
 }
 
-export default function ProductGridSection({ section }: ProductGridSectionProps) {
-  const content = section.content ?? {};
+function useProductSource(content: Record<string, unknown>, sectionTitleFallback: string | null, sectionSubtitleFallback: string | null) {
   const source = (content.source as string) ?? "featured";
+  const sourceValue = content.sourceValue as string | undefined;
   const limit = (content.limit as number) ?? 8;
-  const isNew = source === "new";
 
-  const endpoint = isNew ? "/api/products/new" : "/api/products/featured";
+  let endpoint = "/api/products/featured";
+  let params: Record<string, string> = {};
+  let title: string;
+  let caption: string;
+  let sortParam: string;
+  let viewAllUrl: string;
+
+  switch (source) {
+    case "new_arrivals":
+      endpoint = "/api/products/new";
+      title = "New Arrivals";
+      caption = "Fresh Arrivals";
+      sortParam = "newest";
+      viewAllUrl = "/products?sort=newest";
+      break;
+    case "category":
+      endpoint = "/api/products";
+      params = { category: sourceValue || "", sort: "newest" };
+      title = (content.sourceLabel as string) || "Category";
+      caption = "Shop by Category";
+      sortParam = "newest";
+      viewAllUrl = sourceValue ? `/products?category=${sourceValue}` : "/products";
+      break;
+    case "collection":
+      endpoint = "/api/products";
+      params = { collection: sourceValue || "" };
+      title = (content.sourceLabel as string) || "Collection";
+      caption = "Featured Collection";
+      sortParam = "featured";
+      viewAllUrl = sourceValue ? `/collections/${sourceValue}` : "/collections";
+      break;
+    case "label":
+      endpoint = "/api/products";
+      params = { label: sourceValue || "" };
+      title = (content.sourceLabel as string) || "Label";
+      caption = "Curated Selection";
+      sortParam = "featured";
+      viewAllUrl = sourceValue ? `/products?label=${sourceValue}` : "/products";
+      break;
+    case "tag":
+      endpoint = "/api/products";
+      params = { tag: sourceValue || "" };
+      title = (content.sourceLabel as string) || "Tag";
+      caption = "Trending Now";
+      sortParam = "newest";
+      viewAllUrl = sourceValue ? `/products?tag=${sourceValue}` : "/products";
+      break;
+    case "brand":
+      endpoint = "/api/products";
+      params = { brand: sourceValue || "" };
+      title = (content.sourceLabel as string) || "Brand";
+      caption = "Brand Spotlight";
+      sortParam = "featured";
+      viewAllUrl = sourceValue ? `/products?brand=${sourceValue}` : "/products";
+      break;
+    default:
+      endpoint = "/api/products/featured";
+      title = "Featured Products";
+      caption = "Curated Selection";
+      sortParam = "featured";
+      viewAllUrl = "/products?sort=featured";
+      break;
+  }
+
+  if ((content.viewAllUrl as string)) {
+    viewAllUrl = content.viewAllUrl as string;
+  }
+
+  const sectionTitle = sectionTitleFallback || title;
+  const sectionCaption = sectionSubtitleFallback || caption;
 
   const { data: res, isLoading: loading } = useQuery({
-    queryKey: ["products", "section", endpoint, limit],
-    queryFn: () => api.get<{ products: Record<string, unknown>[] }>(endpoint),
+    queryKey: ["products", "section", source, sourceValue, limit],
+    queryFn: () => api.get<{ products: Record<string, unknown>[] }>(endpoint, Object.keys(params).length > 0 ? { params } : undefined),
     staleTime: 1000 * 60 * 10,
   });
 
+  const isNew = source === "new_arrivals";
   const products = (res?.products ?? []).slice(0, limit);
+
+  return { products, loading, isNew, sectionTitle, sectionCaption, sortParam, viewAllUrl };
+}
+
+export default function ProductGridSection({ section }: ProductGridSectionProps) {
+  const content = section.content ?? {};
+  const { products, loading, isNew, sectionTitle, sectionCaption, sortParam, viewAllUrl } = useProductSource(content, section.title, section.subtitle);
 
   if (loading) {
     return (
@@ -45,11 +121,6 @@ export default function ProductGridSection({ section }: ProductGridSectionProps)
 
   if (products.length === 0) return null;
 
-  const title = section.title || (isNew ? "New Arrivals" : "Featured Products");
-  const caption = isNew ? "Fresh Arrivals" : "Curated Selection";
-  const sortParam = isNew ? "newest" : "featured";
-  const subtitle = section.subtitle || (isNew ? "This week's most anticipated drops." : "The finest pieces handpicked for the season.");
-
   if (isNew) {
     return (
       <section className="luxe-gradient bg-neutral-950 section-padding">
@@ -62,14 +133,14 @@ export default function ProductGridSection({ section }: ProductGridSectionProps)
             className="flex items-end justify-between mb-12"
           >
             <div>
-              <p className="editorial-caption text-accent-gold mb-3">{caption}</p>
-              <h2 className="text-4xl md:text-5xl font-display text-white leading-tight">{title}</h2>
-              {subtitle && (
-                <p className="text-neutral-400 font-editorial text-lg mt-3 max-w-lg">{subtitle}</p>
+              <p className="editorial-caption text-accent-gold mb-3">{sectionCaption}</p>
+              <h2 className="text-4xl md:text-5xl font-display text-white leading-tight">{sectionTitle}</h2>
+              {section.subtitle && (
+                <p className="text-neutral-400 font-editorial text-lg mt-3 max-w-lg">{section.subtitle}</p>
               )}
             </div>
             <Link
-              to={`/products?sort=${sortParam}`}
+              to={viewAllUrl}
               className="btn-outline border-white/30 text-white hover:bg-white hover:text-neutral-900 hidden md:inline-flex"
             >
               View All
@@ -78,7 +149,7 @@ export default function ProductGridSection({ section }: ProductGridSectionProps)
           <ProductGrid products={products} columns={4} />
           <div className="mt-8 text-center md:hidden">
             <Link
-              to={`/products?sort=${sortParam}`}
+              to={viewAllUrl}
               className="btn-outline border-white/30 text-white hover:bg-white hover:text-neutral-900"
             >
               View All
@@ -99,24 +170,19 @@ export default function ProductGridSection({ section }: ProductGridSectionProps)
         className="flex items-end justify-between mb-12"
       >
         <div>
-          <p className="editorial-caption text-accent-gold mb-3">{caption}</p>
-          <h2 className="text-4xl md:text-5xl font-display text-neutral-900 leading-tight">{title}</h2>
-          {subtitle && (
-            <p className="editorial-lead mt-3 max-w-lg">{subtitle}</p>
+          <p className="editorial-caption text-accent-gold mb-3">{sectionCaption}</p>
+          <h2 className="text-4xl md:text-5xl font-display text-neutral-900 leading-tight">{sectionTitle}</h2>
+          {section.subtitle && (
+            <p className="editorial-lead mt-3 max-w-lg">{section.subtitle}</p>
           )}
         </div>
-        <Link
-          to={`/products?sort=${sortParam}`}
-          className="btn-outline hidden md:inline-flex"
-        >
+        <Link to={viewAllUrl} className="btn-outline hidden md:inline-flex">
           View All
         </Link>
       </motion.div>
       <ProductGrid products={products} columns={4} />
       <div className="mt-8 text-center md:hidden">
-        <Link to={`/products?sort=${sortParam}`} className="btn-outline">
-          View All
-        </Link>
+        <Link to={viewAllUrl} className="btn-outline">View All</Link>
       </div>
     </section>
   );

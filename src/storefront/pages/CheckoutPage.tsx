@@ -19,6 +19,9 @@ import { useRazorpay } from "../../lib/razorpay/use-razorpay";
 import { PhoneInput } from "../../components/PhoneInput";
 import { SafeImage } from "../../components/SafeImage";
 import { useSettings } from "../hooks/useSettings";
+import { api } from "../../lib/api/client";
+import { Helmet } from "react-helmet-async";
+import { canonical } from "../../lib/seo";
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
@@ -208,18 +211,20 @@ export default function CheckoutPage() {
     setCouponError("");
     setCouponApplying(true);
     try {
-      const csrfToken = document.cookie.split('; ').find(c => c.startsWith('csrf_token='))?.split('=')[1] || '';
-      const res = await fetch("/api/coupons/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
-        body: JSON.stringify({ code: couponInput.trim(), subtotal }),
-      });
-      const data = await res.json();
+      const data = await api.post<{
+        valid: boolean;
+        discount?: number;
+        discountType?: "percentage" | "fixed";
+        message?: string;
+        coupon?: { discountAmount?: number; discountType?: "percentage" | "fixed" };
+      }>("/coupons/validate", { code: couponInput.trim(), subtotal });
       if (data.valid) {
-        applyCoupon(couponInput.trim(), data.discount, data.discountType);
+        const discount = data.discount ?? data.coupon?.discountAmount ?? 0;
+        const discountType = data.discountType ?? data.coupon?.discountType ?? "fixed";
+        applyCoupon(couponInput.trim(), discount, discountType);
         setCouponInput("");
       } else {
-        setCouponError(data.error || "Invalid coupon code");
+        setCouponError(data.message || "Invalid coupon code");
       }
     } catch {
       setCouponError("Failed to validate coupon");
@@ -435,6 +440,14 @@ export default function CheckoutPage() {
   if (!items.length && step !== "success") {
     return (
       <div className="container-page section-padding text-center">
+        <Helmet>
+          <title>Checkout — নবME</title>
+          <meta name="description" content="Complete your purchase on নবME." />
+          <meta name="robots" content="noindex, nofollow" />
+          <link rel="canonical" href={canonical("/checkout")} />
+          <meta property="og:title" content="Checkout — নবME" />
+          <meta property="og:description" content="Complete your purchase on নবME." />
+        </Helmet>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="w-20 h-20 mx-auto mb-6 bg-luxe-ivory rounded-full flex items-center justify-center">
             <ShoppingBag className="w-8 h-8 text-brand-500" />
@@ -455,6 +468,14 @@ export default function CheckoutPage() {
   if (step === "success") {
     return (
       <div className="container-page section-padding text-center">
+        <Helmet>
+          <title>Checkout — নবME</title>
+          <meta name="description" content="Complete your purchase on নবME." />
+          <meta name="robots" content="noindex, nofollow" />
+          <link rel="canonical" href={canonical("/checkout")} />
+          <meta property="og:title" content="Checkout — নবME" />
+          <meta property="og:description" content="Complete your purchase on নবME." />
+        </Helmet>
         <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 200, damping: 20 }}>
           <motion.div
             initial={{ scale: 0 }}
@@ -540,6 +561,14 @@ export default function CheckoutPage() {
 
   return (
     <div className="container-page section-padding">
+      <Helmet>
+        <title>Checkout — নবME</title>
+        <meta name="description" content="Complete your purchase on নবME." />
+        <meta name="robots" content="noindex, nofollow" />
+        <link rel="canonical" href={canonical("/checkout")} />
+        <meta property="og:title" content="Checkout — নবME" />
+        <meta property="og:description" content="Complete your purchase on নবME." />
+      </Helmet>
       <Breadcrumbs items={[{ label: "Checkout" }]} className="mb-6" />
 
       <div className="grid lg:grid-cols-5 gap-8 lg:gap-12">

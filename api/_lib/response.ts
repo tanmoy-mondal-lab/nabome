@@ -38,7 +38,7 @@ export function conflict(message: string): Response {
   return error(message, 409);
 }
 
-export function serverError(err?: unknown): Response {
-  console.error("Internal server error:", err);
+export function serverError(_err?: unknown): Response {
+  console.error("Internal server error:", _err);
   return error("Internal server error", 500);
 }

@@ -6,6 +6,8 @@ import { authApi } from "../../lib/api/auth";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { PhoneInput } from "../../components/PhoneInput";
 import { PasswordInput } from "../../components/PasswordInput";
+import { Helmet } from "react-helmet-async";
+import { Breadcrumbs } from "../components/Breadcrumbs";
 
 const OTP_LENGTH = 6;
 
@@ -38,6 +40,7 @@ export default function SettingsPage() {
   const [profileSuccess, setProfileSuccess] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [formInitialized, setFormInitialized] = useState(false);
 
   const [emailStep, setEmailStep] = useState<"idle" | "input" | "otp">("idle");
   const [newEmail, setNewEmail] = useState("");
@@ -55,7 +58,7 @@ export default function SettingsPage() {
   const profileData = (data as unknown as { profile: Profile })?.profile;
 
   useEffect(() => {
-    if (profileData) {
+    if (profileData && !formInitialized) {
       setProfile({
         firstName: profileData.firstName || "",
         lastName: profileData.lastName || "",
@@ -64,8 +67,9 @@ export default function SettingsPage() {
       if (profileData.preferences) {
         setPreferences((prev) => ({ ...prev, ...profileData.preferences }));
       }
+      setFormInitialized(true);
     }
-  }, [profileData]);
+  }, [profileData, formInitialized]);
 
   const updateProfileMutation = useMutation({
     mutationFn: (data: { firstName?: string; lastName?: string; phone?: string; preferences?: Record<string, boolean> }) =>
@@ -220,6 +224,10 @@ export default function SettingsPage() {
 
   return (
     <div className="container-page py-8">
+      <Helmet>
+        <title>Account Settings — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <h1 className="text-2xl md:text-3xl font-display text-neutral-900 mb-8 tracking-fashion">Account Settings</h1>
       <div className="grid lg:grid-cols-4 gap-8">
         <DashboardSidebar />

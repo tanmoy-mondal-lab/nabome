@@ -44,7 +44,7 @@ export default function SEOPage() {
   const { toast } = useToast();
   const [form, setForm] = useState<SEOData>(defaultForm);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error: settingsError } = useQuery({
     queryKey: ["admin", "seo"],
     queryFn: async () => {
       const res = await adminApi.getSettings();
@@ -69,13 +69,24 @@ export default function SEOPage() {
       const current = await adminApi.getSettings();
       const settings = current.settings as Record<string, unknown> ?? {};
       await adminApi.updateSettings({ ...settings, seo: form });
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["settings", "public"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "seo"] });
+      window.dispatchEvent(new Event("settings:updated"));
       toast("SEO settings saved", "success");
     } catch {
       toast("Failed to save SEO settings", "error");
     }
   };
+
+  if (settingsError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle border border-red-200 bg-red-50">
+          <span className="text-sm text-red-600">Failed to load SEO settings. Please try again.</span>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText,
   Image, Percent, BarChart3, Settings, Megaphone, Menu, X,
   Search, ChevronDown, LogOut, Palette, BarChart4, BookOpen,
-  PackageSearch, RotateCcw, Truck, Tag, MessageSquare, Mail,
+  PackageSearch, RotateCcw, Tag, MessageSquare, Mail,
   MessageCircle, Link2, Download, Activity, FileJson,
   Target, Receipt, ShoppingBag, ClipboardList, Heart,
 } from "lucide-react";
@@ -26,18 +26,15 @@ const NAV_ITEMS = [
   { label: "Collections", icon: LayoutDashboard, href: "/admin/collections" },
   { label: "Orders", icon: ShoppingCart, href: "/admin/orders" },
   { label: "Returns & Refunds", icon: RotateCcw, href: "/admin/returns" },
-  { label: "Shipping Zones", icon: Truck, href: "/admin/shipping" },
+
   { label: "Customers", icon: Users, href: "/admin/customers" },
   {
     label: "Content", icon: FileText, children: [
-      { label: "CMS Pages", href: "/admin/cms/pages" },
-      { label: "Page Builder", href: "/admin/cms/page-builder/new" },
+      { label: "CMS", href: "/admin/cms" },
       { label: "Homepage Builder", href: "/admin/cms/homepage" },
       { label: "Hero Slides", href: "/admin/cms/hero-builder" },
       { label: "Header Builder", href: "/admin/cms/header" },
       { label: "Footer Builder", href: "/admin/cms/footer" },
-      { label: "Brand Story", href: "/admin/cms/brand-story" },
-      { label: "Banners", href: "/admin/cms/banners" },
     ],
   },
   { label: "Lookbooks", icon: BookOpen, href: "/admin/lookbooks" },
@@ -194,20 +191,23 @@ export default function AdminLayout() {
                   </button>
                   {open && (
                     <div className="ml-6 space-y-0.5 mt-0.5">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.href}
-                          to={child.href}
-                          onClick={() => setSidebarOpen(false)}
-                          className={`block px-4 py-2 text-sm rounded transition-colors ${
-                            isActive(child.href)
-                              ? "text-accent-gold bg-neutral-800"
-                              : "text-neutral-500 hover:text-white hover:bg-neutral-800"
-                          }`}
-                        >
-                          {child.label}
-                        </Link>
-                      ))}
+                      {item.children.map((child) => {
+                        const active = isActive(child.href);
+                        return (
+                          <Link
+                            key={child.href}
+                            to={child.href}
+                            onClick={() => setSidebarOpen(false)}
+                            className={`block px-4 py-2 text-sm rounded transition-colors ${
+                              active
+                                ? "text-accent-gold bg-neutral-800 font-medium"
+                                : "text-neutral-500 hover:text-white hover:bg-neutral-800"
+                            }`}
+                          >
+                            {child.label}
+                          </Link>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -244,7 +244,7 @@ export default function AdminLayout() {
             <div className="hidden sm:flex items-center gap-2 text-sm text-neutral-400">
               <span className="text-neutral-600 font-medium">{user?.firstName}</span>
               <span className="text-neutral-300">|</span>
-              <span className="capitalize">{user?.role?.replace("_", " ")}</span>
+              <span className="capitalize">{user?.role?.replace(/_/g, " ")}</span>
             </div>
 
             <div className="flex items-center gap-4">

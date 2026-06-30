@@ -30,7 +30,7 @@ export default function CampaignsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", description: "", type: "email", startDate: "", endDate: "", isActive: true });
 
-  const { data: campaigns = [], isLoading: loading } = useQuery({
+  const { data: campaigns = [], isLoading: loading, error: queryError } = useQuery({
     queryKey: ["admin", "campaigns"],
     queryFn: async () => {
       const res = await adminApi.getCampaigns();
@@ -130,8 +130,13 @@ export default function CampaignsPage() {
     );
   }
 
+  const queryErrorMessage = queryError ? (queryError instanceof Error ? queryError.message : "Failed to load campaigns") : null;
+
   return (
     <div>
+      {queryErrorMessage && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{queryErrorMessage}</div>
+      )}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl text-neutral-900">Campaigns</h1>

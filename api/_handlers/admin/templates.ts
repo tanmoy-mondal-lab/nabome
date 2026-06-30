@@ -2,7 +2,7 @@ import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../_lib/utils";
-import { requireAdmin } from "../../_lib/auth";
+import { requireAdmin } from "../../_lib/auth-middleware";
 import { destroyCloudinaryAssetIfReplaced, destroyCloudinaryAsset } from "../../_lib/cloudinary";
 import { toNull } from "../../_lib/sanitize";
 

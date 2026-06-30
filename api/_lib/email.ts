@@ -8,6 +8,7 @@
 
 import { getEmailTemplate } from "./email-templates";
 import type { EmailType } from "./email-templates";
+import { cleanSecret } from "./secrets";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
@@ -83,31 +84,36 @@ async function sendViaResend(
 export async function sendEmailNotification(
   type: EmailType,
   data: Record<string, unknown>,
-  env?: { RESEND_API_KEY?: string; EMAIL_FROM?: string; ADMIN_EMAILS?: string }
+  env?: { RESEND_API_KEY?: string; EMAIL_FROM?: string; ADMIN_EMAILS?: string; SITE_URL?: string; VITE_SITE_URL?: string }
 ): Promise<void> {
   console.log(`[EMAIL] sendEmailNotification(type=${type})`);
 
   // ── 1. Validate env ──
-  if (!env?.RESEND_API_KEY) {
+  const resendApiKey = cleanSecret(env?.RESEND_API_KEY);
+  if (!resendApiKey) {
     console.error("[EMAIL] ✗ RESEND_API_KEY is not set. Emails will NOT be sent.");
     console.error("[EMAIL] Check: wrangler pages secret put RESEND_API_KEY --project-name=nabome --env production");
     return;
   }
 
   // ── 2. Build template ──
-  const template = getEmailTemplate(type, data);
+  const templateData = {
+    ...data,
+    siteUrl: data.siteUrl ?? env?.SITE_URL ?? env?.VITE_SITE_URL,
+  };
+  const template = getEmailTemplate(type, templateData);
   if (!template) {
     console.error(`[EMAIL] ✗ No template for type="${type}". Check email-templates.ts TEMPLATES registry.`);
     return;
   }
 
   // ── 3. Resolve recipients ──
-  const from = env.EMAIL_FROM || "noreply@nabome.online";
+  const from = cleanSecret(env?.EMAIL_FROM) || "noreply@nabome.online";
   const isAdminEmail = type.startsWith("admin_");
   let recipients: string[];
 
   if (isAdminEmail) {
-    const raw = env.ADMIN_EMAILS || "";
+    const raw = cleanSecret(env?.ADMIN_EMAILS);
     recipients = raw.split(",").map((e) => e.trim()).filter(Boolean);
     if (recipients.length === 0) {
       console.error("[EMAIL] ✗ No admin recipients. Set ADMIN_EMAILS env var.");
@@ -128,7 +134,7 @@ export async function sendEmailNotification(
   const results: EmailSendResult[] = [];
   for (const to of recipients) {
     const result = await sendViaResend(
-      env.RESEND_API_KEY,
+      resendApiKey,
       from,
       to,
       template.subject,
@@ -152,14 +158,15 @@ export async function sendEmailNotification(
   }
 
   // ── 6. Send admin notifications for customer events (fire-and-forget) ──
-  if (!isAdminEmail && template.adminNotification && env.ADMIN_EMAILS) {
+  const adminEmails = cleanSecret(env?.ADMIN_EMAILS);
+  if (!isAdminEmail && template.adminNotification && adminEmails) {
     const adminType = template.adminNotification as EmailType;
-    const adminTemplate = getEmailTemplate(adminType, { ...data, email: recipients[0] });
+    const adminTemplate = getEmailTemplate(adminType, { ...templateData, email: recipients[0] });
     if (adminTemplate) {
-      const adminRecipients = env.ADMIN_EMAILS.split(",").map((e) => e.trim()).filter(Boolean);
+      const adminRecipients = adminEmails.split(",").map((e) => e.trim()).filter(Boolean);
       for (const adminEmail of adminRecipients) {
         // Fire-and-forget — don't await, don't block
-        sendViaResend(env.RESEND_API_KEY, from, adminEmail, adminTemplate.subject, adminTemplate.html)
+        sendViaResend(resendApiKey, from, adminEmail, adminTemplate.subject, adminTemplate.html)
           .then((r) => {
             if (!r.success) console.error(`[EMAIL] ✗ Admin ${adminType} to ${adminEmail}: ${r.error}`);
             else console.log(`[EMAIL] ✓ Admin ${adminType} sent to ${adminEmail}`);
@@ -178,12 +185,13 @@ export async function testEmail(
   env: { RESEND_API_KEY?: string; EMAIL_FROM?: string },
   to: string
 ): Promise<EmailSendResult> {
-  if (!env.RESEND_API_KEY) {
+  const resendApiKey = cleanSecret(env.RESEND_API_KEY);
+  if (!resendApiKey) {
     return { success: false, error: "RESEND_API_KEY not set" };
   }
-  const from = env.EMAIL_FROM || "noreply@nabome.online";
+  const from = cleanSecret(env.EMAIL_FROM) || "noreply@nabome.online";
   return sendViaResend(
-    env.RESEND_API_KEY,
+    resendApiKey,
     from,
     to,
     "নবME — Test Email",

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Instagram, Youtube, Twitter, Facebook, ArrowUp } from "lucide-react";
 import { useSettings } from "../hooks/useSettings";
 import { useFooter } from "../hooks/useFooter";
+import { usePolicyPages } from "../hooks/usePolicyPages";
 import { NewsletterForm } from "../components/NewsletterForm";
 
 const SOCIAL_ICONS: Record<string, typeof Instagram> = { instagram: Instagram, youtube: Youtube, twitter: Twitter, facebook: Facebook };
@@ -9,6 +10,7 @@ const SOCIAL_ICONS: Record<string, typeof Instagram> = { instagram: Instagram, y
 export function Footer() {
   const { data: settings } = useSettings();
   const { data: footerSections = [] } = useFooter();
+  const { data: policyPages = [] } = usePolicyPages();
 
   const socialLinks = (settings?.socialLinks as Record<string, string>[]) ?? [];
   const columns = footerSections.reduce<Array<typeof footerSections>>((acc, section) => {
@@ -111,19 +113,13 @@ export function Footer() {
             &copy; {new Date().getFullYear()} {settings?.siteName || "নবME"}. All rights reserved.
           </p>
           <div className="flex items-center gap-6 text-xs text-neutral-500">
-            {((settings?.preferences as Record<string, unknown>)?.footerLinks as { label: string; url: string }[])?.length
-              ? ((settings?.preferences as Record<string, unknown>)?.footerLinks as { label: string; url: string }[]).map((link) => (
+            {(() => {
+              const footerLinks = (settings?.preferences as Record<string, unknown>)?.footerLinks as { label: string; url: string }[] | undefined;
+              const links = footerLinks?.length ? footerLinks : policyPages.map((p) => ({ label: p.title, url: `/${p.slug}` }));
+              return links.map((link) => (
                 <Link key={link.url} to={link.url} className="hover:text-white transition-colors">{link.label}</Link>
-              ))
-              : (
-                <>
-                  <Link to="/privacy" className="hover:text-white transition-colors">Privacy</Link>
-                  <Link to="/terms" className="hover:text-white transition-colors">Terms</Link>
-                  <Link to="/faq" className="hover:text-white transition-colors">FAQ</Link>
-                  <Link to="/shipping" className="hover:text-white transition-colors">Shipping & Returns</Link>
-                </>
-              )
-            }
+              ));
+            })()}
           </div>
           <button onClick={scrollToTop}
             className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-white transition-colors"

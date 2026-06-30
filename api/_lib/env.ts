@@ -19,6 +19,9 @@ export interface Env {
   ADMIN_EMAILS?: string;
   ADMIN_EMAIL?: string;
   TURNSTILE_SECRET_KEY?: string;
+  SITE_URL?: string;
+  VITE_SITE_URL?: string;
+  CF_PAGES?: string;
 }
 
 export function getEnv(): Env {
@@ -44,6 +47,9 @@ export function getEnv(): Env {
       ADMIN_EMAILS: process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL,
       ADMIN_EMAIL: process.env.ADMIN_EMAIL,
       TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
+      SITE_URL: process.env.SITE_URL || process.env.VITE_SITE_URL,
+      VITE_SITE_URL: process.env.VITE_SITE_URL,
+      CF_PAGES: process.env.CF_PAGES,
     };
   }
   return {};

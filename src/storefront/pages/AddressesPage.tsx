@@ -4,6 +4,8 @@ import { MapPin, Plus, Pencil, Trash2, Star } from "lucide-react";
 import { customerApi } from "../../lib/api/customer";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { PhoneInput } from "../../components/PhoneInput";
+import { Helmet } from "react-helmet-async";
+import { Breadcrumbs } from "../components/Breadcrumbs";
 
 interface Address {
   id: string;
@@ -120,6 +122,10 @@ export default function AddressesPage() {
 
   return (
     <div className="container-page py-8">
+      <Helmet>
+        <title>My Addresses — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <h1 className="text-2xl md:text-3xl font-display text-neutral-900 mb-8 tracking-fashion">My Addresses</h1>
       <div className="grid lg:grid-cols-4 gap-8">
         <DashboardSidebar />

@@ -3,6 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { authApi } from "../lib/api/auth";
 import { AlertCircle, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 import { AuthShell } from "./AuthShell";
+import { Helmet } from "react-helmet-async";
 
 const OTP_LENGTH = 6;
 
@@ -96,6 +97,10 @@ export default function VerifyEmailPage() {
         heroTitle="Security First"
         heroSubtitle="Confirm your identity before you enter the store"
       >
+        <Helmet>
+          <title>Verify Email — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <div className="premium-card rounded-2xl p-8 text-center">
           <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
           <h1 className="text-xl font-semibold text-neutral-900 mb-2">Missing Email</h1>
@@ -114,6 +119,10 @@ export default function VerifyEmailPage() {
         heroTitle="Security First"
         heroSubtitle="Confirm your identity before you enter the store"
       >
+        <Helmet>
+          <title>Verify Email — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <div className="premium-card rounded-2xl p-8 text-center">
           <Loader2 className="w-12 h-12 animate-spin text-brand-500 mx-auto mb-4" />
           <h1 className="text-xl font-semibold text-neutral-900 mb-2">Verifying your email…</h1>
@@ -131,6 +140,10 @@ export default function VerifyEmailPage() {
         heroTitle="Welcome In"
         heroSubtitle="You can now sign in and continue shopping"
       >
+        <Helmet>
+          <title>Verify Email — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <div className="premium-card rounded-2xl p-8 text-center">
           <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
           <h1 className="text-xl font-semibold text-neutral-900 mb-2">Email Verified!</h1>
@@ -151,6 +164,10 @@ export default function VerifyEmailPage() {
       heroTitle="Premium Access"
       heroSubtitle="A verified email keeps your account secure"
     >
+      <Helmet>
+        <title>Verify Email — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="premium-card rounded-2xl p-8">
         <Link to="/auth/login" className="inline-flex items-center text-sm text-neutral-500 hover:text-neutral-700 mb-6">
           <ArrowLeft className="w-4 h-4 mr-1" /> Back to Sign In

@@ -3,10 +3,11 @@ import { success, badRequest, notFound, unauthorized, error, serverError } from 
 import type { RequestContext } from "../_lib/types";
 import { createClient } from "@supabase/supabase-js";
 import type { Env } from "../_lib/env";
+import { cleanSecret } from "../_lib/secrets";
 
 function getAdminClient(env?: Env) {
-  const url = env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL;
-  const key = env?.SUPABASE_SERVICE_ROLE_KEY;
+  const url = cleanSecret(env?.SUPABASE_URL) || cleanSecret(env?.VITE_SUPABASE_URL);
+  const key = cleanSecret(env?.SUPABASE_SERVICE_ROLE_KEY);
   if (!url || !key) throw new Error("Missing Supabase admin credentials");
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -14,8 +15,8 @@ function getAdminClient(env?: Env) {
 }
 
 function getAnonClient(env?: Env) {
-  const url = env?.SUPABASE_URL ?? env?.VITE_SUPABASE_URL;
-  const key = env?.SUPABASE_ANON_KEY ?? env?.VITE_SUPABASE_ANON_KEY;
+  const url = cleanSecret(env?.SUPABASE_URL) || cleanSecret(env?.VITE_SUPABASE_URL);
+  const key = cleanSecret(env?.SUPABASE_ANON_KEY) || cleanSecret(env?.VITE_SUPABASE_ANON_KEY);
   if (!url || !key) throw new Error("Missing Supabase credentials");
   return createClient(url, key);
 }
@@ -33,7 +34,6 @@ export async function handleDashboardRequest(
       return handleDashboardOverview(ctx, ctx.env);
     case "profile":
       if (req.method === "GET") return handleGetProfile(ctx, ctx.env);
-      if (req.method === "PUT") return handleUpdateProfile(ctx, req, ctx.env);
       return error("Method not allowed", 405);
     case "changePassword":
       return handleChangePassword(ctx, req, ctx.env);
@@ -104,43 +104,6 @@ async function handleGetProfile(ctx: RequestContext, env: any): Promise<Response
     if (!profile) return notFound("Profile not found");
 
     return success({ profile });
-  } catch (err) {
-    return serverError(err);
-  }
-}
-
-async function handleUpdateProfile(ctx: RequestContext, req: Request, env: any): Promise<Response> {
-  const body = await req.json();
-  const allowedFields = ["firstName", "lastName", "phone", "preferences"];
-  const updateData: Record<string, unknown> = {};
-
-  for (const field of allowedFields) {
-    if (body[field] !== undefined) {
-      updateData[field] = body[field];
-    }
-  }
-
-  if (Object.keys(updateData).length === 0) {
-    return badRequest("No valid fields to update");
-  }
-
-  try {
-    const prisma = getPrisma(ctx.env);
-    const updated = await prisma.profile.update({
-      where: { id: ctx.userId },
-      data: updateData as never,
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        phone: true,
-        avatarUrl: true,
-        preferences: true,
-      },
-    });
-
-    return success({ profile: updated });
   } catch (err) {
     return serverError(err);
   }

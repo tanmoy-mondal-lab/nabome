@@ -87,6 +87,9 @@ async function handleValidate(ctx: RequestContext, req: Request, env: any): Prom
 
     return success({
       valid: true,
+      message: "Coupon applied successfully",
+      discount: Math.round(discountAmount * 100) / 100,
+      discountType: coupon.discountType,
       coupon: {
         code: coupon.code,
         description: coupon.description,

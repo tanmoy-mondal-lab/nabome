@@ -6,6 +6,8 @@ import { customerApi } from "../../lib/api/customer";
 import { formatPrice } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
+import { Helmet } from "react-helmet-async";
+import { Breadcrumbs } from "../components/Breadcrumbs";
 import { SafeImage } from "../../components/SafeImage";
 
 const returnReasons = [
@@ -87,6 +89,10 @@ export default function ReturnRequestPage() {
   if (submitted) {
     return (
       <div className="container-page py-8">
+        <Helmet>
+          <title>Return Request — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <div className="max-w-lg mx-auto text-center py-12">
           <CheckCircle className="w-12 h-12 text-green-600 mx-auto mb-4" />
           <h1 className="text-xl font-display text-neutral-900 mb-3">Return Request Submitted</h1>
@@ -101,6 +107,10 @@ export default function ReturnRequestPage() {
 
   return (
     <div className="container-page py-8">
+      <Helmet>
+        <title>Return Request — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="grid lg:grid-cols-4 gap-8">
         <DashboardSidebar />
         <div className="lg:col-span-3 space-y-8">
@@ -199,7 +209,7 @@ export default function ReturnRequestPage() {
               <div className="grid grid-cols-4 gap-3">
                 {evidenceImages.map((img, i) => (
                   <div key={i} className="relative aspect-square bg-neutral-100 border rounded">
-                    <SafeImage src={img} alt="" className="w-full h-full object-cover rounded" />
+                    <SafeImage src={img} alt={`Return evidence image ${i + 1}`} className="w-full h-full object-cover rounded" />
                     <button onClick={() => removeImage(i)} className="absolute top-1 right-1 w-5 h-5 bg-black/50 text-white rounded-full flex items-center justify-center">
                       <X className="w-3 h-3" />
                     </button>

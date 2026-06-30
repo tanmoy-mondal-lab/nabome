@@ -34,7 +34,7 @@ export const customerApi = {
   // Returns
   getReturns: (params?: Record<string, string | number | undefined>) =>
     api.get<{ returns: unknown[] }>("/returns", { params }),
-  getReturn: (id: string) => api.get<{ returnRequest: unknown }>(`/returns/${id}`),
+  getReturn: (id: string) => api.get<{ return: unknown }>(`/returns/${id}`),
   createReturn: (data: { orderId: string; orderItemId?: string; reason: string; reasonDetail?: string; evidenceImages?: string[] }) =>
     api.post<unknown>("/returns", data),
 
@@ -59,7 +59,7 @@ export const customerApi = {
     api.post<unknown>(`/support/${ticketId}/reply`, data),
 
   // FAQ
-  getFaqs: () => api.get<{ faqs: unknown[] }>("/faq"),
+  getFaqs: () => api.get<{ faqs: Record<string, unknown[]> }>("/faq"),
 
   // Checkout
   createCheckout: (data: {
@@ -110,8 +110,4 @@ export const customerApi = {
     api.post<unknown>("/payments/failed", data),
   retryPayment: (orderId: string) =>
     api.post<{ razorpayOrderId: string }>("/payments/retry", { orderId }),
-
-  // Shipping
-  getShippingRates: (params: { pincode: string; subtotal: number }) =>
-    api.get<{ rates: unknown[] }>("/shipping/rates", { params }),
 };

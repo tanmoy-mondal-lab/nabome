@@ -5,6 +5,8 @@ import { PhoneInput } from "../components/PhoneInput";
 import { PasswordInput } from "../components/PasswordInput";
 import { TurnstileWidget } from "../components/TurnstileWidget";
 import { turnstileEnabled, turnstileSiteKey } from "../lib/config";
+import { Helmet } from "react-helmet-async";
+import { canonical } from "../lib/seo";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -68,6 +70,11 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex">
+      <Helmet>
+        <title>Create Account — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+        <link rel="canonical" href={canonical("/auth/register")} />
+      </Helmet>
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="text-center mb-10">

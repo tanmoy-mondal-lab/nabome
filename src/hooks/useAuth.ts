@@ -50,6 +50,7 @@ export function useAuth() {
         );
       } catch {
         store.clearAuth();
+        useCartStore.getState().switchUser();
       }
     };
 
@@ -65,9 +66,14 @@ export function useAuth() {
     async (data: LoginRequest) => {
       setError(null);
       try {
+        const guestCartItems = useCartStore.getState().items;
         const res = await authApi.login(data);
         store.setAuth(res.user, res.session.accessToken, res.session.refreshToken, res.session.expiresAt);
-        useCartStore.getState().switchUser();
+        if (guestCartItems.length > 0) {
+          void useCartStore.getState().mergeGuestCart(guestCartItems);
+        } else {
+          void useCartStore.getState().hydrateFromServer();
+        }
         return res.user;
       } catch (err) {
         const message = err instanceof ApiError ? err.message : "Login failed";

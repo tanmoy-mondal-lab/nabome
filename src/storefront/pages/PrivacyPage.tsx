@@ -7,8 +7,10 @@ export default function PrivacyPage() {
     <div className="container-page section-padding">
       <Helmet>
         <title>Privacy Policy — নবME</title>
-        <meta name="description" content="Privacy policy for নবME online fashion store." />
+        <meta name="description" content="Read our privacy policy." />
         <link rel="canonical" href={canonical("/privacy")} />
+        <meta property="og:title" content="Privacy Policy — নবME" />
+        <meta property="og:description" content="Read our privacy policy." />
       </Helmet>
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Privacy Policy" }]} className="mb-8" />
       <div className="max-w-3xl">

@@ -6,6 +6,7 @@ import { ApiError } from "../lib/api/client";
 import { TurnstileWidget } from "../components/TurnstileWidget";
 import { turnstileEnabled, turnstileSiteKey } from "../lib/config";
 import { AuthShell } from "./AuthShell";
+import { Helmet } from "react-helmet-async";
 
 const OTP_LENGTH = 6;
 
@@ -161,6 +162,10 @@ export default function ForgotPasswordPage() {
       heroTitle="Account Recovery"
       heroSubtitle="Secure recovery flows keep the storefront trustworthy"
     >
+      <Helmet>
+        <title>Forgot Password — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="premium-card rounded-2xl p-8">
         <div className="text-center mb-8">
           <h2 className="font-display text-2xl text-neutral-900">

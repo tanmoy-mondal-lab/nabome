@@ -1,4 +1,4 @@
-const SITE_URL = "https://www.nabome.online";
+const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.nabome.online";
 const SITE_NAME = "নবME — Premium Fashion";
 
 export function canonical(url: string): string {
@@ -110,6 +110,34 @@ export function breadcrumbSchema(
       ...(item.url ? { item: `${SITE_URL}${item.url}` } : {}),
     })),
   };
+}
+
+export function organizationSchema(data: {
+  name: string;
+  url: string;
+  logo?: string;
+  description?: string;
+  sameAs?: string[];
+  contactPoint?: { telephone: string; contactType: string; email?: string };
+}): Record<string, unknown> {
+  const schema: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: data.name,
+    url: data.url,
+  };
+  if (data.logo) schema.logo = data.logo;
+  if (data.description) schema.description = data.description;
+  if (data.sameAs?.length) schema.sameAs = data.sameAs;
+  if (data.contactPoint) {
+    schema.contactPoint = {
+      "@type": "ContactPoint",
+      telephone: data.contactPoint.telephone,
+      contactType: data.contactPoint.contactType,
+      ...(data.contactPoint.email ? { email: data.contactPoint.email } : {}),
+    };
+  }
+  return schema;
 }
 
 export type ImgOptions = {

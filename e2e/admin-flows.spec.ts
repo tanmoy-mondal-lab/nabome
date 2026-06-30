@@ -277,9 +277,10 @@ test.describe('Admin - CMS Pages', () => {
     await page.waitForTimeout(1000);
   });
 
-  test('navigation builder loads', async ({ page }) => {
-    await page.goto('/admin/cms/navigation');
-    await expect(page).toHaveURL(/.*admin\/cms\/navigation/);
+  test('header builder loads', async ({ page }) => {
+    await page.goto('/admin/cms/header');
+    await expect(page).toHaveURL(/.*admin\/cms\/header/);
+    await expect(page.getByText('Header Builder')).toBeVisible();
     await page.waitForTimeout(1000);
   });
 

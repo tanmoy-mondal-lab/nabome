@@ -1,7 +1,7 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { requireAdmin } from "../../_lib/auth";
+import { requireAdmin } from "../../_lib/auth-middleware";
 
 export async function handleAdminAnalyticsRequest(
   req: Request,

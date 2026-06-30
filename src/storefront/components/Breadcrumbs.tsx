@@ -13,10 +13,15 @@ interface BreadcrumbsProps {
 }
 
 export function Breadcrumbs({ items, className }: BreadcrumbsProps) {
+  const visibleItems = items.filter((item, i) => {
+    if (i !== 0) return true;
+    return !(item.label.toLowerCase() === "home" && (!item.href || item.href === "/"));
+  });
+
   return (
     <nav aria-label="Breadcrumb" className={cn("flex items-center gap-1.5 text-xs text-neutral-500", className)}>
       <Link to="/" className="hover:text-neutral-900 transition-colors">Home</Link>
-      {items.map((item, i) => (
+      {visibleItems.map((item, i) => (
         <span key={i} className="flex items-center gap-1.5">
           <ChevronRight className="w-3 h-3" />
           {item.href ? (

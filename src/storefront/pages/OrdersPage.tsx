@@ -7,6 +7,8 @@ import { formatPrice } from "../../lib/utils/format";
 import { formatDate } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
+import { Helmet } from "react-helmet-async";
+import { Breadcrumbs } from "../components/Breadcrumbs";
 
 const statusTabs = [
   { value: "", label: "All Orders" },
@@ -60,6 +62,10 @@ export default function OrdersPage() {
 
   return (
     <div className="container-page py-8">
+      <Helmet>
+        <title>My Orders — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <h1 className="text-2xl md:text-3xl font-display text-neutral-900 mb-8 tracking-fashion">My Orders</h1>
       <div className="grid lg:grid-cols-4 gap-8">
         <DashboardSidebar />

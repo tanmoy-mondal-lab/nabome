@@ -16,11 +16,9 @@ export async function handleCMSRequest(
     case "page":
       return handlePage(params[0], ctx.env);
     case "navigation":
-      return handleNavigation(ctx.env);
+      return handleNavigation(req, ctx.env);
     case "announcements":
       return handleAnnouncements(ctx.env);
-    case "brandStory":
-      return handleBrandStory(ctx.env);
     case "footer":
       return handleFooter(ctx.env);
     case "socialProof":
@@ -30,11 +28,18 @@ export async function handleCMSRequest(
   }
 }
 
-async function handleHomepage(env: any): Promise<Response> {
+export async function handleHomepage(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const now = new Date();
     const sections = await prisma.homepageSection.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        AND: [
+          { OR: [{ publishAt: null }, { publishAt: { lte: now } }] },
+          { OR: [{ expireAt: null }, { expireAt: { gte: now } }] },
+        ],
+      },
       orderBy: { sortOrder: "asc" },
     });
     return success({ sections });
@@ -71,6 +76,7 @@ async function handlePage(slug: string, env: any): Promise<Response> {
     const page = await prisma.staticPage.findFirst({
       where: { slug, isPublished: true },
     });
+
     if (!page) return notFound("Page not found");
     return success({ page });
   } catch (err) {
@@ -78,11 +84,17 @@ async function handlePage(slug: string, env: any): Promise<Response> {
   }
 }
 
-async function handleNavigation(env: any): Promise<Response> {
+async function handleNavigation(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const url = new URL(req.url);
+    const location = url.searchParams.get("location");
+    const where: Record<string, unknown> = { isActive: true };
+    if (location && ["header", "footer", "mobile", "sidebar"].includes(location)) {
+      where.location = location;
+    }
     const menus = await prisma.navigationMenu.findMany({
-      where: { isActive: true },
+      where: where as never,
       orderBy: { createdAt: "asc" },
     });
     return success({ menus });
@@ -106,17 +118,6 @@ async function handleAnnouncements(env: any): Promise<Response> {
       orderBy: { createdAt: "desc" },
     });
     return success({ announcements });
-  } catch (err) {
-    return serverError(err);
-  }
-}
-
-async function handleBrandStory(env: any): Promise<Response> {
-  try {
-    const prisma = getPrisma(env);
-    const story = await prisma.brandStory.findFirst();
-    if (!story) return notFound("Brand story not found");
-    return success({ story });
   } catch (err) {
     return serverError(err);
   }

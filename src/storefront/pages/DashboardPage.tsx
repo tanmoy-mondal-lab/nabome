@@ -6,6 +6,8 @@ import { formatPrice } from "../../lib/utils/format";
 import { formatDate } from "../../lib/utils/format";
 import { useAuthStore } from "../../stores/auth-store";
 import { DashboardSidebar } from "../components/DashboardSidebar";
+import { Helmet } from "react-helmet-async";
+import { Breadcrumbs } from "../components/Breadcrumbs";
 
 interface DashboardData {
   recentOrders: Array<{
@@ -63,6 +65,10 @@ export default function DashboardPage() {
 
   return (
     <div className="container-page py-8">
+      <Helmet>
+        <title>My Account — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <h1 className="text-2xl md:text-3xl font-display text-neutral-900 mb-8 tracking-fashion">My Account</h1>
       <div className="grid lg:grid-cols-4 gap-8">
         <DashboardSidebar />

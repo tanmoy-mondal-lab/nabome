@@ -33,7 +33,7 @@ export default function BannerPromoSection({ section }: BannerPromoSectionProps)
       <div className="absolute inset-0">
         <SafeImage
           src={imageUrl}
-          alt=""
+          alt={section.title || "Promotional banner"}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-black/20" />

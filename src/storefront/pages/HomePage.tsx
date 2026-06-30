@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 import { useSettings } from "../hooks/useSettings";
 import SectionRenderer from "../sections/SectionRenderer";
-import { canonical, websiteSchema } from "../../lib/seo";
+import { canonical } from "../../lib/seo";
 import { formatPrice } from "../../lib/utils/format";
 
 interface SectionData {
@@ -26,6 +26,17 @@ export default function HomePage() {
   });
 
   const sections = homepageRes?.sections ?? [];
+
+  if (!loading && !homepageError && sections.length === 0) {
+    return (
+      <div className="relative h-screen min-h-[700px] bg-neutral-950 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-sm text-neutral-400 mb-4">Welcome to নবME</p>
+          <p className="text-xs text-neutral-500">Content is being prepared. Check back soon.</p>
+        </div>
+      </div>
+    );
+  }
 
   const hasTrustBar = sections.some((s) => s.sectionType === "trust_bar");
 
@@ -59,7 +70,7 @@ export default function HomePage() {
       <Helmet>
         <meta name="description" content={(settings.siteDescription as string) || "Discover premium fashion at নবME"} />
         <link rel="canonical" href={canonical("/")} />
-        <script type="application/ld+json">{JSON.stringify(websiteSchema())}</script>
+        {/* websiteSchema is already injected in Layout — no duplicate needed */}
         <meta property="og:title" content={`${(settings.siteName as string) || "নবME"} — Premium Fashion`} />
         <meta property="og:description" content={(settings.siteDescription as string) || ""} />
         {typeof settings.siteLogo === "string" && settings.siteLogo && <meta property="og:image" content={settings.siteLogo} />}

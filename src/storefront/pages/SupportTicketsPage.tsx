@@ -5,6 +5,8 @@ import { customerApi } from "../../lib/api/customer";
 import { formatDate } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
+import { Helmet } from "react-helmet-async";
+import { Breadcrumbs } from "../components/Breadcrumbs";
 
 interface Ticket {
   id: string;
@@ -82,6 +84,10 @@ export default function SupportTicketsPage() {
   if (selectedTicket && ticket) {
     return (
       <div className="container-page py-8">
+        <Helmet>
+          <title>Support — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <h1 className="text-2xl md:text-3xl font-display text-neutral-900 mb-8 tracking-fashion">Support</h1>
         <div className="grid lg:grid-cols-4 gap-8">
           <DashboardSidebar />
@@ -145,6 +151,10 @@ export default function SupportTicketsPage() {
 
   return (
     <div className="container-page py-8">
+      <Helmet>
+        <title>Support — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <h1 className="text-2xl md:text-3xl font-display text-neutral-900 mb-8 tracking-fashion">Support</h1>
       <div className="grid lg:grid-cols-4 gap-8">
         <DashboardSidebar />

@@ -1,6 +1,6 @@
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError, created } from "../_lib/response";
-import { requireAdmin } from "../_lib/auth";
+import { requireAdmin } from "../_lib/auth-middleware";
 import type { RequestContext } from "../_lib/types";
 
 export async function createNotification(

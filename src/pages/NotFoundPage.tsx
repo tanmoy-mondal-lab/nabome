@@ -1,12 +1,17 @@
 import { Link } from "react-router-dom";
 import { ArrowLeft, LayoutDashboard } from "lucide-react";
 import { useAuthStore } from "../stores/auth-store";
+import { Helmet } from "react-helmet-async";
 
 export default function NotFoundPage() {
   const isAdmin = useAuthStore((s) => s.isAdmin);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white px-4">
+      <Helmet>
+        <title>Page Not Found — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="text-center max-w-md">
         <h1 className="text-8xl font-display text-brand-500 mb-2">404</h1>
         <p className="text-xl text-neutral-500 font-light mb-6">The page you are looking for does not exist.</p>

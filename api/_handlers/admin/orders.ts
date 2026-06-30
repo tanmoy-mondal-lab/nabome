@@ -4,7 +4,7 @@ import type { RequestContext } from "../../_lib/types";
 import { ORDER_STATUS_FLOW } from "../../_lib/utils";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { sendEmailNotification } from "../../_lib/email";
-import { requireAdmin } from "../../_lib/auth";
+import { requireAdmin } from "../../_lib/auth-middleware";
 
 const orderInclude = {
   items: true,

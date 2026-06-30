@@ -3,6 +3,7 @@ import { success, badRequest, notFound, error, serverError } from "../_lib/respo
 import type { RequestContext } from "../_lib/types";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
+import { cleanSecret } from "../_lib/secrets";
 
 async function createHMACSHA256(secret: string, data: string, env: any): Promise<string> {
   const enc = new TextEncoder();
@@ -23,8 +24,8 @@ async function callRazorpay(
   body?: Record<string, unknown>,
   env?: any
 ): Promise<Record<string, unknown>> {
-  const keyId = env?.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID;
-  const keySecret = env?.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET;
+  const keyId = cleanSecret(env?.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID);
+  const keySecret = cleanSecret(env?.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET);
   if (!keyId || !keySecret) {
     throw new Error("Razorpay credentials not configured");
   }
@@ -81,7 +82,7 @@ async function handleVerify(req: Request, env: any): Promise<Response> {
       );
     }
 
-    const keySecret = env?.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET;
+    const keySecret = cleanSecret(env?.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET);
     if (!keySecret) {
       return serverError(new Error("Razorpay secret not configured"));
     }
@@ -715,7 +716,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
   const signature = req.headers.get("x-razorpay-signature");
 
   // ── 1. Verify secret is configured ──
-    const webhookSecret = env?.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_WEBHOOK_SECRET;
+  const webhookSecret = cleanSecret(env?.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_WEBHOOK_SECRET);
   if (!webhookSecret) {
     console.error("[WEBHOOK] Secret not configured");
     return success({ status: "ignored" });

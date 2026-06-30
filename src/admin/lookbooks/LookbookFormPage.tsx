@@ -36,6 +36,7 @@ export default function LookbookFormPage() {
   });
   const [items, setItems] = useState<LookbookItem[]>([]);
   const [showAddItem, setShowAddItem] = useState(false);
+  const [formInitialized, setFormInitialized] = useState(false);
 
   const lookbookQuery = useQuery({
     queryKey: ["admin", "lookbook", id],
@@ -44,7 +45,7 @@ export default function LookbookFormPage() {
   });
 
   useEffect(() => {
-    if (lookbookQuery.data) {
+    if (lookbookQuery.data && !formInitialized) {
       const lb = lookbookQuery.data.lookbook as Record<string, unknown>;
       setForm({
         title: (lb.name as string) ?? "",
@@ -62,8 +63,9 @@ export default function LookbookFormPage() {
         metaDescription: (lb.metaDesc as string) ?? "",
       });
       setItems((lb.items as LookbookItem[]) ?? []);
+      setFormInitialized(true);
     }
-  }, [lookbookQuery.data]);
+  }, [lookbookQuery.data, formInitialized]);
 
   useEffect(() => {
     if (lookbookQuery.error) {

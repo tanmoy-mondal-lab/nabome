@@ -65,7 +65,7 @@ export default function MediaLibrary() {
   const fileRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
-  const { data: mediaData, isLoading: loading } = useQuery({
+  const { data: mediaData, isLoading: loading, error: mediaError } = useQuery({
     queryKey: ["admin", "media", search, selectedFolder],
     queryFn: async () => {
       const params: Record<string, string | number | undefined> = {};
@@ -315,7 +315,13 @@ export default function MediaLibrary() {
       </div>
 
       {/* Assets grid */}
-      {loading ? (
+      {mediaError ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle border border-red-200 bg-red-50">
+            <span className="text-sm text-red-600">Failed to load media. Please try again.</span>
+          </div>
+        </div>
+      ) : loading ? (
         <div className="flex items-center justify-center h-64">
           <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>

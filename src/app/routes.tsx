@@ -22,10 +22,9 @@ const CollectionPage = lazy(() => import("../storefront/pages/CollectionPage"));
 const CheckoutPage = lazy(() => import("../storefront/pages/CheckoutPage"));
 const LookbookPage = lazy(() => import("../storefront/pages/LookbookPage"));
 const LookbookDetailPage = lazy(() => import("../storefront/pages/LookbookDetailPage"));
-const PrivacyPage = lazy(() => import("../storefront/pages/PrivacyPage"));
-const TermsPage = lazy(() => import("../storefront/pages/TermsPage"));
 const FaqPage = lazy(() => import("../storefront/pages/FaqPage"));
-const ShippingPage = lazy(() => import("../storefront/pages/ShippingPage"));
+const StaticPage = lazy(() => import("../storefront/pages/StaticPage").then((m) => ({ default: m.StaticPage })));
+
 const CollectionsIndexPage = lazy(() => import("../storefront/pages/CollectionsIndexPage"));
 
 // Dashboard pages
@@ -49,10 +48,11 @@ export const STOREFRONT_ROUTES = (
     <Route path="collections" element={<CollectionsIndexPage />} />
     <Route path="collections/:slug" element={<CollectionPage />} />
     <Route path="checkout" element={<CheckoutPage />} />
-    <Route path="privacy" element={<PrivacyPage />} />
-    <Route path="terms" element={<TermsPage />} />
+    <Route path="privacy" element={<StaticPage />} />
+    <Route path="terms" element={<StaticPage />} />
     <Route path="faq" element={<FaqPage />} />
-    <Route path="shipping" element={<ShippingPage />} />
+    <Route path="shipping-returns" element={<StaticPage />} />
+
     <Route path="lookbooks" element={<LookbookPage />} />
     <Route path="lookbooks/:slug" element={<LookbookDetailPage />} />
     <Route path="account" element={<ProtectedRoute><DashboardOverview /></ProtectedRoute>} />
@@ -64,6 +64,8 @@ export const STOREFRONT_ROUTES = (
     <Route path="account/notifications" element={<ProtectedRoute><DashboardNotifications /></ProtectedRoute>} />
     <Route path="account/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
     <Route path="account/support" element={<ProtectedRoute><DashboardSupport /></ProtectedRoute>} />
+
+    <Route path=":slug" element={<StaticPage />} />
   </Route>
 );
 

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, ShoppingBag, Trash2, Plus, Minus } from "lucide-react";
 import { useCart } from "../hooks/useCart";
 import { useUIStore } from "../stores/ui-store";
@@ -11,6 +11,7 @@ export function CartDrawer() {
   const navigate = useNavigate();
   const { isCartOpen, closeCart } = useUIStore();
   const { items, removeItem, updateQuantity, subtotal, total } = useCart();
+  const prefersReducedMotion = useReducedMotion();
 
   function handleCheckout() {
     closeCart();
@@ -27,7 +28,7 @@ export function CartDrawer() {
       {isCartOpen && (
         <>
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={prefersReducedMotion ? undefined : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
@@ -35,9 +36,9 @@ export function CartDrawer() {
             onClick={closeCart}
           />
           <motion.div
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
+            initial={prefersReducedMotion ? undefined : { x: "100%" }}
+            animate={prefersReducedMotion ? undefined : { x: 0 }}
+            exit={prefersReducedMotion ? undefined : { x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="fixed right-0 top-0 h-full w-full max-w-[480px] bg-white z-50 shadow-2xl flex flex-col"
           >

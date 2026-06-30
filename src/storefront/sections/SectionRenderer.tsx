@@ -23,11 +23,16 @@ const TestimonialsSection = lazy(() => import("./TestimonialsSection"));
 const InstagramFeedSection = lazy(() => import("./InstagramFeedSection"));
 const BannerPromoSection = lazy(() => import("./BannerPromoSection"));
 const CustomHTMLSection = lazy(() => import("./CustomHTMLSection"));
+const NewArrivalsSection = lazy(() => import("./NewArrivalsSection"));
+const CategoriesGridSection = lazy(() => import("./CategoriesGridSection"));
+const VideoBannerSection = lazy(() => import("./VideoBannerSection"));
 
 const sectionComponentMap: Record<string, React.LazyExoticComponent<React.ComponentType<{ section: SectionData }>>> = {
   hero_slider: HeroSliderSection,
   product_grid: ProductGridSection,
   featured_collections: CollectionGridSection,
+  new_arrivals: NewArrivalsSection,
+  categories_grid: CategoriesGridSection,
   brand_story: BrandStorySection,
   trust_bar: TrustBarSection,
   newsletter: NewsletterSection,
@@ -35,6 +40,7 @@ const sectionComponentMap: Record<string, React.LazyExoticComponent<React.Compon
   instagram_feed: InstagramFeedSection,
   banner_promo: BannerPromoSection,
   custom_html: CustomHTMLSection,
+  video_banner: VideoBannerSection,
 };
 
 function LoadingFallback() {

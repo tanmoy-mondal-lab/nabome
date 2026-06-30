@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { MobileNav } from "./MobileNav";
@@ -11,31 +11,40 @@ import { CartDrawer } from "../components/CartDrawer";
 import { SocialProof } from "../components/SocialProof";
 import { ScrollToTop } from "../components/ScrollToTop";
 import { useSettings } from "../hooks/useSettings";
-import { canonical, websiteSchema } from "../../lib/seo";
+import { canonical, ogImageFallback, websiteSchema } from "../../lib/seo";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
+
+function ScrollToTopOnNavigate() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 export function StorefrontLayout() {
   const { pathname } = useLocation();
+  const prefersReducedMotion = useReducedMotion();
   const { data: settings } = useSettings();
   const isCheckout = pathname === "/checkout";
 
   useEffect(() => {
-    if (settings?.theme) {
-      const d = (settings.theme.design as Record<string, unknown>) ?? {};
-      const c = (d.colors as Record<string, unknown>) ?? {};
-      const root = document.documentElement.style;
-      if (c.primary) root.setProperty("--color-primary", c.primary as string);
-      if (c.accent) root.setProperty("--color-accent", c.accent as string);
-      if (c.background) root.setProperty("--color-bg", c.background as string);
-      if (c.text) root.setProperty("--color-text", c.text as string);
-    }
+    const themeData = settings?.theme;
+    if (!themeData) return;
+    const design = (themeData.design ?? {}) as Record<string, unknown>;
+    const colors = (design.colors ?? {}) as Record<string, unknown>;
+    const root = document.documentElement.style;
+    if (colors.primary) root.setProperty("--color-primary", colors.primary as string);
+    if (colors.accent) root.setProperty("--color-accent", colors.accent as string);
+    if (colors.background) root.setProperty("--color-bg", colors.background as string);
+    if (colors.text) root.setProperty("--color-text", colors.text as string);
   }, [settings?.theme]);
 
   const siteName = settings?.siteName || "নবME";
   const seo = settings?.seo || {};
   const siteTitle = (seo.metaTitle as string) || `${siteName} — Premium Fashion`;
   const siteDescription = (seo.metaDesc as string) || "Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design.";
-  const ogImage = settings?.ogImageUrl || "https://www.nabome.online/og-image.svg";
+  const ogImage = settings?.ogImageUrl || ogImageFallback();
   const faviconUrl = settings?.faviconUrl || "";
 
   const currentUrl = canonical(pathname);
@@ -43,6 +52,7 @@ export function StorefrontLayout() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
+      <ScrollToTopOnNavigate />
       <Helmet>
         <html lang="en" />
         <meta name="description" content={siteDescription} />
@@ -56,7 +66,7 @@ export function StorefrontLayout() {
         <meta property="og:type" content="website" />
         <meta property="og:url" content={currentUrl} />
         <meta property="og:site_name" content={siteName} />
-        <meta property="og:locale" content="en_IN" />
+        <meta property="og:locale" content={(settings?.preferences as Record<string, unknown>)?.locale as string || "en_IN"} />
         <meta property="og:image" content={ogImage} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
@@ -90,9 +100,10 @@ export function StorefrontLayout() {
         >
           <motion.div
             key={pathname}
-            initial={{ opacity: 0, y: 20 }}
+            initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
           >
             <Outlet />
           </motion.div>

@@ -378,11 +378,15 @@ export interface NavigationItem {
   id: string;
   type: MenuItemType;
   label: string;
-  url: string;
+  url?: string;
   target?: "_self" | "_blank";
   icon?: string;
   badge?: string;
   badgeColor?: string;
+  link?: string;
+  image?: string;
+  imagePublicId?: string;
+  description?: string;
   children?: NavigationItem[];
   megaMenuColumns?: MegaMenuColumn[];
   promotionalContent?: PromotionalMenuContent;
@@ -393,13 +397,14 @@ export interface NavigationItem {
 export interface MegaMenuColumn {
   id: string;
   title: string;
-  items: { label: string; url: string; description?: string; image?: string }[];
+  items: { label: string; url?: string; description?: string; image?: string }[];
 }
 
 export interface PromotionalMenuContent {
   title: string;
   description: string;
   image: string;
+  imagePublicId?: string;
   linkUrl: string;
   linkText: string;
 }

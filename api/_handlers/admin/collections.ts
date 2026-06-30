@@ -3,7 +3,7 @@ import { success, badRequest, notFound, serverError, created } from "../../_lib/
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../_lib/utils";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
-import { requireAdmin } from "../../_lib/auth";
+import { requireAdmin } from "../../_lib/auth-middleware";
 import { destroyCloudinaryAssetIfReplaced } from "../../_lib/cloudinary";
 import { toNull } from "../../_lib/sanitize";
 

@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { loadRazorpayScript } from "./load-script";
 import type { RazorpaySuccessResponse, RazorpayErrorDetails } from "./types";
+import { usablePublicConfig } from "../config";
+
+const razorpayKey = usablePublicConfig(import.meta.env.VITE_RAZORPAY_KEY_ID);
 
 interface OpenRazorpayParams {
   razorpayOrderId: string;
@@ -29,6 +32,11 @@ export function useRazorpay(): RazorpayHookResult {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!razorpayKey) {
+      setLoadError("Payment gateway is not configured");
+      return;
+    }
+
     let cancelled = false;
     loadRazorpayScript()
       .then(() => {
@@ -44,6 +52,10 @@ export function useRazorpay(): RazorpayHookResult {
 
   const openRazorpay = useCallback(
     async (params: OpenRazorpayParams): Promise<OpenRazorpayResult> => {
+      if (!razorpayKey) {
+        throw new Error("Payment gateway is not configured");
+      }
+
       if (!window.Razorpay) {
         throw new Error("Razorpay SDK not loaded");
       }
@@ -54,7 +66,7 @@ export function useRazorpay(): RazorpayHookResult {
         let settled = false;
 
         const rzp = new Razorpay({
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID as string,
+          key: razorpayKey,
           amount: Math.round(params.amount * 100),
           currency: "INR",
           name: "নবME",

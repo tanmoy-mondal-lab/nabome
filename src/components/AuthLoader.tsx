@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "../stores/auth-store";
 import { authApi } from "../lib/api/auth";
+import { useCartStore } from "../storefront/stores/cart-store";
 
 export function AuthLoader() {
   const hydrated = useAuthStore.persist?.hasHydrated?.() ?? false;
@@ -15,6 +16,7 @@ export function AuthLoader() {
       useAuthStore.getState();
 
     if (!accessToken) {
+      useCartStore.getState().switchUser();
       setLoading(false);
       return;
     }
@@ -27,11 +29,18 @@ export function AuthLoader() {
             setTokens(res.session.accessToken, res.session.refreshToken, res.session.expiresAt);
             return authApi.me();
           })
-          .then((res) => setUser(res.user))
-          .catch(() => clearAuth())
+          .then((res) => {
+            setUser(res.user);
+            useCartStore.getState().switchUser();
+          })
+          .catch(() => {
+            clearAuth();
+            useCartStore.getState().switchUser();
+          })
           .finally(() => setLoading(false));
       } else {
         clearAuth();
+        useCartStore.getState().switchUser();
         setLoading(false);
       }
       return;
@@ -40,10 +49,17 @@ export function AuthLoader() {
     if (!user) {
       authApi
         .me()
-        .then((res) => setUser(res.user))
-        .catch(() => clearAuth())
+        .then((res) => {
+          setUser(res.user);
+          useCartStore.getState().switchUser();
+        })
+        .catch(() => {
+          clearAuth();
+          useCartStore.getState().switchUser();
+        })
         .finally(() => setLoading(false));
     } else {
+      useCartStore.getState().switchUser();
       setLoading(false);
     }
   }, [hydrated]);

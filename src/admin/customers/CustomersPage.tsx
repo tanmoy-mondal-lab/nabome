@@ -43,15 +43,19 @@ export default function CustomersPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   const [editError, setEditError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const res = await adminApi.getCustomers({ page, limit: 20 });
       setCustomers((res.customers as Customer[]) ?? []);
       const pag = res.pagination as { totalPages?: number } | undefined;
       setTotalPages(pag?.totalPages ?? 1);
-    } catch { /* non-critical: failed to fetch customers, keep existing data */ } finally {
+    } catch {
+      setFetchError("Failed to load customers");
+    } finally {
       setLoading(false);
     }
   }, [page]);
@@ -62,7 +66,9 @@ export default function CustomersPage() {
     try {
       const res = await adminApi.getCustomer(c.id);
       setSelected(res.customer as CustomerDetail);
-    } catch { /* non-critical: failed to load customer detail, keep existing data */ }
+    } catch {
+      setFetchError("Failed to load customer detail");
+    }
   };
 
   const openEdit = (c: Customer) => {
@@ -119,6 +125,9 @@ export default function CustomersPage() {
 
   return (
     <div>
+      {fetchError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{fetchError}</div>
+      )}
       <div className="mb-6">
         <h1 className="font-display text-2xl text-neutral-900">Customers</h1>
         <p className="text-sm text-neutral-500 mt-1">View and manage customers</p>

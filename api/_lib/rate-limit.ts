@@ -30,6 +30,12 @@ function getKVBinding(env?: any): any | null {
   return null;
 }
 
+function isProductionRuntime(env?: any): boolean {
+  const nodeEnv = env?.NODE_ENV ?? (typeof process !== "undefined" ? process.env?.NODE_ENV : undefined);
+  const cfPages = env?.CF_PAGES ?? (typeof process !== "undefined" ? process.env?.CF_PAGES : undefined);
+  return nodeEnv === "production" || cfPages === "1" || cfPages === "true";
+}
+
 async function getFromKV(kv: any, key: string): Promise<RateLimitEntry | null> {
   try {
     const value = await kv.get(key, { type: "json" });
@@ -79,8 +85,12 @@ export async function checkRateLimit(
     return { allowed: true, remaining, resetAt: entry.resetAt };
   }
 
-  // No KV available — allow request (fail open)
-  // This prevents rate limiting from breaking the app when KV is misconfigured
+  if (isProductionRuntime(env)) {
+    console.error("[RATE LIMIT] RATE_LIMIT_STORE binding unavailable in production, failing closed");
+    return { allowed: false, remaining: 0, resetAt: now + Math.min(config.windowMs, 60_000) };
+  }
+
+  // No KV available locally — allow request so localhost stays usable.
   console.warn("[RATE LIMIT] No KV binding available, skipping rate limit check");
   return { allowed: true, remaining: config.maxRequests, resetAt: now + config.windowMs };
 }

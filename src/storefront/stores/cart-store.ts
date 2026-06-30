@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { api } from "../../lib/api/client";
+import { useAuthStore } from "../../stores/auth-store";
 import { hapticSuccess } from "../../lib/utils/haptic";
 
 export interface CartItem {
@@ -24,6 +26,7 @@ export interface CartItem {
 // so each user (and guest) gets their own isolated cart.
 
 const CART_STORAGE_KEY = "nabome-cart";
+let syncTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getUserId(): string {
   try {
@@ -50,6 +53,114 @@ const userCartStorage = {
   },
 };
 
+function hasAuthenticatedSession(): boolean {
+  const auth = useAuthStore.getState();
+  return auth.isAuthenticated && !!auth.accessToken;
+}
+
+function toServerItems(items: CartItem[]): Array<{ variantId: string; quantity: number }> {
+  return items.map((item) => ({
+    variantId: item.variantId,
+    quantity: item.quantity,
+  }));
+}
+
+function setGuestCartState(): void {
+  const data = userCartStorage.getItem(CART_STORAGE_KEY);
+  if (data?.state) {
+    useCartStore.setState({
+      items: data.state.items ?? [],
+      couponCode: data.state.couponCode ?? null,
+      discount: data.state.discount ?? 0,
+      discountType: data.state.discountType ?? null,
+      justAdded: null,
+    });
+    return;
+  }
+
+  useCartStore.setState({
+    items: [],
+    couponCode: null,
+    discount: 0,
+    discountType: null,
+    justAdded: null,
+  });
+}
+
+function applyServerCartState(payload: {
+  items: CartItem[];
+  couponCode?: string | null;
+  discount?: number;
+  discountType?: "percentage" | "fixed" | null;
+}): void {
+  const current = useCartStore.getState();
+  useCartStore.setState({
+    items: payload.items,
+    couponCode: payload.couponCode ?? current.couponCode,
+    discount: payload.discount ?? current.discount,
+    discountType: payload.discountType ?? current.discountType,
+    justAdded: null,
+  });
+}
+
+async function hydrateServerCart(): Promise<void> {
+  if (!hasAuthenticatedSession()) return;
+  try {
+    const cart = await api.get<{
+      items: CartItem[];
+      couponCode: string | null;
+      discount: number;
+      discountType: "percentage" | "fixed" | null;
+    }>("/cart");
+    applyServerCartState(cart);
+  } catch {
+    // Keep the current cart if the network is unavailable.
+  }
+}
+
+async function syncServerCart(): Promise<void> {
+  if (!hasAuthenticatedSession()) return;
+
+  const { items } = useCartStore.getState();
+  try {
+    await api.post("/cart/sync", {
+      items: toServerItems(items),
+    });
+  } catch {
+    // Keep the local cart; retry on the next mutation.
+  }
+}
+
+function queueServerSync(): void {
+  if (!hasAuthenticatedSession()) return;
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    syncTimer = null;
+    void syncServerCart();
+  }, 250);
+}
+
+async function mergeGuestCartOnServer(items?: CartItem[]): Promise<void> {
+  if (!hasAuthenticatedSession()) return;
+
+  if (syncTimer) {
+    clearTimeout(syncTimer);
+    syncTimer = null;
+  }
+
+  const payload = toServerItems(items ?? useCartStore.getState().items);
+  if (payload.length > 0) {
+    try {
+      await api.post("/cart/merge", { items: payload });
+    } catch {
+      // Fall back to the current local cart if merge fails.
+      return;
+    }
+  }
+
+  await hydrateServerCart();
+}
+
 interface CartState {
   items: CartItem[];
   couponCode: string | null;
@@ -64,6 +175,8 @@ interface CartState {
   removeCoupon: () => void;
   clearJustAdded: () => void;
   switchUser: () => void;
+  hydrateFromServer: () => Promise<void>;
+  mergeGuestCart: (items?: CartItem[]) => Promise<void>;
   itemCount: () => number;
   subtotal: () => number;
   discountAmount: () => number;
@@ -97,13 +210,15 @@ export const useCartStore = create<CartState>()(
             justAdded: item.variantId,
           });
         }
+        queueServerSync();
         // Clear the "just added" indicator after 2s
-        setTimeout(() => get().clearJustAdded(), 2000);
+        setTimeout(() => { try { get().clearJustAdded(); } catch {} }, 2000);
         hapticSuccess();
       },
 
       removeItem: (variantId) => {
         set({ items: get().items.filter((i) => i.variantId !== variantId) });
+        queueServerSync();
       },
 
       updateQuantity: (variantId, quantity) => {
@@ -116,9 +231,13 @@ export const useCartStore = create<CartState>()(
             i.variantId === variantId ? { ...i, quantity: Math.min(quantity, i.maxQuantity) } : i
           ),
         });
+        queueServerSync();
       },
 
-      clearCart: () => set({ items: [], couponCode: null, discount: 0, discountType: null }),
+      clearCart: () => {
+        set({ items: [], couponCode: null, discount: 0, discountType: null, justAdded: null });
+        queueServerSync();
+      },
 
       applyCoupon: (code, discount, type) => set({ couponCode: code, discount, discountType: type }),
 
@@ -127,19 +246,19 @@ export const useCartStore = create<CartState>()(
       clearJustAdded: () => set({ justAdded: null }),
 
       switchUser: () => {
-        // The storage adapter already reads the new user's ID.
-        // Read the cart from the new user's localStorage key.
-        const data = userCartStorage.getItem(CART_STORAGE_KEY);
-        if (data?.state) {
-          set({
-            items: data.state.items ?? [],
-            couponCode: data.state.couponCode ?? null,
-            discount: data.state.discount ?? 0,
-            discountType: data.state.discountType ?? null,
-          });
-        } else {
-          set({ items: [], couponCode: null, discount: 0, discountType: null });
+        if (hasAuthenticatedSession()) {
+          void hydrateServerCart();
+          return;
         }
+        setGuestCartState();
+      },
+
+      hydrateFromServer: async () => {
+        await hydrateServerCart();
+      },
+
+      mergeGuestCart: async (items?: CartItem[]) => {
+        await mergeGuestCartOnServer(items);
       },
 
       itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),

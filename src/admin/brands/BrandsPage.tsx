@@ -32,8 +32,8 @@ export default function BrandsPage() {
   const [edit, setEdit] = useState<Brand | null>(null);
   const [form, setForm] = useState(defaultForm);
 
-  const { data: brands = [], isLoading: loading } = useQuery<Brand[]>({
-    queryKey: ["brands"],
+  const { data: brands = [], isLoading: loading, error: queryError } = useQuery<Brand[]>({
+    queryKey: ["admin", "brands"],
     queryFn: async () => {
       const res = await adminApi.getBrands();
       return (res.brands ?? []) as Brand[];
@@ -46,11 +46,11 @@ export default function BrandsPage() {
       return adminApi.createBrand(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["brands"] });
+      const wasEditing = !!edit;
       queryClient.invalidateQueries({ queryKey: ["admin", "brands"] });
       setShowModal(false);
       setEdit(null);
-      toast(edit ? "Brand updated" : "Brand created", "success");
+      toast(wasEditing ? "Brand updated" : "Brand created", "success");
     },
     onError: () => toast("Failed to save brand", "error"),
   });
@@ -58,7 +58,6 @@ export default function BrandsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteBrand(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["brands"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "brands"] });
       toast("Brand deleted", "success");
     },
@@ -83,9 +82,13 @@ export default function BrandsPage() {
   }
 
   const filtered = brands.filter((b) => !search || (b.name ?? "").toLowerCase().includes(search.toLowerCase()));
+  const fetchError = queryError ? (queryError instanceof Error ? queryError.message : "Failed to load brands") : null;
 
   return (
     <div className="p-6 space-y-6">
+      {fetchError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{fetchError}</div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-display text-neutral-900">Brands</h1>

@@ -3,7 +3,6 @@
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
     "isolatedModules": true,
     "noEmit": true,
     "strict": true,
@@ -17,5 +16,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["api"]
+  "include": ["api", "src/lib/constants.ts", "src/lib/utils/format.ts"]
 }

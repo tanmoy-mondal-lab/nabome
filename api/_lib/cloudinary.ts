@@ -1,4 +1,5 @@
 import type { Env } from "./env";
+import { cleanSecret } from "./secrets";
 
 type CloudinaryResourceType = "image" | "video" | "raw";
 
@@ -82,9 +83,9 @@ export async function destroyCloudinaryAsset(
   env?: Env,
   resourceType: CloudinaryResourceType = "image"
 ): Promise<boolean> {
-  const cloudName = env?.CLOUDINARY_CLOUD_NAME;
-  const apiKey = env?.CLOUDINARY_API_KEY;
-  const apiSecret = env?.CLOUDINARY_API_SECRET;
+  const cloudName = cleanSecret(env?.CLOUDINARY_CLOUD_NAME);
+  const apiKey = cleanSecret(env?.CLOUDINARY_API_KEY);
+  const apiSecret = cleanSecret(env?.CLOUDINARY_API_SECRET);
   if (!cloudName || !apiKey || !apiSecret) return false;
 
   const timestamp = Math.round(Date.now() / 1000);

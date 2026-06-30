@@ -46,7 +46,7 @@ export function MobileNav() {
                   <div key={menu.label}>
                     {hasChildren ? (
                       <>
-                        <button onClick={() => toggleExpand(menu.label)} className="flex items-center justify-between w-full px-4 py-3 text-sm text-neutral-700 hover:text-brand-500 tracking-fashion">
+                        <button onClick={() => toggleExpand(menu.label)} aria-expanded={open} className="flex items-center justify-between w-full px-4 py-3 text-sm text-neutral-700 hover:text-brand-500 tracking-fashion">
                           {menu.label}
                           <ChevronRight className={cn("w-4 h-4 text-neutral-400 transition-transform", open && "rotate-90")} />
                         </button>
@@ -54,7 +54,7 @@ export function MobileNav() {
                           {open && (
                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                               <div className="ml-4 space-y-1 pb-2">
-                                {menu.children!.map((child) => (
+                                {(menu.children ?? []).map((child) => (
                                   <Link key={child.label} to={(child.link || child.url) as string || "#"} onClick={closeMobileMenu} className="block px-4 py-2 text-sm text-neutral-500 hover:text-brand-500 tracking-fashion">
                                     {child.label}
                                   </Link>

@@ -1,6 +1,6 @@
 import { badRequest, unauthorized, serverError, success } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
-import type { Env } from "../_lib/env";
+import { cleanSecret } from "../_lib/secrets";
 
 const ALLOWED_TYPES: Record<string, { type: string; resourceType: string }> = {
   "image/jpeg": { type: "image", resourceType: "image" },
@@ -27,11 +27,15 @@ export async function handleUploadRequest(
 ): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const cloudName = ctx.env?.CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = ctx.env?.CLOUDINARY_UPLOAD_PRESET;
+  const cloudName = cleanSecret(ctx.env?.CLOUDINARY_CLOUD_NAME);
+  const uploadPreset = cleanSecret(ctx.env?.CLOUDINARY_UPLOAD_PRESET);
 
   if (!cloudName) {
-    return serverError(new Error("Cloudinary not configured"));
+    return serverError(new Error("Cloudinary not configured — missing CLOUDINARY_CLOUD_NAME"));
+  }
+
+  if (!uploadPreset) {
+    return serverError(new Error("Cloudinary not configured — missing CLOUDINARY_UPLOAD_PRESET"));
   }
 
   try {
@@ -55,7 +59,7 @@ export async function handleUploadRequest(
 
     const cloudinaryFormData = new FormData();
     cloudinaryFormData.append("file", file);
-    cloudinaryFormData.append("upload_preset", uploadPreset ?? "");
+    cloudinaryFormData.append("upload_preset", uploadPreset);
     cloudinaryFormData.append("folder", folder);
     cloudinaryFormData.append("public_id", `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`);
 
@@ -72,7 +76,9 @@ export async function handleUploadRequest(
 
     if (!uploadResponse.ok) {
       const errorData = await uploadResponse.json().catch(() => ({}));
-      return serverError(new Error(errorData.error?.message ?? "Upload failed"));
+      const errMsg = errorData.error?.message ?? `Cloudinary upload failed (${uploadResponse.status})`;
+      console.error("Cloudinary upload error:", errMsg, errorData);
+      return serverError(new Error(errMsg));
     }
 
     const result = await uploadResponse.json();
@@ -90,6 +96,7 @@ export async function handleUploadRequest(
       altText,
     });
   } catch (err) {
+    console.error("Upload handler error:", err);
     return serverError(err);
   }
 }

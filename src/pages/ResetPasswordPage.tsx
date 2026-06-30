@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { PasswordInput } from "../components/PasswordInput";
 import { AuthShell } from "./AuthShell";
+import { Helmet } from "react-helmet-async";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -48,6 +49,10 @@ export default function ResetPasswordPage() {
       heroTitle="Fresh Start"
       heroSubtitle="Create a stronger password and keep your account protected"
     >
+      <Helmet>
+        <title>Reset Password — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="premium-card rounded-2xl p-8">
         <div className="text-center mb-10">
           <h2 className="font-display text-2xl text-neutral-900">Set a new password</h2>

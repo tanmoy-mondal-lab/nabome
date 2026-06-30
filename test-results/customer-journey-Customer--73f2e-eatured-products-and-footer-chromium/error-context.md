@@ -1,0 +1,303 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: customer-journey.spec.ts >> Customer Journey - Browse to Purchase >> homepage loads with hero, featured products, and footer
+- Location: e2e/customer-journey.spec.ts:8:3
+
+# Error details
+
+```
+Error: expect(page).toHaveTitle(expected) failed
+
+Expected pattern: /.*Nabo.?me/i
+Received string:  "নবME — Premium Fashion"
+Timeout: 5000ms
+
+Call log:
+  - Expect "toHaveTitle" with timeout 5000ms
+    14 × unexpected value "নবME — Premium Fashion"
+
+```
+
+```yaml
+- banner:
+  - paragraph
+  - navigation:
+    - link "Men":
+      - /url: /products?category=men
+    - link "Women":
+      - /url: /products?category=women
+    - link "Accessories":
+      - /url: /products?category=accessories
+    - link "Collections":
+      - /url: /products
+    - link "Lookbook":
+      - /url: /lookbooks
+  - link "নবME":
+    - /url: /
+  - button "Search"
+  - link "Wishlist":
+    - /url: /auth/login
+  - link "Notifications":
+    - /url: /auth/login
+  - link "Account":
+    - /url: /auth/login
+  - button "Cart"
+- link "Skip to content":
+  - /url: "#main-content"
+- main:
+  - text: Free shipping on orders above ₹500
+  - paragraph: Discover our handpicked edits
+  - heading "Curated Collections" [level=2]
+  - link "Summer Essentials Lightweight linen and cotton for the warmer months View Collection →":
+    - /url: /collections/summer-essentials
+    - heading "Summer Essentials" [level=3]
+    - paragraph: Lightweight linen and cotton for the warmer months
+    - text: View Collection →
+  - link "Heritage Revival Traditional craftsmanship reimagined View Collection →":
+    - /url: /collections/heritage-revival
+    - heading "Heritage Revival" [level=3]
+    - paragraph: Traditional craftsmanship reimagined
+    - text: View Collection →
+  - link "Evening Edit Curated pieces for your most memorable nights View Collection →":
+    - /url: /collections/evening-edit
+    - heading "Evening Edit" [level=3]
+    - paragraph: Curated pieces for your most memorable nights
+    - text: View Collection →
+  - heading "Heritage Revival" [level=1]
+  - paragraph: Lightweight linen and cotton for the warmer months
+  - link "Explore":
+    - /url: /collections/heritage-revival
+  - button
+  - button
+  - button "Mute"
+  - button "Pause"
+  - paragraph: The latest additions to our collection
+  - heading "New Arrivals" [level=2]
+  - paragraph: The latest additions to our collection
+  - link "View All":
+    - /url: /products?sort=newest
+  - link "Linen Straight Trousers New Quick view Toggle wishlist":
+    - /url: /products/linen-straight-trousers
+    - img "Linen Straight Trousers"
+    - text: New
+    - button "Quick view"
+    - button "Toggle wishlist"
+  - paragraph: women
+  - link "Linen Straight Trousers":
+    - /url: /products/linen-straight-trousers
+  - text: ₹7,500
+  - button "Add to Cart"
+  - link "Wool Blend Blazer 21% OFF Quick view Toggle wishlist":
+    - /url: /products/wool-blend-blazer
+    - img "Wool Blend Blazer"
+    - text: 21% OFF
+    - button "Quick view"
+    - button "Toggle wishlist"
+  - paragraph: men
+  - link "Wool Blend Blazer":
+    - /url: /products/wool-blend-blazer
+  - text: ₹22,000 ₹28,000 21% OFF
+  - button "Add to Cart"
+  - link "Premium Leather Tote 16% OFF Quick view Toggle wishlist":
+    - /url: /products/premium-leather-tote
+    - img "Premium Leather Tote"
+    - text: 16% OFF
+    - button "Quick view"
+    - button "Toggle wishlist"
+  - paragraph: women
+  - link "Premium Leather Tote":
+    - /url: /products/premium-leather-tote
+  - text: ₹18,500 ₹22,000 16% OFF
+  - button "Add to Cart"
+  - link "Silk Evening Gown 19% OFF Quick view Toggle wishlist":
+    - /url: /products/silk-evening-gown
+    - img "Silk Evening Gown"
+    - text: 19% OFF
+    - button "Quick view"
+    - button "Toggle wishlist"
+  - paragraph: women
+  - link "Silk Evening Gown":
+    - /url: /products/silk-evening-gown
+  - text: ₹28,500 ₹35,000 19% OFF
+  - button "Add to Cart"
+  - link "Pure Linen Shirt 25% OFF Quick view Toggle wishlist":
+    - /url: /products/pure-linen-shirt
+    - img "Pure Linen Shirt"
+    - text: 25% OFF
+    - button "Quick view"
+    - button "Toggle wishlist"
+  - paragraph: men
+  - link "Pure Linen Shirt":
+    - /url: /products/pure-linen-shirt
+  - text: ₹8,900 ₹11,900 25% OFF
+  - button "Add to Cart"
+  - paragraph: Crafted with passion since 2020
+  - heading "Craftsmanship That Endures" [level=2]
+  - paragraph: নবME was born from a vision to blend traditional Indian craftsmanship with contemporary design. Every piece tells a story of heritage, artistry, and timeless elegance.
+  - paragraph: 200+
+  - paragraph: Artisan Craftspeople
+  - paragraph: 15+
+  - paragraph: Countries Served
+  - paragraph: 98%
+  - paragraph: Customer Satisfaction
+  - paragraph: Be the first to know about new collections, exclusive offers, and events.
+  - heading "Join the Inner Circle" [level=2]
+  - paragraph: Subscribe for exclusive access to new drops, private sales, and editor's picks.
+  - textbox "Enter your email"
+  - button "Subscribe"
+  - img "Promotional banner"
+  - link "read":
+    - /url: /our-story
+- contentinfo:
+  - paragraph: Stay Connected
+  - paragraph: Join the नबME Inner Circle
+  - textbox "Enter your email"
+  - button "Subscribe"
+  - link "নবME":
+    - /url: /
+  - paragraph: Premium Fashion Destination
+  - link:
+    - /url: https://instagram.com/nabome
+  - link:
+    - /url: https://youtube.com/@nabome
+  - heading "নবME" [level=4]
+  - paragraph: Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design.
+  - heading "Shop" [level=4]
+  - heading "Support" [level=4]
+  - heading "Connect" [level=4]
+  - heading "Contact" [level=4]
+  - paragraph: hello@nabome.com
+  - paragraph: +91-1800-নবME
+  - paragraph: © 2026 নবME. All rights reserved.
+  - link "FAQ":
+    - /url: /faq
+  - link "Privacy Policy":
+    - /url: /privacy
+  - link "Terms of Service":
+    - /url: /terms
+  - link "Shipping & Returns":
+    - /url: /shipping-returns
+  - button "Back to top"
+```
+
+# Test source
+
+```ts
+  1   | import { test, expect } from '@playwright/test';
+  2   | 
+  3   | test.describe('Customer Journey - Browse to Purchase', () => {
+  4   |   test.beforeEach(async ({ page }) => {
+  5   |     await page.goto('/');
+  6   |   });
+  7   | 
+  8   |   test('homepage loads with hero, featured products, and footer', async ({ page }) => {
+  9   |     await expect(page).toHaveURL('/');
+> 10  |     await expect(page).toHaveTitle(/.*Nabo.?me/i);
+      |                        ^ Error: expect(page).toHaveTitle(expected) failed
+  11  | 
+  12  |     const hero = page.locator('[class*="hero"], [data-testid="hero"], .hero-section, section:first-of-type');
+  13  |     await expect(hero.first()).toBeVisible();
+  14  | 
+  15  |     const productCards = page.locator('[class*="product-card"], [data-testid="product-card"], .product-card');
+  16  |     const count = await productCards.count();
+  17  |     expect(count).toBeGreaterThanOrEqual(0);
+  18  | 
+  19  |     const footer = page.locator('footer');
+  20  |     await expect(footer).toBeVisible();
+  21  |   });
+  22  | 
+  23  |   test('user can browse products and navigate to detail', async ({ page }) => {
+  24  |     await page.goto('/products');
+  25  |     await expect(page).toHaveURL(/.*products/);
+  26  | 
+  27  |     const productCards = page.locator('[class*="product-card"], .product-card, a[href*="/products/"]');
+  28  |     await expect(productCards.first()).toBeVisible({ timeout: 10000 });
+  29  | 
+  30  |     await productCards.first().click();
+  31  |     await expect(page).toHaveURL(/.*products\/.+/);
+  32  | 
+  33  |     await expect(page.locator('[class*="product-detail"], [data-testid="product-detail"], main')).toBeVisible();
+  34  |   });
+  35  | 
+  36  |   test('user can filter products by category', async ({ page }) => {
+  37  |     await page.goto('/products');
+  38  | 
+  39  |     const categoryFilter = page.locator('[class*="filter"], [data-testid="category-filter"], button:has-text("Men"), a:has-text("Men")');
+  40  |     if (await categoryFilter.first().isVisible()) {
+  41  |       await categoryFilter.first().click();
+  42  |       await page.waitForTimeout(500);
+  43  |     }
+  44  |   });
+  45  | 
+  46  |   test('user can sort products', async ({ page }) => {
+  47  |     await page.goto('/products');
+  48  | 
+  49  |     const sortSelect = page.locator('select[class*="sort"], [data-testid="sort-select"], select');
+  50  |     if (await sortSelect.first().isVisible()) {
+  51  |       await sortSelect.first().selectOption({ index: 1 });
+  52  |       await page.waitForTimeout(500);
+  53  |     }
+  54  |   });
+  55  | 
+  56  |   test('user can add product to cart from listing', async ({ page }) => {
+  57  |     await page.goto('/products');
+  58  |     await expect(page.locator('[class*="product-card"], .product-card').first()).toBeVisible({ timeout: 10000 });
+  59  | 
+  60  |     const addBtn = page.locator('button:has-text("Add"), button[aria-label*="cart"], button:has-text("Cart")').first();
+  61  |     if (await addBtn.isVisible()) {
+  62  |       await addBtn.click();
+  63  |       await page.waitForTimeout(500);
+  64  |     }
+  65  |   });
+  66  | 
+  67  |   test('user can add to wishlist from listing', async ({ page }) => {
+  68  |     await page.goto('/products');
+  69  |     await expect(page.locator('[class*="product-card"], .product-card').first()).toBeVisible({ timeout: 10000 });
+  70  | 
+  71  |     const wishlistBtn = page.locator('button[aria-label*="wishlist"], button:has-text("Wishlist"), button[class*="wishlist"]').first();
+  72  |     if (await wishlistBtn.isVisible()) {
+  73  |       await wishlistBtn.click();
+  74  |       await page.waitForTimeout(500);
+  75  |     }
+  76  |   });
+  77  | 
+  78  |   test('user can search from header', async ({ page }) => {
+  79  |     const searchBtn = page.locator('button[aria-label*="search"], [data-testid="search-trigger"], a[href="/search"]').first();
+  80  |     if (await searchBtn.isVisible()) {
+  81  |       await searchBtn.click();
+  82  |       await page.waitForTimeout(300);
+  83  |     }
+  84  | 
+  85  |     const searchInput = page.locator('input[type="search"], input[placeholder*="search" i], input[name="q"]').first();
+  86  |     if (await searchInput.isVisible()) {
+  87  |       await searchInput.fill('shirt');
+  88  |       await searchInput.press('Enter');
+  89  |       await expect(page).toHaveURL(/.*search/);
+  90  |     }
+  91  |   });
+  92  | 
+  93  |   test('user can navigate between pages using header', async ({ page }) => {
+  94  |     const navLinks = page.locator('nav a, header a[href]');
+  95  |     const count = await navLinks.count();
+  96  |     expect(count).toBeGreaterThan(0);
+  97  | 
+  98  |     const productsLink = page.locator('a[href="/products"]').first();
+  99  |     if (await productsLink.isVisible()) {
+  100 |       await productsLink.click();
+  101 |       await expect(page).toHaveURL(/.*products/);
+  102 |     }
+  103 |   });
+  104 | 
+  105 |   test('user can use footer navigation', async ({ page }) => {
+  106 |     const footerLinks = page.locator('footer a[href]');
+  107 |     const count = await footerLinks.count();
+  108 |     expect(count).toBeGreaterThan(0);
+  109 |   });
+  110 | 
+```

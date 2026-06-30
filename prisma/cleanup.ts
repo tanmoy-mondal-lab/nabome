@@ -68,7 +68,6 @@ async function main() {
     { name: "Lookbook Items", fn: () => prisma.lookbookItem.deleteMany() },
     { name: "Lookbooks", fn: () => prisma.lookbook.deleteMany() },
     { name: "Static Pages", fn: () => prisma.staticPage.deleteMany() },
-    { name: "Brand Story", fn: () => prisma.brandStory.deleteMany() },
     { name: "Footer Sections", fn: () => prisma.footerSection.deleteMany() },
     { name: "Navigation Menus", fn: () => prisma.navigationMenu.deleteMany() },
     { name: "Homepage Sections", fn: () => prisma.homepageSection.deleteMany() },

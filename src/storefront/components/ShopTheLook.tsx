@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, ShoppingBag } from "lucide-react";
 import { PriceDisplay } from "./PriceDisplay";
 import { SafeImage } from "../../components/SafeImage";
@@ -18,6 +18,7 @@ interface ShopTheLookProps {
 }
 
 export function ShopTheLook({ image, hotspots, title }: ShopTheLookProps) {
+  const prefersReducedMotion = useReducedMotion();
   const [active, setActive] = useState<number | null>(null);
 
   return (
@@ -44,11 +45,11 @@ export function ShopTheLook({ image, hotspots, title }: ShopTheLookProps) {
             <AnimatePresence>
               {active === i && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
+                  initial={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }} animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }} exit={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
                   className="absolute left-1/2 -translate-x-1/2 top-10 w-56 bg-white shadow-xl rounded p-3 z-10"
                 >
                   <div className="flex gap-3">
-                    <SafeImage src={((h.product.images as { url: string }[])?.[0]?.url) || "/placeholder.svg"} alt="" className="w-16 h-20 object-cover bg-neutral-50" />
+                    <SafeImage src={((h.product.images as { url: string }[])?.[0]?.url) || "/placeholder.svg"} alt={h.product.name as string || "Product"} className="w-16 h-20 object-cover bg-neutral-50" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-neutral-900 truncate">{h.product.name as string}</p>
                       <PriceDisplay price={Number(h.product.basePrice ?? 0)} compareAtPrice={h.product.compareAtPrice ? Number(h.product.compareAtPrice) : null} size="sm" className="mt-1" />

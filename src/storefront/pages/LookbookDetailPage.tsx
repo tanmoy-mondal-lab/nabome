@@ -8,6 +8,7 @@ import { ShoppingBag } from "lucide-react";
 import { SafeImage } from "../../components/SafeImage";
 import { useCartStore } from "../stores/cart-store";
 import { useAuthStore } from "../../stores/auth-store";
+import { Helmet } from "react-helmet-async";
 
 export default function LookbookDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -25,12 +26,13 @@ export default function LookbookDetailPage() {
   const lookbook = res?.lookbook as Record<string, unknown> | undefined;
 
   if (loading) {
-    return <div className="container-page py-8"><div className="aspect-[2/1] bg-neutral-100 animate-pulse rounded" /></div>;
+    return <div className="container-page py-8"><Helmet><title>Lookbook — নবME</title><meta name="description" content="View lookbook on নবME." /><meta property="og:title" content="Lookbook — নবME" /><meta property="og:description" content="View lookbook on নবME." /></Helmet><div className="aspect-[2/1] bg-neutral-100 animate-pulse rounded" /></div>;
   }
 
   if (!lookbook) {
     return (
       <div className="container-page py-20 text-center">
+        <Helmet><title>Lookbook — নবME</title><meta name="description" content="View lookbook on নবME." /><meta property="og:title" content="Lookbook — নবME" /><meta property="og:description" content="View lookbook on নবME." /></Helmet>
         <h1 className="text-xl font-display text-neutral-900 mb-4">Lookbook not found</h1>
         <Link to="/lookbooks" className="text-brand-600 hover:underline">Browse all lookbooks</Link>
       </div>
@@ -42,6 +44,12 @@ export default function LookbookDetailPage() {
 
   return (
     <div className="container-page py-8">
+      <Helmet>
+        <title>Lookbook — নবME</title>
+        <meta name="description" content="View lookbook on নবME." />
+        <meta property="og:title" content="Lookbook — নবME" />
+        <meta property="og:description" content="View lookbook on নবME." />
+      </Helmet>
       <Breadcrumbs items={[
         { label: "Lookbooks", href: "/lookbooks" },
         { label: lookbook.title as string },
@@ -77,7 +85,7 @@ export default function LookbookDetailPage() {
             const image = item.imageUrl as string;
             return (
               <div key={item.id as string}>
-                {image && <SafeImage src={image} alt="" className="w-full rounded mb-6" />}
+                {image && <SafeImage src={image} alt={`Lookbook image: ${item.title as string || "Shop the look"}`} className="w-full rounded mb-6" />}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                   {products.map((p) => (
                     <ProductCard key={p.id as string} product={p} />

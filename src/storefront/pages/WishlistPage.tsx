@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Heart, ShoppingBag, X, ArrowLeft } from "lucide-react";
 import { api } from "../../lib/api/client";
 import { Breadcrumbs } from "../components/Breadcrumbs";
@@ -10,12 +10,15 @@ import { useWishlist } from "../hooks/useWishlist";
 import { SafeImage } from "../../components/SafeImage";
 import { formatPrice } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
+import { Helmet } from "react-helmet-async";
+import { canonical } from "../../lib/seo";
 
 export default function WishlistPage() {
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const { isAuthenticated } = useAuthStore();
   const { items, remove } = useWishlist();
+  const prefersReducedMotion = useReducedMotion();
   const addItem = useCartStore((s) => s.addItem);
   const justAdded = useCartStore((s) => s.justAdded);
 
@@ -38,8 +41,14 @@ export default function WishlistPage() {
   if (!isAuthenticated) {
     return (
       <div className="container-page section-padding">
+        <Helmet>
+          <title>My Wishlist — নবME</title>
+          <meta name="description" content="View your wishlist on নবME." />
+          <link rel="canonical" href={canonical("/account/wishlist")} />
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <Breadcrumbs items={[{ label: "My Wishlist" }]} className="mb-6" />
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md mx-auto">
+        <motion.div initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }} animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }} className="text-center max-w-md mx-auto">
           <div className="w-24 h-24 mx-auto mb-8 bg-luxe-ivory rounded-full flex items-center justify-center">
             <Heart className="w-10 h-10 text-brand-400" />
           </div>
@@ -61,8 +70,14 @@ export default function WishlistPage() {
   if (!loading && items.length === 0) {
     return (
       <div className="container-page section-padding">
+        <Helmet>
+          <title>My Wishlist — নবME</title>
+          <meta name="description" content="View your wishlist on নবME." />
+          <link rel="canonical" href={canonical("/account/wishlist")} />
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
         <Breadcrumbs items={[{ label: "My Wishlist" }]} className="mb-6" />
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md mx-auto">
+        <motion.div initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }} animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }} className="text-center max-w-md mx-auto">
           <div className="w-24 h-24 mx-auto mb-8 bg-luxe-ivory rounded-full flex items-center justify-center">
             <Heart className="w-10 h-10 text-brand-400" />
           </div>
@@ -83,6 +98,12 @@ export default function WishlistPage() {
 
   return (
     <div className="bg-white">
+      <Helmet>
+        <title>My Wishlist — নবME</title>
+        <meta name="description" content="View your wishlist on নবME." />
+        <link rel="canonical" href={canonical("/account/wishlist")} />
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <div className="container-page pt-8 pb-24">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "My Wishlist" }]} className="mb-8" />
 
@@ -112,10 +133,10 @@ export default function WishlistPage() {
                 <motion.div
                   key={wishlistItem.id as string}
                   layout
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9, height: 0 }}
-                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.95 }}
+                  animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
+                  exit={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.9, height: 0 }}
+                  transition={prefersReducedMotion ? undefined : { duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
                   className="group relative bg-white"
                 >
                   <div className="relative aspect-[3/4] bg-neutral-50 overflow-hidden">
@@ -129,7 +150,7 @@ export default function WishlistPage() {
                         {images[1]?.url && (
                           <SafeImage
                             src={images[1].url}
-                            alt=""
+                            alt={`${name} - alternate view`}
                             className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-luxe-out"
                           />
                         )}

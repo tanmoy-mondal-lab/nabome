@@ -74,17 +74,21 @@ export default function OrdersPage() {
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const fetchStats = useCallback(async () => {
     try {
       const res = await adminApi.getOrderStats();
       setStats((res as unknown as OrderStats) ?? null);
-    } catch { /* stats are non-critical, ignore */ }
+    } catch {
+      setFetchError("Failed to load order stats");
+    }
   }, []);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const statusKey = STATUS_MAP[activeTab];
       const params: Record<string, string | number | undefined> = { page, limit: 20 };
@@ -96,7 +100,9 @@ export default function OrdersPage() {
       setOrders((res.orders as Order[]) ?? []);
       const pag = res.pagination as { totalPages?: number } | undefined;
       setTotalPages(pag?.totalPages ?? 1);
-    } catch { /* non-critical, keep existing data */ } finally {
+    } catch {
+      setFetchError("Failed to load orders");
+    } finally {
       setLoading(false);
     }
   }, [page, activeTab, debouncedSearch, dateFrom, dateTo]);
@@ -170,6 +176,9 @@ export default function OrdersPage() {
 
   return (
     <div>
+      {fetchError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{fetchError}</div>
+      )}
       <div className="mb-6">
         <h1 className="font-display text-2xl text-neutral-900">Orders</h1>
         <p className="text-sm text-neutral-500 mt-1">Manage customer orders</p>

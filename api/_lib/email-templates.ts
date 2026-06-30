@@ -34,6 +34,17 @@ const BRAND = {
   fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
 };
 
+const DEFAULT_SITE_URL = "https://www.nabome.online";
+
+function siteUrl(data: Record<string, unknown>): string {
+  return String(data.siteUrl || DEFAULT_SITE_URL).replace(/\/+$/, "");
+}
+
+function appUrl(data: Record<string, unknown>, path: string): string {
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${siteUrl(data)}${cleanPath}`;
+}
+
 // ─── Base Layout ───
 
 function baseLayout(body: string): string {
@@ -150,7 +161,7 @@ ${transactionId ? `<tr><td style="padding:4px 0;color:${BRAND.textMuted}">Transa
 </table>
 </div>
 
-${button(`https://www.nabome.online/account/orders/${data.orderId || ""}`, "View Order")}
+${button(appUrl(data, `/account/orders/${data.orderId || ""}`), "View Order")}
 
 <p style="font-size:13px;color:${BRAND.textMuted};margin-top:24px">Your order is now being processed. We'll notify you when it ships.</p>`;
 
@@ -174,7 +185,7 @@ function paymentFailure(data: Record<string, unknown>): EmailTemplate {
 <p style="margin:0;font-size:14px;color:${BRAND.textDark}">${reason}</p>
 </div>
 
-${button(`https://www.nabome.online/checkout?retry=${data.orderId || ""}`, "Retry Payment")}
+${button(appUrl(data, `/checkout?retry=${data.orderId || ""}`), "Retry Payment")}
 
 <p style="font-size:13px;color:${BRAND.textMuted};margin-top:24px">If you need assistance, please contact our support team.</p>`;
 
@@ -207,7 +218,7 @@ ${estimatedDelivery ? `<tr><td style="padding:4px 0;color:${BRAND.textMuted}">Es
 
 ${trackingHtml}
 
-${button(`https://www.nabome.online/account/orders/${data.orderId || ""}`, "Track Order")}
+${button(appUrl(data, `/account/orders/${data.orderId || ""}`), "Track Order")}
 
 <p style="font-size:13px;color:${BRAND.textMuted};margin-top:24px">Thank you for shopping with নবME.</p>`;
 
@@ -231,7 +242,7 @@ function deliveryConfirmation(data: Record<string, unknown>): EmailTemplate {
 
 <p style="font-size:14px;color:${BRAND.textDark};text-align:center">We hope you love your purchase. If you have any questions, our support team is here to help.</p>
 
-${button(`https://www.nabome.online/account/orders/${data.orderId || ""}`, "Review Order")}
+${button(appUrl(data, `/account/orders/${data.orderId || ""}`), "Review Order")}
 
 <p style="font-size:13px;color:${BRAND.textMuted};margin-top:24px">Love your new outfit? Share your style with us on social media and tag <strong>@nabme</strong></p>`;
 
@@ -294,7 +305,7 @@ ${items.map((i) => `<tr><td style="padding:6px 0;color:${BRAND.textDark}">${i.na
 
 ${itemsHtml}
 
-${button(`https://www.nabome.online/admin/orders/${data.orderId || ""}`, "View in Admin")}`;
+${button(appUrl(data, `/admin/orders/${data.orderId || ""}`), "View in Admin")}`;
 
   return {
     subject: `[Admin] New Order — ${orderNumber}`,
@@ -322,7 +333,7 @@ ${amount ? `<tr><td style="padding:4px 0;color:${BRAND.textMuted}">Amount</td><t
 </table>
 </div>
 
-${button(`https://www.nabome.online/admin/returns/${data.returnId || ""}`, "View in Admin")}`;
+${button(appUrl(data, `/admin/returns/${data.returnId || ""}`), "View in Admin")}`;
 
   return {
     subject: `[Admin] Refund Request — Order ${orderNumber}`,
@@ -347,7 +358,7 @@ function adminContactForm(data: Record<string, unknown>): EmailTemplate {
 <p style="margin:0;font-size:14px;color:${BRAND.textDark};line-height:1.6">${message.replace(/\n/g, "<br>")}</p>
 </div>
 
-${button(`https://www.nabome.online/admin/contact`, "View in Admin")}`;
+${button(appUrl(data, "/admin/contact"), "View in Admin")}`;
 
   return {
     subject: `[Admin] Contact Form — ${subject}`,
@@ -375,7 +386,7 @@ function welcomeEmail(data: Record<string, unknown>): EmailTemplate {
 
 <p style="font-size:14px;color:${BRAND.textMuted};line-height:1.6;margin:0 0 24px">Start exploring — we're confident you'll find something you love.</p>
 
-${button("https://www.nabome.online/products", "Shop Now")}
+${button(appUrl(data, "/products"), "Shop Now")}
 
 <p style="font-size:12px;color:${BRAND.textMuted};line-height:1.5;margin:0">If you didn't create this account, please ignore this email.</p>`;
 

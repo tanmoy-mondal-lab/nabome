@@ -1,7 +1,7 @@
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
-import { requireAdmin } from "../../_lib/auth";
+import { requireAdmin } from "../../_lib/auth-middleware";
 
 type SearchableDoc = {
   id: string;
@@ -93,7 +93,7 @@ async function handleBuild(env: any): Promise<Response> {
         title: p.title,
         slug: p.slug,
         description: p.metaDesc ?? undefined,
-        url: `/pages/${p.slug}`,
+        url: `/${p.slug}`,
         updatedAt: p.updatedAt.toISOString(),
       })),
       ...categories.map((c) => ({
@@ -103,7 +103,7 @@ async function handleBuild(env: any): Promise<Response> {
         slug: c.slug,
         description: c.description ?? undefined,
         imageUrl: c.imageUrl ?? undefined,
-        url: `/categories/${c.slug}`,
+        url: `/products?category=${encodeURIComponent(c.slug)}`,
         updatedAt: c.updatedAt.toISOString(),
       })),
       ...collections.map((c) => ({

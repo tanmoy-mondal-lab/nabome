@@ -1,4 +1,5 @@
 import { badRequest } from "./response";
+import { cleanSecret } from "./secrets";
 import type { RequestContext } from "./types";
 
 type TurnstileResult = {
@@ -39,7 +40,7 @@ export async function verifyTurnstileToken(
   request: Request,
   ctx: RequestContext
 ): Promise<Response | null> {
-  const secret = ctx.env?.TURNSTILE_SECRET_KEY?.trim();
+  const secret = cleanSecret(ctx.env?.TURNSTILE_SECRET_KEY);
   if (!secret) {
     return null;
   }

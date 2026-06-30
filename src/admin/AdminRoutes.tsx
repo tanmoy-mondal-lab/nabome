@@ -12,15 +12,12 @@ const OrdersPage = lazy(() => import("./orders/OrdersPage"));
 const OrderDetailPage = lazy(() => import("./orders/OrderDetailPage"));
 const ReturnsPage = lazy(() => import("./returns/ReturnsPage"));
 const ReturnDetailPage = lazy(() => import("./returns/ReturnDetailPage"));
-const ShippingZonesPage = lazy(() => import("./shipping/ShippingZonesPage"));
+
 const CustomersPage = lazy(() => import("./customers/CustomersPage"));
-const CMSPagesPage = lazy(() => import("./cms/CMSPagesPage"));
+const CMSPage = lazy(() => import("./cms/CMSPage"));
 const HomepageBuilder = lazy(() => import("./cms/HomepageBuilder"));
-const PageBuilderDemo = lazy(() => import("./cms/PageBuilderDemo").then((m) => ({ default: m.PageBuilderDemo })));
 const HeaderBuilder = lazy(() => import("./cms/HeaderBuilder"));
 const FooterBuilder = lazy(() => import("./cms/FooterBuilder"));
-const BrandStoryPage = lazy(() => import("./cms/BrandStoryPage"));
-const BannersPage = lazy(() => import("./cms/BannersPage"));
 const HeroBuilder = lazy(() => import("./cms/HeroBuilder"));
 const MediaLibrary = lazy(() => import("./media/MediaLibrary"));
 const SEOPage = lazy(() => import("./seo/SEOPage"));
@@ -100,7 +97,7 @@ export default function AdminRoutes() {
           <Route path="orders/:id" element={<OrderDetailPage />} />
           <Route path="returns" element={<ReturnsPage />} />
           <Route path="returns/:id" element={<ReturnDetailPage />} />
-          <Route path="shipping" element={<ShippingZonesPage />} />
+
           <Route path="customers" element={<CustomersPage />} />
           <Route path="lookbooks" element={<LookbooksPage />} />
           <Route path="lookbooks/new" element={<LookbookFormPage />} />
@@ -111,15 +108,16 @@ export default function AdminRoutes() {
           <Route path="inventory" element={<InventoryPage />} />
 
           {/* CMS Routes */}
-          <Route path="cms/pages" element={<CMSPagesPage />} />
-          <Route path="cms/page-builder/new" element={<PageBuilderDemo />} />
-          <Route path="cms/page-builder/:id" element={<PageBuilderDemo />} />
+          <Route path="cms" element={<CMSPage />} />
+          {/* Redirect old CMS routes to consolidated page */}
+          <Route path="cms/pages" element={<Navigate to="/admin/cms" replace />} />
+          <Route path="cms/page-builder/new" element={<Navigate to="/admin/cms" replace />} />
+          <Route path="cms/page-builder/:id" element={<Navigate to="/admin/cms" replace />} />
+          <Route path="cms/brand-story" element={<Navigate to="/admin/cms" replace />} />
           <Route path="cms/homepage" element={<HomepageBuilder />} />
           <Route path="cms/hero-builder" element={<HeroBuilder />} />
           <Route path="cms/header" element={<HeaderBuilder />} />
           <Route path="cms/footer" element={<FooterBuilder />} />
-          <Route path="cms/brand-story" element={<BrandStoryPage />} />
-          <Route path="cms/banners" element={<BannersPage />} />
 
           <Route path="media" element={<MediaLibrary />} />
           <Route path="seo" element={<SEOPage />} />

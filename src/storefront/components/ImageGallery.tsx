@@ -24,10 +24,10 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
 
-  const activeImage = images[activeIndex];
+  const activeImage = images[activeIndex] ?? images[0];
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current || !zoomed) return;
+    if (!containerRef.current || !zoomed || !activeImage) return;
     const rect = containerRef.current.getBoundingClientRect();
     setZoomPos({
       x: ((e.clientX - rect.left) / rect.width) * 100,
@@ -44,7 +44,7 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (isVideo(activeImage.url)) return;
+    if (!activeImage || isVideo(activeImage.url)) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
@@ -77,26 +77,31 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
       <div
         ref={containerRef}
         className="relative aspect-[3/4] bg-neutral-50 overflow-hidden group"
-        onMouseEnter={() => !isVideo(activeImage.url) && setZoomed(true)}
+        onMouseEnter={() => activeImage && !isVideo(activeImage.url) && setZoomed(true)}
         onMouseLeave={() => setZoomed(false)}
-        onMouseMove={isVideo(activeImage.url) ? undefined : handleMouseMove}
+        onMouseMove={activeImage && !isVideo(activeImage.url) ? handleMouseMove : undefined}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
         <AnimatePresence mode="wait">
-          {isVideo(activeImage.url) ? (
+          {activeImage && (isVideo(activeImage.url) ? (
             <video key={activeIndex} src={activeImage.url} controls autoPlay muted loop className="w-full h-full object-cover" />
           ) : (
-            <motion.img
+            <motion.div
               key={activeIndex}
-              src={img(activeImage.url, { width: 800 })}
-              alt={activeImage.altText ?? ""}
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full h-full object-cover"
+              className="w-full h-full"
               style={zoomed ? { transform: "scale(2)", transformOrigin: `${zoomPos.x}% ${zoomPos.y}%` } : {}}
-            />
-          )}
+            >
+              <SafeImage
+                src={img(activeImage.url, { width: 800 })}
+                alt={activeImage.altText ?? ""}
+                className="w-full h-full object-cover"
+                useTransform={false}
+              />
+            </motion.div>
+          ))}
         </AnimatePresence>
 
         <button onClick={goPrev} disabled={activeIndex === 0} aria-label="Previous image" className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 disabled:opacity-0 hover:bg-white hover:shadow-subtle max-md:opacity-100 max-md:disabled:opacity-30">
@@ -106,7 +111,7 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
           <ChevronRight className="w-4 h-4" />
         </button>
 
-        {!isVideo(activeImage.url) && (
+        {activeImage && !isVideo(activeImage.url) && (
           <button
             onClick={() => setLightboxOpen(true)}
             className="absolute top-3 right-3 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white hover:shadow-subtle max-md:hidden"
@@ -165,8 +170,8 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
 
             <motion.img
               key={activeIndex}
-              src={img(activeImage.url, { width: 1600 })}
-              alt={activeImage.altText ?? ""}
+              src={img(activeImage?.url ?? "", { width: 1600 })}
+              alt={activeImage?.altText ?? ""}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}

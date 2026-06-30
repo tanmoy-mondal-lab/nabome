@@ -241,133 +241,213 @@ export default function ProductFormPage() {
   }, [pendingImage, variants]);
 
   /* ─── Save handler ─── */
-  const handleSave = useCallback(async () => {
-    const errors = validateProductForm(form);
-    setValidationErrors(errors);
-    if (Object.keys(errors).length > 0) {
-      toast("Please fix the validation errors", "error");
-      return;
-    }
-
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const data = { ...form };
-      const optionalStringFields = [
-        "categoryId", "subcategoryId", "collectionId", "brandId", "sizeGuideId",
-        "sizeChartUrl", "material", "careInstructions", "metaTitle", "metaDesc",
-        "scheduledPublishAt", "scheduledArchiveAt",
-      ];
-      for (const f of optionalStringFields) {
-        if ((data as Record<string, unknown>)[f] === "")
-          (data as Record<string, unknown>)[f] = null;
+  const handleSaveWithRetry = useCallback(
+    async (retryCount = 0, batchOp = false) => {
+      const errors = validateProductForm(form);
+      setValidationErrors(errors);
+      if (Object.keys(errors).length > 0) {
+        toast("Please fix the validation errors", "error");
+        return;
       }
-      if (data.scheduledPublishAt) data.scheduledPublishAt = new Date(data.scheduledPublishAt).toISOString();
-      if (data.scheduledArchiveAt) data.scheduledArchiveAt = new Date(data.scheduledArchiveAt).toISOString();
 
-      let res: unknown;
-      if (isEdit) {
-        await adminApi.updateProduct(id!, data);
-        await adminApi.assignLabels(id!, selectedLabels);
-      } else {
-        res = await adminApi.createProduct(data);
-        const newId = (res as Record<string, { id: string }>).product?.id ?? (res as Record<string, string>).id;
-        if (newId) await adminApi.assignLabels(newId, selectedLabels);
-      }
-      const productId = isEdit ? id! : (res as Record<string, { id: string }>).product?.id ?? (res as Record<string, string>).id;
+      setSaving(true);
+      setSaveError(null);
+      
+      // Rate limit detection and retry logic
+      let lastError: unknown = null;
+      const maxRetries = 3;
+      const baseDelay = 1000;
+      
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const data = { ...form };
+          const optionalStringFields = [
+            "categoryId", "subcategoryId", "collectionId", "brandId", "sizeGuideId",
+            "sizeChartUrl", "material", "careInstructions", "metaTitle", "metaDesc",
+            "scheduledPublishAt", "scheduledArchiveAt",
+          ];
+          for (const f of optionalStringFields) {
+            if ((data as Record<string, unknown>)[f] === "")
+              (data as Record<string, unknown>)[f] = null;
+          }
+          if (data.scheduledPublishAt) data.scheduledPublishAt = new Date(data.scheduledPublishAt).toISOString();
+          if (data.scheduledArchiveAt) data.scheduledArchiveAt = new Date(data.scheduledArchiveAt).toISOString();
 
-      if (productId) {
-        // Save variants
-        let savedVariants: Record<string, unknown>[] = [];
-        if (variants.length > 0) {
-          const variantRes = await adminApi.updateProductVariants(
-            productId,
-            variants.map((v) => ({
-              id: v.id?.startsWith("new-") ? undefined : v.id,
-              sku: v.sku, size: v.size, color: v.color, colorHex: v.colorHex,
-              priceAdjustment: v.priceAdjustment, stock: v.stock, weight: v.weight,
-              isActive: v.isActive, videoUrl: v.videoUrl ?? null, videoPublicId: v.videoPublicId ?? null,
-            }))
-          );
-          savedVariants = (variantRes as Record<string, unknown>)?.variants as Record<string, unknown>[] ?? [];
-        }
+          let res: unknown;
+          if (isEdit) {
+            await adminApi.updateProduct(id!, data);
+            await adminApi.assignLabels(id!, selectedLabels);
+          } else {
+            res = await adminApi.createProduct(data);
+            const newId = (res as Record<string, { id: string }>).product?.id ?? (res as Record<string, string>).id;
+            if (newId) await adminApi.assignLabels(newId, selectedLabels);
+          }
+          const productId = isEdit ? id! : (res as Record<string, { id: string }>).product?.id ?? (res as Record<string, string>).id;
 
-        // Save variant images
-        for (let i = 0; i < variants.length; i++) {
-          const v = variants[i];
-          const variantId = savedVariants[i]?.id as string | undefined;
-          if (!variantId) continue;
-          const variantImages = v.images ?? [];
-          for (const img of variantImages) {
-            if (!img.id) {
-              // New image - add it
-              await adminApi.addProductImage(productId, {
-                url: img.url, publicId: img.publicId,
-                altText: img.altText ?? "", isPrimary: false,
-                variantId,
-              });
+          if (productId) {
+            let savedVariants: Record<string, unknown>[] = [];
+            if (variants.length > 0) {
+              const variantRes = await adminApi.updateProductVariants(
+                productId,
+                variants.map((v) => ({
+                  id: v.id?.startsWith("new-") ? undefined : v.id,
+                  sku: v.sku, size: v.size, color: v.color, colorHex: v.colorHex,
+                  priceAdjustment: v.priceAdjustment, stock: v.stock, weight: v.weight,
+                  isActive: v.isActive, videoUrl: v.videoUrl ?? null, videoPublicId: v.videoPublicId ?? null,
+                }))
+              );
+              savedVariants = (variantRes as Record<string, unknown>)?.variants as Record<string, unknown>[] ?? [];
+            }
+
+            const variantImageErrors: string[] = [];
+            for (let i = 0; i < variants.length; i++) {
+              const v = variants[i];
+              const variantId = savedVariants[i]?.id as string | undefined;
+              if (!variantId) continue;
+              const variantImages = v.images ?? [];
+              for (const img of variantImages) {
+                if (!img.id) {
+                  try {
+                    await adminApi.addProductImage(productId, {
+                      url: img.url, publicId: img.publicId,
+                      altText: img.altText ?? "", isPrimary: img.isPrimary ?? false,
+                      sortOrder: img.sortOrder ?? 0,
+                      variantId,
+                      type: img.type ?? "image",
+                    });
+                  } catch (imgErr) {
+                    variantImageErrors.push(`Variant image: ${imgErr instanceof Error ? imgErr.message : String(imgErr)}`);
+                  }
+                }
+              }
+            }
+
+            const currentImageIds = new Set(images.filter((img) => img.id).map((img) => img.id!));
+            const deletedImageIds = [...initialImageIdsRef.current].filter((imgId) => !currentImageIds.has(imgId));
+            const deleteResults = deletedImageIds.length > 0
+              ? await Promise.allSettled(deletedImageIds.map((imgId) => adminApi.deleteProductImage(productId, imgId)))
+              : [];
+            const deleteErrors = deleteResults
+              .map((r, i) => r.status === "rejected" ? `Delete image ${deletedImageIds[i]}: ${r.reason}` : null)
+              .filter(Boolean) as string[];
+
+            const deletedVariantImageIds = variants.flatMap((variant) => {
+              const currentImageIds = new Set((variant.images ?? []).filter((img) => img.id).map((img) => img.id!));
+              const initialImageIds = initialVariantImageIdsRef.current.get(variant.id) ?? new Set<string>();
+              return [...initialImageIds].filter((imgId) => !currentImageIds.has(imgId));
+            });
+            const deleteVariantResults = deletedVariantImageIds.length > 0
+              ? await Promise.allSettled(deletedVariantImageIds.map((imgId) => adminApi.deleteProductImage(productId, imgId)))
+              : [];
+            const deleteVariantErrors = deleteVariantResults
+              .map((r, i) => r.status === "rejected" ? `Delete variant image ${deletedVariantImageIds[i]}: ${r.reason}` : null)
+              .filter(Boolean) as string[];
+
+            const newImages = images.filter((img) => !img.id);
+            const hasExistingPrimary = images.some((img) => img.id && img.isPrimary);
+            const addResults = newImages.length > 0
+              ? await Promise.allSettled(
+                  newImages.map((img, index) =>
+                    adminApi.addProductImage(productId, {
+                      url: img.url,
+                      publicId: img.publicId,
+                      altText: img.altText ?? "",
+                      isPrimary: hasExistingPrimary ? (img.isPrimary ?? false) : index === 0,
+                      sortOrder: img.sortOrder ?? index,
+                      type: img.type ?? "image",
+                    })
+                  )
+                )
+              : [];
+            const addErrors = addResults
+              .map((r, i) => r.status === "rejected" ? `Add image ${i + 1}: ${r.reason}` : null)
+              .filter(Boolean) as string[];
+
+            const allErrors = [...deleteErrors, ...deleteVariantErrors, ...addErrors, ...variantImageErrors];
+            if (allErrors.length > 0) {
+              console.warn("Product saved with image errors:", allErrors);
             }
           }
-        }
 
-        // Delete removed images
-        const currentImageIds = new Set(images.filter((img) => img.id).map((img) => img.id!));
-        const deletedImageIds = [...initialImageIdsRef.current].filter((imgId) => !currentImageIds.has(imgId));
-        if (deletedImageIds.length > 0) {
-          await Promise.all(deletedImageIds.map((imgId) => adminApi.deleteProductImage(productId, imgId)));
-        }
+          queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+          queryClient.invalidateQueries({ queryKey: ["admin", "product", id] });
+          queryClient.invalidateQueries({ queryKey: ["products"] });
+          queryClient.invalidateQueries({ queryKey: ["categories"] });
+          queryClient.invalidateQueries({ queryKey: ["product", id] });
 
-        // Delete removed variant images for variants that still exist.
-        const deletedVariantImageIds = variants.flatMap((variant) => {
-          const currentImageIds = new Set((variant.images ?? []).filter((img) => img.id).map((img) => img.id!));
-          const initialImageIds = initialVariantImageIdsRef.current.get(variant.id) ?? new Set<string>();
-          return [...initialImageIds].filter((imgId) => !currentImageIds.has(imgId));
-        });
-        if (deletedVariantImageIds.length > 0) {
-          await Promise.all(deletedVariantImageIds.map((imgId) => adminApi.deleteProductImage(productId, imgId)));
-        }
-
-        // Add new product-level images
-        const newImages = images.filter((img) => !img.id);
-        if (newImages.length > 0) {
-          await Promise.all(
-            newImages.map((img, index) =>
-              adminApi.addProductImage(productId, { url: img.url, publicId: img.publicId, altText: img.altText ?? "", isPrimary: index === 0 })
-            )
-          );
+          resetDirty();
+          toast(isEdit ? "Product updated" : "Product created", "success");
+          navigate("/admin/products");
+          return;
+        } catch (err) {
+          lastError = err;
+          const msg = err instanceof Error ? err.message : String(err);
+          const statusCode = (err as any)?.status;
+          const isRateLimit = 
+            /rate.*limit|too.*many.*request|429/.test(msg.toLowerCase()) || 
+            statusCode === 429 || 
+            statusCode === 503 ||
+            /service.*unavailable|server.*busy/.test(msg.toLowerCase());
+          
+          if (isRateLimit && attempt < maxRetries) {
+            const delay = baseDelay * Math.pow(2, attempt);
+            setSaveError(`Rate limited. Retrying in ${Math.round(delay/1000)}s... (Attempt ${attempt + 1}/${maxRetries + 1})`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          break;
         }
       }
-
-      // Invalidate ALL relevant caches
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "product", id] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
-      queryClient.invalidateQueries({ queryKey: ["product", id] });
-
-      resetDirty();
-      toast(isEdit ? "Product updated" : "Product created", "success");
-      navigate("/admin/products");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setSaveError(`Failed to save product: ${msg}`);
+      
+      const errMsg = lastError instanceof Error ? lastError.message : String(lastError);
+      setSaveError(`Failed to save product: ${errMsg}`);
       toast("Failed to save product", "error");
-    } finally {
       setSaving(false);
-    }
-  }, [form, id, isEdit, variants, images, selectedLabels, queryClient, navigate, toast, resetDirty]);
+    },
+    [form, id, isEdit, variants, images, selectedLabels, queryClient, navigate, toast, resetDirty]
+  );
 
-  handleSaveRef.current = handleSave;
+  handleSaveRef.current = () => handleSaveWithRetry();
+  const handleAdminRetry = useCallback(() => {
+    setSaveError(null);
+    handleSaveWithRetry();
+  }, [handleSaveWithRetry]);
 
   function handleDuplicate() {
     if (!id) return;
-    adminApi.duplicateProduct(id)
-      .then(() => {
+    
+    const maxRetries = 3;
+    const baseDelay = 1000;
+    let retryCount = 0;
+    
+    const attemptDuplicate = async () => {
+      try {
+        await adminApi.duplicateProduct(id!);
         queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
         toast("Product duplicated as draft", "success");
         navigate("/admin/products");
-      })
-      .catch(() => toast("Failed to duplicate product", "error"));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        const statusCode = (err as any)?.status;
+        const isRateLimit = 
+          /rate.*limit|too.*many.*request|429/.test(msg.toLowerCase()) || 
+          statusCode === 429 || 
+          statusCode === 503;
+        
+        if (isRateLimit && retryCount < maxRetries) {
+          retryCount++;
+          const delay = baseDelay * Math.pow(2, retryCount);
+          setSaveError(`Rate limited during duplicate. Retrying in ${Math.round(delay/1000)}s... (Attempt ${retryCount}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          attemptDuplicate();
+        } else {
+          setSaveError(`Failed to duplicate product: ${msg}`);
+          toast("Failed to duplicate product", "error");
+        }
+      }
+    };
+    
+    attemptDuplicate();
   }
 
   function handleBack() {
@@ -484,7 +564,7 @@ export default function ProductFormPage() {
         saveError={saveError}
         dirty={dirty}
         onBack={handleBack}
-        onSave={handleSave}
+        onSave={() => handleSaveWithRetry()}
         onDuplicate={isEdit ? handleDuplicate : undefined}
         onDismissError={() => setSaveError(null)}
       />

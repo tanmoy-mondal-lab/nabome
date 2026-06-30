@@ -47,10 +47,11 @@ export default function SocialLinksPage() {
       }
     },
     onSuccess: () => {
+      const wasEditing = !!editItem;
       queryClient.invalidateQueries({ queryKey: ["admin", "socialLinks"] });
       setModalOpen(false);
       setEditItem(null);
-      toast(editItem ? "Social link updated" : "Social link created", "success");
+      toast(wasEditing ? "Social link updated" : "Social link created", "success");
     },
     onError: () => {
       toast("Failed to save social link", "error");

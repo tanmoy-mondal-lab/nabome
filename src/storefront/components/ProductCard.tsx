@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Heart, ShoppingBag, Eye } from "lucide-react";
 import { PriceDisplay } from "./PriceDisplay";
 import { cn } from "../../lib/utils/cn";
@@ -19,6 +19,7 @@ interface ProductCardProps {
 export function ProductCard({ product, onQuickView, view = "grid" }: ProductCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion();
   const { add: addToWishlist, remove: removeFromWishlist, isInWishlist } = useWishlist();
   const addItem = useCartStore((s) => s.addItem);
   const justAdded = useCartStore((s) => s.justAdded);
@@ -117,7 +118,7 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
 
   return (
     <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      initial={prefersReducedMotion ? undefined : { opacity: 0 }} animate={{ opacity: 1 }}
       className="premium-card premium-card-lift group relative bg-white"
     >
         <Link to={`/products/${slug}`} className="block aspect-[3/4] bg-neutral-50 overflow-hidden relative">
@@ -125,10 +126,10 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
           <SafeImage
             src={primaryImage} alt={name}
             onLoad={() => setImageLoaded(true)}
-            className={cn("w-full h-full object-cover transition-all duration-700 ease-luxe-out group-hover:scale-105", imageLoaded ? "opacity-100" : "opacity-0")}
+            className={cn("w-full h-full object-cover transition-all duration-700 ease-luxe-out", !prefersReducedMotion && "group-hover:scale-105", imageLoaded ? "opacity-100" : "opacity-0")}
           />
-          {hoverImage && (
-            <SafeImage src={hoverImage} alt="" className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-luxe-out" />
+          {hoverImage && !prefersReducedMotion && (
+            <SafeImage src={hoverImage} alt={`${name} - alternate view`} className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-luxe-out" />
           )}
 
         {discount > 0 && (

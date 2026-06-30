@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { HeroCarousel } from "../components/HeroCarousel";
+import { normalizeHeroSlides } from "../../cms/core/hero-slides";
 
 interface Slide {
   id: string;
@@ -37,7 +38,10 @@ const stagger = {
 
 export default function HeroSliderSection({ section }: HeroSliderSectionProps) {
   const content = section.content ?? {};
-  const slides = (content.slides as Slide[] | undefined) ?? [];
+  const slides = useMemo(
+    () => normalizeHeroSlides(content.slides, { title: section.title, subtitle: section.subtitle }),
+    [content.slides, section.subtitle, section.title],
+  );
   const interval = (content.interval as number | undefined) ?? 7000;
 
   const [currentSlide, setCurrentSlide] = useState(0);

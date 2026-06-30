@@ -1,4 +1,4 @@
-import { ArrowLeft, Save, Copy, ChevronDown, AlertCircle } from "lucide-react";
+import { ArrowLeft, Save, Copy, AlertCircle, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ProductFormHeaderProps {
@@ -34,12 +34,23 @@ export function ProductFormHeader({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden mb-3"
           >
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 flex items-center justify-between">
+            <div className={`rounded-lg p-3 text-sm flex items-center justify-between border ${saveError && (saveError.includes('Rate limited') || saveError.includes('429') || saveError.includes('503')) ? 'bg-orange-50 border-orange-300 text-orange-800' : 'bg-red-50 border-red-200 text-red-700'}`}>
               <div className="flex items-center gap-2">
-                <AlertCircle size={14} />
+                {(saveError && (saveError.includes('Rate limited') || saveError.includes('429') || saveError.includes('503'))) ? (
+                  <RefreshCw size={14} className="animate-spin" />
+                ) : (
+                  <AlertCircle size={14} />
+                )}
                 <span>{saveError}</span>
+                {(saveError && (saveError.includes('Rate limited') || saveError.includes('429') || saveError.includes('503'))) && (
+                  <button onClick={onDismissError} className="ml-2 px-2 py-0.5 text-xs font-medium text-orange-600 hover:text-orange-800 bg-orange-100 rounded hover:bg-orange-200 transition-colors">Dismiss</button>
+                )}
               </div>
-              <button onClick={onDismissError} className="text-red-500 hover:text-red-700 text-xs font-medium">Dismiss</button>
+              {(saveError && (saveError.includes('Rate limited') || saveError.includes('429') || saveError.includes('503'))) ? (
+                <span className="text-[10px] text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full font-medium">Admin Retry</span>
+              ) : (
+                <button onClick={onDismissError} className="text-red-500 hover:text-red-700 text-xs font-medium">Dismiss</button>
+              )}
             </div>
           </motion.div>
         )}
