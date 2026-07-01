@@ -12,56 +12,55 @@ export function AuthLoader() {
     if (ran.current) return;
     ran.current = true;
 
-    const { accessToken, refreshToken, expiresAt, user, setUser, setLoading, clearAuth, setTokens } =
-      useAuthStore.getState();
+    const doInit = async () => {
+      const { accessToken, refreshToken, expiresAt, user, setUser, setLoading, clearAuth, setTokens } =
+        useAuthStore.getState();
 
-    if (!accessToken) {
-      useCartStore.getState().switchUser();
-      setLoading(false);
-      return;
-    }
+      if (!accessToken) {
+        useCartStore.getState().switchUser();
+        setLoading(false);
+        return;
+      }
 
-    if (expiresAt && Date.now() / 1000 > expiresAt) {
-      if (refreshToken) {
-        authApi
-          .refresh(refreshToken)
-          .then((res) => {
+      if (expiresAt && Date.now() / 1000 > expiresAt) {
+        if (refreshToken) {
+          try {
+            const res = await authApi.refresh(refreshToken);
             setTokens(res.session.accessToken, res.session.refreshToken, res.session.expiresAt);
-            return authApi.me();
-          })
-          .then((res) => {
-            setUser(res.user);
+            const meRes = await authApi.me();
+            setUser(meRes.user);
+            await useCartStore.getState().mergeGuestCart();
             useCartStore.getState().switchUser();
-          })
-          .catch(() => {
+          } catch {
             clearAuth();
             useCartStore.getState().switchUser();
-          })
-          .finally(() => setLoading(false));
+          }
+        } else {
+          clearAuth();
+          useCartStore.getState().switchUser();
+        }
+        setLoading(false);
+        return;
+      }
+
+      if (!user) {
+        try {
+          const res = await authApi.me();
+          setUser(res.user);
+          await useCartStore.getState().mergeGuestCart();
+          useCartStore.getState().switchUser();
+        } catch {
+          clearAuth();
+          useCartStore.getState().switchUser();
+        }
+        setLoading(false);
       } else {
-        clearAuth();
         useCartStore.getState().switchUser();
         setLoading(false);
       }
-      return;
-    }
+    };
 
-    if (!user) {
-      authApi
-        .me()
-        .then((res) => {
-          setUser(res.user);
-          useCartStore.getState().switchUser();
-        })
-        .catch(() => {
-          clearAuth();
-          useCartStore.getState().switchUser();
-        })
-        .finally(() => setLoading(false));
-    } else {
-      useCartStore.getState().switchUser();
-      setLoading(false);
-    }
+    doInit();
   }, [hydrated]);
 
   return null;

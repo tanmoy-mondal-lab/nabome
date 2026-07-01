@@ -5,15 +5,20 @@ import { useAuthStore } from "../../stores/auth-store";
 export function useWishlist() {
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const fetch = useCallback(async () => {
-    if (!isAuthenticated) { setItems([]); return; }
+    if (!isAuthenticated) { setItems([]); setError(null); return; }
     setLoading(true);
+    setError(null);
     try {
       const res = await api.get<{ items: Record<string, unknown>[] }>("/api/wishlist");
       setItems(res.items ?? []);
-    } catch { setItems([]); }
+    } catch {
+      setItems([]);
+      setError("Failed to load wishlist.");
+    }
     setLoading(false);
   }, [isAuthenticated]);
 
@@ -55,5 +60,5 @@ export function useWishlist() {
 
   const isInWishlist = (variantId: string) => items.some((i) => (i.variantId as string) === variantId);
 
-  return { items, loading, add, remove, isInWishlist, refresh: fetch };
+  return { items, loading, error, add, remove, isInWishlist, refresh: fetch };
 }

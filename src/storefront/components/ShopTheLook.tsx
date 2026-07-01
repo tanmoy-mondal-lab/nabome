@@ -37,10 +37,11 @@ export function ShopTheLook({ image, hotspots, title }: ShopTheLookProps) {
             onTouchStart={() => setActive(active === i ? null : i)}
             role="button"
             tabIndex={0}
+            aria-label={`View product: ${h.product.name}`}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setActive(active === i ? null : i); }}
           >
             <div className="w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform">
-              <span className="text-xs font-bold">+</span>
+              <span className="text-xs font-bold" aria-hidden="true">+</span>
             </div>
             <AnimatePresence>
               {active === i && (
@@ -58,7 +59,7 @@ export function ShopTheLook({ image, hotspots, title }: ShopTheLookProps) {
                       </Link>
                     </div>
                   </div>
-                  <button onClick={() => setActive(null)} className="absolute -top-2 -right-2 w-5 h-5 bg-neutral-900 text-white rounded-full flex items-center justify-center">
+                  <button onClick={() => setActive(null)} className="absolute -top-2 -right-2 w-5 h-5 bg-neutral-900 text-white rounded-full flex items-center justify-center" aria-label="Close">
                     <X className="w-3 h-3" />
                   </button>
                 </motion.div>

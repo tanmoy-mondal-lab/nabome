@@ -53,9 +53,12 @@ export default function AddressesPage() {
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const { data, isLoading } = useQuery({
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["customer", "addresses"],
     queryFn: () => customerApi.getAddresses(),
+    retry: false,
   });
 
   const addresses = ((data as unknown as { addresses: Address[] })?.addresses ?? []) as Address[];
@@ -127,6 +130,7 @@ export default function AddressesPage() {
   }
 
   const mutationPending = createMutation.isPending || updateMutation.isPending;
+  const mutationError = createMutation.error || updateMutation.error;
 
   return (
     <div className="container-page py-8">
@@ -148,6 +152,11 @@ export default function AddressesPage() {
           {isLoading ? (
             <div className="grid md:grid-cols-2 gap-4">
               {[1, 2].map((i) => <div key={i} className="h-36 bg-neutral-100 animate-pulse rounded" />)}
+            </div>
+          ) : isError ? (
+            <div className="text-center py-12 premium-card shadow-subtle">
+              <p className="text-sm text-neutral-500 mb-3">Failed to load addresses.</p>
+              <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
             </div>
           ) : addresses.length === 0 ? (
             <div className="premium-card p-12 text-center shadow-subtle">
@@ -248,6 +257,13 @@ export default function AddressesPage() {
                 </div>
               </div>
             </div>
+            {mutationError && (
+              <div className="px-6 pb-0">
+                <div className="bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-3 rounded">
+                  Failed to save address. Please try again.
+                </div>
+              </div>
+            )}
             <div className="px-6 py-4 border-t flex justify-end gap-3">
               <button onClick={closeModal} className="btn-ghost">Cancel</button>
               <button onClick={handleSubmit} disabled={mutationPending || !form.fullName || !form.phone || !form.line1 || !form.city || !form.state || !form.pincode} className="btn-primary">

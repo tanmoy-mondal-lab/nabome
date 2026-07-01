@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Star, ThumbsUp, Camera, BadgeCheck, ChevronDown } from "lucide-react";
+import { Star, ThumbsUp, Camera, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
 import { api } from "../../lib/api/client";
 import { StarRating } from "./StarRating";
 import { useAuthStore } from "../../stores/auth-store";
@@ -19,9 +19,9 @@ export function Reviews({ productId, slug }: ReviewsProps) {
   const [form, setForm] = useState({ rating: 5, title: "", body: "" });
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["reviews", slug, page],
-    queryFn: () => api.get<{ reviews: Record<string, unknown>[]; stats: { total: number; averageRating: number; distribution: Record<string, number> } }>(
+    queryFn: () => api.get<{ reviews: Record<string, unknown>[]; stats: { total: number; averageRating: number; distribution: Record<string, number> }; pagination: { totalPages: number } }>(
       `/api/products/${slug}/reviews`, { params: { page } }
     ),
   });
@@ -34,6 +34,7 @@ export function Reviews({ productId, slug }: ReviewsProps) {
 
   const reviews = (data?.reviews ?? []) as Record<string, unknown>[];
   const stats = data?.stats ?? { total: 0, averageRating: 0, distribution: {} };
+  const totalPages = data?.pagination?.totalPages ?? 1;
 
   const distTotal = Object.values(stats.distribution as Record<string, number> || {}).reduce((a, b) => a + b, 0) || 1;
 
@@ -76,13 +77,15 @@ export function Reviews({ productId, slug }: ReviewsProps) {
           <div className="flex items-center gap-2">
             <p className="text-sm text-neutral-700">Your Rating:</p>
             {[1, 2, 3, 4, 5].map((star) => (
-              <button key={star} onClick={() => setForm({ ...form, rating: star })}>
+              <button key={star} onClick={() => setForm({ ...form, rating: star })} aria-label={`Rate ${star} out of 5 stars`}>
                 <Star className={cn("w-6 h-6 transition-colors", star <= form.rating ? "text-amber-400 fill-amber-400" : "text-neutral-300 hover:text-amber-300")} />
               </button>
             ))}
           </div>
-          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Review title" className="input-field w-full px-4 py-2 text-sm" />
-          <textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} placeholder="Share your experience... What did you love? How was the fit?" rows={4} className="input-field w-full px-4 py-2 text-sm" />
+          <label htmlFor="review-title" className="sr-only">Review title</label>
+          <input id="review-title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Review title" className="input-field w-full px-4 py-2 text-sm" />
+          <label htmlFor="review-body" className="sr-only">Share your experience</label>
+          <textarea id="review-body" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} placeholder="Share your experience... What did you love? How was the fit?" rows={4} className="input-field w-full px-4 py-2 text-sm" />
           <button
             onClick={() => submitMutation.mutate({ productId, rating: form.rating, title: form.title, body: form.body })}
             disabled={!form.body || submitMutation.isPending}
@@ -97,11 +100,18 @@ export function Reviews({ productId, slug }: ReviewsProps) {
         <div className="space-y-4">
           {[1, 2, 3].map((i) => <div key={i} className="h-24 bg-neutral-100 animate-pulse rounded" />)}
         </div>
+      ) : isError ? (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-lg p-4">
+          <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load reviews.</p>
+          <button onClick={() => refetch()} className="text-xs text-red-600 hover:underline ml-auto">Retry</button>
+        </div>
       ) : reviews.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-sm text-neutral-400">No reviews yet. Be the first to share your experience.</p>
         </div>
       ) : (
+        <>
         <div className="space-y-6">
           {reviews.map((review) => {
             const profile = review.profile as Record<string, unknown> ?? {};
@@ -142,6 +152,26 @@ export function Reviews({ productId, slug }: ReviewsProps) {
             );
           })}
         </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 pt-4">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="flex items-center gap-1 text-sm text-neutral-600 hover:text-neutral-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" /> Previous
+            </button>
+            <span className="text-sm text-neutral-500">Page {page} of {totalPages}</span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="flex items-center gap-1 text-sm text-neutral-600 hover:text-neutral-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              Next <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+        </>
       )}
     </section>
   );

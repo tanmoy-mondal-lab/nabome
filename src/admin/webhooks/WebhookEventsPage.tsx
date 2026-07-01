@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, AlertCircle } from "lucide-react";
 import { formatDateTime } from "../../lib/utils/format";
 import { useToast } from "../../components/ui/Toast";
 
@@ -25,7 +25,7 @@ export default function WebhookEventsPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin", "webhooks", page, statusFilter],
     queryFn: async () => {
       const params: Record<string, string | number | undefined> = { page, limit: 25 };
@@ -105,6 +105,14 @@ export default function WebhookEventsPage() {
           </button>
         ))}
       </div>
+
+      {isError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load webhook events</p>
+          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+        </div>
+      )}
 
       <DataTable columns={columns} data={events} isLoading={isLoading}
         page={page} totalPages={totalPages} onPageChange={setPage}

@@ -4,7 +4,7 @@ import { useToast } from "../../components/ui/Toast";
 import { adminApi } from "../../lib/api/admin";
 import { EmptyState } from "../common/EmptyState";
 import { StatusBadge } from "../common/StatusBadge";
-import { MessageSquare, CheckCircle, XCircle, Star } from "lucide-react";
+import { MessageSquare, CheckCircle, XCircle, Star, AlertCircle } from "lucide-react";
 import { formatDate } from "../../lib/utils/format";
 
 interface Review {
@@ -23,7 +23,7 @@ export default function ReviewsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: reviews = [], isLoading } = useQuery<Review[]>({
+  const { data: reviews = [], isLoading, isError, refetch } = useQuery<Review[]>({
     queryKey: ["admin", "reviews", filter],
     queryFn: async () => {
       const params: Record<string, string> = {};
@@ -69,6 +69,14 @@ export default function ReviewsPage() {
           <p className="text-sm text-neutral-500 mt-1">Manage customer reviews and ratings</p>
         </div>
       </div>
+
+      {isError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load reviews</p>
+          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+        </div>
+      )}
 
       <div className="flex items-center gap-2 mb-4">
         {(["all", "pending", "approved"] as const).map((t) => (

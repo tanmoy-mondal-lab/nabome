@@ -71,14 +71,18 @@ export default function SettingsPage() {
     }
   }, [profileData, formInitialized]);
 
+  const [profileError, setProfileError] = useState("");
+
   const updateProfileMutation = useMutation({
     mutationFn: (data: { firstName?: string; lastName?: string; phone?: string; preferences?: Record<string, boolean> }) =>
       customerApi.updateProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customer", "profile"] });
       setProfileSuccess("Profile updated successfully.");
+      setProfileError("");
       setTimeout(() => setProfileSuccess(""), 3000);
     },
+    onError: () => setProfileError("Failed to update profile."),
   });
 
   const savePreferencesMutation = useMutation({
@@ -252,6 +256,7 @@ export default function SettingsPage() {
                   <PhoneInput value={profile.phone} onChange={(v) => setProfile((p) => ({ ...p, phone: v }))} />
                 </div>
               </div>
+              {profileError && <p className="text-xs text-red-600 mb-2">{profileError}</p>}
               {profileSuccess && <p className="text-xs text-green-600">{profileSuccess}</p>}
               <button
                 onClick={handleProfileSubmit}

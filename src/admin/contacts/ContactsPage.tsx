@@ -3,7 +3,7 @@ import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
-import { MessageCircle, Trash2, Mail, Eye } from "lucide-react";
+import { MessageCircle, Trash2, Mail, Eye, AlertCircle } from "lucide-react";
 import { formatDate, formatDateTime } from "../../lib/utils/format";
 import { useToast } from "../../components/ui/Toast";
 
@@ -34,7 +34,7 @@ export default function ContactsPage() {
   const [unreadOnly, setUnreadOnly] = useState(false);
   const limit = 20;
 
-  const { data, isLoading: loading } = useQuery({
+  const { data, isLoading: loading, isError, refetch } = useQuery({
     queryKey: ["admin", "contacts", page, unreadOnly],
     queryFn: async () => {
       const params: Record<string, string | undefined> = { page: String(page), limit: String(limit) };
@@ -111,6 +111,14 @@ export default function ContactsPage() {
           </button>
         </div>
       </div>
+
+      {isError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load submissions</p>
+          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+        </div>
+      )}
 
       {submissions.length === 0 ? (
         <EmptyState icon={MessageCircle} title="No submissions yet" />

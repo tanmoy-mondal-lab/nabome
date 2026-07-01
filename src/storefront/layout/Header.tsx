@@ -19,7 +19,7 @@ export function Header() {
   const { openSearch, toggleMobileMenu, setActiveMegaMenu, activeMegaMenu, openCart } = useUIStore();
   const itemCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.quantity, 0));
   const [scrolled, setScrolled] = useState(false);
-  const [prevScroll, setPrevScroll] = useState(0);
+  const prevScrollRef = useRef(0);
   const [hidden, setHidden] = useState(false);
 
   const { data: settings } = useSettings();
@@ -47,13 +47,13 @@ export function Header() {
     const onScroll = () => {
       const current = window.scrollY;
       setScrolled(current > 20);
-      if (current > prevScroll && current > 80) setHidden(true);
-      else if (current < prevScroll) setHidden(false);
-      setPrevScroll(current);
+      if (current > prevScrollRef.current && current > 80) setHidden(true);
+      else if (current < prevScrollRef.current) setHidden(false);
+      prevScrollRef.current = current;
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [prevScroll]);
+  }, []);
 
   const { data: notifData } = useQuery({
     queryKey: ["notifications", "unread-count"],
@@ -111,7 +111,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Left: Mobile Menu + Navigation */}
           <div className="flex items-center gap-2 min-w-0">
-            <button onClick={toggleMobileMenu} className="md:hidden p-2.5 -ml-2 text-neutral-700 hover:text-brand-500 transition-all duration-200 touch-manipulation" aria-label="Open menu">
+            <button onClick={toggleMobileMenu} className="md:hidden p-2.5 -ml-2 text-neutral-700 hover:text-brand-500 transition-all duration-200 touch-manipulation" aria-label="Toggle menu">
               <Menu className="w-5 h-5" />
             </button>
             <nav className="hidden md:flex items-center gap-1">
@@ -196,7 +196,7 @@ export function Header() {
             <Link to={isAuthenticated ? "/account/notifications" : "/auth/login"} className="hidden md:block p-2.5 text-neutral-600 hover:text-brand-500 hover:bg-neutral-100 transition-all duration-300 rounded-lg relative" aria-label="Notifications">
               <Bell className="w-4 h-4" />
               {notifCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center shadow-sm" aria-label={`${notifCount} unread notifications`}>
                   {notifCount > 9 ? "9+" : notifCount}
                 </span>
               )}
@@ -220,6 +220,7 @@ export function Header() {
                     initial={{ scale: 0.5 }}
                     animate={{ scale: 1 }}
                     aria-live="polite"
+                    aria-label={`${itemCount} items in cart`}
                     className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-brand-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center shadow-sm"
                   >
                     {itemCount > 9 ? "9+" : itemCount}

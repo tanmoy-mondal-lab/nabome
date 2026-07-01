@@ -170,6 +170,7 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
               <button
                 key={`dot-${i}`}
                 onClick={() => goTo(i)}
+                aria-label={`Go to slide ${i + 1}`}
                 className={`w-2 h-2 rounded-full transition-all duration-500 ${
                   i === current ? "bg-white w-6" : "bg-white/40 hover:bg-white/60"
                 }`}
@@ -200,7 +201,7 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
       </button>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 animate-bounce">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 animate-bounce" aria-hidden="true">
         <ChevronDown size={20} className="text-white/50" />
       </div>
     </section>

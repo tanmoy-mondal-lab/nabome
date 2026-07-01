@@ -1,4 +1,5 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Package, MapPin, CreditCard, XCircle, RotateCcw, Truck, FileText, CheckCircle, Circle } from "lucide-react";
 import { customerApi } from "../../lib/api/customer";
@@ -77,14 +78,20 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["customer", "order", id],
     queryFn: () => customerApi.getOrder(id!),
     enabled: !!id,
+    retry: false,
   });
+
+  const qClient = useQueryClient();
+  const [cancelError, setCancelError] = useState<string | null>(null);
 
   const cancelMutation = useMutation({
     mutationFn: () => customerApi.cancelOrder(id!),
+    onSuccess: () => { qClient.invalidateQueries({ queryKey: ["customer", "order", id] }); setCancelError(null); },
+    onError: () => setCancelError("Failed to cancel order. Please try again."),
   });
 
   const order = (data as unknown as { order: Order })?.order ?? ({} as Order);
@@ -100,6 +107,24 @@ export default function OrderDetailPage() {
           <DashboardSidebar />
           <div className="lg:col-span-3 space-y-4">
             {[1, 2, 3].map((i) => <div key={i} className="h-24 bg-neutral-100 animate-pulse rounded" />)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError && !data) {
+    return (
+      <div className="container-page py-8">
+        <Helmet>
+          <title>Order Details — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <div className="grid lg:grid-cols-4 gap-8">
+          <DashboardSidebar />
+          <div className="lg:col-span-3 text-center py-12">
+            <p className="text-sm text-neutral-500 mb-3">Failed to load order details.</p>
+            <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
           </div>
         </div>
       </div>
@@ -256,6 +281,12 @@ export default function OrderDetailPage() {
               </div>
             </div>
           </div>
+
+          {cancelError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-3 rounded">
+              {cancelError}
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-3">
             {(order.status === "pending" || order.status === "confirmed") && (

@@ -31,7 +31,7 @@ export function SearchOverlay() {
   const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const overlayRef = useFocusTrap<HTMLDivElement>(isSearchOpen, closeSearch);
-  const { data } = useSearch(debouncedQuery);
+  const { data, isFetching, isError } = useSearch(debouncedQuery);
   const { data: categories = [] } = useCategories();
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export function SearchOverlay() {
   function handleSearch(term: string) {
     const updated = [term, ...recent.filter((s) => s !== term)].slice(0, 5);
     setRecent(updated);
-    localStorage.setItem(`${SEARCH_KEY}-${getUserKey()}`, JSON.stringify(updated));
+    try { localStorage.setItem(`${SEARCH_KEY}-${getUserKey()}`, JSON.stringify(updated)); } catch {}
     closeSearch();
   }
 
@@ -150,7 +150,13 @@ export function SearchOverlay() {
               </div>
             )}
 
-            {query && results.length > 0 && (
+            {query && isFetching && (
+              <div className="max-w-5xl mx-auto flex justify-center py-12">
+                <div className="w-6 h-6 border-2 border-neutral-300 border-t-neutral-900 rounded-full animate-spin" />
+              </div>
+            )}
+
+            {query && !isFetching && results.length > 0 && (
               <div className="max-w-5xl mx-auto space-y-6">
                 <p className="text-xs text-neutral-400">{(data as Record<string, unknown>)?.pagination ? ((data as Record<string, unknown>).pagination as { total?: number }).total ?? 0 : 0} results for "{query}"</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -175,7 +181,15 @@ export function SearchOverlay() {
               </div>
             )}
 
-            {query && results.length === 0 && query.length >= 2 && (
+            {query && !isFetching && isError && (
+              <div className="max-w-3xl mx-auto text-center py-12">
+                <Search className="w-10 h-10 mx-auto text-neutral-300 mb-3" />
+                <p className="text-neutral-500">Search failed. Please try again.</p>
+                <p className="text-xs text-neutral-400 mt-1">Check your connection and try again.</p>
+              </div>
+            )}
+
+            {query && !isFetching && results.length === 0 && debouncedQuery.length >= 2 && !isError && (
               <div className="max-w-3xl mx-auto text-center py-12">
                 <Search className="w-10 h-10 mx-auto text-neutral-300 mb-3" />
                 <p className="text-neutral-500">No products found for "{query}"</p>

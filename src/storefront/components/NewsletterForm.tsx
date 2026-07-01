@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { api } from "../../lib/api/client";
 import { TurnstileWidget } from "../../components/TurnstileWidget";
 import { turnstileEnabled, turnstileSiteKey } from "../../lib/config";
@@ -9,7 +10,7 @@ interface NewsletterFormProps {
 
 export function NewsletterForm({ layout = "stacked" }: NewsletterFormProps) {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileError, setTurnstileError] = useState("");
   const [turnstileNonce, setTurnstileNonce] = useState(0);
@@ -25,6 +26,7 @@ export function NewsletterForm({ layout = "stacked" }: NewsletterFormProps) {
     }
 
     let shouldResetTurnstile = turnstileEnabled && !!turnstileToken;
+    setStatus("loading");
     try {
       await api.post("/api/contact", { action: "newsletter", email, turnstileToken: turnstileToken || undefined });
       setStatus("success");
@@ -43,7 +45,9 @@ export function NewsletterForm({ layout = "stacked" }: NewsletterFormProps) {
   return (
     <form onSubmit={handleSubmit} className={isInline ? "flex w-full max-w-md flex-col gap-3" : "space-y-3"}>
       <div className="flex border-b border-white/20 pb-1">
+        <label htmlFor="newsletter-email" className="sr-only">Email address</label>
         <input
+          id="newsletter-email"
           type="email"
           value={email}
           onChange={(e) => {
@@ -56,10 +60,11 @@ export function NewsletterForm({ layout = "stacked" }: NewsletterFormProps) {
         />
         <button
           type="submit"
-          disabled={turnstileEnabled && !turnstileToken}
-          className="text-xs uppercase tracking-widest font-medium text-accent-gold hover:text-accent-goldLight transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed px-4"
+          disabled={(turnstileEnabled && !turnstileToken) || status === "loading"}
+          className="text-xs uppercase tracking-widest font-medium text-accent-gold hover:text-accent-goldLight transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed px-4 flex items-center gap-2"
         >
-          Subscribe
+          {status === "loading" ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+          {status === "loading" ? "Subscribing..." : "Subscribe"}
         </button>
       </div>
       {turnstileEnabled && (

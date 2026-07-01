@@ -50,18 +50,53 @@ const quickLinks = [
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
 
-  const { data: dashboard } = useQuery({
+  const { data: dashboard, isError: dashboardError, isLoading: dashboardLoading } = useQuery({
     queryKey: ["customer", "dashboard"],
     queryFn: () => customerApi.getDashboard(),
+    retry: false,
   });
 
-  const { data: stats } = useQuery({
+  const { data: stats, isError: statsError, isLoading: statsLoading } = useQuery({
     queryKey: ["customer", "order-stats"],
     queryFn: () => customerApi.getOrderStats(),
+    retry: false,
   });
 
   const dashboardData = (dashboard as unknown as DashboardData) ?? { recentOrders: [], wishlistCount: 0, addressesCount: 0, unreadNotifications: 0 };
   const orderStats = (stats as unknown as OrderStats) ?? { totalOrders: 0, totalSpent: 0, pendingOrders: 0, deliveredOrders: 0 };
+
+  if (dashboardLoading || statsLoading) {
+    return (
+      <div className="container-page py-8">
+        <Helmet>
+          <title>My Account — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-neutral-200 rounded w-48" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-neutral-200 rounded" />)}
+          </div>
+          <div className="h-48 bg-neutral-200 rounded" />
+        </div>
+      </div>
+    );
+  }
+
+  if (dashboardError || statsError) {
+    return (
+      <div className="container-page py-8">
+        <Helmet>
+          <title>My Account — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <div className="text-center py-12">
+          <p className="text-sm text-neutral-500 mb-3">Failed to load account data.</p>
+          <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container-page py-8">

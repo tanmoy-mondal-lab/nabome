@@ -76,11 +76,15 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
                   <ul className="space-y-3">
                     {col.items.map((item, i) => (
                       <li key={i}>
-                        <Link to={item.url || "#"} onClick={() => setActiveMegaMenu(null)}
-                          className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors duration-200"
-                        >
-                          {item.label}
-                        </Link>
+                        {item.url ? (
+                          <Link to={item.url} onClick={() => setActiveMegaMenu(null)}
+                            className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors duration-200"
+                          >
+                            {item.label}
+                          </Link>
+                        ) : (
+                          <span className="text-sm text-neutral-500 cursor-default">{item.label}</span>
+                        )}
                         {item.description && (
                           <p className="text-xs text-neutral-400 mt-0.5">{item.description}</p>
                         )}
@@ -122,11 +126,15 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
                   <ul className="space-y-3">
                     {col.children.map((child, j) => (
                       <li key={`${child.id || child.label}-${j}`}>
-                        <Link to={(child.link || child.url) as string || "#"} onClick={() => setActiveMegaMenu(null)}
-                          className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors duration-200"
-                        >
-                          {child.label}
-                        </Link>
+                        {(child.link || child.url) ? (
+                          <Link to={(child.link || child.url) as string} onClick={() => setActiveMegaMenu(null)}
+                            className="text-sm text-neutral-500 hover:text-neutral-900 transition-colors duration-200"
+                          >
+                            {child.label}
+                          </Link>
+                        ) : (
+                          <span className="text-sm text-neutral-500 cursor-default">{child.label}</span>
+                        )}
                         {child.description && (
                           <p className="text-xs text-neutral-400 mt-0.5">{child.description}</p>
                         )}
@@ -158,17 +166,21 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
                     </div>
                   </div>
                 )}
-                {(activeItem.children ?? []).slice(4, 6).map((item, i) => (
-                  <Link key={`${item.id || item.label}-${i}`} to={(item.link || item.url) as string || "#"} onClick={() => setActiveMegaMenu(null)}
-                    className="flex items-center gap-3 py-2.5 border-t border-neutral-50 hover:bg-neutral-50/50 -mx-4 px-4 transition-colors"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-neutral-900">{item.label}</p>
-                      {item.description && <p className="text-xs text-neutral-400">{item.description}</p>}
-                    </div>
-                    <span className="text-[10px] uppercase tracking-wider text-brand-500">Shop</span>
-                  </Link>
-                ))}
+                {(activeItem.children ?? []).slice(4, 6).map((item, i) => {
+                  const itemUrl = (item.link || item.url) as string;
+                  if (!itemUrl) return null;
+                  return (
+                    <Link key={`${item.id || item.label}-${i}`} to={itemUrl} onClick={() => setActiveMegaMenu(null)}
+                      className="flex items-center gap-3 py-2.5 border-t border-neutral-50 hover:bg-neutral-50/50 -mx-4 px-4 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-neutral-900">{item.label}</p>
+                        {item.description && <p className="text-xs text-neutral-400">{item.description}</p>}
+                      </div>
+                      <span className="text-[10px] uppercase tracking-wider text-brand-500">Shop</span>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </div>

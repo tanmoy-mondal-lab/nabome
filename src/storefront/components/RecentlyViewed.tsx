@@ -13,10 +13,9 @@ export function RecentlyViewed() {
 
   useEffect(() => {
     if (!slugs.length) return;
-    Promise.all(slugs.map((s) => api.get(`/api/products/${s}`)
-      .then((res) => (res as Record<string, unknown>).product as Record<string, unknown>)
-      .catch(() => null)))
-      .then((results) => setProducts(results.filter(Boolean) as Record<string, unknown>[]));
+    api.get<{ products: Record<string, unknown>[] }>(`/api/products/by-slugs?slugs=${slugs.join(",")}`)
+      .then((res) => setProducts(res?.products ?? []))
+      .catch(() => setProducts([]));
   }, [slugs]);
 
   if (!products.length) return null;
@@ -41,10 +40,10 @@ export function RecentlyViewed() {
         </div>
         <div className="flex items-center gap-4">
           <div className="hidden md:flex gap-1">
-            <button onClick={() => scroll("left")} className="w-8 h-8 border border-neutral-200 rounded-full flex items-center justify-center hover:bg-neutral-50 transition-colors">
+            <button onClick={() => scroll("left")} className="w-8 h-8 border border-neutral-200 rounded-full flex items-center justify-center hover:bg-neutral-50 transition-colors" aria-label="Scroll left">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={() => scroll("right")} className="w-8 h-8 border border-neutral-200 rounded-full flex items-center justify-center hover:bg-neutral-50 transition-colors">
+            <button onClick={() => scroll("right")} className="w-8 h-8 border border-neutral-200 rounded-full flex items-center justify-center hover:bg-neutral-50 transition-colors" aria-label="Scroll right">
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

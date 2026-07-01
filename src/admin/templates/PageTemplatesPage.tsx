@@ -5,7 +5,7 @@ import { Modal } from "../common/Modal";
 import { StatusBadge } from "../common/StatusBadge";
 import { EmptyState } from "../common/EmptyState";
 import { MediaPicker } from "../common/MediaPicker";
-import { Plus, Edit3, Trash2, FileJson } from "lucide-react";
+import { Plus, Edit3, Trash2, FileJson, AlertCircle } from "lucide-react";
 import { useToast } from "../../components/ui/Toast";
 
 interface PageTemplate {
@@ -32,7 +32,7 @@ export default function PageTemplatesPage() {
   const [form, setForm] = useState({ name: "", description: "", category: "custom", isActive: true, thumbnail: "", thumbnailPublicId: "" });
   const [sectionsJson, setSectionsJson] = useState("[]");
 
-  const { data: templates = [], isLoading: loading } = useQuery<PageTemplate[]>({
+  const { data: templates = [], isLoading: loading, isError, refetch } = useQuery<PageTemplate[]>({
     queryKey: ["admin", "templates"],
     queryFn: async () => {
       const res = await adminApi.getTemplates();
@@ -115,6 +115,14 @@ export default function PageTemplatesPage() {
           <Plus size={16} /> Add Template
         </button>
       </div>
+
+      {isError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load templates</p>
+          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+        </div>
+      )}
 
       {templates.length === 0 ? (
         <div className="bg-white border border-neutral-200 rounded">

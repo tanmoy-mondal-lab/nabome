@@ -47,9 +47,12 @@ export default function SupportTicketsPage() {
   const [createForm, setCreateForm] = useState({ subject: "", message: "", orderId: "" });
   const [replyText, setReplyText] = useState("");
 
-  const { data: ticketsData, isLoading } = useQuery({
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const { data: ticketsData, isLoading, isError } = useQuery({
     queryKey: ["customer", "support-tickets"],
     queryFn: () => customerApi.getSupportTickets(),
+    retry: false,
   });
 
   const { data: ticketDetail } = useQuery({
@@ -176,6 +179,11 @@ export default function SupportTicketsPage() {
           {isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => <div key={i} className="h-16 bg-neutral-100 animate-pulse rounded" />)}
+            </div>
+          ) : isError ? (
+            <div className="text-center py-12 premium-card shadow-subtle">
+              <p className="text-sm text-neutral-500 mb-3">Failed to load support tickets.</p>
+              <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
             </div>
           ) : tickets.length === 0 ? (
             <div className="premium-card p-12 text-center shadow-subtle">

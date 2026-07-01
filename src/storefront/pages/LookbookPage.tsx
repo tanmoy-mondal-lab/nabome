@@ -8,10 +8,11 @@ import { Helmet } from "react-helmet-async";
 import { canonical } from "../../lib/seo";
 
 export default function LookbookPage() {
-  const { data: res, isLoading: loading } = useQuery({
+  const { data: res, isLoading: loading, isError } = useQuery({
     queryKey: ["lookbooks"],
     queryFn: () => api.get<{ lookbooks: Record<string, unknown>[] }>("/api/lookbooks", { params: { action: "list" } }),
     staleTime: 1000 * 60 * 10,
+    retry: false,
   });
 
   const lookbooks = res?.lookbooks ?? [];
@@ -32,6 +33,11 @@ export default function LookbookPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {[1, 2, 3, 4].map((i) => <div key={i} className="aspect-[4/5] bg-neutral-100 animate-pulse rounded" />)}
+        </div>
+      ) : isError ? (
+        <div className="text-center py-20">
+          <p className="text-sm text-neutral-500 mb-3">Failed to load lookbooks.</p>
+          <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
         </div>
       ) : lookbooks.length === 0 ? (
         <p className="text-sm text-neutral-400 text-center py-20">No lookbooks yet. Check back soon.</p>

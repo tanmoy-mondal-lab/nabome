@@ -9,6 +9,7 @@ import { SafeImage } from "../../components/SafeImage";
 import { useCartStore } from "../stores/cart-store";
 import { useAuthStore } from "../../stores/auth-store";
 import { Helmet } from "react-helmet-async";
+import { canonical } from "../../lib/seo";
 
 export default function LookbookDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -16,23 +17,34 @@ export default function LookbookDetailPage() {
   const addItem = useCartStore((s) => s.addItem);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  const { data: res, isLoading: loading } = useQuery({
+  const { data: res, isLoading: loading, isError } = useQuery({
     queryKey: ["lookbook", slug],
     queryFn: () => api.get<{ lookbook: Record<string, unknown> }>(`/api/lookbooks/${slug}`),
     enabled: !!slug,
     staleTime: 1000 * 60 * 10,
+    retry: false,
   });
 
   const lookbook = res?.lookbook as Record<string, unknown> | undefined;
 
   if (loading) {
-    return <div className="container-page py-8"><Helmet><title>Lookbook — নবME</title><meta name="description" content="View lookbook on নবME." /><meta property="og:title" content="Lookbook — নবME" /><meta property="og:description" content="View lookbook on নবME." /></Helmet><div className="aspect-[2/1] bg-neutral-100 animate-pulse rounded" /></div>;
+    return <div className="container-page py-8"><Helmet><title>Loading Lookbook — নবME</title><meta name="robots" content="noindex, nofollow" /></Helmet><div className="aspect-[2/1] bg-neutral-100 animate-pulse rounded" /></div>;
+  }
+
+  if (isError && !lookbook) {
+    return (
+      <div className="container-page py-20 text-center">
+        <Helmet><title>Lookbook Not Found — নবME</title><meta name="robots" content="noindex, nofollow" /></Helmet>
+        <p className="text-sm text-neutral-500 mb-3">Failed to load lookbook.</p>
+        <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
+      </div>
+    );
   }
 
   if (!lookbook) {
     return (
       <div className="container-page py-20 text-center">
-        <Helmet><title>Lookbook — নবME</title><meta name="description" content="View lookbook on নবME." /><meta property="og:title" content="Lookbook — নবME" /><meta property="og:description" content="View lookbook on নবME." /></Helmet>
+        <Helmet><title>Lookbook Not Found — নবME</title><meta name="robots" content="noindex, nofollow" /></Helmet>
         <h1 className="text-xl font-display text-neutral-900 mb-4">Lookbook not found</h1>
         <Link to="/lookbooks" className="text-brand-600 hover:underline">Browse all lookbooks</Link>
       </div>
@@ -49,10 +61,14 @@ export default function LookbookDetailPage() {
   return (
     <div className="container-page py-8">
       <Helmet>
-        <title>Lookbook — নবME</title>
-        <meta name="description" content="View lookbook on নবME." />
-        <meta property="og:title" content="Lookbook — নবME" />
-        <meta property="og:description" content="View lookbook on নবME." />
+        <title>{lookbookName} — নবME</title>
+        <meta name="description" content={story ? (story as string).slice(0, 160) : `View the ${lookbookName} lookbook on নবME.`} />
+        <link rel="canonical" href={canonical(`/lookbooks/${slug}`)} />
+        <meta name="robots" content="index, follow" />
+        <meta property="og:title" content={`${lookbookName} — নবME`} />
+        <meta property="og:description" content={story ? (story as string).slice(0, 200) : `View the ${lookbookName} lookbook on নবME.`} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={canonical(`/lookbooks/${slug}`)} />
       </Helmet>
       <Breadcrumbs items={[
         { label: "Lookbooks", href: "/lookbooks" },

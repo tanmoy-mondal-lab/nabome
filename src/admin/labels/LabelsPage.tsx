@@ -4,7 +4,7 @@ import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
-import { Plus, Edit3, Trash2, Tag } from "lucide-react";
+import { Plus, Edit3, Trash2, Tag, AlertCircle } from "lucide-react";
 import { useToast } from "../../components/ui/Toast";
 
 interface Label {
@@ -30,7 +30,7 @@ export default function LabelsPage() {
   const [edit, setEdit] = useState<Label | TagItem | null>(null);
   const [form, setForm] = useState({ name: "", color: "#c9a84c" });
 
-  const { data: labelsData, isLoading: loadingLabels } = useQuery({
+  const { data: labelsData, isLoading: loadingLabels, isError: isErrorLabels, refetch: refetchLabels } = useQuery({
     queryKey: ["admin", "labels"],
     queryFn: async () => {
       const res = await adminApi.getLabels();
@@ -38,7 +38,7 @@ export default function LabelsPage() {
     },
   });
 
-  const { data: tagsData, isLoading: loadingTags } = useQuery({
+  const { data: tagsData, isLoading: loadingTags, isError: isErrorTags, refetch: refetchTags } = useQuery({
     queryKey: ["admin", "tags"],
     queryFn: async () => {
       const res = await adminApi.getTags();
@@ -107,6 +107,14 @@ export default function LabelsPage() {
         <button onClick={() => setActiveTab("labels")} className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === "labels" ? "border-neutral-900 text-neutral-900" : "border-transparent text-neutral-500 hover:text-neutral-700"}`}>Labels</button>
         <button onClick={() => setActiveTab("tags")} className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${activeTab === "tags" ? "border-neutral-900 text-neutral-900" : "border-transparent text-neutral-500 hover:text-neutral-700"}`}>Tags</button>
       </div>
+
+      {(isErrorLabels || isErrorTags) && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load labels or tags</p>
+          <button onClick={() => { refetchLabels(); refetchTags(); }} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+        </div>
+      )}
 
       {activeTab === "labels" && (labels.length === 0 && !loadingLabels ? <EmptyState title="No labels" description="Create product labels like 'New', 'Sale', 'Best Seller'." action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 text-sm rounded-lg transition-colors">Add Label</button>} />
         : <DataTable columns={[

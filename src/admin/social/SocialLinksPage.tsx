@@ -3,7 +3,7 @@ import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
-import { Plus, Edit3, Trash2, Link2 } from "lucide-react";
+import { Plus, Edit3, Trash2, Link2, AlertCircle } from "lucide-react";
 import { useToast } from "../../components/ui/Toast";
 
 const PLATFORM_ICONS: Record<string, string> = {
@@ -28,7 +28,7 @@ export default function SocialLinksPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [form, setForm] = useState({ platform: "instagram", url: "", label: "", sortOrder: 0, isActive: true });
 
-  const { data: links = [], isLoading } = useQuery<SocialLink[]>({
+  const { data: links = [], isLoading, isError, refetch } = useQuery<SocialLink[]>({
     queryKey: ["admin", "socialLinks"],
     queryFn: async () => {
       const res = await adminApi.getSocialLinks();
@@ -135,6 +135,14 @@ export default function SocialLinksPage() {
           <Plus size={16} /> Add Link
         </button>
       </div>
+
+      {isError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load social links</p>
+          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+        </div>
+      )}
 
       {links.length === 0 ? (
         <EmptyState icon={Link2} title="No social links"

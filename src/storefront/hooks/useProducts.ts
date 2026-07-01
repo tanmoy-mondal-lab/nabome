@@ -11,10 +11,10 @@ export function useProduct(slug: string | undefined) {
   });
 }
 
-export function useSearch(q: string) {
+export function useSearch(q: string, page = 1) {
   return useQuery({
-    queryKey: ["search", q],
-    queryFn: () => api.get<{ products: unknown[]; pagination: { total: number } }>("/api/products/search", { params: { q } }),
+    queryKey: ["search", q, page],
+    queryFn: () => api.get<{ products: unknown[]; pagination: { total: number; totalPages: number } }>("/api/products/search", { params: { q, page: String(page) } }),
     enabled: q.length >= 2,
     retry: false,
   });

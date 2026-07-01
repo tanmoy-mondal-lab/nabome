@@ -17,7 +17,7 @@ export default function WishlistPage() {
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const { isAuthenticated } = useAuthStore();
-  const { items, remove } = useWishlist();
+  const { items, remove, error: wishlistError } = useWishlist();
   const prefersReducedMotion = useReducedMotion();
   const addItem = useCartStore((s) => s.addItem);
   const justAdded = useCartStore((s) => s.justAdded);
@@ -63,6 +63,24 @@ export default function WishlistPage() {
             Sign In
           </Link>
         </motion.div>
+      </div>
+    );
+  }
+
+  if (wishlistError && !loading) {
+    return (
+      <div className="container-page section-padding">
+        <Helmet>
+          <title>My Wishlist — নবME</title>
+          <meta name="description" content="View your wishlist on নবME." />
+          <link rel="canonical" href={canonical("/account/wishlist")} />
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <Breadcrumbs items={[{ label: "My Wishlist" }]} className="mb-6" />
+        <div className="text-center py-12">
+          <p className="text-sm text-neutral-500 mb-3">Failed to load wishlist.</p>
+          <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
+        </div>
       </div>
     );
   }

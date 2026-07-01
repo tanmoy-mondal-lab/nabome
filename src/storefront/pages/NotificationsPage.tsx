@@ -44,9 +44,10 @@ function getRelativeTime(dateStr: string): string {
 export default function NotificationsPage() {
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["customer", "notifications"],
     queryFn: () => customerApi.getNotifications(),
+    retry: false,
   });
 
   const notifications = ((data as unknown as { notifications: Notification[] })?.notifications ?? []) as Notification[];
@@ -92,6 +93,11 @@ export default function NotificationsPage() {
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="h-20 bg-neutral-100 animate-pulse rounded" />
               ))}
+            </div>
+          ) : isError ? (
+            <div className="text-center py-12 premium-card shadow-subtle">
+              <p className="text-sm text-neutral-500 mb-3">Failed to load notifications.</p>
+              <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
             </div>
           ) : notifications.length === 0 ? (
             <div className="premium-card p-12 text-center shadow-subtle">

@@ -73,6 +73,7 @@ export default function CartPage() {
           <link rel="canonical" href={canonical("/cart")} />
           <meta property="og:title" content="Shopping Cart — নবME" />
           <meta property="og:description" content="View your shopping cart on নবME." />
+          <meta name="robots" content="noindex, nofollow" />
         </Helmet>
         <Breadcrumbs items={[{ label: "Shopping Cart" }]} className="mb-6" />
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center max-w-md mx-auto">
@@ -115,6 +116,7 @@ export default function CartPage() {
         <link rel="canonical" href={canonical("/cart")} />
         <meta property="og:title" content="Shopping Cart — নবME" />
         <meta property="og:description" content="View your shopping cart on নবME." />
+        <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <div className="container-page pt-8 pb-24">
         <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Shopping Cart" }]} className="mb-8" />

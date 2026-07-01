@@ -60,6 +60,8 @@ export async function handleProductRequest(
       return handleFeatured(ctx.env);
     case "newArrivals":
       return handleNewArrivals(ctx.env);
+    case "bySlugs":
+      return handleBySlugs(req, ctx.env);
     case "search":
       return handleSearch(req, ctx.env);
     case "detail":
@@ -68,6 +70,8 @@ export async function handleProductRequest(
       return handleVariants(params[0], ctx.env);
     case "reviews":
       return handleProductReviews(params[0], ctx.env);
+    case "similar":
+      return handleSimilar(params[0], ctx.env);
     default:
       return badRequest("Unknown product action");
   }
@@ -202,6 +206,50 @@ async function handleNewArrivals(env: any): Promise<Response> {
     const prisma = getPrisma(env);
     const products = await prisma.product.findMany({
       where: { isActive: true, isNew: true },
+      select: productListSelect,
+      orderBy: { createdAt: "desc" as const },
+      take: 8,
+    });
+    return success({ products });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleBySlugs(req: Request, env: any): Promise<Response> {
+  try {
+    const prisma = getPrisma(env);
+    const url = new URL(req.url);
+    const slugs = url.searchParams.get("slugs");
+    if (!slugs) return success({ products: [] });
+    const slugList = slugs.split(",").map((s) => s.trim()).filter(Boolean);
+    if (!slugList.length) return success({ products: [] });
+    const products = await prisma.product.findMany({
+      where: { slug: { in: slugList }, isActive: true },
+      select: productListSelect,
+    });
+    // Preserve the order of the requested slugs
+    const ordered = slugList.map((s) => products.find((p) => p.slug === s)).filter(Boolean);
+    return success({ products: ordered });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleSimilar(slug: string, env: any): Promise<Response> {
+  try {
+    const prisma = getPrisma(env);
+    const product = await prisma.product.findFirst({
+      where: { slug, isActive: true },
+      select: { id: true, categoryId: true },
+    });
+    if (!product) return notFound("Product not found");
+    const products = await prisma.product.findMany({
+      where: {
+        isActive: true,
+        id: { not: product.id },
+        ...(product.categoryId ? { categoryId: product.categoryId } : {}),
+      },
       select: productListSelect,
       orderBy: { createdAt: "desc" as const },
       take: 8,

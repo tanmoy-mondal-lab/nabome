@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
-import { Plus, Eye, Check, Palette, Type, Layout, Image, Code } from "lucide-react";
+import { Plus, Eye, Check, Palette, Type, Layout, Image, Code, AlertCircle } from "lucide-react";
 import { type Theme, type ThemeColors, type ThemeTypography, type ThemeButtonStyle } from "../../cms/core/cms-types";
 import { useToast } from "../../components/ui/Toast";
 
@@ -247,7 +247,7 @@ export default function ThemeBuilder() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: queryTheme, isLoading } = useQuery({
+  const { data: queryTheme, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin", "themes"],
     queryFn: async () => {
       const res = await adminApi.getSettings();
@@ -319,6 +319,24 @@ export default function ThemeBuilder() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="font-display text-2xl text-neutral-900">Theme Builder</h1>
+            <p className="text-sm text-neutral-500 mt-1">Customize your store's appearance</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load theme</p>
+          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+        </div>
       </div>
     );
   }

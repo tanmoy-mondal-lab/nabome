@@ -1,7 +1,7 @@
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, serverError, unauthorized } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
-import { generateOrderNumber } from "../../src/lib/utils/format";
+import { generateOrderNumber } from "../_lib/format";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
 import { cleanSecret } from "../_lib/secrets";

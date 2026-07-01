@@ -1,6 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, Search, Heart, ShoppingBag, User } from "lucide-react";
 import { useCartStore } from "../stores/cart-store";
+import { useAuthStore } from "../../stores/auth-store";
 import { cn } from "../../lib/utils/cn";
 
 const NAV_ITEMS = [
@@ -13,17 +14,30 @@ const NAV_ITEMS = [
 
 export function BottomNav() {
   const { pathname } = useLocation();
-  const itemCount = useCartStore((s) => s.items.length);
+  const navigate = useNavigate();
+  const itemCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.quantity, 0));
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  function handleNavClick(href: string) {
+    const needsAuth = href === "/account" || href === "/account/wishlist";
+    if (needsAuth && !isAuthenticated) {
+      navigate("/auth/login", { state: { from: href } });
+      return;
+    }
+  }
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-neutral-200 pb-safe">
       <div className="flex items-center justify-around h-14">
         {NAV_ITEMS.map(({ href, icon: Icon, label, showCount }) => {
           const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
+          const needsAuth = href === "/account" || href === "/account/wishlist";
+          const displayHref = needsAuth && !isAuthenticated ? "/auth/login" : href;
           return (
             <Link
               key={href}
-              to={href}
+              to={displayHref}
+              onClick={() => handleNavClick(href)}
               aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 relative h-full px-3 transition-colors duration-200",

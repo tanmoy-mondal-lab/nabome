@@ -41,13 +41,16 @@ export default function ReturnRequestPage() {
   const [evidenceImages, setEvidenceImages] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
-  const { data } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["customer", "order", id],
     queryFn: () => customerApi.getOrder(id!),
     enabled: !!id,
+    retry: false,
   });
 
   const order = (data as unknown as { order: { items: OrderItem[]; orderNumber: string } })?.order ?? { items: [], orderNumber: "" };
+
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const submitMutation = useMutation({
     mutationFn: () => customerApi.createReturn({
@@ -57,6 +60,7 @@ export default function ReturnRequestPage() {
       evidenceImages: evidenceImages.length > 0 ? evidenceImages : undefined,
     }),
     onSuccess: () => setSubmitted(true),
+    onError: () => setSubmitError("Failed to submit return request. Please try again."),
   });
 
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -84,6 +88,36 @@ export default function ReturnRequestPage() {
       case 2: return !!reason;
       default: return true;
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="container-page py-8">
+        <Helmet>
+          <title>Return Request — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <div className="animate-pulse space-y-4 max-w-lg mx-auto">
+          <div className="h-6 bg-neutral-200 rounded w-48" />
+          <div className="h-32 bg-neutral-200 rounded" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="container-page py-8">
+        <Helmet>
+          <title>Return Request — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <div className="text-center py-12">
+          <p className="text-sm text-neutral-500 mb-3">Failed to load order details.</p>
+          <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
+        </div>
+      </div>
+    );
   }
 
   if (submitted) {
@@ -221,6 +255,12 @@ export default function ReturnRequestPage() {
                   <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
                 </label>
               </div>
+            </div>
+          )}
+
+          {submitError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-3 rounded">
+              {submitError}
             </div>
           )}
 

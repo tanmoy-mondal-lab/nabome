@@ -5,7 +5,7 @@ import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
-import { Bell, Edit3 } from "lucide-react";
+import { Bell, Edit3, AlertCircle } from "lucide-react";
 import { formatDate } from "../../lib/utils/format";
 import { useToast } from "../../components/ui/Toast";
 
@@ -41,7 +41,7 @@ export default function NotificationsPage() {
   const [typeFilter, setTypeFilter] = useState("");
   const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500";
 
-  const { data: notifData, isLoading: notifLoading } = useQuery({
+  const { data: notifData, isLoading: notifLoading, isError: isErrorNotif, refetch: refetchNotif } = useQuery({
     queryKey: ["admin", "notifications", page, typeFilter],
     queryFn: async () => {
       const params: Record<string, string | number | undefined> = { page, limit: 25 };
@@ -56,7 +56,7 @@ export default function NotificationsPage() {
     enabled: activeTab === "all",
   });
 
-  const { data: templateData, isLoading: templateLoading } = useQuery({
+  const { data: templateData, isLoading: templateLoading, isError: isErrorTemplates, refetch: refetchTemplates } = useQuery({
     queryKey: ["admin", "notificationTemplates"],
     queryFn: async () => {
       const res = await adminApi.getNotificationTemplates();
@@ -118,6 +118,14 @@ export default function NotificationsPage() {
           </button>
         ))}
       </div>
+
+      {(isErrorNotif || isErrorTemplates) && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load notifications</p>
+          <button onClick={() => { refetchNotif(); refetchTemplates(); }} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+        </div>
+      )}
 
       {activeTab === "all" && (
         <>

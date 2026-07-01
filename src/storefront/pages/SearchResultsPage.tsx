@@ -12,10 +12,18 @@ export default function SearchResultsPage() {
   const q = searchParams.get("q") || "";
   const [searchTerm, setSearchTerm] = useState(q);
 
-  const { data: searchRes, isLoading: loading, error: queryError } = useSearch(q);
+  const currentPage = parseInt(searchParams.get("page") || "1", 10);
+  const { data: searchRes, isLoading: loading, error: queryError, refetch } = useSearch(q, currentPage);
 
   const products = (searchRes as Record<string, unknown>)?.products as Record<string, unknown>[] ?? [];
   const total = ((searchRes as Record<string, unknown>)?.pagination as { total?: number })?.total ?? 0;
+  const totalPages = ((searchRes as Record<string, unknown>)?.pagination as { totalPages?: number })?.totalPages ?? 0;
+
+  function goToPage(page: number) {
+    const params = new URLSearchParams(searchParams);
+    params.set("page", String(page));
+    setSearchParams(params);
+  }
 
   const pageTitle = q ? `Search: "${q}" — নবME` : "Search — নবME";
   const pageDesc = q ? `Search results for "${q}" on নবME — premium fashion.` : "Search নবME for premium fashion.";
@@ -89,7 +97,7 @@ export default function SearchResultsPage() {
           </div>
           <p className="text-neutral-500 text-lg mb-2">Failed to load search results.</p>
           <p className="text-neutral-400 text-sm mb-4">Please try again or browse our collections.</p>
-          <button onClick={() => window.location.reload()} className="btn-primary">
+          <button onClick={() => refetch()} className="btn-primary">
             Retry
           </button>
         </div>
@@ -98,7 +106,30 @@ export default function SearchResultsPage() {
           <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : products.length > 0 ? (
-        <ProductGrid products={products} />
+        <>
+          <ProductGrid products={products} />
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-3 mt-10">
+              <button
+                onClick={() => goToPage(currentPage - 1)}
+                disabled={currentPage <= 1}
+                className="px-4 py-2 text-sm border border-neutral-300 rounded disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-50 transition-colors"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-neutral-500">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => goToPage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+                className="px-4 py-2 text-sm border border-neutral-300 rounded disabled:opacity-30 disabled:cursor-not-allowed hover:bg-neutral-50 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       ) : q ? (
         <div className="text-center py-20">
           <Search size={48} className="mx-auto text-neutral-300 mb-4" />

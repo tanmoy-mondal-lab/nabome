@@ -47,9 +47,10 @@ export default function OrdersPage() {
   const activeTab = searchParams.get("status") || "";
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["customer", "orders", activeTab, page],
     queryFn: () => customerApi.getOrders({ status: activeTab || undefined, page, limit: 15 }),
+    retry: false,
   });
 
   const orders = ((data as unknown as { orders: Order[] })?.orders ?? []) as Order[];
@@ -92,6 +93,11 @@ export default function OrdersPage() {
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-20 bg-neutral-100 animate-pulse rounded" />
               ))}
+            </div>
+          ) : isError ? (
+            <div className="text-center py-12 premium-card shadow-subtle">
+              <p className="text-sm text-neutral-500 mb-3">Failed to load orders.</p>
+              <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
             </div>
           ) : orders.length === 0 ? (
             <div className="premium-card p-12 text-center shadow-subtle">

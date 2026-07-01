@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, X } from "lucide-react";
 import { api } from "../../lib/api/client";
 
 interface ProofItem {
@@ -49,7 +49,7 @@ export function SocialProof() {
     return () => clearInterval(interval);
   }, [proofData]);
 
-  const [product, setProduct] = useState("a product");
+  const [product, setProduct] = useState("an item");
   const [city, setCity] = useState("India");
 
   if (proofData.length === 0) return null;
@@ -70,7 +70,7 @@ export function SocialProof() {
             <div className="w-8 h-8 rounded-full bg-brand-50 flex items-center justify-center shrink-0 mt-0.5">
               <ShoppingBag className="w-4 h-4 text-brand-500" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-xs text-neutral-600 leading-relaxed">
                 <span className="font-semibold text-neutral-900">{name}</span> from{" "}
                 <span className="font-medium text-neutral-800">{city}</span> just purchased{" "}
@@ -78,6 +78,9 @@ export function SocialProof() {
               </p>
               <p className="text-[10px] text-accent-gold mt-1 font-medium">from নবME</p>
             </div>
+            <button onClick={() => setVisible(false)} className="p-1 text-neutral-300 hover:text-neutral-500 transition-colors shrink-0" aria-label="Dismiss">
+              <X className="w-3 h-3" />
+            </button>
           </div>
         </motion.div>
       )}

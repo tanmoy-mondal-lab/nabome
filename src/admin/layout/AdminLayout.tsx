@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { useAuthStore } from "../../stores/auth-store";
 import { useAuth } from "../../hooks/useAuth";
 import {
@@ -151,7 +152,12 @@ export default function AdminLayout() {
   }, [sidebarOpen]);
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <>
+      <Helmet>
+        <title>Admin — নবME</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
+      <div className="min-h-screen bg-neutral-50">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
@@ -268,5 +274,6 @@ export default function AdminLayout() {
         </main>
       </div>
     </div>
+    </>
   );
 }

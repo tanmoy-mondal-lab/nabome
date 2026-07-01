@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Heart, ShoppingBag, Shield, Truck, RotateCcw, Star, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "../../lib/api/client";
 import { useProduct } from "../hooks/useProducts";
 import { ImageGallery } from "../components/ImageGallery";
 import { SizeSelector } from "../components/SizeSelector";
@@ -33,6 +35,16 @@ export default function ProductDetailPage() {
   const { data: settingsData } = useSettings();
   const product = (productData as { product?: Record<string, unknown> })?.product;
   const related = (product?.relatedProducts as Record<string, unknown>[]) ?? [];
+
+  const reviewCount = Number((product?._count as Record<string, unknown>)?.reviews ?? 0);
+
+  const { data: reviewStats } = useQuery({
+    queryKey: ["review-stats", slug],
+    queryFn: () => api.get<{ stats: { averageRating: number } }>(`/api/products/${slug}/reviews`, { params: { page: 1 } }),
+    enabled: !!slug && reviewCount > 0,
+    staleTime: 1000 * 60 * 5,
+  });
+
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -156,9 +168,7 @@ export default function ProductDetailPage() {
     }
   }
 
-  const reviewCount = Number((product._count as Record<string, unknown>)?.reviews ?? 0);
-  const reviews = product.reviews as { average?: number; distribution?: number[]; items?: Record<string, unknown>[] } | undefined;
-  const averageRating = reviews?.average ?? 0;
+  const averageRating = reviewStats?.stats?.averageRating ?? 0;
 
   const freeShippingThreshold = Number((settingsData?.preferences as Record<string, unknown>)?.freeShippingThreshold ?? 500);
   const locale = (settingsData?.preferences as Record<string, unknown>)?.locale as string || "en_IN";

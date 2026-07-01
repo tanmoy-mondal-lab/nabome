@@ -97,17 +97,17 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
               {gender && <p className="text-caption tracking-fashion text-neutral-400 mb-1">{gender}</p>}
               <Link to={`/products/${slug}`} className="text-body-sm font-medium text-neutral-900 hover:text-brand-500 transition-colors line-clamp-1">{name}</Link>
             </div>
-            <button onClick={handleToggleWishlist} className={cn("p-1.5 shrink-0 transition-colors", inWishlist ? "text-red-500" : "text-neutral-300 hover:text-red-400")}>
+            <button onClick={handleToggleWishlist} className={cn("p-1.5 shrink-0 transition-colors", inWishlist ? "text-red-500" : "text-neutral-300 hover:text-red-400")} aria-label={inWishlist ? "Remove from wishlist" : "Add to wishlist"}>
               <Heart className="w-4 h-4" fill={inWishlist ? "currentColor" : "none"} />
             </button>
           </div>
           <PriceDisplay price={price} compareAtPrice={compareAtPrice} />
           <p className="text-body-xs text-neutral-500 mt-1 line-clamp-2">{product.shortDescription as string}</p>
           <div className="flex items-center gap-3 mt-3">
-            <button onClick={handleAddToCart} className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 text-caption uppercase tracking-fashion hover:bg-neutral-800 transition-colors">
+            <button onClick={handleAddToCart} className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2 text-caption uppercase tracking-fashion hover:bg-neutral-800 transition-colors" aria-label={`Add ${name} to cart`}>
               <ShoppingBag className="w-3.5 h-3.5" /> Add to Cart
             </button>
-            <button onClick={(e) => { e.preventDefault(); onQuickView?.(); }} className="flex items-center gap-1 text-caption tracking-fashion uppercase text-neutral-500 hover:text-neutral-900 transition-colors">
+            <button onClick={(e) => { e.preventDefault(); onQuickView?.(); }} className="flex items-center gap-1 text-caption tracking-fashion uppercase text-neutral-500 hover:text-neutral-900 transition-colors" aria-label={`Quick view ${name}`}>
               <Eye className="w-3.5 h-3.5" /> Quick View
             </button>
           </div>
@@ -170,7 +170,7 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
         {colors.length > 1 && (
           <div className="absolute bottom-3 left-3 flex gap-1.5">
             {colors.slice(0, 4).map((hex, i) => (
-              <span key={i} className="w-3 h-3 rounded-full ring-1 ring-white shadow-sm" style={{ backgroundColor: hex }} />
+              <span key={i} className="w-3 h-3 rounded-full ring-1 ring-white shadow-sm" style={{ backgroundColor: hex }} aria-label={`Color option ${i + 1}`} />
             ))}
             {colors.length > 4 && <span className="text-2xs text-neutral-500">+{colors.length - 4}</span>}
           </div>

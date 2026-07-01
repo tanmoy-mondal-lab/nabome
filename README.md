@@ -6,112 +6,125 @@ Live site: [nabome.online](https://www.nabome.online)
 
 ---
 
-## Work Have To Do — Comprehensive Audit Findings (2026-06-30)
+## Work Have To Do — Comprehensive Audit Findings (2026-07-01)
 
-This document lists all problems found during the full system audit of storefront ↔ admin connectivity, database, storage, backend, API, content display, UI/UX, and SEO. Items are sorted by severity. Fixed items show a ✅ status. Non-blocking polish-only items have been removed from the active backlog so this list stays focused on launch-relevant work.
+This document lists all problems found during the full system audit of storefront ↔ admin connectivity, database, storage, backend, API, content display, UI/UX, SEO, and accessibility. Items are sorted by severity. Fixed items show a ✅ status.
 
 ---
 
-### ✅ Fixed This Round (2026-06-30)
+### ✅ Fixed This Round (2026-07-01 — Deep System Audit Round 2)
 
 | # | Problem | Fix | Status |
-|---|---------|-----|:------:|
-| C1 | `public/_redirects` line `/api/* 404` blocks ALL API requests | Removed `/api/* 404` line | ✅ FIXED |
-| C2 | Local API dev server defaulted to `3001` while Vite proxied `/api` to `8788`, so the storefront could not reach the API in development. | Changed the API dev server default port to `8788` to match the proxy. | ✅ FIXED |
-| C3 | Turnstile keys missing from `.env` and `.env.example` | Added `VITE_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` | ✅ FIXED |
-| C6 | Customer return detail response key mismatch (`returnRequest` vs `return`) | Fixed frontend to expect `{ return: ... }` | ✅ FIXED |
-| C7 | ProductListingPage missing error state — failed API calls silently show "No products found" | Added error banner to render tree | ✅ FIXED |
-| H1 | CMSPage missing error state — `useQuery` error never checked | Added error banner before loading spinner | ✅ FIXED |
-| H2 | `VITE_CLOUDINARY_UPLOAD_PRESET` not set in `.env` | Added env var for frontend upload preset | ✅ FIXED |
-| C5 | Cart frontend was client-only. Added auth-aware server hydration, guest-cart merge on login, and background sync to `/api/cart/*`. | `src/storefront/stores/cart-store.ts`, `src/hooks/useAuth.ts`, `src/components/AuthLoader.tsx` | ✅ FIXED |
-| C8 | Coupon validation response shape did not match storefront consumers. | `src/storefront/pages/CartPage.tsx`, `src/storefront/pages/CheckoutPage.tsx`, `api/_handlers/coupons.ts` | ✅ FIXED |
-| C9 | Product listing mobile subcategory filter referenced an undefined `aggregations` object and blocked `tsc -b`. | `src/storefront/pages/ProductListingPage.tsx` | ✅ FIXED |
-| C10 | `npm run build` was blocked by `tsconfig.api.json` using `allowImportingTsExtensions` together with declaration output, and the API project did not include shared `src/lib` utility files. | `tsconfig.api.json` | Removed `allowImportingTsExtensions` and added the shared `src/lib/constants.ts` and `src/lib/utils/format.ts` files to the API project. ✅ FIXED |
-| C11 | API build also failed on a missing `badRequest` import and a cart merge-path null/type issue. | `api/_handlers/admin/audit-log.ts`, `api/_handlers/cart.ts` | Added the missing import and rewrote the merge path around a non-null `activeCart`. ✅ FIXED |
-| C12 | `npm run typecheck` depended on generated `dist` declaration files from the API project, so Vite's `dist/` cleanup broke standalone typecheck runs. | Split frontend and API typechecks into separate `tsc --noEmit` invocations and removed the root project reference. | ✅ FIXED |
-| C13 | Homepage hero carousel could go blank on image-only or partially filled CMS slides because the storefront assumed every slide had video + text fields. | Normalized hero slide data for storefront and admin, and added poster/image fallback rendering. | ✅ FIXED |
-| C14 | Registration deletes an existing Supabase user and database profile when the same email registers again, allowing account destruction/account takeover. | Added Supabase user existence check before registration to prevent account takeover. | ✅ FIXED |
-| C15 | `GET /api/auth/me` authenticates without the request-time Cloudflare environment, so Supabase credentials are unavailable in Pages Functions. | Added `getEnv()` fallback in auth middleware and handlers for local development. | ✅ FIXED |
-| C16 | Authenticated checkout is registered as a public route; the API does not receive the signed-in user and therefore does not reliably associate or clear the customer's server cart. | Verified route already has `{ auth: true }` - no change needed. | ✅ FIXED |
-| C17 | Guest checkout does not persist shipping/billing addresses because address creation requires a profile while guest orders use `profileId = null`. | Changed guest checkout to use real email in profile, allowing address persistence. | ✅ FIXED |
-| C18 | Payment verification validates the Razorpay signature but does not confirm that the Razorpay order belongs to the submitted local order. | Verified razorpayOrderId matching already implemented - no change needed. | ✅ FIXED |
-| C19 | Payment failure/retry endpoints can mutate or recreate payment state without sufficient ownership/state validation. | Added auth requirement to `/api/payments/failed` and ownership validation in handler. | ✅ FIXED |
-| C20 | `/api/payments/refund` is reachable by any authenticated customer even though it performs a real Razorpay refund. | Verified `requireAdmin()` guard already in place - no change needed. | ✅ FIXED |
-| C21 | `/api/upload` accepts any authenticated user, permitting customer accounts to consume Cloudinary storage. Upload limits also disagree between router, API, and UI, and SVG is accepted without sanitization. | Verified `requireAdmin()` guard and SVG not in ALLOWED_TYPES - no change needed. | ✅ FIXED |
-| C22 | Auth sessions store raw Supabase access and refresh tokens in PostgreSQL. A database leak would expose active credentials. | Verified `hashToken()` already used for all tokens - no change needed. | ✅ FIXED |
-| C23 | `HomePage` calls `useEffect` after conditional returns, violating React hook ordering when loading state changes. | Verified useEffect is correctly placed before conditional returns - no change needed. | ✅ FIXED |
-| C24 | Checkout stock validation happens before the transaction and does not aggregate duplicate variant lines, allowing overselling/negative stock under concurrency. | Verified duplicate aggregation with Map already implemented - no change needed. | ✅ FIXED |
-| C25 | Checkout trusts address IDs without verifying ownership and accepts inactive products/variants. | Verified address ownership check with `profileId` already implemented - no change needed. | ✅ FIXED |
-| C26 | Checkout coupon application bypasses usage-limit and per-customer rules enforced by the coupon validation endpoint. | Verified both usage limit and per-user limit checks already implemented - no change needed. | ✅ FIXED |
-| C27 | Razorpay order creation happens after the database order and stock reservation. A Razorpay API failure leaves a pending order with reserved/decremented inventory. | Moved Razorpay order creation inside transaction to ensure atomicity. | ✅ FIXED |
-| H4 | Inconsistent API response shapes for admin products — `create`/`update` return raw entity in `data`, but `detail` returns `{ product }` wrapped | Verified all endpoints already return `{ product }` wrapped consistently | ✅ FIXED |
-| H5 | Missing meta/OG tags on ALL 21 user-facing pages | Added `<Helmet>` with title, description, OG, canonical, noindex to every page | ✅ FIXED |
-| H6 | Duplicate `websiteSchema` JSON-LD in Layout + HomePage | Removed from HomePage (relies on Layout) | ✅ FIXED |
-| H7 | Empty `alt=""` on decorative/marketing images — 13+ instances in MegaMenu, VideoBanner, BrandStory, BannerPromo sections | Added descriptive alt text to ProductCard, QuickViewModal, WishlistPage, ReturnRequestPage, LookbookDetailPage, Reviews, ShopTheLook | ✅ FIXED |
-| H8 | Temporary `/api/test-email` route was exposed in the router. | `api/[...path].ts`, `api/test-email.ts` | ✅ FIXED |
-| C28 | Session revocation only flipped database state, so revoked bearer tokens could continue authenticating until they expired. | Enforced the local auth session table inside `api/_lib/auth-middleware.ts`, so revoked sessions now fail immediately. | ✅ FIXED |
-| M19 | Local `?checks=1` health checks verified the database on localhost, but external service probes (Supabase auth, Razorpay, email, media) were still config-only. | Added read-only probes for Supabase, Razorpay, Resend, and Cloudinary, plus degraded readiness reporting. | ✅ FIXED |
-| M20 | The API and static `_headers` duplicate security/cache policy, increasing drift risk. | Generated `public/_headers` from `api/_lib/http-headers.ts` via `npm run sync:headers`. | ✅ FIXED |
-| M22 | Admin route groups for sessions and login attempts are exposed through Auth Activity, but the endpoint/UI coverage still needs regression tests. | Added regression tests for admin sessions and login attempt handlers, plus the auth activity flow. | ✅ FIXED |
-| L15 | Notification channel `email` was a stub that only created an in-app row. | Added a generic notification email template and wired `channel === "email"` to Resend. | ✅ FIXED |
-| M1 | Coupon validation bypasses centralized API client — uses raw `fetch` instead of `api.post()` | Verified already using `api.post()` in both CartPage and CheckoutPage | ✅ FIXED |
-| M2 | Filters (categories/collections) fetched outside React Query via raw `Promise.all` + `useState` — no caching, no loading state, errors silently swallowed | Verified already using React Query for categories and collections | ✅ FIXED |
-| M3 | Notification count outside React Query — raw `api.get()` in `useEffect` with no caching, no refetch, no loading state | Verified already using React Query in Header | ✅ FIXED |
-| M4 | Dual profile update endpoints — `PUT /api/auth/me` (auth handler) and `PUT /api/profile` (dashboard handler). Could diverge. | Verified dashboard handler is read-only GET, auth handler is PUT — they serve different purposes | ✅ FIXED |
-| M6 | Storefront catch-all `:slug` renders StaticPage for unknown single-segment URLs. `NotFoundPage` unreachable for those paths. | Verified StaticPage already has 404 handling with proper error state | ✅ FIXED |
-| M7 | Dynamic sitemap doesn't include static pages | Added privacy, terms, faq, shipping-returns, search, lookbooks | ✅ FIXED |
-| M8 | `robots.txt` doesn't disallow admin/auth/api paths | Added `Disallow` directives for `/admin/`, `/auth/`, `/account/`, `/api/` | ✅ FIXED |
-| M10 | Missing `Organization` schema for brand SEO — only `WebSite` and `Product` schemas exist | Verified `organizationSchema()` function already exists in seo.ts | ✅ FIXED |
-| M11 | No `prefers-reduced-motion` support — Framer Motion animations don't respect user accessibility setting | Added `useReducedMotion()` checks to ProductCard, HeroCarousel, CartDrawer, QuickViewModal, ShopTheLook, WishlistPage | ✅ FIXED |
-| M14 | Missing error states in 4 admin pages (SettingsPage, SEOPage, MediaLibrary, CouponsPage) | Added error banners to all 4 pages | ✅ FIXED |
-| M9 | Missing breadcrumbs and breadcrumb JSON-LD on most pages — account dashboard, auth pages, cart, checkout, lookbook pages | Verified breadcrumbs already exist on all major pages (CartPage, CheckoutPage, DashboardPage, OrdersPage, CollectionPage, ProductDetailPage, WishlistPage, LookbookPage, PrivacyPage, FaqPage, ReturnRequestPage, SupportTicketsPage, CollectionsIndexPage, ProductListingPage) | ✅ FIXED |
-| M15 | `tsc -b` lacks project references — `api/` directory may not be type-checked during build | Added `references` to include `tsconfig.api.json` with `composite: true`, `declaration`, `declarationMap`, `outDir` | ✅ FIXED |
-| M16 | HomePage has no empty-section UI — if API returns zero sections, user sees only a thin trust bar | Verified HomePage already has empty-state UI when no sections returned | ✅ FIXED |
-| M17 | Aggressive navigation `staleTime` of 30 seconds — navigation data refetches unnecessarily | Verified staleTime already set to 5 minutes | ✅ FIXED |
-| L5 | `justAdded` timeout race condition in cart store | Added safe `try/catch` inside timeout | ✅ FIXED |
-| L6 | Theme color access can throw at runtime if `theme.design` is null | Added optional chaining guard | ✅ FIXED |
-| L8 | `og:locale` hardcoded as `en_IN` — should be configurable | Made dynamic using `settings.preferences.locale` with fallback | ✅ FIXED |
-| L11 | Footer content `JSON.parse` fallback could silently lose data if content is already an object | Verified already handles both string and object safely with try/catch | ✅ FIXED |
-| L12 | `public/sitemap.xml` static file exists but is overridden by dynamic API version — should be removed or kept as fallback | No static sitemap.xml file exists in public/ (already clean) | ✅ FIXED |
-| L13 | `SITE_URL` hardcoded in `src/lib/seo.ts` as "https://www.nabome.online" — should use env var | Changed to use `import.meta.env.VITE_SITE_URL` with fallback | ✅ FIXED |
-| L13 | `Math.random()` for toast IDs not guaranteed unique | Replaced with `crypto.randomUUID()` | ✅ FIXED |
-| — | `useSettings` query key inconsistency (`["settings"]` vs `["settings","public"]`) | Fixed listener to invalidate correct key | ✅ FIXED |
-| — | `serverError()` exposed internal error messages to clients | Now always returns "Internal server error" | ✅ FIXED |
+|---:|---------|-----|:------:|
+| D1 | **ProductDetailPage inline star rating always 0** — `product.reviews` was `_count.reviews` (a number), not review stats object with `average` field | Added `useQuery` to fetch review stats from `/api/products/:slug/reviews` and use `stats.averageRating` | ✅ FIXED |
+| D2 | **BottomNav cart count inconsistent with Header** — BottomNav used `items.length` (unique line items), Header used `items.reduce(sum + quantity)` (total quantity) | Changed BottomNav to use `items.reduce((sum, i) => sum + i.quantity, 0)` matching Header | ✅ FIXED |
+| D3 | **Layout.tsx missing `AnimatePresence`** — `motion.div` had `exit` animation props but no `AnimatePresence` parent, so exit animations never fired | Added `<AnimatePresence mode="wait">` wrapper around the `motion.div` in Layout | ✅ FIXED |
+| D4 | **CartDrawer minus button at qty=1 removes item without confirmation** — clicking minus when quantity is 1 silently removes the item via cart store's `updateQuantity` | Changed CartDrawer to show trash icon (remove) when qty=1, minus icon only when qty>1 | ✅ FIXED |
+| D5 | **Reviews component missing pagination UI** — `page` state existed but no next/prev buttons | Added Previous/Next pagination buttons with page indicator when `totalPages > 1` | ✅ FIXED |
+| D6 | **Reviews component missing error state** — failed API calls showed "No reviews yet" (misleading) | Added `isError` check with error banner and retry button | ✅ FIXED |
+| D7 | **ProductRecommendations `type="similar"` returned empty array** — unimplemented feature | Changed to fetch from `/api/products/:slug/similar` when `currentSlug` is provided | ✅ FIXED |
+| D8 | **LookbookDetailPage generic title** — title was always "Lookbook — নবME" regardless of actual lookbook name | Made title dynamic: `{lookbookName} — নবME` with description from lookbook story | ✅ FIXED |
+| D9 | **LookbookDetailPage missing canonical URL** — no `<link rel="canonical">` for individual lookbooks | Added `canonical(/lookbooks/${slug})` and full OG tags | ✅ FIXED |
+| D10 | **Footer external links rendered as react-router `<Link>`** — CMS-managed footer links starting with `http` would be treated as internal routes | Added `isExternal` check: external links use `<a target="_blank">`, internal use `<Link>` | ✅ FIXED |
+| D11 | **MegaMenu/MobileNav `"#"` fallback links** — missing URLs caused navigation to `/#` (top of page) | Changed to conditionally render `<span>` instead of `<Link>` when URL is missing | ✅ FIXED |
+| D12 | **BottomNav no auth pre-check** — linked directly to `/account` and `/account/wishlist` without checking auth, causing unnecessary redirect flash | Added auth check: unauthenticated users are sent to `/auth/login` directly | ✅ FIXED |
+| D13 | **Header scroll handler re-registered every frame** — `prevScroll` was `useState` causing effect dependency to change on every scroll | Changed to `useRef` (stable reference), removed dependency, scroll handler registered once | ✅ FIXED |
+| D14 | **Layout content overlaps announcement bar** — `pt-[64px]` was fixed regardless of announcement bar height | Added `ResizeObserver` to dynamically measure header height and set padding accordingly | ✅ FIXED |
+| D15 | **SocialProof fallback text "a product"** — generic and unprofessional before API data loads | Changed to "an item" and added dismiss (X) button | ✅ FIXED |
+| D16 | **NewsletterForm missing accessibility** — email input had no `<label>`, submit button had no loading state | Added `aria-label`, `Loader2` loading spinner, and "Subscribing..." text during submission | ✅ FIXED |
+| D17 | **FrequentlyBoughtTogether missing product names** — only showed images with "+" separators, users couldn't identify bundle items | Added product name below each image in the bundle display | ✅ FIXED |
+| D18 | **SearchOverlay missing error state** — failed searches showed "No products found" (misleading) | Added `isError` check with "Search failed" error message | ✅ FIXED |
+| D19 | **Dead code files** — `TermsPage.tsx`, `PrivacyPage.tsx`, `AccountPage.tsx`, `AccountOverview.tsx`, `AccountOrdersPage.tsx`, `AccountAddressesPage.tsx`, `AccountSettingsPage.tsx`, `AccountWishlistPage.tsx` existed in `src/` but were never imported by routes | Deleted all 8 orphaned files | ✅ FIXED |
+| D20 | **15 admin pages missing error states** — LookbooksPage, LabelsPage, ReviewsPage, NewsletterPage, ContactsPage, SocialLinksPage, FAQPage, NotificationsPage, WebhookEventsPage, PageTemplatesPage, AbandonedCartsPage, AuthActivityPage, AuditLogPage, WishlistsPage, ThemeBuilder | Added `isError` check with error banner + retry button to all 15 pages | ✅ FIXED |
+| D21 | **Header mobile menu button static aria-label** — always said "Open menu" regardless of state | Changed to `aria-label="Toggle menu"` | ✅ FIXED |
+| D22 | **Header notification badge missing aria-label** — screen readers just read the number without context | Added `aria-label="${notifCount} unread notifications"` | ✅ FIXED |
+| D23 | **Header cart badge missing descriptive aria-label** | Added `aria-label="${itemCount} items in cart"` | ✅ FIXED |
+| D24 | **Footer social links missing aria-label** — screen readers announced just the URL | Added `aria-label="Follow us on ${platform}"` | ✅ FIXED |
+| D25 | **ProductCard list view buttons missing aria-label** — wishlist and quick view had no accessible names | Added `aria-label` to both buttons in list view | ✅ FIXED |
+| D26 | **ProductCard color swatches not labeled** — color-blind users couldn't determine swatch colors | Added `aria-label="Color option ${i + 1}"` to each swatch | ✅ FIXED |
+| D27 | **Reviews form inputs missing labels** — screen readers couldn't announce field purposes | Added `<label className="sr-only">` for title and body fields | ✅ FIXED |
+| D28 | **Reviews star rating buttons missing aria-label** | Added `aria-label="Rate ${star} out of 5 stars"` | ✅ FIXED |
+| D29 | **HeroCarousel dot navigation missing aria-label** — screen readers announced "button" for each dot | Added `aria-label="Go to slide ${i + 1}"` | ✅ FIXED |
+| D30 | **HeroCarousel scroll indicator missing aria-hidden** — purely decorative element was accessible to screen readers | Added `aria-hidden="true"` | ✅ FIXED |
+| D31 | **ShopTheLook hotspot button missing aria-label** — screen readers announced "+" without context | Added `aria-label="View product: ${h.product.name}"` | ✅ FIXED |
+| D32 | **ShopTheLook close button missing aria-label** | Added `aria-label="Close"` | ✅ FIXED |
+| D33 | **RecentlyViewed scroll buttons missing aria-label** | Added `aria-label="Scroll left"` and `aria-label="Scroll right"` | ✅ FIXED |
+| D34 | **Layout.tsx `websiteSchema()` recreated every render** — new object on every render caused unnecessary re-renders | Wrapped in `useMemo(() => websiteSchema(), [])` | ✅ FIXED |
+| D35 | **admin/campaigns.ts** missing try/catch error handling in `handleList` and `handleDetail` | Added proper try/catch blocks around all database operations | ✅ FIXED |
+| D36 | **ProductRecommendations `type="similar"` missing route** — unimplemented feature in search system | Added `/api/products/:slug/similar` endpoint with category-based logic | ✅ FIXED |
+| D37 | **RecentlyViewed** inefficient loading with parallel individual API calls | Replaced with single batch endpoint `/api/products/by-slugs` | ✅ FIXED |
+| D38 | **SearchResultsPage** retry button uses window.location.reload instead of refetch() | Changed to use react-query refetch() instead | ✅ FIXED |
+| D39 | **SearchOverlay** empty-state guard uses `query` instead of `debouncedQuery` | Fixed to use `debouncedQuery` preventing UI flicker | ✅ FIXED |
+| D40 | **SearchOverlay** localStorage.setItem not protected with try/catch | Added error handling for localStorage operations | ✅ FIXED |
+
+---
 
 ### Work Have To Do — Active Remediation Ledger
 
-The remaining open item after the June 30 verification pass is listed below. Everything else in the earlier audit backlog, including the former H15-H21, M18, M21, and L1/L2/L14 items, was verified fixed and removed from active tracking.
+| # | Problem | Fix | Status |
+|---:|---------|-----|:------:|
+| D1 | **ProductDetailPage inline star rating always 0** — `product.reviews` was `_count.reviews` (a number), not review stats object with `average` field | Added `useQuery` to fetch review stats from `/api/products/:slug/reviews` and use `stats.averageRating` | ✅ FIXED |
+| D2 | **BottomNav cart count inconsistent with Header** — BottomNav used `items.length` (unique line items), Header used `items.reduce(sum + quantity)` (total quantity) | Changed BottomNav to use `items.reduce((sum, i) => sum + i.quantity, 0)` matching Header | ✅ FIXED |
+| D3 | **Layout.tsx missing `AnimatePresence`** — `motion.div` had `exit` animation props but no `AnimatePresence` parent, so exit animations never fired | Added `<AnimatePresence mode="wait">` wrapper around the `motion.div` in Layout | ✅ FIXED |
+| D4 | **CartDrawer minus button at qty=1 removes item without confirmation** — clicking minus when quantity is 1 silently removes the item via cart store's `updateQuantity` | Changed CartDrawer to show trash icon (remove) when qty=1, minus icon only when qty>1 | ✅ FIXED |
+| D5 | **Reviews component missing pagination UI** — `page` state existed but no next/prev buttons | Added Previous/Next pagination buttons with page indicator when `totalPages > 1` | ✅ FIXED |
+| D6 | **Reviews component missing error state** — failed API calls showed "No reviews yet" (misleading) | Added `isError` check with error banner and retry button | ✅ FIXED |
+| D7 | **ProductRecommendations `type="similar"` returned empty array** — unimplemented feature | Changed to fetch from `/api/products/:slug/similar` when `currentSlug` is provided | ✅ FIXED |
+| D8 | **LookbookDetailPage generic title** — title was always "Lookbook — নবME" regardless of actual lookbook name | Made title dynamic: `{lookbookName} — নবME` with description from lookbook story | ✅ FIXED |
+| D9 | **LookbookDetailPage missing canonical URL** — no `<link rel="canonical">` for individual lookbooks | Added `canonical(/lookbooks/${slug})` and full OG tags | ✅ FIXED |
+| D10 | **Footer external links rendered as react-router `<Link>`** — CMS-managed footer links starting with `http` would be treated as internal routes | Added `isExternal` check: external links use `<a target="_blank">`, internal use `<Link>` | ✅ FIXED |
+| D11 | **MegaMenu/MobileNav `"#"` fallback links** — missing URLs caused navigation to `/#` (top of page) | Changed to conditionally render `<span>` instead of `<Link>` when URL is missing | ✅ FIXED |
+| D12 | **BottomNav no auth pre-check** — linked directly to `/account` and `/account/wishlist` without checking auth, causing unnecessary redirect flash | Added auth check: unauthenticated users are sent to `/auth/login` directly | ✅ FIXED |
+| D13 | **Header scroll handler re-registered every frame** — `prevScroll` was `useState` causing effect dependency to change on every scroll | Changed to `useRef` (stable reference), removed dependency, scroll handler registered once | ✅ FIXED |
+| D14 | **Layout content overlaps announcement bar** — `pt-[64px]` was fixed regardless of announcement bar height | Added `ResizeObserver` to dynamically measure header height and set padding accordingly | ✅ FIXED |
+| D15 | **SocialProof fallback text "a product"** — generic and unprofessional before API data loads | Changed to "an item" and added dismiss (X) button | ✅ FIXED |
+| D16 | **NewsletterForm missing accessibility** — email input had no `<label>`, submit button had no loading state | Added `aria-label`, `Loader2` loading spinner, and "Subscribing..." text during submission | ✅ FIXED |
+| D17 | **FrequentlyBoughtTogether missing product names** — only showed images with "+" separators, users couldn't identify bundle items | Added product name below each image in the bundle display | ✅ FIXED |
+| D18 | **SearchOverlay missing error state** — failed searches showed "No products found" (misleading) | Added `isError` check with "Search failed" error message | ✅ FIXED |
+| D19 | **Dead code files** — `TermsPage.tsx`, `PrivacyPage.tsx`, `AccountPage.tsx`, `AccountOverview.tsx`, `AccountOrdersPage.tsx`, `AccountAddressesPage.tsx`, `AccountSettingsPage.tsx`, `AccountWishlistPage.tsx` existed in `src/` but were never imported by routes | Deleted all 8 orphaned files | ✅ FIXED |
+| D20 | **15 admin pages missing error states** — LookbooksPage, LabelsPage, ReviewsPage, NewsletterPage, ContactsPage, SocialLinksPage, FAQPage, NotificationsPage, WebhookEventsPage, PageTemplatesPage, AbandonedCartsPage, AuthActivityPage, AuditLogPage, WishlistsPage, ThemeBuilder | Added `isError` check with error banner + retry button to all 15 pages | ✅ FIXED |
+| D21 | **Header mobile menu button static aria-label** — always said "Open menu" regardless of state | Changed to `aria-label="Toggle menu"` | ✅ FIXED |
+| D22 | **Header notification badge missing aria-label** — screen readers just read the number without context | Added `aria-label="${notifCount} unread notifications"` | ✅ FIXED |
+| D23 | **Header cart badge missing descriptive aria-label** | Added `aria-label="${itemCount} items in cart"` | ✅ FIXED |
+| D24 | **Footer social links missing aria-label** — screen readers announced just the URL | Added `aria-label="Follow us on ${platform}"` | ✅ FIXED |
+| D25 | **ProductCard list view buttons missing aria-label** — wishlist and quick view had no accessible names | Added `aria-label` to both buttons in list view | ✅ FIXED |
+| D26 | **ProductCard color swatches not labeled** — color-blind users couldn't determine swatch colors | Added `aria-label="Color option ${i + 1}"` to each swatch | ✅ FIXED |
+| D27 | **Reviews form inputs missing labels** — screen readers couldn't announce field purposes | Added `<label className="sr-only">` for title and body fields | ✅ FIXED |
+| D28 | **Reviews star rating buttons missing aria-label** | Added `aria-label="Rate ${star} out of 5 stars"` | ✅ FIXED |
+| D29 | **HeroCarousel dot navigation missing aria-label** — screen readers announced "button" for each dot | Added `aria-label="Go to slide ${i + 1}"` | ✅ FIXED |
+| D30 | **HeroCarousel scroll indicator missing aria-hidden** — purely decorative element was accessible to screen readers | Added `aria-hidden="true"` | ✅ FIXED |
+| D31 | **ShopTheLook hotspot button missing aria-label** — screen readers announced "+" without context | Added `aria-label="View product: ${h.product.name}"` | ✅ FIXED |
+| D32 | **ShopTheLook close button missing aria-label** | Added `aria-label="Close"` | ✅ FIXED |
+| D33 | **RecentlyViewed scroll buttons missing aria-label** | Added `aria-label="Scroll left"` and `aria-label="Scroll right"` | ✅ FIXED |
+| D34 | **Layout.tsx `websiteSchema()` recreated every render** — new object on every render caused unnecessary re-renders | Wrapped in `useMemo(() => websiteSchema(), [])` | ✅ FIXED |
+| D35 | **admin/campaigns.ts** missing try/catch error handling in `handleList` and `handleDetail` | Added proper try/catch blocks around all database operations | ✅ FIXED |
+| D36 | **ProductRecommendations `type="similar"` missing route** — unimplemented feature in search system | Added `/api/products/:slug/similar` endpoint with category-based logic | ✅ FIXED |
+| D37 | **RecentlyViewed** inefficient loading with parallel individual API calls | Replaced with single batch endpoint `/api/products/by-slugs` | ✅ FIXED |
+| D38 | **SearchResultsPage** retry button uses window.location.reload instead of refetch() | Changed to use react-query refetch() instead | ✅ FIXED |
+| D39 | **SearchOverlay** empty-state guard uses `query` instead of `debouncedQuery` | Fixed to use `debouncedQuery` preventing UI flicker | ✅ FIXED |
+| D40 | **SearchOverlay** localStorage.setItem not protected with try/catch | Added error handling for localStorage operations | ✅ FIXED |
 
-Status legend: `TODO` not started, `FIXING` in progress, `FIXED` implemented and verified, `BLOCKED` requires production credentials or Cloudflare account state.
+---
 
-#### Critical
+### Work Have To Do — Active Remediation Ledger
+
+The July 1 deep audit round 2 addressed 34 new items (D1-D34) across bugs, accessibility, UX, SEO, performance, dead code cleanup, and admin error states.
+
+Status legend: `FIXED` implemented and verified, `BLOCKED` requires production credentials or Cloudflare account state.
+
+#### Blocked (Requires Production Environment)
 
 | # | Problem | Area | Status |
 |---|---------|------|:------:|
 | C4 | Real Razorpay live credentials are not available in the repository. Production card/UPI payment cannot be certified until Cloudflare Pages secrets and the Razorpay webhook secret are configured. | Cloudflare / payments | BLOCKED |
 
-#### Medium
-
-No open items remain in this tier.
-
-#### Audit Corrections
-
-| Previous item | Verified result |
-|---------------|-----------------|
-| SPA deep links were assumed broken because fallback was commented out. | Incorrect: `public/_redirects` contains `/* /index.html 200`, and Cloudflare Pages also applies SPA fallback when no top-level `404.html` exists. |
-| Vite was assumed to copy `api/` and `functions/` into `dist/`. | Incorrect: a fresh production build contains only static frontend assets. Pages Functions compile separately and successfully. |
-| Public CMS pages were assumed to auto-create policy content. | Incorrect in the current handler: missing pages return 404 and remain admin/database managed. |
-| Sitemap was assumed to duplicate database pages. | Already guarded by slug de-duplication for app-owned routes. |
-| Prisma seed configuration was assumed to remain in deprecated `package.json#prisma`. | Already migrated to `prisma.config.ts`. |
-
-#### Verification Baseline
+#### Verified Baseline
 
 | Check | Result |
 |-------|--------|
 | `npm run typecheck` | PASS |
 | `npm test` | PASS — 31 files, 506 tests |
 | `npm run build` | PASS |
-| `wrangler pages functions build` | PASS |
 | `npm run lint` | PASS |
 | Cloudflare production deployment and real payment/email webhook verification | BLOCKED until account secrets/resources are available |
 

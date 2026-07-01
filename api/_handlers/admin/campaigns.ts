@@ -17,18 +17,20 @@ export async function handleAdminCampaignRequest(req: Request, ctx: RequestConte
 }
 
 async function handleList(req: Request, env: any): Promise<Response> {
-  const prisma = getPrisma(env);
-  const url = new URL(req.url);
-  const page = parseInt(url.searchParams.get("page") ?? "1");
-  const limit = parseInt(url.searchParams.get("limit") ?? "25");
-  const type = url.searchParams.get("type");
-  const where: Record<string, unknown> = {};
-  if (type) where.type = type;
-  const [items, total] = await Promise.all([
-    prisma.campaign.findMany({ where: where as never, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
-    prisma.campaign.count({ where: where as never }),
-  ]);
-  return success({ campaigns: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
+  try {
+    const prisma = getPrisma(env);
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get("page") ?? "1");
+    const limit = parseInt(url.searchParams.get("limit") ?? "25");
+    const type = url.searchParams.get("type");
+    const where: Record<string, unknown> = {};
+    if (type) where.type = type;
+    const [items, total] = await Promise.all([
+      prisma.campaign.findMany({ where: where as never, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
+      prisma.campaign.count({ where: where as never }),
+    ]);
+    return success({ campaigns: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
+  } catch (err) { return serverError(err); }
 }
 
 async function handleCreate(req: Request, env: any): Promise<Response> {
@@ -43,10 +45,12 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
 }
 
 async function handleDetail(id: string, env: any): Promise<Response> {
-  const prisma = getPrisma(env);
-  const item = await prisma.campaign.findUnique({ where: { id } });
-  if (!item) return notFound("Campaign not found");
-  return success({ campaign: item });
+  try {
+    const prisma = getPrisma(env);
+    const item = await prisma.campaign.findUnique({ where: { id } });
+    if (!item) return notFound("Campaign not found");
+    return success({ campaign: item });
+  } catch (err) { return serverError(err); }
 }
 
 async function handleUpdate(id: string, req: Request, env: any): Promise<Response> {

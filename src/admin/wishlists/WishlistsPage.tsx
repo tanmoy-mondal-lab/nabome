@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { EmptyState } from "../common/EmptyState";
-import { Heart, Search, ExternalLink } from "lucide-react";
+import { Heart, Search, ExternalLink, AlertCircle } from "lucide-react";
 import { formatPrice } from "../../lib/utils/format";
 import { SafeImage } from "../../components/SafeImage";
 
@@ -30,7 +30,7 @@ export default function WishlistsPage() {
 
   useEffect(() => { setPage(1); }, [search]);
 
-  const { data, isLoading } = useQuery<WishlistsResponse>({
+  const { data, isLoading, isError, refetch } = useQuery<WishlistsResponse>({
     queryKey: ["admin", "wishlists", page, search],
     queryFn: async () => {
       const params: Record<string, string | number | undefined> = { page, limit: 25 };
@@ -62,6 +62,14 @@ export default function WishlistsPage() {
           <p className="text-sm text-neutral-500 mt-1">{total} product{total !== 1 ? "s" : ""} wishlisted by customers</p>
         </div>
       </div>
+
+      {isError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load wishlists</p>
+          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+        </div>
+      )}
 
       <div className="relative mb-4">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />

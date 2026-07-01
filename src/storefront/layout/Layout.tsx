@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { MobileNav } from "./MobileNav";
@@ -41,6 +41,19 @@ export function StorefrontLayout() {
   const prefersReducedMotion = useReducedMotion();
   const { data: settings } = useSettings();
   const isCheckout = pathname === "/checkout";
+  const headerRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(64);
+
+  useEffect(() => {
+    if (!headerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setHeaderHeight(entry.contentRect.height);
+      }
+    });
+    observer.observe(headerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const themeData = asRecord(settings?.theme);
@@ -76,7 +89,7 @@ export function StorefrontLayout() {
   const currentUrl = configuredCanonical
     ? `${configuredCanonical}${pathname === "/" ? "" : pathname}`
     : canonical(pathname);
-  const ws = websiteSchema();
+  const ws = useMemo(() => websiteSchema(), []);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -126,14 +139,16 @@ export function StorefrontLayout() {
           .bg-accent-gold { background-color: var(--color-gold); }
         `}</style>
       </Helmet>
-      <Header />
+      <div ref={headerRef}>
+        <Header />
+      </div>
       <MobileNav />
       <SearchOverlay />
       <CartDrawer />
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:bg-brand-500 focus:text-white focus:px-4 focus:py-2 focus:rounded">
         Skip to content
       </a>
-      <main id="main-content" className="flex-1 pt-[64px] md:pt-[80px] pb-16 md:pb-0">
+      <main id="main-content" className="flex-1 pb-16 md:pb-0" style={{ paddingTop: `${headerHeight}px` }}>
         <ErrorBoundary
           fallback={
             <div className="min-h-[400px] flex items-center justify-center px-4">
@@ -147,15 +162,17 @@ export function StorefrontLayout() {
             </div>
           }
         >
-          <motion.div
-            key={pathname}
-            initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            <Outlet />
-          </motion.div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? undefined : { opacity: 0, y: -20 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </ErrorBoundary>
       </main>
       {!isCheckout && <SocialProof />}

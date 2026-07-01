@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { X, ShoppingBag, Trash2, Plus, Minus } from "lucide-react";
+import { X, ShoppingBag, Trash2, Plus, Minus, AlertCircle } from "lucide-react";
 import { useCart } from "../hooks/useCart";
 import { useUIStore } from "../stores/ui-store";
 import { SafeImage } from "../../components/SafeImage";
@@ -12,6 +13,7 @@ export function CartDrawer() {
   const { isCartOpen, closeCart } = useUIStore();
   const { items, removeItem, updateQuantity, subtotal, total } = useCart();
   const prefersReducedMotion = useReducedMotion();
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   function handleCheckout() {
     closeCart();
@@ -53,6 +55,13 @@ export function CartDrawer() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {syncError && (
+              <div className="flex items-center gap-2 bg-red-50 border-b border-red-100 px-6 py-3 text-xs text-red-700">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {syncError}
+              </div>
+            )}
 
             {items.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center px-6">
@@ -99,15 +108,25 @@ export function CartDrawer() {
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
-                          <div className="mt-auto flex items-center justify-between pt-2">
+                            <div className="mt-auto flex items-center justify-between pt-2">
                             <div className="flex items-center border border-neutral-200">
-                              <button
-                                onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
-                                className="min-w-[32px] h-8 flex items-center justify-center hover:bg-neutral-50 transition-colors"
-                                aria-label="Decrease quantity"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
+                              {item.quantity > 1 ? (
+                                <button
+                                  onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
+                                  className="min-w-[32px] h-8 flex items-center justify-center hover:bg-neutral-50 transition-colors"
+                                  aria-label="Decrease quantity"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => removeItem(item.variantId)}
+                                  className="min-w-[32px] h-8 flex items-center justify-center hover:bg-red-50 text-red-400 hover:text-red-500 transition-colors"
+                                  aria-label="Remove item"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              )}
                               <span className="px-3 text-sm font-medium min-w-[2rem] text-center">{item.quantity}</span>
                               <button
                                 onClick={() => updateQuantity(item.variantId, Math.min(item.quantity + 1, item.maxQuantity))}

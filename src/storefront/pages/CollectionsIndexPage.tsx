@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Helmet } from "react-helmet-async";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { SafeImage } from "../../components/SafeImage";
 import { api } from "../../lib/api/client";
+import { canonical } from "../../lib/seo";
 
 interface Collection {
   id: string;
@@ -24,6 +26,14 @@ export default function CollectionsIndexPage() {
 
   return (
     <div className="container-page section-padding">
+      <Helmet>
+        <title>Collections — নবME</title>
+        <meta name="description" content="Explore our curated collections of premium fashion at নবME." />
+        <link rel="canonical" href={canonical("/collections")} />
+        <meta property="og:title" content="Collections — নবME" />
+        <meta property="og:description" content="Explore our curated collections of premium fashion at নবME." />
+        <meta property="og:url" content={canonical("/collections")} />
+      </Helmet>
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Collections" }]} className="mb-8" />
       <h1 className="font-display text-display-3 text-neutral-900 mb-10">Our Collections</h1>
 

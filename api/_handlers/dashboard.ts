@@ -34,6 +34,7 @@ export async function handleDashboardRequest(
       return handleDashboardOverview(ctx, ctx.env);
     case "profile":
       if (req.method === "GET") return handleGetProfile(ctx, ctx.env);
+      if (req.method === "PUT") return handleUpdateProfile(ctx, req, ctx.env);
       return error("Method not allowed", 405);
     case "changePassword":
       return handleChangePassword(ctx, req, ctx.env);
@@ -102,6 +103,62 @@ async function handleGetProfile(ctx: RequestContext, env: any): Promise<Response
     });
 
     if (!profile) return notFound("Profile not found");
+
+    return success({ profile });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleUpdateProfile(ctx: RequestContext, req: Request, env: any): Promise<Response> {
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
+
+  const allowedFields = ["firstName", "lastName", "phone", "avatarUrl", "preferences"];
+  const updateData: Record<string, unknown> = {};
+
+  for (const field of allowedFields) {
+    if (body[field] !== undefined) {
+      if (field === "preferences") {
+        const existing = await getPrisma(ctx.env).profile.findUnique({
+          where: { id: ctx.userId },
+          select: { preferences: true },
+        });
+        updateData.preferences = {
+          ...(existing?.preferences as Record<string, unknown> || {}),
+          ...(body.preferences as Record<string, unknown> || {}),
+        };
+      } else {
+        updateData[field] = body[field];
+      }
+    }
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return badRequest("No valid fields to update");
+  }
+
+  try {
+    const prisma = getPrisma(ctx.env);
+    const profile = await prisma.profile.update({
+      where: { id: ctx.userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        avatarUrl: true,
+        preferences: true,
+        createdAt: true,
+      },
+    });
 
     return success({ profile });
   } catch (err) {

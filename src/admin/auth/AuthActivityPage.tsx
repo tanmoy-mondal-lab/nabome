@@ -6,7 +6,7 @@ import { Modal } from "../common/Modal";
 import { StatusBadge } from "../common/StatusBadge";
 import { EmptyState } from "../common/EmptyState";
 import { DataTable } from "../common/DataTable";
-import { Clock, LogOut, ShieldAlert, Search } from "lucide-react";
+import { Clock, LogOut, ShieldAlert, Search, AlertCircle } from "lucide-react";
 import { formatDate, formatDateTime } from "../../lib/utils/format";
 import { useToast } from "../../components/ui/Toast";
 import { cn } from "../../lib/utils/cn";
@@ -96,7 +96,7 @@ function SessionsTab() {
   const [isActive, setIsActive] = useState<boolean | undefined>(undefined);
   const [revokeConfirm, setRevokeConfirm] = useState<Session | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin", "sessions", page, isActive],
     queryFn: async () => {
       const params: Record<string, string | number | undefined> = { page, limit: 15 };
@@ -194,6 +194,14 @@ function SessionsTab() {
         })}
       </div>
 
+      {isError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load sessions</p>
+          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+        </div>
+      )}
+
       {sessions.length === 0 && !isLoading ? (
         <EmptyState icon={LogOut} title="No sessions found" description="No auth sessions match the current filter." />
       ) : (
@@ -230,7 +238,7 @@ function LoginAttemptsTab() {
   const [emailFilter, setEmailFilter] = useState("");
   const [successFilter, setSuccessFilter] = useState<"" | "true" | "false">("");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin", "loginAttempts", page, emailFilter, successFilter],
     queryFn: async () => {
       const params: Record<string, string | number | undefined> = { page, limit: 25 };
@@ -266,6 +274,14 @@ function LoginAttemptsTab() {
           </button>
         ))}
       </div>
+
+      {isError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load login attempts</p>
+          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">

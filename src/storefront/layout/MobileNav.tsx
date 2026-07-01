@@ -58,20 +58,28 @@ export function MobileNav() {
                           {open && (
                             <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                               <div className="ml-4 space-y-1 pb-2">
-                                {(menu.children ?? []).map((child) => (
-                                  <Link key={child.label} to={(child.link || child.url) as string || "#"} onClick={closeMobileMenu} className="block px-4 py-2 text-sm text-neutral-500 hover:text-brand-500 tracking-fashion">
-                                    {child.label}
-                                  </Link>
-                                ))}
+                                {(menu.children ?? []).map((child) => {
+                                  const childUrl = (child.link || child.url) as string;
+                                  if (!childUrl) return null;
+                                  return (
+                                    <Link key={child.label} to={childUrl} onClick={closeMobileMenu} className="block px-4 py-2 text-sm text-neutral-500 hover:text-brand-500 tracking-fashion">
+                                      {child.label}
+                                    </Link>
+                                  );
+                                })}
                               </div>
                             </motion.div>
                           )}
                         </AnimatePresence>
                       </>
                     ) : (
-                      <Link to={(menu.link || menu.url) as string || "#"} onClick={closeMobileMenu} className="block px-4 py-3 text-sm text-neutral-700 hover:text-brand-500 tracking-fashion">
-                        {menu.label}
-                      </Link>
+                      (menu.link || menu.url) ? (
+                        <Link to={(menu.link || menu.url) as string} onClick={closeMobileMenu} className="block px-4 py-3 text-sm text-neutral-700 hover:text-brand-500 tracking-fashion">
+                          {menu.label}
+                        </Link>
+                      ) : (
+                        <span className="block px-4 py-3 text-sm text-neutral-700 cursor-default">{menu.label}</span>
+                      )
                     )}
                   </div>
                 );

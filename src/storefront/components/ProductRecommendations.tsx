@@ -13,10 +13,11 @@ interface ProductRecommendationsProps {
 
 export function ProductRecommendations({ title, type, currentSlug }: ProductRecommendationsProps) {
   const { data, isLoading } = useQuery({
-    queryKey: ["recommendations", type],
+    queryKey: ["recommendations", type, currentSlug],
     queryFn: async () => {
       if (type === "featured") return api.get<{ products: Record<string, unknown>[] }>("/api/products/featured");
       if (type === "newArrivals") return api.get<{ products: Record<string, unknown>[] }>("/api/products/new");
+      if (type === "similar" && currentSlug) return api.get<{ products: Record<string, unknown>[] }>(`/api/products/${currentSlug}/similar`);
       return { products: [] };
     },
     staleTime: 1000 * 60 * 5,

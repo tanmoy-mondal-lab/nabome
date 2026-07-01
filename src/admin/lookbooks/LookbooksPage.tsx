@@ -3,7 +3,7 @@ import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
-import { Edit3, Trash2, Plus, BookOpen } from "lucide-react";
+import { Edit3, Trash2, Plus, BookOpen, AlertCircle } from "lucide-react";
 import { useToast } from "../../components/ui/Toast";
 
 interface LookbookItem {
@@ -37,7 +37,7 @@ export default function LookbooksPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: lookbooks = [], isLoading } = useQuery({
+  const { data: lookbooks = [], isLoading, isError, refetch } = useQuery({
     queryKey: ["admin", "lookbooks"],
     queryFn: async () => {
       const res = await adminApi.getLookbooks();
@@ -112,6 +112,14 @@ export default function LookbooksPage() {
           <Plus size={16} /> Create Lookbook
         </button>
       </div>
+
+      {isError && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <p className="text-sm text-red-700">Failed to load lookbooks</p>
+          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+        </div>
+      )}
 
       <DataTable
         columns={columns}

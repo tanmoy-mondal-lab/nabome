@@ -170,9 +170,11 @@ route("GET", "/api/products", (req, ctx) => handleProductRequest(req, ctx, [], "
 route("GET", "/api/products/featured", (req, ctx) => handleProductRequest(req, ctx, [], "featured"));
 route("GET", "/api/products/new", (req, ctx) => handleProductRequest(req, ctx, [], "newArrivals"));
 route("GET", "/api/products/search", (req, ctx) => handleProductRequest(req, ctx, [], "search"));
+route("GET", "/api/products/by-slugs", (req, ctx) => handleProductRequest(req, ctx, [], "bySlugs"));
 route("GET", "/api/products/:slug", (req, ctx, p) => handleProductRequest(req, ctx, p, "detail"));
 route("GET", "/api/products/:slug/variants", (req, ctx, p) => handleProductRequest(req, ctx, p, "variants"));
 route("GET", "/api/products/:slug/reviews", (req, ctx, p) => handleProductRequest(req, ctx, p, "reviews"));
+route("GET", "/api/products/:slug/similar", (req, ctx, p) => handleProductRequest(req, ctx, p, "similar"));
 
 route("GET", "/api/categories", (req, ctx) => handleCategoryRequest(req, ctx, [], "list"));
 route("GET", "/api/categories/:slug", (req, ctx, p) => handleCategoryRequest(req, ctx, p, "detail"));

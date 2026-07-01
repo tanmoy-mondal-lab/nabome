@@ -60,9 +60,12 @@ export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBo
         {[mainProduct, ...products.slice(0, 3)].map((p, i) => {
           const images = (p.images as { url: string }[]) ?? [];
           return (
-            <div key={i} className="flex items-center gap-2">
+            <div key={i} className="flex items-center gap-2 shrink-0">
               {i > 0 && <span className="text-neutral-300 text-lg">+</span>}
-              <SafeImage src={images[0]?.url || "/placeholder.svg"} alt={p.name as string} className="w-16 h-20 object-cover bg-neutral-100" />
+              <div className="flex flex-col items-center gap-1">
+                <SafeImage src={images[0]?.url || "/placeholder.svg"} alt={p.name as string} className="w-16 h-20 object-cover bg-neutral-100" />
+                <p className="text-[10px] text-neutral-500 text-center max-w-[64px] truncate">{p.name as string}</p>
+              </div>
             </div>
           );
         })}

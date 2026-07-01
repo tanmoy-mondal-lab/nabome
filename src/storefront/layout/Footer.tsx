@@ -63,6 +63,7 @@ export function Footer() {
                 return (
                   <a key={platform} href={link.url as string} target="_blank" rel="noopener noreferrer"
                     className="w-10 h-10 border border-white/10 rounded-full flex items-center justify-center hover:border-accent-gold hover:text-accent-gold transition-all duration-300"
+                    aria-label={`Follow us on ${platform}`}
                   >
                     <Icon className="w-4 h-4" />
                   </a>
@@ -88,13 +89,25 @@ export function Footer() {
                     <h4 className="text-xs uppercase tracking-[0.15em] text-white font-medium mb-5">
                       {section.title as string}
                     </h4>
-                    {contentType === "links" && links.map((link, j) => (
-                      <Link key={j} to={link.url}
-                        className="block text-sm text-neutral-400 hover:text-white py-1.5 transition-colors duration-200"
-                      >
-                        {link.label}
-                      </Link>
-                    ))}
+                    {contentType === "links" && links.map((link, j) => {
+                      const isExternal = link.url.startsWith("http");
+                      if (isExternal) {
+                        return (
+                          <a key={j} href={link.url} target="_blank" rel="noopener noreferrer"
+                            className="block text-sm text-neutral-400 hover:text-white py-1.5 transition-colors duration-200"
+                          >
+                            {link.label}
+                          </a>
+                        );
+                      }
+                      return (
+                        <Link key={j} to={link.url}
+                          className="block text-sm text-neutral-400 hover:text-white py-1.5 transition-colors duration-200"
+                        >
+                          {link.label}
+                        </Link>
+                      );
+                    })}
                     {contentType === "text" && (
                       <p className="text-sm text-neutral-400 leading-relaxed">{text}</p>
                     )}
