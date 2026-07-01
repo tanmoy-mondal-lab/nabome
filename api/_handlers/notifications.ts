@@ -2,6 +2,7 @@ import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError, created } from "../_lib/response";
 import { requireAdmin } from "../_lib/auth-middleware";
 import type { RequestContext } from "../_lib/types";
+import { sendEmailNotification } from "../_lib/email";
 
 export async function createNotification(
   profileId: string,
@@ -27,7 +28,20 @@ export async function createNotification(
     });
 
     if (channel === "email") {
-      // TODO: integrate with email service
+      const recipient = await prisma.profile.findUnique({
+        where: { id: profileId },
+        select: { email: true, firstName: true },
+      });
+      if (recipient?.email) {
+        await sendEmailNotification("notification", {
+          email: recipient.email,
+          firstName: recipient.firstName,
+          title,
+          body: body ?? title,
+          link: orderId ? `/account/orders/${orderId}` : undefined,
+          siteUrl: env?.SITE_URL || env?.VITE_SITE_URL,
+        }, env);
+      }
     }
   } catch (err) {
     console.error("[Notification] Failed to create notification:", err);

@@ -2,6 +2,7 @@ import { lazy } from "react";
 import { Route } from "react-router-dom";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 import { AdminRoute } from "../components/auth/AdminRoute";
+import { StorefrontLayout } from "../storefront/layout/Layout";
 
 const LoginPage = lazy(() => import("../pages/LoginPage"));
 const RegisterPage = lazy(() => import("../pages/RegisterPage"));
@@ -10,8 +11,6 @@ const ResetPasswordPage = lazy(() => import("../pages/ResetPasswordPage"));
 const VerifyEmailPage = lazy(() => import("../pages/VerifyEmailPage"));
 
 const AdminRoutes = lazy(() => import("../admin/AdminRoutes"));
-
-const StorefrontLayout = lazy(() => import("../storefront/layout/Layout").then((m) => ({ default: m.StorefrontLayout })));
 const HomePage = lazy(() => import("../storefront/pages/HomePage"));
 const ProductListingPage = lazy(() => import("../storefront/pages/ProductListingPage"));
 const ProductDetailPage = lazy(() => import("../storefront/pages/ProductDetailPage"));
@@ -71,6 +70,11 @@ export const STOREFRONT_ROUTES = (
 
 export const AUTH_ROUTES = (
   <>
+    <Route path="login" element={<LoginPage />} />
+    <Route path="register" element={<RegisterPage />} />
+    <Route path="forgot-password" element={<ForgotPasswordPage />} />
+    <Route path="reset-password" element={<ResetPasswordPage />} />
+    <Route path="verify-email" element={<VerifyEmailPage />} />
     <Route path="auth/login" element={<LoginPage />} />
     <Route path="auth/register" element={<RegisterPage />} />
     <Route path="auth/forgot-password" element={<ForgotPasswordPage />} />

@@ -106,6 +106,7 @@ export default function ProductListingPage() {
     queryKey: ["products", apiUrl, params],
     queryFn: () => api.get<{ products: Record<string, unknown>[]; pagination?: { total: number; totalPages: number }; total?: number; totalPages?: number }>(apiUrl, { params }),
     staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 
   const products = res?.products ?? [];

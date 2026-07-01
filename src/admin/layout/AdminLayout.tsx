@@ -109,8 +109,8 @@ export default function AdminLayout() {
     for (const item of NAV_ITEMS) {
       if ("children" in item && item.children) {
         const hasActiveChild = item.children.some((child) => path.startsWith(child.href));
-        if (hasActiveChild && !expandedMenus.includes(item.label)) {
-          setExpandedMenus((prev) => [...prev, item.label]);
+        if (hasActiveChild) {
+          setExpandedMenus((prev) => prev.includes(item.label) ? prev : [...prev, item.label]);
         }
       }
     }

@@ -91,7 +91,7 @@ export default function CustomersPage() {
       render: (c: Customer) => (
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-xs font-medium text-neutral-500 shrink-0">
-            {c.avatarUrl ? <SafeImage src={c.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" useTransform={false} /> : `${c.firstName[0]}${c.lastName[0]}`}
+            {c.avatarUrl ? <SafeImage src={c.avatarUrl} alt={`${c.firstName} ${c.lastName} avatar`} className="w-full h-full rounded-full object-cover" useTransform={false} /> : `${c.firstName[0]}${c.lastName[0]}`}
           </div>
           <div>
             <p className="font-medium text-neutral-900">{c.firstName} {c.lastName}</p>
@@ -155,7 +155,7 @@ export default function CustomersPage() {
           <div className="space-y-6">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-neutral-100 rounded-full flex items-center justify-center text-neutral-700 font-display text-xl">
-                {selected.avatarUrl ? <SafeImage src={selected.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" useTransform={false} /> : `${selected.firstName[0]}${selected.lastName[0]}`}
+                {selected.avatarUrl ? <SafeImage src={selected.avatarUrl} alt={`${selected.firstName} ${selected.lastName} avatar`} className="w-full h-full rounded-full object-cover" useTransform={false} /> : `${selected.firstName[0]}${selected.lastName[0]}`}
               </div>
               <div>
                 <h3 className="font-medium text-lg text-neutral-900">{selected.firstName} {selected.lastName}</h3>

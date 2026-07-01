@@ -46,6 +46,36 @@ function buildInclude() {
   };
 }
 
+function normalizeLookbookItems(items: unknown[]): Array<{
+  imageUrl: string;
+  imagePublicId: string | null;
+  productId: string | null;
+  hotspotX?: number | null;
+  hotspotY?: number | null;
+  caption: string | null;
+  sortOrder: number;
+}> {
+  return items
+    .map((raw, index) => {
+      const item = raw as Record<string, unknown>;
+      const imageUrl = toNull(item.mediaUrl) ?? toNull(item.imageUrl);
+      if (!imageUrl) return null;
+      const caption = toNull(item.caption ?? item.title ?? item.description);
+      const hotspotX = item.hotspotX === undefined || item.hotspotX === "" ? null : Number(item.hotspotX);
+      const hotspotY = item.hotspotY === undefined || item.hotspotY === "" ? null : Number(item.hotspotY);
+      return {
+        imageUrl,
+        imagePublicId: toNull(item.mediaPublicId) ?? toNull(item.imagePublicId),
+        productId: toNull(item.productId),
+        hotspotX: Number.isFinite(hotspotX) ? hotspotX : null,
+        hotspotY: Number.isFinite(hotspotY) ? hotspotY : null,
+        caption,
+        sortOrder: Number(item.sortOrder ?? item.position ?? index),
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
+}
+
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
@@ -83,6 +113,7 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
   const prisma = getPrisma(env);
   const slugExists = await prisma.lookbook.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
+  const items = Array.isArray(body.items) ? normalizeLookbookItems(body.items) : [];
 
   try {
     const lookbook = await prisma.lookbook.create({
@@ -101,7 +132,9 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
         metaDesc: metaDesc ?? null,
         isActive: isActive ?? true,
         sortOrder: sortOrder ?? 0,
+        ...(items.length > 0 ? { items: { create: items } } : {}),
       },
+      include: buildInclude(),
     });
     return created(lookbook);
   } catch (err) {
@@ -113,7 +146,10 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.lookbook.findUnique({ where: { id: lookbookId } });
+    const existing = await prisma.lookbook.findUnique({
+      where: { id: lookbookId },
+      include: { items: { select: { imagePublicId: true } } },
+    });
     if (!existing) return notFound("Lookbook not found");
 
     const data: Record<string, unknown> = {};
@@ -129,11 +165,34 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
     if (body.year !== undefined) data.year = parseInt(String(body.year));
     if (body.story !== undefined) data.story = body.story;
     if (body.tags !== undefined) data.tags = Array.isArray(body.tags) ? body.tags : [];
+    const shouldSyncItems = Array.isArray(body.items);
+    const items = shouldSyncItems ? normalizeLookbookItems(body.items) : [];
 
-    const lookbook = await prisma.lookbook.update({
-      where: { id: lookbookId },
-      data: data as never,
+    const lookbook = await prisma.$transaction(async (tx) => {
+      const updated = await tx.lookbook.update({
+        where: { id: lookbookId },
+        data: data as never,
+      });
+      if (shouldSyncItems) {
+        await tx.lookbookItem.deleteMany({ where: { lookbookId } });
+        if (items.length > 0) {
+          await tx.lookbookItem.createMany({
+            data: items.map((item) => ({ ...item, lookbookId })),
+          });
+        }
+      }
+      return tx.lookbook.findUnique({
+        where: { id: lookbookId },
+        include: buildInclude(),
+      });
     });
+    if (shouldSyncItems) {
+      const incomingPublicIds = new Set(items.map((item) => item.imagePublicId).filter(Boolean));
+      const removedPublicIds = existing.items
+        .map((item) => item.imagePublicId)
+        .filter((publicId): publicId is string => Boolean(publicId) && !incomingPublicIds.has(publicId));
+      await destroyCloudinaryAssets(removedPublicIds, env);
+    }
     return success(lookbook);
   } catch (err) {
     return serverError(err);

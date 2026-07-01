@@ -67,7 +67,7 @@ export default function LookbooksPage() {
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-neutral-100 rounded overflow-hidden shrink-0 flex items-center justify-center">
             {l.coverImageUrl ? (
-              <img src={l.coverImageUrl} alt="" className="w-full h-full object-cover" />
+              <img src={l.coverImageUrl} alt={`${l.name} cover image`} className="w-full h-full object-cover" />
             ) : (
               <BookOpen size={16} className="text-neutral-400" />
             )}

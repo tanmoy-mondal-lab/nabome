@@ -109,7 +109,7 @@ export default function BrandsPage() {
           { key: "name", label: "Name", sortable: true },
           { key: "slug", label: "Slug" },
           { key: "description", label: "Description" },
-          { key: "logoUrl", label: "Logo", render: (item) => { const b = item as Brand; return b.logoUrl ? <SafeImage src={b.logoUrl} alt="" className="w-10 h-10 object-contain rounded border" useTransform={false} /> : null; } },
+          { key: "logoUrl", label: "Logo", render: (item) => { const b = item as Brand; return b.logoUrl ? <SafeImage src={b.logoUrl} alt={`${b.name} logo`} className="w-10 h-10 object-contain rounded border" useTransform={false} /> : null; } },
           { key: "websiteUrl", label: "Website" },
           { key: "_count", label: "Products", render: (item) => <span className="text-xs bg-neutral-100 px-2 py-1 rounded">{((item as Brand)._count?.products ?? 0)}</span> },
           { key: "isActive", label: "Status", render: (item) => { const b = item as Brand; return <span className={`text-xs px-2 py-1 rounded ${b.isActive ? "bg-green-100 text-green-700" : "bg-neutral-100 text-neutral-500"}`}>{b.isActive ? "Active" : "Archived"}</span>; } },

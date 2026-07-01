@@ -1,14 +1,17 @@
 import { badRequest, unauthorized, serverError, success } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { cleanSecret } from "../_lib/secrets";
+import { requireAdmin } from "../_lib/auth-middleware";
+import { getPrisma } from "../_lib/prisma";
+import { destroyCloudinaryAsset } from "../_lib/cloudinary";
+import type { CloudinaryResourceType } from "../_lib/cloudinary";
 
-const ALLOWED_TYPES: Record<string, { type: string; resourceType: string }> = {
+const ALLOWED_TYPES: Record<string, { type: "image" | "video" | "document"; resourceType: CloudinaryResourceType }> = {
   "image/jpeg": { type: "image", resourceType: "image" },
   "image/png": { type: "image", resourceType: "image" },
   "image/webp": { type: "image", resourceType: "image" },
   "image/avif": { type: "image", resourceType: "image" },
   "image/gif": { type: "image", resourceType: "image" },
-  "image/svg+xml": { type: "image", resourceType: "image" },
   "image/bmp": { type: "image", resourceType: "image" },
   "image/tiff": { type: "image", resourceType: "image" },
   "video/mp4": { type: "video", resourceType: "video" },
@@ -19,13 +22,15 @@ const ALLOWED_TYPES: Record<string, { type: string; resourceType: string }> = {
   "application/pdf": { type: "document", resourceType: "raw" },
 };
 
-const MAX_SIZE = 50 * 1024 * 1024;
+const MAX_SIZE = 20 * 1024 * 1024;
 
 export async function handleUploadRequest(
   req: Request,
   ctx: RequestContext
 ): Promise<Response> {
   if (!ctx.userId) return unauthorized();
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
 
   const cloudName = cleanSecret(ctx.env?.CLOUDINARY_CLOUD_NAME);
   const uploadPreset = cleanSecret(ctx.env?.CLOUDINARY_UPLOAD_PRESET);
@@ -82,8 +87,28 @@ export async function handleUploadRequest(
     }
 
     const result = await uploadResponse.json();
+    let asset;
+    try {
+      asset = await getPrisma(ctx.env).mediaAsset.create({
+        data: {
+          url: result.secure_url,
+          publicId: result.public_id,
+          altText: altText || null,
+          width: result.width ?? null,
+          height: result.height ?? null,
+          fileSize: result.bytes ?? file.size,
+          mimeType: file.type,
+          type: fileInfo.type as "image" | "video" | "document",
+          folder,
+        },
+      });
+    } catch (databaseError) {
+      await destroyCloudinaryAsset(result.public_id, ctx.env, fileInfo.resourceType).catch(() => undefined);
+      throw databaseError;
+    }
 
     return success({
+      assetId: asset.id,
       url: result.secure_url,
       publicId: result.public_id,
       width: result.width ?? null,

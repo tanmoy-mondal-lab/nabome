@@ -161,6 +161,7 @@ export default function ProductDetailPage() {
   const averageRating = reviews?.average ?? 0;
 
   const freeShippingThreshold = Number((settingsData?.preferences as Record<string, unknown>)?.freeShippingThreshold ?? 500);
+  const locale = (settingsData?.preferences as Record<string, unknown>)?.locale as string || "en_IN";
   const sizeGuideData = product.sizeGuide as { measurements?: { size: string; chest?: string; waist?: string; length?: string }[] } | undefined;
 
   return (
@@ -175,7 +176,7 @@ export default function ProductDetailPage() {
         <meta property="og:type" content="product" />
         <meta property="og:url" content={canonical(`/products/${slug}`)} />
         <meta property="og:site_name" content="নবME" />
-        <meta property="og:locale" content="en_IN" />
+        <meta property="og:locale" content={locale} />
         {(product.images as { url: string }[])?.[0] && (
           <meta property="og:image" content={img((product.images as { url: string }[])[0].url, { width: 1200, height: 630 })} />
         )}

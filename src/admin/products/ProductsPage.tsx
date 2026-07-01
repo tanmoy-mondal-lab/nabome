@@ -89,7 +89,7 @@ export default function ProductsPage() {
     },
   });
 
-  const products = data?.products ?? [];
+  const products = useMemo(() => data?.products ?? [], [data?.products]);
   const totalPages = data?.totalPages ?? 1;
 
   const { data: categories = [] } = useQuery({
@@ -280,7 +280,7 @@ export default function ProductsPage() {
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-11 h-11 bg-neutral-100 rounded-lg overflow-hidden shrink-0 ring-1 ring-neutral-200">
             {p.images?.[0]
-              ? <SafeImage src={p.images[0].url} alt="" className="w-full h-full object-cover" useTransform={false} />
+              ? <SafeImage src={p.images[0].url} alt={`${p.name} product image`} className="w-full h-full object-cover" useTransform={false} />
               : <div className="w-full h-full flex items-center justify-center"><Package size={16} className="text-neutral-300" /></div>
             }
           </div>

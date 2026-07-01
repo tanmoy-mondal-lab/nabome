@@ -106,7 +106,7 @@ export const customerApi = {
   // Payments
   verifyPayment: (data: { razorpayPaymentId: string; razorpayOrderId: string; razorpaySignature: string; orderId: string }) =>
     api.post<{ order: unknown }>("/payments/verify", data),
-  reportPaymentFailed: (data: { orderId: string; errorDescription?: string }) =>
+  reportPaymentFailed: (data: { orderId: string; razorpayOrderId: string; errorDescription?: string }) =>
     api.post<unknown>("/payments/failed", data),
   retryPayment: (orderId: string) =>
     api.post<{ razorpayOrderId: string }>("/payments/retry", { orderId }),

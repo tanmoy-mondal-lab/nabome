@@ -7,6 +7,7 @@ import { useSearch } from "../hooks/useProducts";
 import { useCategories } from "../hooks/useCategories";
 import { SafeImage } from "../../components/SafeImage";
 import { formatPrice } from "../../lib/utils/format";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 const TRENDING = ["Summer Dresses", "Linen Shirts", "Leather Bags", "Sneakers", "Silk Scarves"];
 
@@ -29,6 +30,7 @@ export function SearchOverlay() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const overlayRef = useFocusTrap<HTMLDivElement>(isSearchOpen, closeSearch);
   const { data } = useSearch(debouncedQuery);
   const { data: categories = [] } = useCategories();
 
@@ -62,11 +64,13 @@ export function SearchOverlay() {
     <AnimatePresence>
       {isSearchOpen && (
         <motion.div
+          ref={overlayRef}
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 bg-white/95 backdrop-blur-md"
           role="dialog"
           aria-modal="true"
           aria-label="Search"
+          tabIndex={-1}
         >
           <div className="container-page py-6">
             <div className="flex items-center gap-4 mb-8">

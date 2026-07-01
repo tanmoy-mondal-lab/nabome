@@ -3,6 +3,7 @@ import { PrismaNeon } from "@prisma/adapter-neon";
 import { neonConfig } from "@neondatabase/serverless";
 import type { Env } from "./env";
 import { cleanSecret } from "./secrets";
+import { getEnv } from "./env";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -11,10 +12,10 @@ const globalForPrisma = globalThis as unknown as {
 neonConfig.poolQueryViaFetch = true;
 
 function getDatabaseUrl(env?: Env): string {
-  const url = cleanSecret(env?.DATABASE_URL_POOLED) ||
-    cleanSecret(env?.DATABASE_URL) ||
-    cleanSecret(typeof process !== "undefined" ? process.env?.DATABASE_URL_POOLED : undefined) ||
-    cleanSecret(typeof process !== "undefined" ? process.env?.DATABASE_URL : undefined);
+  // Use provided env, or fall back to process.env for local development
+  const effectiveEnv = env || getEnv();
+  const url = cleanSecret(effectiveEnv.DATABASE_URL_POOLED) ||
+    cleanSecret(effectiveEnv.DATABASE_URL);
   if (!url) {
     throw new Error("[PRISMA] DATABASE_URL is not set. Check Cloudflare Pages secrets or .env file.");
   }

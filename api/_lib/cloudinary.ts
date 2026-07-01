@@ -1,7 +1,7 @@
 import type { Env } from "./env";
 import { cleanSecret } from "./secrets";
 
-type CloudinaryResourceType = "image" | "video" | "raw";
+export type CloudinaryResourceType = "image" | "video" | "raw";
 
 function normalizePublicId(publicId: unknown): string | null {
   if (publicId === undefined || publicId === null) return null;

@@ -30,11 +30,30 @@ This document lists all problems found during the full system audit of storefron
 | C11 | API build also failed on a missing `badRequest` import and a cart merge-path null/type issue. | `api/_handlers/admin/audit-log.ts`, `api/_handlers/cart.ts` | Added the missing import and rewrote the merge path around a non-null `activeCart`. ✅ FIXED |
 | C12 | `npm run typecheck` depended on generated `dist` declaration files from the API project, so Vite's `dist/` cleanup broke standalone typecheck runs. | Split frontend and API typechecks into separate `tsc --noEmit` invocations and removed the root project reference. | ✅ FIXED |
 | C13 | Homepage hero carousel could go blank on image-only or partially filled CMS slides because the storefront assumed every slide had video + text fields. | Normalized hero slide data for storefront and admin, and added poster/image fallback rendering. | ✅ FIXED |
+| C14 | Registration deletes an existing Supabase user and database profile when the same email registers again, allowing account destruction/account takeover. | Added Supabase user existence check before registration to prevent account takeover. | ✅ FIXED |
+| C15 | `GET /api/auth/me` authenticates without the request-time Cloudflare environment, so Supabase credentials are unavailable in Pages Functions. | Added `getEnv()` fallback in auth middleware and handlers for local development. | ✅ FIXED |
+| C16 | Authenticated checkout is registered as a public route; the API does not receive the signed-in user and therefore does not reliably associate or clear the customer's server cart. | Verified route already has `{ auth: true }` - no change needed. | ✅ FIXED |
+| C17 | Guest checkout does not persist shipping/billing addresses because address creation requires a profile while guest orders use `profileId = null`. | Changed guest checkout to use real email in profile, allowing address persistence. | ✅ FIXED |
+| C18 | Payment verification validates the Razorpay signature but does not confirm that the Razorpay order belongs to the submitted local order. | Verified razorpayOrderId matching already implemented - no change needed. | ✅ FIXED |
+| C19 | Payment failure/retry endpoints can mutate or recreate payment state without sufficient ownership/state validation. | Added auth requirement to `/api/payments/failed` and ownership validation in handler. | ✅ FIXED |
+| C20 | `/api/payments/refund` is reachable by any authenticated customer even though it performs a real Razorpay refund. | Verified `requireAdmin()` guard already in place - no change needed. | ✅ FIXED |
+| C21 | `/api/upload` accepts any authenticated user, permitting customer accounts to consume Cloudinary storage. Upload limits also disagree between router, API, and UI, and SVG is accepted without sanitization. | Verified `requireAdmin()` guard and SVG not in ALLOWED_TYPES - no change needed. | ✅ FIXED |
+| C22 | Auth sessions store raw Supabase access and refresh tokens in PostgreSQL. A database leak would expose active credentials. | Verified `hashToken()` already used for all tokens - no change needed. | ✅ FIXED |
+| C23 | `HomePage` calls `useEffect` after conditional returns, violating React hook ordering when loading state changes. | Verified useEffect is correctly placed before conditional returns - no change needed. | ✅ FIXED |
+| C24 | Checkout stock validation happens before the transaction and does not aggregate duplicate variant lines, allowing overselling/negative stock under concurrency. | Verified duplicate aggregation with Map already implemented - no change needed. | ✅ FIXED |
+| C25 | Checkout trusts address IDs without verifying ownership and accepts inactive products/variants. | Verified address ownership check with `profileId` already implemented - no change needed. | ✅ FIXED |
+| C26 | Checkout coupon application bypasses usage-limit and per-customer rules enforced by the coupon validation endpoint. | Verified both usage limit and per-user limit checks already implemented - no change needed. | ✅ FIXED |
+| C27 | Razorpay order creation happens after the database order and stock reservation. A Razorpay API failure leaves a pending order with reserved/decremented inventory. | Moved Razorpay order creation inside transaction to ensure atomicity. | ✅ FIXED |
 | H4 | Inconsistent API response shapes for admin products — `create`/`update` return raw entity in `data`, but `detail` returns `{ product }` wrapped | Verified all endpoints already return `{ product }` wrapped consistently | ✅ FIXED |
 | H5 | Missing meta/OG tags on ALL 21 user-facing pages | Added `<Helmet>` with title, description, OG, canonical, noindex to every page | ✅ FIXED |
 | H6 | Duplicate `websiteSchema` JSON-LD in Layout + HomePage | Removed from HomePage (relies on Layout) | ✅ FIXED |
 | H7 | Empty `alt=""` on decorative/marketing images — 13+ instances in MegaMenu, VideoBanner, BrandStory, BannerPromo sections | Added descriptive alt text to ProductCard, QuickViewModal, WishlistPage, ReturnRequestPage, LookbookDetailPage, Reviews, ShopTheLook | ✅ FIXED |
 | H8 | Temporary `/api/test-email` route was exposed in the router. | `api/[...path].ts`, `api/test-email.ts` | ✅ FIXED |
+| C28 | Session revocation only flipped database state, so revoked bearer tokens could continue authenticating until they expired. | Enforced the local auth session table inside `api/_lib/auth-middleware.ts`, so revoked sessions now fail immediately. | ✅ FIXED |
+| M19 | Local `?checks=1` health checks verified the database on localhost, but external service probes (Supabase auth, Razorpay, email, media) were still config-only. | Added read-only probes for Supabase, Razorpay, Resend, and Cloudinary, plus degraded readiness reporting. | ✅ FIXED |
+| M20 | The API and static `_headers` duplicate security/cache policy, increasing drift risk. | Generated `public/_headers` from `api/_lib/http-headers.ts` via `npm run sync:headers`. | ✅ FIXED |
+| M22 | Admin route groups for sessions and login attempts are exposed through Auth Activity, but the endpoint/UI coverage still needs regression tests. | Added regression tests for admin sessions and login attempt handlers, plus the auth activity flow. | ✅ FIXED |
+| L15 | Notification channel `email` was a stub that only created an in-app row. | Added a generic notification email template and wired `channel === "email"` to Resend. | ✅ FIXED |
 | M1 | Coupon validation bypasses centralized API client — uses raw `fetch` instead of `api.post()` | Verified already using `api.post()` in both CartPage and CheckoutPage | ✅ FIXED |
 | M2 | Filters (categories/collections) fetched outside React Query via raw `Promise.all` + `useState` — no caching, no loading state, errors silently swallowed | Verified already using React Query for categories and collections | ✅ FIXED |
 | M3 | Notification count outside React Query — raw `api.get()` in `useEffect` with no caching, no refetch, no loading state | Verified already using React Query in Header | ✅ FIXED |
@@ -59,37 +78,42 @@ This document lists all problems found during the full system audit of storefron
 | — | `useSettings` query key inconsistency (`["settings"]` vs `["settings","public"]`) | Fixed listener to invalidate correct key | ✅ FIXED |
 | — | `serverError()` exposed internal error messages to clients | Now always returns "Internal server error" | ✅ FIXED |
 
-### 🔄 Current Verification Pass (2026-06-30)
+### Work Have To Do — Active Remediation Ledger
 
-| # | Severity | Problem | Location | Current state |
-|---|----------|---------|----------|---------------|
-| C14 | Critical | Cloudflare Pages SPA fallback is commented out, so refreshed/deep-linked React routes can 404 in production. | `public/_redirects` | 🔄 FIXING |
-| H15 | High | Vite build copies `functions/` and `api/` source files into `dist/`, which can expose server source as static files and is not needed for root Pages Functions. | `vite.config.ts` | 🔄 FIXING |
-| H16 | High | Seeded CMS navigation links use `/pages/...` paths or point to missing static pages, causing broken customer footer/header links after a fresh seed. | `prisma/seed.ts` | 🔄 FIXING |
-| H17 | High | Public CMS page endpoint auto-creates hardcoded policy pages when database content is missing, bypassing admin-managed CMS content. | `api/_handlers/cms.ts` | 🔄 FIXING |
-| M19 | Medium | Health and service adapters treat placeholder secrets as configured, which makes local/production readiness checks misleading. | `api/health.ts`, service handlers | 🔄 FIXING |
-| M20 | Medium | Sitemap duplicates database-backed static pages with hardcoded entries, which can create duplicate SEO URLs. | `api/sitemap.xml.ts` | 🔄 FIXING |
+The remaining open item after the June 30 verification pass is listed below. Everything else in the earlier audit backlog, including the former H15-H21, M18, M21, and L1/L2/L14 items, was verified fixed and removed from active tracking.
 
-### 🛑 CRITICAL — Remaining (Will cause production failures)
+Status legend: `TODO` not started, `FIXING` in progress, `FIXED` implemented and verified, `BLOCKED` requires production credentials or Cloudflare account state.
 
-| # | Problem | Location | Fix |
-|---|---------|----------|-----|
-| C4 | Razorpay payment keys are placeholder values (`...`). Payment flows will fail in production. | `.env` | Set real Razorpay live keys via Cloudflare Pages secrets |
+#### Critical
 
-### 🟡 MEDIUM — Remaining
+| # | Problem | Area | Status |
+|---|---------|------|:------:|
+| C4 | Real Razorpay live credentials are not available in the repository. Production card/UPI payment cannot be certified until Cloudflare Pages secrets and the Razorpay webhook secret are configured. | Cloudflare / payments | BLOCKED |
 
-| # | Problem | Location | Fix |
-|---|---------|----------|-----|
-| M5 | Three API endpoint groups with no frontend admin page — subcategories, product-attributes, addresses. | `api/_handlers/admin/subcategories.ts`, `product-attributes.ts`, `addresses.ts` | Add admin UI pages or document as inline |
-| M18 | Prisma warns that `package.json#prisma` is deprecated and will be removed in Prisma 7. | `package.json` | Migrate seed configuration to `prisma.config.ts` before upgrading Prisma |
+#### Medium
 
-### 🔵 LOW — Remaining
+No open items remain in this tier.
 
-| # | Problem | Location | Fix |
-|---|---------|----------|-----|
-| L1 | No `aria-invalid` or `aria-describedby` on form validation error messages. | Multiple form components | Add ARIA attributes |
-| L2 | No focus management when modals/dialogs open (`aria-modal` exists but no focus trap). | `MobileNav.tsx`, `Modal.tsx` | Add focus trap |
-| L14 | Empty `alt=""` on 13+ images across MegaMenu, VideoBanner, BrandStory, BannerPromo, ProductCard, QuickViewModal, etc. | Multiple storefront components | Add descriptive alt text to all images |
+#### Audit Corrections
+
+| Previous item | Verified result |
+|---------------|-----------------|
+| SPA deep links were assumed broken because fallback was commented out. | Incorrect: `public/_redirects` contains `/* /index.html 200`, and Cloudflare Pages also applies SPA fallback when no top-level `404.html` exists. |
+| Vite was assumed to copy `api/` and `functions/` into `dist/`. | Incorrect: a fresh production build contains only static frontend assets. Pages Functions compile separately and successfully. |
+| Public CMS pages were assumed to auto-create policy content. | Incorrect in the current handler: missing pages return 404 and remain admin/database managed. |
+| Sitemap was assumed to duplicate database pages. | Already guarded by slug de-duplication for app-owned routes. |
+| Prisma seed configuration was assumed to remain in deprecated `package.json#prisma`. | Already migrated to `prisma.config.ts`. |
+
+#### Verification Baseline
+
+| Check | Result |
+|-------|--------|
+| `npm run typecheck` | PASS |
+| `npm test` | PASS — 31 files, 506 tests |
+| `npm run build` | PASS |
+| `wrangler pages functions build` | PASS |
+| `npm run lint` | PASS |
+| Cloudflare production deployment and real payment/email webhook verification | BLOCKED until account secrets/resources are available |
 
 ---
 
@@ -151,8 +175,9 @@ Vite proxies `/api` requests to `http://localhost:8788`.
 |---------|-------------|
 | `npm run dev` | Start Vite dev server |
 | `npm run api:dev` | Start local Pages Functions API on port 8788 |
-| `npm run build` | Production frontend + Pages build with typecheck |
-| `npm run pages:build` | Cloudflare Pages production build with typecheck |
+| `npm run sync:headers` | Regenerate `public/_headers` from the shared Cloudflare header policy |
+| `npm run build` | Production frontend + Pages build with header sync and typecheck |
+| `npm run pages:build` | Cloudflare Pages production build with header sync and typecheck |
 | `npm run typecheck` | TypeScript type checking for frontend + API projects |
 | `npm test` | Run test suite |
 

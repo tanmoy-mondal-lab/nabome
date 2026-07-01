@@ -27,6 +27,10 @@ export default function HomePage() {
 
   const sections = homepageRes?.sections ?? [];
 
+  useEffect(() => {
+    document.title = `${(settings.siteName as string) || "নবME"} — Premium Fashion`;
+  }, [settings.siteName]);
+
   if (!loading && !homepageError && sections.length === 0) {
     return (
       <div className="relative h-screen min-h-[700px] bg-neutral-950 flex items-center justify-center">
@@ -39,10 +43,6 @@ export default function HomePage() {
   }
 
   const hasTrustBar = sections.some((s) => s.sectionType === "trust_bar");
-
-  useEffect(() => {
-    document.title = `${(settings.siteName as string) || "নবME"} — Premium Fashion`;
-  }, [settings.siteName]);
 
   if (loading) {
     return (

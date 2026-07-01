@@ -80,6 +80,166 @@ const DEFAULT_THEME: Theme = {
   createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
 };
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function asString(value: unknown, fallback = ""): string {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function asNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeButton(
+  source: Record<string, unknown>,
+  legacy: Record<string, unknown>,
+  style: "primary" | "secondary" | "outline",
+  defaults: ThemeButtonStyle
+): Pick<ThemeButtonStyle,
+  | `${typeof style}Bg`
+  | `${typeof style}Text`
+  | `${typeof style}Border`
+  | `${typeof style}Radius`
+  | `${typeof style}Padding`
+  | `${typeof style}FontWeight`
+  | `${typeof style}HoverBg`
+  | `${typeof style}HoverText`
+> {
+  const prefix = style as "primary" | "secondary" | "outline";
+  const capitalized = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  const flat = (suffix: string) => source[`${prefix}${suffix}`];
+  return {
+    [`${prefix}Bg`]: asString(flat("Bg"), asString(legacy.bg, defaults[`${prefix}Bg` as keyof ThemeButtonStyle] as string)),
+    [`${prefix}Text`]: asString(flat("Text"), asString(legacy.text, defaults[`${prefix}Text` as keyof ThemeButtonStyle] as string)),
+    [`${prefix}Border`]: asString(flat("Border"), asString(legacy.border, defaults[`${prefix}Border` as keyof ThemeButtonStyle] as string)),
+    [`${prefix}Radius`]: asString(flat("Radius"), asString(legacy.radius, defaults[`${prefix}Radius` as keyof ThemeButtonStyle] as string)),
+    [`${prefix}Padding`]: asString(
+      flat("Padding"),
+      legacy.padding
+        ? String(legacy.padding)
+        : legacy.paddingY || legacy.paddingX
+          ? `${asString(legacy.paddingY, "0.75rem")} ${asString(legacy.paddingX, "1.5rem")}`
+          : defaults[`${prefix}Padding` as keyof ThemeButtonStyle] as string
+    ),
+    [`${prefix}FontWeight`]: asNumber(flat("FontWeight"), asNumber(legacy.fontWeight, defaults[`${prefix}FontWeight` as keyof ThemeButtonStyle] as number)),
+    [`${prefix}HoverBg`]: asString(flat("HoverBg"), asString(legacy.hoverBg, defaults[`${prefix}HoverBg` as keyof ThemeButtonStyle] as string)),
+    [`${prefix}HoverText`]: asString(flat("HoverText"), asString(legacy.hoverText, defaults[`${prefix}HoverText` as keyof ThemeButtonStyle] as string)),
+  } as Pick<ThemeButtonStyle,
+    | `${typeof style}Bg`
+    | `${typeof style}Text`
+    | `${typeof style}Border`
+    | `${typeof style}Radius`
+    | `${typeof style}Padding`
+    | `${typeof style}FontWeight`
+    | `${typeof style}HoverBg`
+    | `${typeof style}HoverText`
+  >;
+}
+
+function normalizeTheme(value: unknown): Theme {
+  const source = asRecord(value);
+  const design = asRecord(source.design);
+  const brandingSource = { ...asRecord(design.branding), ...asRecord(source.branding) };
+  const colorSource = { ...asRecord(source.colors), ...asRecord(design.colors) };
+  const typographySource = { ...asRecord(source.typography), ...asRecord(design.typography) };
+  const displaySizes = asRecord(typographySource.displaySizes);
+  const headingWeights = asRecord(typographySource.headingWeights);
+  const buttonSource = { ...asRecord(source.buttons), ...asRecord(design.buttons) };
+  const layoutSource = { ...asRecord(design.layout), ...asRecord(source.layout) };
+  const headerSource = { ...asRecord(design.header), ...asRecord(source.header) };
+  const footerSource = asRecord(source.footer);
+
+  const buttons: ThemeButtonStyle = {
+    ...DEFAULT_THEME.design.buttons,
+    ...normalizeButton(buttonSource, asRecord(buttonSource.primary), "primary", DEFAULT_THEME.design.buttons),
+    ...normalizeButton(buttonSource, asRecord(buttonSource.secondary), "secondary", DEFAULT_THEME.design.buttons),
+    ...normalizeButton(buttonSource, asRecord(buttonSource.outline), "outline", DEFAULT_THEME.design.buttons),
+  };
+
+  return {
+    ...DEFAULT_THEME,
+    ...source,
+    branding: {
+      ...DEFAULT_THEME.branding,
+      logo: asString(brandingSource.logo, asString(brandingSource.logoLight, DEFAULT_THEME.branding.logo)),
+      logoLight: asString(brandingSource.logoLight, asString(brandingSource.logo, DEFAULT_THEME.branding.logoLight)),
+      logoDark: asString(brandingSource.logoDark, DEFAULT_THEME.branding.logoDark),
+      logoMobile: asString(brandingSource.logoMobile, DEFAULT_THEME.branding.logoMobile),
+      favicon: asString(brandingSource.favicon, DEFAULT_THEME.branding.favicon),
+      brandName: asString(brandingSource.brandName, asString(brandingSource.siteName, DEFAULT_THEME.branding.brandName)),
+      brandDescription: asString(brandingSource.brandDescription, asString(brandingSource.description, DEFAULT_THEME.branding.brandDescription)),
+      brandTagline: asString(brandingSource.brandTagline, asString(brandingSource.tagline, DEFAULT_THEME.branding.brandTagline)),
+    },
+    design: {
+      ...DEFAULT_THEME.design,
+      colors: {
+        ...DEFAULT_THEME.design.colors,
+        ...colorSource,
+        textInverse: asString(colorSource.textInverse, asString(colorSource.textOnPrimary, DEFAULT_THEME.design.colors.textInverse)),
+        backgroundSecondary: asString(colorSource.backgroundSecondary, asString(colorSource.surface, DEFAULT_THEME.design.colors.backgroundSecondary)),
+      } as ThemeColors,
+      typography: {
+        ...DEFAULT_THEME.design.typography,
+        ...typographySource,
+        baseSize: asString(typographySource.baseSize, asString(typographySource.bodySize, DEFAULT_THEME.design.typography.baseSize)),
+        h1Size: asString(typographySource.h1Size, asString(displaySizes.lg, DEFAULT_THEME.design.typography.h1Size)),
+        h2Size: asString(typographySource.h2Size, asString(displaySizes.md, DEFAULT_THEME.design.typography.h2Size)),
+        h3Size: asString(typographySource.h3Size, asString(displaySizes.sm, DEFAULT_THEME.design.typography.h3Size)),
+        fontWeightNormal: asNumber(typographySource.fontWeightNormal, asNumber(headingWeights.regular, DEFAULT_THEME.design.typography.fontWeightNormal)),
+        fontWeightMedium: asNumber(typographySource.fontWeightMedium, asNumber(headingWeights.medium, DEFAULT_THEME.design.typography.fontWeightMedium)),
+        fontWeightBold: asNumber(typographySource.fontWeightBold, asNumber(headingWeights.bold, DEFAULT_THEME.design.typography.fontWeightBold)),
+        lineHeightNormal: asString(typographySource.lineHeightNormal, typographySource.lineHeight ? String(typographySource.lineHeight) : DEFAULT_THEME.design.typography.lineHeightNormal),
+      } as ThemeTypography,
+      buttons,
+      borderRadius: { ...DEFAULT_THEME.design.borderRadius, ...asRecord(design.borderRadius) },
+      shadows: { ...DEFAULT_THEME.design.shadows, ...asRecord(design.shadows) },
+      cards: { ...DEFAULT_THEME.design.cards, ...asRecord(design.cards) },
+    },
+    layout: {
+      ...DEFAULT_THEME.layout,
+      ...layoutSource,
+      containerWidth: asString(layoutSource.containerWidth, asString(layoutSource.maxWidth, DEFAULT_THEME.layout.containerWidth)),
+      maxWidth: asString(layoutSource.maxWidth, asString(layoutSource.containerMaxWidth, DEFAULT_THEME.layout.maxWidth)),
+      headerStyle: ["standard", "fixed", "sticky", "glass", "transparent"].includes(String(layoutSource.headerStyle))
+        ? layoutSource.headerStyle as Theme["layout"]["headerStyle"]
+        : DEFAULT_THEME.layout.headerStyle,
+      footerStyle: ["standard", "minimal", "expanded", "compact"].includes(String(layoutSource.footerStyle))
+        ? layoutSource.footerStyle as Theme["layout"]["footerStyle"]
+        : DEFAULT_THEME.layout.footerStyle,
+      productCardLayout: ["standard", "minimal", "editorial", "expanded"].includes(String(layoutSource.productCardLayout))
+        ? layoutSource.productCardLayout as Theme["layout"]["productCardLayout"]
+        : DEFAULT_THEME.layout.productCardLayout,
+    },
+    header: {
+      ...DEFAULT_THEME.header,
+      ...headerSource,
+      style: ["standard", "mega", "minimal", "centered"].includes(String(headerSource.style))
+        ? headerSource.style as Theme["header"]["style"]
+        : DEFAULT_THEME.header.style,
+      menuLocation: ["left", "center", "right"].includes(String(headerSource.menuLocation))
+        ? headerSource.menuLocation as Theme["header"]["menuLocation"]
+        : DEFAULT_THEME.header.menuLocation,
+    },
+    footer: {
+      ...DEFAULT_THEME.footer,
+      ...footerSource,
+      showSocialLinks: typeof footerSource.showSocialLinks === "boolean"
+        ? footerSource.showSocialLinks
+        : typeof footerSource.showSocial === "boolean"
+          ? footerSource.showSocial
+          : DEFAULT_THEME.footer.showSocialLinks,
+      paymentIcons: typeof footerSource.paymentIcons === "boolean"
+        ? footerSource.paymentIcons
+        : typeof footerSource.showPaymentIcons === "boolean"
+          ? footerSource.showPaymentIcons
+          : DEFAULT_THEME.footer.paymentIcons,
+    },
+    customCSS: asString(source.customCSS, DEFAULT_THEME.customCSS),
+  } as Theme;
+}
+
 export default function ThemeBuilder() {
   const [activeTheme, setActiveTheme] = useState<Theme>(DEFAULT_THEME);
   const [activeTab, setActiveTab] = useState<"branding" | "colors" | "typography" | "buttons" | "layout" | "header" | "footer" | "css">("branding");
@@ -92,11 +252,7 @@ export default function ThemeBuilder() {
     queryFn: async () => {
       const res = await adminApi.getSettings();
       const s = res.settings as Record<string, unknown> ?? {};
-      const themeData = s.theme as Partial<Theme> | undefined;
-      if (themeData) {
-        return { ...DEFAULT_THEME, ...themeData };
-      }
-      return DEFAULT_THEME;
+      return normalizeTheme(s.theme);
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -109,7 +265,17 @@ export default function ThemeBuilder() {
     mutationFn: async (theme: Theme) => {
       const current = await adminApi.getSettings();
       const settings = current.settings as Record<string, unknown> ?? {};
-      return adminApi.updateSettings({ ...settings, theme });
+      const branding = theme.branding as unknown as Record<string, unknown>;
+      return adminApi.updateSettings({
+        ...settings,
+        siteName: theme.branding.brandName || settings.siteName,
+        tagline: theme.branding.brandTagline || null,
+        logoUrl: theme.branding.logo || null,
+        logoPublicId: branding.logoPublicId || null,
+        faviconUrl: theme.branding.favicon || null,
+        faviconPublicId: branding.faviconPublicId || null,
+        theme,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "themes"] });

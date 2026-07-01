@@ -157,21 +157,20 @@ export async function sendEmailNotification(
     console.log(`[EMAIL] ✓ ${type}: All ${results.length} emails sent successfully`);
   }
 
-  // ── 6. Send admin notifications for customer events (fire-and-forget) ──
+  // ── 6. Send admin notifications for customer events ──
   const adminEmails = cleanSecret(env?.ADMIN_EMAILS);
   if (!isAdminEmail && template.adminNotification && adminEmails) {
     const adminType = template.adminNotification as EmailType;
     const adminTemplate = getEmailTemplate(adminType, { ...templateData, email: recipients[0] });
     if (adminTemplate) {
       const adminRecipients = adminEmails.split(",").map((e) => e.trim()).filter(Boolean);
-      for (const adminEmail of adminRecipients) {
-        // Fire-and-forget — don't await, don't block
+      const adminResults = await Promise.all(adminRecipients.map((adminEmail) =>
         sendViaResend(resendApiKey, from, adminEmail, adminTemplate.subject, adminTemplate.html)
-          .then((r) => {
-            if (!r.success) console.error(`[EMAIL] ✗ Admin ${adminType} to ${adminEmail}: ${r.error}`);
-            else console.log(`[EMAIL] ✓ Admin ${adminType} sent to ${adminEmail}`);
-          })
-          .catch(() => {});
+          .then((result) => ({ adminEmail, result }))
+      ));
+      for (const { adminEmail, result } of adminResults) {
+        if (!result.success) console.error(`[EMAIL] ✗ Admin ${adminType} to ${adminEmail}: ${result.error}`);
+        else console.log(`[EMAIL] ✓ Admin ${adminType} sent to ${adminEmail}`);
       }
     }
   }

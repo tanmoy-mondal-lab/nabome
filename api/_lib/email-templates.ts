@@ -10,7 +10,8 @@ export type EmailType =
   | "password_reset"
   | "admin_new_order"
   | "admin_refund_request"
-  | "admin_contact_form";
+  | "admin_contact_form"
+  | "notification";
 
 export interface EmailTemplate {
   subject: string;
@@ -368,6 +369,31 @@ ${button(appUrl(data, "/admin/contact"), "View in Admin")}`;
   };
 }
 
+function notificationEmail(data: Record<string, unknown>): EmailTemplate {
+  const firstName = (data.firstName as string) || "there";
+  const title = (data.title as string) || "New notification";
+  const bodyText = (data.body as string) || "You have a new update in your নবME account.";
+  const link = data.link as string | undefined;
+
+  const body = `<h1 style="font-size:20px;font-weight:700;margin:0 0 4px">Hi ${firstName},</h1>
+<p style="color:${BRAND.textMuted};font-size:14px;margin:0 0 24px">${title}</p>
+
+<div style="background:${BRAND.bgColor};border-radius:6px;padding:16px;margin-bottom:24px">
+<p style="margin:0;font-size:14px;line-height:1.7;color:${BRAND.textDark}">${bodyText.replace(/\n/g, "<br>")}</p>
+</div>
+
+${link ? button(appUrl(data, link), "View Details") : ""}
+
+<p style="font-size:13px;color:${BRAND.textMuted};margin-top:24px">You're receiving this because your নবME account has a new notification.</p>`;
+
+  return {
+    subject: title,
+    preview: bodyText,
+    html: baseLayout(body),
+    notificationEvent: "notification",
+  };
+}
+
 function welcomeEmail(data: Record<string, unknown>): EmailTemplate {
   const firstName = (data.firstName as string) || "there";
 
@@ -459,6 +485,7 @@ const TEMPLATES: Record<EmailType, (data: Record<string, unknown>) => EmailTempl
   admin_new_order: adminNewOrder,
   admin_refund_request: adminRefundRequest,
   admin_contact_form: adminContactForm,
+  notification: notificationEmail,
 };
 
 export function getEmailTemplate(type: EmailType, data: Record<string, unknown>): EmailTemplate | null {

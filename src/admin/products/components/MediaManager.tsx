@@ -13,6 +13,7 @@ interface MediaManagerProps {
   onUploadStart: () => void;
   onUploadEnd: () => void;
   onPendingImage: (data: { url: string; publicId: string; variantId?: string } | null) => void;
+  productName?: string;
 }
 
 export function MediaManager({
@@ -22,6 +23,7 @@ export function MediaManager({
   onUploadStart,
   onUploadEnd,
   onPendingImage,
+  productName = "Product",
 }: MediaManagerProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -144,7 +146,7 @@ export function MediaManager({
                         <Film size={20} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/60" />
                       </div>
                     ) : (
-                      <SafeImage src={img.url as string} alt="" className="w-full h-full object-cover" useTransform={false} />
+                      <SafeImage src={img.url as string} alt={`${productName} media ${i + 1}`} className="w-full h-full object-cover" useTransform={false} />
                     )}
 
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-end p-2 gap-1">

@@ -18,7 +18,7 @@ export default function LookbookDetailPage() {
 
   const { data: res, isLoading: loading } = useQuery({
     queryKey: ["lookbook", slug],
-    queryFn: () => api.get<{ lookbook: Record<string, unknown> }>("/api/lookbooks", { params: { action: "detail", slug } }),
+    queryFn: () => api.get<{ lookbook: Record<string, unknown> }>(`/api/lookbooks/${slug}`),
     enabled: !!slug,
     staleTime: 1000 * 60 * 10,
   });
@@ -40,7 +40,11 @@ export default function LookbookDetailPage() {
   }
 
   const items = (lookbook.items as Record<string, unknown>[]) ?? [];
-  const story = lookbook.story as string;
+  const storyValue = lookbook.story;
+  const story = typeof storyValue === "string"
+    ? storyValue
+    : (storyValue as { narrative?: string } | null)?.narrative;
+  const lookbookName = (lookbook.name as string | undefined) ?? "Lookbook";
 
   return (
     <div className="container-page py-8">
@@ -52,21 +56,24 @@ export default function LookbookDetailPage() {
       </Helmet>
       <Breadcrumbs items={[
         { label: "Lookbooks", href: "/lookbooks" },
-        { label: lookbook.title as string },
+        { label: lookbookName },
       ]} className="mb-6" />
 
       <div className="max-w-3xl mx-auto text-center mb-12">
         <p className="text-accent-gold text-xs tracking-[0.2em] uppercase mb-3">
           {lookbook.season as string}{lookbook.year ? ` ${lookbook.year}` : ""}
         </p>
-        <h1 className="text-3xl md:text-5xl font-display text-neutral-900">{lookbook.title as string}</h1>
+        <h1 className="text-3xl md:text-5xl font-display text-neutral-900">{lookbookName}</h1>
         {story && <p className="text-neutral-600 text-base mt-4 leading-relaxed max-w-xl mx-auto">{story}</p>}
       </div>
 
       <div className="space-y-16">
         {items.map((item, i) => {
-          const type = item.type as string;
-          const products = (item.products as Record<string, unknown>[]) ?? [];
+          const type = (item.type as string | undefined) ?? "image";
+          const product = item.product as Record<string, unknown> | null | undefined;
+          const products = product ? [product] : ((item.products as Record<string, unknown>[] | undefined) ?? []);
+          const imageUrl = (item.imageUrl as string | undefined) ?? (item.mediaUrl as string | undefined);
+          const caption = (item.caption as string | undefined) ?? (item.title as string | undefined) ?? "";
 
           if (type === "image" || type === "video") {
             return (
@@ -74,15 +81,22 @@ export default function LookbookDetailPage() {
                 {type === "video" ? (
                   <video src={item.videoUrl as string} controls autoPlay muted loop className="w-full rounded" />
                 ) : (
-                  <SafeImage src={item.imageUrl as string} alt={item.caption as string || ""} className="w-full rounded" />
+                  <SafeImage src={imageUrl || "/placeholder.svg"} alt={caption || "Lookbook image"} className="w-full rounded" />
                 )}
-                {!!item.caption && <p className="text-sm text-neutral-500 mt-3 text-center italic">{item.caption as string}</p>}
+                {!!caption && <p className="text-sm text-neutral-500 mt-3 text-center italic">{caption}</p>}
+                {products.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-6">
+                    {products.map((p) => (
+                      <ProductCard key={p.id as string} product={p} />
+                    ))}
+                  </div>
+                )}
               </motion.div>
             );
           }
 
           if (type === "shop_the_look" && products.length > 0) {
-            const image = item.imageUrl as string;
+            const image = imageUrl;
             return (
               <div key={item.id as string}>
                 {image && <SafeImage src={image} alt={`Lookbook image: ${item.title as string || "Shop the look"}`} className="w-full rounded mb-6" />}

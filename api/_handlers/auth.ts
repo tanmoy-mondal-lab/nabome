@@ -6,15 +6,16 @@
 import { createClient } from "@supabase/supabase-js";
 import { getPrisma } from "../_lib/prisma";
 import {
-  success, badRequest, unauthorized, serverError, created,
+  success, badRequest, unauthorized, serverError, created, conflict,
 } from "../_lib/response";
-import { authenticate } from "../_lib/auth-middleware";
 import type { RequestContext } from "../_lib/types";
 import { validateBody, authRegisterSchema, authLoginSchema } from "../_lib/validate";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
 import type { Env } from "../_lib/env";
 import { cleanSecret } from "../_lib/secrets";
+import { hashToken } from "../_lib/token-hash";
+import { getEnv } from "../_lib/env";
 
 function generateVerificationCode(): string {
   const buf = new Uint8Array(4);
@@ -24,25 +25,19 @@ function generateVerificationCode(): string {
 }
 
 function getAnonClient(env?: Env) {
-  const url = cleanSecret(env?.SUPABASE_URL) ||
-    cleanSecret(env?.VITE_SUPABASE_URL) ||
-    cleanSecret(typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined) ||
-    cleanSecret(typeof process !== "undefined" ? process.env?.VITE_SUPABASE_URL : undefined);
-  const key = cleanSecret(env?.SUPABASE_ANON_KEY) ||
-    cleanSecret(env?.VITE_SUPABASE_ANON_KEY) ||
-    cleanSecret(typeof process !== "undefined" ? process.env?.SUPABASE_ANON_KEY : undefined) ||
-    cleanSecret(typeof process !== "undefined" ? process.env?.VITE_SUPABASE_ANON_KEY : undefined);
+  // Use provided env, or fall back to process.env for local development
+  const effectiveEnv = env || getEnv();
+  const url = cleanSecret(effectiveEnv.SUPABASE_URL) || cleanSecret(effectiveEnv.VITE_SUPABASE_URL);
+  const key = cleanSecret(effectiveEnv.SUPABASE_ANON_KEY) || cleanSecret(effectiveEnv.VITE_SUPABASE_ANON_KEY);
   if (!url || !key) throw new Error("Missing Supabase credentials");
   return createClient(url, key);
 }
 
 function getAdminClient(env?: Env) {
-  const url = cleanSecret(env?.SUPABASE_URL) ||
-    cleanSecret(env?.VITE_SUPABASE_URL) ||
-    cleanSecret(typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined) ||
-    cleanSecret(typeof process !== "undefined" ? process.env?.VITE_SUPABASE_URL : undefined);
-  const key = cleanSecret(env?.SUPABASE_SERVICE_ROLE_KEY) ||
-    cleanSecret(typeof process !== "undefined" ? process.env?.SUPABASE_SERVICE_ROLE_KEY : undefined);
+  // Use provided env, or fall back to process.env for local development
+  const effectiveEnv = env || getEnv();
+  const url = cleanSecret(effectiveEnv.SUPABASE_URL) || cleanSecret(effectiveEnv.VITE_SUPABASE_URL);
+  const key = cleanSecret(effectiveEnv.SUPABASE_SERVICE_ROLE_KEY);
   if (!url || !key) throw new Error("Missing Supabase admin credentials");
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -96,18 +91,22 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       return serverError(new Error("Registration service unavailable"));
     }
 
-    // Delete existing user if re-registering
-    const { data: existingUsers, error: listError } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 100,
+    // Check if profile already exists in database
+    const existingProfile = await prisma.profile.findUnique({
+      where: { email },
+      select: { id: true },
     });
-    if (listError) {
-      console.error("[REGISTER] listUsers error:", listError.message);
+    if (existingProfile) {
+      return conflict("An account already exists with this email");
     }
-    const existing = existingUsers?.users?.find((u) => u.email === email);
-    if (existing) {
-      await prisma.profile.deleteMany({ where: { email } }).catch(() => {});
-      await supabase.auth.admin.deleteUser(existing.id).catch(() => {});
+
+    // Check if user already exists in Supabase Auth (prevents account takeover)
+    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    const existingSupabaseUser = existingUsers.users.find(u => u.email === email);
+    if (existingSupabaseUser) {
+      // User exists in Supabase but not in our database - this is a corrupted state
+      // Don't allow registration to prevent account takeover
+      return conflict("An account already exists with this email. Please contact support if you believe this is an error.");
     }
 
     // Create user in Supabase Auth (auto-confirmed so they can log in)
@@ -292,9 +291,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
       select: { id: true, emailVerified: true },
     });
 
-    if (!existingProfile) {
-      return unauthorized("No account found with that email");
-    }
+    if (!existingProfile) return unauthorized("Invalid email or password");
 
     const supabase = getAnonClient(ctx.env);
 
@@ -339,12 +336,18 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
 
     // Track session
     const expiresAt = new Date(Date.now() + data.session.expires_in * 1000);
+    const refreshTokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     try {
+      const [accessTokenHash, refreshTokenHash] = await Promise.all([
+        hashToken(data.session.access_token),
+        hashToken(data.session.refresh_token),
+      ]);
       await prisma.authSession.create({
         data: {
           profileId: data.user.id,
-          accessToken: data.session.access_token,
-          refreshToken: data.session.refresh_token,
+          accessToken: accessTokenHash,
+          refreshToken: refreshTokenHash,
+          refreshTokenExpiresAt,
           userAgent: userAgent ?? null,
           ipAddress: clientIp,
           deviceName: parseDevice(userAgent),
@@ -407,8 +410,15 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
   const prisma = getPrisma(ctx.env);
 
   // 1. Find the active session with this refresh token
-  const oldSession = await prisma.authSession.findUnique({
-    where: { refreshToken },
+  const refreshTokenHash = await hashToken(refreshToken);
+  const oldSession = await prisma.authSession.findFirst({
+    where: {
+      OR: [
+        { refreshToken: refreshTokenHash },
+        // One-time compatibility for sessions created before token hashing.
+        { refreshToken },
+      ],
+    },
   });
 
   if (!oldSession || !oldSession.isActive) {
@@ -426,8 +436,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
 
   // 3. Call Supabase to exchange refresh token for new session tokens
   const supabase = getAnonClient(ctx.env);
-  const { data: sbData, error: sbError } = await supabase.auth.setSession({
-    access_token: oldSession.accessToken,
+  const { data: sbData, error: sbError } = await supabase.auth.refreshSession({
     refresh_token: refreshToken,
   });
 
@@ -444,18 +453,31 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
   const userAgent = req.headers.get("user-agent");
   const newExpiresAt = new Date(Date.now() + sbData.session.expires_in * 1000);
   const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days for refresh
+  const [newAccessTokenHash, newRefreshTokenHash] = await Promise.all([
+    hashToken(sbData.session.access_token),
+    hashToken(sbData.session.refresh_token),
+  ]);
 
   // 4. Rotate: revoke old session, create new one linked via rotatedFromSessionId
-  // If Supabase returned the same access_token, just update expiry instead of creating a duplicate
-  if (sbData.session.access_token === oldSession.accessToken) {
+  // If Supabase returned the same refresh token, update the current record in place.
+  if (newRefreshTokenHash === refreshTokenHash) {
     await prisma.authSession.update({
       where: { id: oldSession.id },
-      data: { expiresAt: newExpiresAt },
+      data: {
+        accessToken: newAccessTokenHash,
+        refreshToken: newRefreshTokenHash,
+        refreshTokenExpiresAt: refreshExpiresAt,
+        expiresAt: newExpiresAt,
+        lastActiveAt: new Date(),
+      },
     });
     return success({
-      accessToken: sbData.session.access_token,
-      refreshToken: sbData.session.refresh_token,
-      expiresAt: newExpiresAt.toISOString(),
+      session: {
+        accessToken: sbData.session.access_token,
+        refreshToken: sbData.session.refresh_token,
+        expiresAt: Math.floor(newExpiresAt.getTime() / 1000),
+        expiresIn: sbData.session.expires_in,
+      },
     });
   }
 
@@ -463,8 +485,8 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
     prisma.authSession.create({
       data: {
         profileId: oldSession.profileId,
-        accessToken: sbData.session.access_token,
-        refreshToken: sbData.session.refresh_token,
+        accessToken: newAccessTokenHash,
+        refreshToken: newRefreshTokenHash,
         refreshTokenExpiresAt: refreshExpiresAt,
         userAgent: userAgent ?? oldSession.userAgent,
         ipAddress: clientIp,
@@ -487,8 +509,8 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
 
   return success({
     session: {
-      accessToken: newSession.accessToken,
-      refreshToken: newSession.refreshToken,
+      accessToken: sbData.session.access_token,
+      refreshToken: sbData.session.refresh_token,
       expiresAt: Math.floor(newExpiresAt.getTime() / 1000),
       expiresIn: sbData.session.expires_in,
     },
@@ -506,8 +528,17 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
   const authHeader = req.headers.get("Authorization");
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
+    const tokenHash = await hashToken(token);
     await prisma.authSession.updateMany({
-      where: { accessToken: token, isActive: true, profileId: ctx.userId },
+      where: {
+        profileId: ctx.userId,
+        isActive: true,
+        OR: [
+          { accessToken: tokenHash },
+          // One-time compatibility for sessions created before token hashing.
+          { accessToken: token },
+        ],
+      },
       data: { isActive: false, revokedAt: new Date() },
     }).catch(() => {});
   }
@@ -528,14 +559,11 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
 // ─── ME ───
 
 async function handleMe(req: Request, ctx: RequestContext): Promise<Response> {
-  const result = await authenticate(req, { required: true });
-  if (result instanceof Response) return result;
-  const { ctx: authCtx } = result;
-  if (!authCtx.userId) return unauthorized();
+  if (!ctx.userId) return unauthorized();
 
   const prisma = getPrisma(ctx.env);
   const profile = await prisma.profile.findUnique({
-    where: { id: authCtx.userId },
+    where: { id: ctx.userId },
     select: {
       id: true,
       email: true,

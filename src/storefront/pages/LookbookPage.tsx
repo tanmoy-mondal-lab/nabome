@@ -41,13 +41,13 @@ export default function LookbookPage() {
             <Link key={lb.id as string} to={`/lookbooks/${lb.slug as string}`}>
               <motion.div whileHover={{ y: -4 }} className="group cursor-pointer">
                 <div className="aspect-[4/5] bg-neutral-100 rounded overflow-hidden mb-4 relative">
-                  <SafeImage src={lb.coverImage as string} alt={lb.title as string} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" useTransform={false} />
+                  <SafeImage src={(lb.coverImageUrl as string) || "/placeholder.svg"} alt={lb.name as string} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" useTransform={false} />
                 </div>
                 <p className="text-accent-gold text-xs tracking-[0.2em] uppercase mb-1">
                   {lb.season as string}{lb.year ? ` ${lb.year}` : ""}
                 </p>
                 <h2 className="text-xl font-display text-neutral-900 group-hover:text-brand-600 transition-colors">
-                  {lb.title as string}
+                  {lb.name as string}
                 </h2>
                 {typeof lb.description === "string" && lb.description && (
                   <p className="text-sm text-neutral-500 mt-1 line-clamp-2">{lb.description}</p>

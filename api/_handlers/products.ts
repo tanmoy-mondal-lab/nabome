@@ -351,9 +351,9 @@ async function handleProductReviews(slug: string, env: any): Promise<Response> {
     });
 
     // Calculate rating distribution
-    const distribution = [0, 0, 0, 0, 0];
+    const distribution: Record<string, number> = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
     reviews.forEach((r) => {
-      if (r.rating >= 1 && r.rating <= 5) distribution[r.rating - 1]++;
+      if (r.rating >= 1 && r.rating <= 5) distribution[String(r.rating)]++;
     });
 
     const averageRating =

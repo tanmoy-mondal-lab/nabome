@@ -54,6 +54,7 @@ export function TurnstileWidget({
 
   useEffect(() => {
     let cancelled = false;
+    const container = containerRef.current;
 
     if (!siteKey || !containerRef.current) {
       callbacksRef.current.onTokenChange("");
@@ -99,8 +100,8 @@ export function TurnstileWidget({
 
     return () => {
       cancelled = true;
-      if (containerRef.current) {
-        containerRef.current.innerHTML = "";
+      if (container) {
+        container.innerHTML = "";
       }
       widgetIdRef.current = null;
     };

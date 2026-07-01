@@ -10,71 +10,13 @@ import { notFound, serverError, error } from "./_lib/response";
 import { checkRateLimit, RATE_LIMIT_CONFIG, rateLimitResponse, getRateLimitKey } from "./_lib/rate-limit";
 import { setCsrfCookie, validateCsrf, csrfError } from "./_lib/csrf";
 import { verifyTurnstileToken } from "./_lib/turnstile";
+import { cacheControlHeaders, corsHeaders, SECURITY_HEADERS } from "./_lib/http-headers";
 import type { RequestContext } from "./_lib/types";
-
-const ALLOWED_ORIGINS = [
-  "https://www.nabome.online",
-  "https://nabome.online",
-  "https://nabome.pages.dev",
-  "https://*.nabome.pages.dev",
-  "http://localhost:5173",
-  "http://localhost:4173",
-];
-
-function isOriginAllowed(origin: string): boolean {
-  if (!origin) return false;
-  if (ALLOWED_ORIGINS.includes(origin)) return true;
-  try {
-    const url = new URL(origin);
-    return ALLOWED_ORIGINS.some((o) => o.startsWith("https://*.") && url.hostname.endsWith(o.slice(10)));
-  } catch {
-    return false;
-  }
-}
-
-function corsHeaders(request: Request): Record<string, string> {
-  const origin = request.headers.get("Origin") ?? "";
-  const allowed = isOriginAllowed(origin) ? origin : "https://www.nabome.online";
-  return {
-    "Access-Control-Allow-Origin": allowed,
-    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-CSRF-Token",
-    "Access-Control-Allow-Credentials": "true",
-    "Vary": "Origin",
-  };
-}
-
-function securityHeaders(): Record<string, string> {
-  return {
-    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://checkout.razorpay.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://res.cloudinary.com https://www.google-analytics.com data: blob:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co https://api.razorpay.com https://www.google-analytics.com https://region1.google-analytics.com https://challenges.cloudflare.com; frame-src https://checkout.razorpay.com https://api.razorpay.com https://challenges.cloudflare.com;",
-    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-    "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-  };
-}
-
-function cacheControlHeaders(path: string): Record<string, string> {
-  // Don't cache auth, admin, or mutation endpoints
-  if (path.includes("/auth/") || path.includes("/admin/") || path.includes("/checkout") || path.includes("/payments") || path.includes("/orders") || path.includes("/cart")) {
-    return { "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate" };
-  }
-  // Cache public product/category data for 60 seconds, stale-while-revalidate for 5 min
-  if (path.includes("/api/products") || path.includes("/api/categories") || path.includes("/api/collections")) {
-    return { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" };
-  }
-  // Cache static CMS content for 5 minutes
-  if (path.includes("/api/cms") || path.includes("/api/settings")) {
-    return { "Cache-Control": "public, max-age=300, stale-while-revalidate=600" };
-  }
-  return { "Cache-Control": "no-cache" };
-}
 
 function withCors(response: Response, request: Request, path?: string): Response {
   const headers = {
     ...corsHeaders(request),
-    ...securityHeaders(),
+    ...SECURITY_HEADERS,
     ...(path ? cacheControlHeaders(path) : {}),
   };
   for (const [key, value] of Object.entries(headers)) {
@@ -207,7 +149,7 @@ route("GET", "/api/health", (req, ctx) => handleHealth(req, { env: ctx.env }));
 route("GET", "/sitemap.xml", (req, ctx) => handleSitemap(req, { env: ctx.env }));
 
 // Public routes
-route("GET", "/api/auth/me", (req, ctx) => handleAuthRequest(req, ctx, [], "me"));
+route("GET", "/api/auth/me", (req, ctx) => handleAuthRequest(req, ctx, [], "me"), { auth: true });
 route("PUT", "/api/auth/me", (req, ctx) => handleAuthRequest(req, ctx, [], "updateMe"), { auth: true });
 route("POST", "/api/auth/register", (req, ctx) => handleAuthRequest(req, ctx, [], "register"));
 route("POST", "/api/auth/login", (req, ctx) => handleAuthRequest(req, ctx, [], "login"));
@@ -258,7 +200,7 @@ route("GET", "/api/orders/:id", (req, ctx, p) => handleOrderRequest(req, ctx, p,
 route("POST", "/api/orders/:id/cancel", (req, ctx, p) => handleOrderRequest(req, ctx, p, "cancel"), { auth: true });
 route("GET", "/api/orders/:id/tracking", (req, ctx, p) => handleOrderRequest(req, ctx, p, "tracking"), { auth: true });
 
-route("POST", "/api/checkout", handleCheckoutRequest);
+route("POST", "/api/checkout", handleCheckoutRequest, { auth: true });
 route("POST", "/api/checkout/guest", (req, ctx) => handleCheckoutRequest(req, ctx, [], "guest"));
 
 // Cart routes
@@ -276,14 +218,14 @@ route("GET", "/api/wishlist", handleWishlistRequest, { auth: true });
 route("POST", "/api/wishlist", (req, ctx) => handleWishlistRequest(req, ctx, [], "add"), { auth: true });
 route("DELETE", "/api/wishlist/:variantId", (req, ctx, p) => handleWishlistRequest(req, ctx, p, "remove"), { auth: true });
 
-route("POST", "/api/coupons/validate", (req, ctx) => handleCouponRequest(req, ctx, [], "validate"), { auth: true });
+route("POST", "/api/coupons/validate", (req, ctx) => handleCouponRequest(req, ctx, [], "validate"));
 
 route("POST", "/api/reviews", (req, ctx) => handleReviewRequest(req, ctx, [], "create"), { auth: true });
 
 route("POST", "/api/contact", (req, ctx) => handleContactRequest(req, ctx, [], "contact"));
 route("POST", "/api/newsletter", (req, ctx) => handleContactRequest(req, ctx, [], "newsletter"));
 
-route("POST", "/api/upload", handleUploadRequest, { auth: true });
+route("POST", "/api/upload", handleUploadRequest, { auth: true, admin: true });
 
 // Returns
 route("POST", "/api/returns", (req, ctx) => handleReturnRequest(req, ctx, [], "create"), { auth: true });
@@ -493,9 +435,9 @@ route("GET", "/api/invoices/:orderNumber", (req, ctx, p) => handleInvoiceRequest
 
 // Payments
 route("POST", "/api/payments/verify", (req, ctx) => handlePaymentRequest(req, ctx, [], "verify"));
-route("POST", "/api/payments/failed", (req, ctx) => handlePaymentRequest(req, ctx, [], "failed"));
-route("POST", "/api/payments/retry", (req, ctx) => handlePaymentRequest(req, ctx, [], "retry"));
-route("POST", "/api/payments/refund", (req, ctx) => handlePaymentRequest(req, ctx, [], "refund"), { auth: true });
+route("POST", "/api/payments/failed", (req, ctx) => handlePaymentRequest(req, ctx, [], "failed"), { auth: true });
+route("POST", "/api/payments/retry", (req, ctx) => handlePaymentRequest(req, ctx, [], "retry"), { auth: true });
+route("POST", "/api/payments/refund", (req, ctx) => handlePaymentRequest(req, ctx, [], "refund"), { auth: true, admin: true });
 route("POST", "/api/payments/webhook", (req, ctx) => handlePaymentRequest(req, ctx, [], "webhook"));
 
 // Admin Webhooks
@@ -688,7 +630,7 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
     try {
       const response = await r.handler(request, context, params);
       // Set CSRF cookie on GET responses for SPA to read
-      const responseWithCsrf = method === "GET" ? setCsrfCookie(response) : response;
+      const responseWithCsrf = method === "GET" ? setCsrfCookie(response, env) : response;
       return withCors(responseWithCsrf, request, path);
     } catch (err) {
       console.error(`Error handling ${method} ${path}:`, err);

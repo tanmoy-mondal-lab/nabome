@@ -67,9 +67,11 @@ interface PhoneInputProps {
   className?: string;
   required?: boolean;
   id?: string;
+  ariaInvalid?: boolean;
+  ariaDescribedBy?: string;
 }
 
-export function PhoneInput({ value, onChange, className = "", required, id }: PhoneInputProps) {
+export function PhoneInput({ value, onChange, className = "", required, id, ariaInvalid, ariaDescribedBy }: PhoneInputProps) {
   const [selectedCode, setSelectedCode] = useState("+91");
   const [localNumber, setLocalNumber] = useState("");
 
@@ -114,6 +116,8 @@ export function PhoneInput({ value, onChange, className = "", required, id }: Ph
         className="input-field flex-1 min-w-0"
         placeholder="9876543210"
         required={required}
+        aria-invalid={ariaInvalid || undefined}
+        aria-describedby={ariaDescribedBy}
       />
     </div>
   );

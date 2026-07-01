@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { PasswordInput } from "../components/PasswordInput";
@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileError, setTurnstileError] = useState("");
   const [turnstileNonce, setTurnstileNonce] = useState(0);
+  const registrationToastShown = useRef(false);
 
   const state = location.state as { from?: { pathname: string }; registered?: boolean } | null;
   const from = state?.from?.pathname ?? "/";
@@ -30,11 +31,12 @@ export default function LoginPage() {
   const displayError = turnstileError || error;
 
   useEffect(() => {
-    if (state?.registered) {
+    if (state?.registered && !registrationToastShown.current) {
+      registrationToastShown.current = true;
       toast("Account created successfully. Please verify your email with the code sent.", "success");
       window.history.replaceState({}, document.title);
     }
-  }, []);
+  }, [state?.registered, toast]);
 
   useEffect(() => {
     if (noAccount) {
@@ -123,6 +125,7 @@ export default function LoginPage() {
               </label>
               <input
                 id="email"
+                name="email"
                 type="email"
                 required
                 value={email}
@@ -139,6 +142,7 @@ export default function LoginPage() {
               </label>
               <PasswordInput
                 id="password"
+                name="password"
                 value={password}
                 onChange={setPassword}
                 placeholder="••••••••"

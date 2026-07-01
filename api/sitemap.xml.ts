@@ -32,10 +32,11 @@ ${urls.map((u) => `  <url>
 }
 
 export async function GET(_req: Request, opts?: { env?: Env }): Promise<Response> {
-  const baseUrl = siteUrl(opts?.env);
+  let baseUrl = siteUrl(opts?.env);
   try {
     const prisma = getPrisma(opts?.env);
-    const [products, categories, collections, lookbooks, pages] = await Promise.all([
+    const [settings, products, categories, collections, lookbooks, pages] = await Promise.all([
+      prisma.siteSetting.findFirst({ select: { seo: true } }),
       prisma.product.findMany({
         where: { isActive: true },
         select: { slug: true, updatedAt: true },
@@ -57,6 +58,18 @@ export async function GET(_req: Request, opts?: { env?: Env }): Promise<Response
         select: { slug: true, updatedAt: true },
       }),
     ]);
+    const seo = settings?.seo && typeof settings.seo === "object"
+      ? settings.seo as Record<string, unknown>
+      : {};
+    if (seo.sitemapEnabled === false) {
+      return new Response("Sitemap is disabled", {
+        status: 404,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+    if (typeof seo.canonicalUrl === "string" && seo.canonicalUrl.trim()) {
+      baseUrl = seo.canonicalUrl.trim().replace(/\/+$/, "");
+    }
 
     const appRoutes = [
       { path: "/search", changefreq: "weekly" as const, priority: "0.4" },

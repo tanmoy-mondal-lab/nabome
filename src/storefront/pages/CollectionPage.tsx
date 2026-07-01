@@ -18,8 +18,8 @@ export default function CollectionPage() {
 
   const [colRes, prodRes] = useQueries({
     queries: [
-      { queryKey: ["collection", slug], queryFn: () => api.get<{ collection: Record<string, unknown> }>(`/api/collections/${slug}`), enabled: !!slug, staleTime: 1000 * 60 * 10 },
-      { queryKey: ["products", "collection", slug], queryFn: () => api.get<{ products: Record<string, unknown>[] }>("/api/products", { params: { collection: slug, limit: 50 } }), enabled: !!slug, staleTime: 1000 * 60 * 5 },
+      { queryKey: ["collection", slug], queryFn: () => api.get<{ collection: Record<string, unknown> }>(`/api/collections/${slug}`), enabled: !!slug, staleTime: 1000 * 60 * 10, retry: false },
+      { queryKey: ["products", "collection", slug], queryFn: () => api.get<{ products: Record<string, unknown>[] }>("/api/products", { params: { collection: slug, limit: 50 } }), enabled: !!slug, staleTime: 1000 * 60 * 5, retry: false },
     ],
   });
 

@@ -2,6 +2,45 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+const SEED_ASSETS = {
+  logo: {
+    url: "https://res.cloudinary.com/dmzbh87bi/image/upload/v1782668689/branding/1782668685379-logo.png.png",
+    publicId: "branding/1782668685379-logo.png",
+  },
+  hero: [
+    {
+      url: "https://res.cloudinary.com/dmzbh87bi/image/upload/v1782736990/page-builder/1782736988266-ChatGPT_Image_May_28__2026_at_03_03_08_PM.png.png",
+      publicId: "page-builder/1782736988266-ChatGPT_Image_May_28__2026_at_03_03_08_PM.png",
+    },
+    {
+      url: "https://res.cloudinary.com/dmzbh87bi/image/upload/v1782735463/banners/1782735460149-ChatGPT_Image_May_28__2026_at_03_07_04_PM.png.png",
+      publicId: "banners/1782735460149-ChatGPT_Image_May_28__2026_at_03_07_04_PM.png",
+    },
+  ],
+  collections: [
+    {
+      url: "https://res.cloudinary.com/dmzbh87bi/image/upload/v1782498939/collections/1782498939016-WhatsApp_Image_2026-05-28_at_11.36.43.jpeg.jpg",
+      publicId: "collections/1782498939016-WhatsApp_Image_2026-05-28_at_11.36.43.jpeg",
+    },
+    {
+      url: "https://res.cloudinary.com/dmzbh87bi/image/upload/v1782498881/collections/1782498880024-ChatGPT_Image_May_28__2026_at_03_21_59_PM.png.png",
+      publicId: "collections/1782498880024-ChatGPT_Image_May_28__2026_at_03_21_59_PM.png",
+    },
+    {
+      url: "https://res.cloudinary.com/dmzbh87bi/image/upload/v1782498836/collections/1782498835350-ChatGPT_Image_May_28__2026_at_01_39_22_PM.png.png",
+      publicId: "collections/1782498835350-ChatGPT_Image_May_28__2026_at_01_39_22_PM.png",
+    },
+  ],
+  products: [
+    ["https://res.cloudinary.com/dmzbh87bi/image/upload/v1782664024/products/1782664022897-product2.jpeg.jpg", "products/1782664022897-product2.jpeg"],
+    ["https://res.cloudinary.com/dmzbh87bi/image/upload/v1782664007/products/1782664005965-product3.jpeg.jpg", "products/1782664005965-product3.jpeg"],
+    ["https://res.cloudinary.com/dmzbh87bi/image/upload/v1782660731/products/1782660731310-20180306_115642.jpg.jpg", "products/1782660731310-20180306_115642.jpg"],
+    ["https://res.cloudinary.com/dmzbh87bi/image/upload/v1782576818/products/1782576817574-sad-tshirt.jpeg.jpg", "products/1782576817574-sad-tshirt.jpeg"],
+    ["https://res.cloudinary.com/dmzbh87bi/image/upload/v1782488311/products/1782488311334-WhatsApp_Image_2026-05-28_at_11.36.43.jpeg.jpg", "products/1782488311334-WhatsApp_Image_2026-05-28_at_11.36.43.jpeg"],
+    ["https://res.cloudinary.com/dmzbh87bi/image/upload/v1782488135/products/1782488135044-we.png.png", "products/1782488135044-we.png"],
+  ],
+} as const;
+
 async function main() {
   console.log("Seeding database...");
 
@@ -58,8 +97,8 @@ async function main() {
   await prisma.supportTicketReply.deleteMany();
   await prisma.supportTicket.deleteMany();
   await prisma.fAQ.deleteMany();
-  await prisma.shippingRate.deleteMany();
-  await prisma.shippingZone.deleteMany();
+  // await prisma.shippingRate.deleteMany();
+  // await prisma.shippingZone.deleteMany();
 
   // ─── Categories ───
   const menCategory = await prisma.category.create({
@@ -67,6 +106,8 @@ async function main() {
       name: "Men",
       slug: "men",
       description: "Premium menswear collection",
+      imageUrl: SEED_ASSETS.products[0][0],
+      imagePublicId: SEED_ASSETS.products[0][1],
       sortOrder: 1,
       isActive: true,
     },
@@ -77,6 +118,8 @@ async function main() {
       name: "Women",
       slug: "women",
       description: "Elegant womenswear collection",
+      imageUrl: SEED_ASSETS.products[4][0],
+      imagePublicId: SEED_ASSETS.products[4][1],
       sortOrder: 2,
       isActive: true,
     },
@@ -87,6 +130,8 @@ async function main() {
       name: "Accessories",
       slug: "accessories",
       description: "Signature accessories",
+      imageUrl: SEED_ASSETS.products[1][0],
+      imagePublicId: SEED_ASSETS.products[1][1],
       sortOrder: 3,
       isActive: true,
     },
@@ -108,13 +153,13 @@ async function main() {
 
   // ─── Collections ───
   const summerCollection = await prisma.collection.create({
-    data: { name: "Summer Essentials", slug: "summer-essentials", description: "Lightweight linen and cotton for the warmer months", isFeatured: true, sortOrder: 1 },
+    data: { name: "Summer Essentials", slug: "summer-essentials", description: "Lightweight linen and cotton for the warmer months", heroImageUrl: SEED_ASSETS.collections[0].url, heroImagePublicId: SEED_ASSETS.collections[0].publicId, isFeatured: true, sortOrder: 1 },
   });
   const heritageCollection = await prisma.collection.create({
-    data: { name: "Heritage Revival", slug: "heritage-revival", description: "Traditional craftsmanship reimagined", isFeatured: true, sortOrder: 2 },
+    data: { name: "Heritage Revival", slug: "heritage-revival", description: "Traditional craftsmanship reimagined", heroImageUrl: SEED_ASSETS.collections[1].url, heroImagePublicId: SEED_ASSETS.collections[1].publicId, isFeatured: true, sortOrder: 2 },
   });
   const eveningCollection = await prisma.collection.create({
-    data: { name: "Evening Edit", slug: "evening-edit", description: "Curated pieces for your most memorable nights", isFeatured: true, sortOrder: 3 },
+    data: { name: "Evening Edit", slug: "evening-edit", description: "Curated pieces for your most memorable nights", heroImageUrl: SEED_ASSETS.collections[2].url, heroImagePublicId: SEED_ASSETS.collections[2].publicId, isFeatured: true, sortOrder: 3 },
   });
 
   // ─── Product Tags ───
@@ -343,11 +388,14 @@ async function main() {
       });
     }
 
+    const primaryAsset = SEED_ASSETS.products[i % SEED_ASSETS.products.length];
+
     // Create a primary image
     await prisma.productImage.create({
       data: {
         productId: product.id,
-        url: `https://placehold.co/600x800/1B2A4A/FFFFFF?text=${encodeURIComponent(pd.name)}`,
+        url: primaryAsset[0],
+        publicId: primaryAsset[1],
         altText: pd.shortDescription,
         sortOrder: 0,
         isPrimary: true,
@@ -359,7 +407,8 @@ async function main() {
       await prisma.productImage.create({
         data: {
           productId: product.id,
-          url: `https://placehold.co/600x800/F8F7F4/1A1A1A?text=${encodeURIComponent(`${pd.name} View ${j + 1}`)}`,
+          url: SEED_ASSETS.products[(i + j) % SEED_ASSETS.products.length][0],
+          publicId: SEED_ASSETS.products[(i + j) % SEED_ASSETS.products.length][1],
           altText: `${pd.name} - View ${j + 1}`,
           sortOrder: j,
           isPrimary: false,
@@ -400,30 +449,30 @@ async function main() {
     data: [
       {
         sectionType: "hero_slider",
-        title: "Summer Essentials 2024",
+        title: "Summer Essentials",
         subtitle: "Lightweight linen and cotton for the warmer months",
         content: {
           slides: [
-            { image: "https://placehold.co/1920x800/1B2A4A/C9A84C?text=Summer+Essentials", cta: { text: "Shop Now", link: "/collections/summer-essentials" } },
-            { image: "https://placehold.co/1920x800/C9A84C/1B2A4A?text=Heritage+Revival", cta: { text: "Explore", link: "/collections/heritage-revival" } },
+            { image: SEED_ASSETS.hero[0].url, imagePublicId: SEED_ASSETS.hero[0].publicId, title: "Summer Essentials", subtitle: "Lightweight layers for considered everyday dressing", cta: { text: "Shop the Edit", link: "/collections/summer-essentials" } },
+            { image: SEED_ASSETS.hero[1].url, imagePublicId: SEED_ASSETS.hero[1].publicId, title: "Heritage Revival", subtitle: "Craft traditions reimagined for the present", cta: { text: "Explore", link: "/collections/heritage-revival" } },
           ],
         },
-        sortOrder: 1,
+        sortOrder: 0,
         isActive: true,
       },
       {
         sectionType: "featured_collections",
         title: "Curated Collections",
         subtitle: "Discover our handpicked edits",
-        content: null,
-        sortOrder: 2,
+        content: {},
+        sortOrder: 1,
         isActive: true,
       },
       {
         sectionType: "new_arrivals",
         title: "New Arrivals",
         subtitle: "The latest additions to our collection",
-        content: null,
+        content: {},
         sortOrder: 3,
         isActive: true,
       },
@@ -473,7 +522,7 @@ async function main() {
             { id: crypto.randomUUID(), type: "link", label: "Watches", url: "/products?category=accessories&subcategory=watches", link: "/products?category=accessories&subcategory=watches", target: "_self", isVisible: true, isHighlighted: false },
             { id: crypto.randomUUID(), type: "link", label: "Jewellery", url: "/products?category=accessories&subcategory=jewellery", link: "/products?category=accessories&subcategory=jewellery", target: "_self", isVisible: true, isHighlighted: false },
           ]},
-          { id: crypto.randomUUID(), type: "link", label: "Collections", url: "/products", link: "/products", target: "_self", isVisible: true, isHighlighted: false },
+          { id: crypto.randomUUID(), type: "link", label: "Collections", url: "/collections", link: "/collections", target: "_self", isVisible: true, isHighlighted: false },
           { id: crypto.randomUUID(), type: "link", label: "Lookbook", url: "/lookbooks", link: "/lookbooks", target: "_self", isVisible: true, isHighlighted: false },
           { id: crypto.randomUUID(), type: "link", label: "Our Story", url: "/our-story", link: "/our-story", target: "_self", isVisible: true, isHighlighted: false },
         ],
@@ -486,7 +535,7 @@ async function main() {
           { id: crypto.randomUUID(), type: "link", label: "Men", url: "/products?category=men", link: "/products?category=men", target: "_self", isVisible: true, isHighlighted: false },
           { id: crypto.randomUUID(), type: "link", label: "Women", url: "/products?category=women", link: "/products?category=women", target: "_self", isVisible: true, isHighlighted: false },
           { id: crypto.randomUUID(), type: "link", label: "Accessories", url: "/products?category=accessories", link: "/products?category=accessories", target: "_self", isVisible: true, isHighlighted: false },
-          { id: crypto.randomUUID(), type: "link", label: "Collections", url: "/products", link: "/products", target: "_self", isVisible: true, isHighlighted: false },
+          { id: crypto.randomUUID(), type: "link", label: "Collections", url: "/collections", link: "/collections", target: "_self", isVisible: true, isHighlighted: false },
           { id: crypto.randomUUID(), type: "link", label: "New Arrivals", url: "/products?sort=newest", link: "/products?sort=newest", target: "_self", isVisible: true, isHighlighted: false },
         ],
         isActive: true,
@@ -518,7 +567,7 @@ async function main() {
             { id: crypto.randomUUID(), label: "Men", url: "/products?category=men" },
             { id: crypto.randomUUID(), label: "Women", url: "/products?category=women" },
             { id: crypto.randomUUID(), label: "Accessories", url: "/products?category=accessories" },
-            { id: crypto.randomUUID(), label: "Collections", url: "/products" },
+            { id: crypto.randomUUID(), label: "Collections", url: "/collections" },
             { id: crypto.randomUUID(), label: "New Arrivals", url: "/products?sort=newest" },
           ],
         },
@@ -746,7 +795,8 @@ async function main() {
       name: "Summer Solstice 2024",
       slug: "summer-solstice-2024",
       description: "Embrace the warmth with our curated summer edit — where lightweight fabrics meet effortless elegance.",
-      coverImageUrl: "https://placehold.co/800x600/1B2A4A/C9A84C?text=Summer+Solstice",
+      coverImageUrl: SEED_ASSETS.collections[0].url,
+      coverImagePublicId: SEED_ASSETS.collections[0].publicId,
       season: "Summer", year: 2024, layout: "editorial",
       story: { narrative: "Inspired by the golden hour, this collection captures the essence of sun-drenched days and balmy evenings. Each piece is designed to move with you, from morning coffees to sunset soirees." },
       tags: ["summer", "linen", "editorial"], isActive: true, sortOrder: 1,
@@ -754,9 +804,9 @@ async function main() {
   });
   await prisma.lookbookItem.createMany({
     data: [
-      { lookbookId: summerLookbook.id, imageUrl: "https://placehold.co/600x800/F8F7F4/1A1A1A?text=Linen+Golden+Hour", caption: "Linen in the golden hour", sortOrder: 1 },
-      { lookbookId: summerLookbook.id, imageUrl: "https://placehold.co/600x800/F8F7F4/1A1A1A?text=Effortless+Silhouettes", caption: "Effortless silhouettes", sortOrder: 2 },
-      { lookbookId: summerLookbook.id, imageUrl: "https://placehold.co/600x800/F8F7F4/1A1A1A?text=Sunset+Hues", caption: "Sunset hues", sortOrder: 3 },
+      { lookbookId: summerLookbook.id, imageUrl: SEED_ASSETS.products[4][0], imagePublicId: SEED_ASSETS.products[4][1], caption: "Linen in the golden hour", sortOrder: 1 },
+      { lookbookId: summerLookbook.id, imageUrl: SEED_ASSETS.products[0][0], imagePublicId: SEED_ASSETS.products[0][1], caption: "Effortless silhouettes", sortOrder: 2 },
+      { lookbookId: summerLookbook.id, imageUrl: SEED_ASSETS.products[1][0], imagePublicId: SEED_ASSETS.products[1][1], caption: "Sunset hues", sortOrder: 3 },
     ],
   });
 
@@ -765,7 +815,8 @@ async function main() {
       name: "Heritage Revival",
       slug: "heritage-revival",
       description: "A tribute to the master artisans who keep India's textile traditions alive.",
-      coverImageUrl: "https://placehold.co/800x600/C9A84C/1B2A4A?text=Heritage+Revival",
+      coverImageUrl: SEED_ASSETS.collections[1].url,
+      coverImagePublicId: SEED_ASSETS.collections[1].publicId,
       season: "Festive", year: 2024, layout: "masonry",
       story: { narrative: "Each piece in this lookbook tells a story of generations of craftsmanship. From the handloom weavers of Varanasi to the embroiderers of Lucknow, we celebrate the hands that create magic." },
       tags: ["heritage", "craftsmanship", "festive"], isActive: true, sortOrder: 2,
@@ -773,8 +824,8 @@ async function main() {
   });
   await prisma.lookbookItem.createMany({
     data: [
-      { lookbookId: heritageLookbook.id, imageUrl: "https://placehold.co/600x800/F8F7F4/1A1A1A?text=Banarasi+Elegance", caption: "Banarasi elegance", sortOrder: 1 },
-      { lookbookId: heritageLookbook.id, imageUrl: "https://placehold.co/600x800/F8F7F4/1A1A1A?text=Zari+Detailing", caption: "Zari detailing", sortOrder: 2 },
+      { lookbookId: heritageLookbook.id, imageUrl: SEED_ASSETS.products[5][0], imagePublicId: SEED_ASSETS.products[5][1], caption: "Banarasi elegance", sortOrder: 1 },
+      { lookbookId: heritageLookbook.id, imageUrl: SEED_ASSETS.products[2][0], imagePublicId: SEED_ASSETS.products[2][1], caption: "Zari detailing", sortOrder: 2 },
     ],
   });
 
@@ -786,7 +837,7 @@ async function main() {
         description: "A balanced layout with hero banner, featured sections, and newsletter signup.",
         category: "landing", thumbnail: null,
         sections: [
-          { id: "section-1", type: "hero_banner", config: { heading: "Welcome", subheading: "Discover our collection", ctaText: "Shop Now", ctaUrl: "/shop" }, styles: {} },
+          { id: "section-1", type: "hero_banner", config: { heading: "Welcome", subheading: "Discover our collection", ctaText: "Shop Now", ctaUrl: "/products" }, styles: {} },
           { id: "section-2", type: "product_grid", config: { title: "Featured Products", columns: 4, limit: 8 }, styles: {} },
           { id: "section-3", type: "newsletter", config: { heading: "Stay Connected", buttonText: "Subscribe" }, styles: {} },
         ],
@@ -827,6 +878,10 @@ async function main() {
     data: {
       siteName: "নবME",
       tagline: "Premium Fashion Destination",
+      logoUrl: SEED_ASSETS.logo.url,
+      logoPublicId: SEED_ASSETS.logo.publicId,
+      ogImageUrl: SEED_ASSETS.hero[0].url,
+      ogImagePublicId: SEED_ASSETS.hero[0].publicId,
       currency: "INR",
       taxRate: 5,
       freeShippingThreshold: 999,
@@ -836,8 +891,37 @@ async function main() {
       contactPhone: "+91-1800-নবME",
       address: "নবME House, Mumbai, Maharashtra, India",
       theme: {
+        design: {
+          branding: {
+            logoLight: SEED_ASSETS.logo.url, logoDark: SEED_ASSETS.logo.url, logoMobile: SEED_ASSETS.logo.url, favicon: null,
+            siteName: "নবME", tagline: "Premium Fashion Destination",
+            description: "Premium fashion destination celebrating traditional craftsmanship.",
+          },
+          colors: {
+            primary: "#1B2A4A", primaryLight: "#2C4270", primaryDark: "#0F1B30",
+            accent: "#C9A84C", accentLight: "#DCC47A", accentDark: "#A8882E",
+            background: "#FFFFFF", surface: "#F8F7F4", surfaceHover: "#EEEDE8",
+            text: "#1A1A1A", textSecondary: "#6B6B6B", textOnPrimary: "#FFFFFF",
+            border: "#E5E4DF", divider: "#F0EFEB", error: "#DC2626", success: "#16A34A", warning: "#D97706",
+            productCardBg: "#FFFFFF", productCardBorder: "#F0EFEB", saleBadge: "#DC2626", newBadge: "#16A34A",
+          },
+          typography: {
+            displayFont: "Playfair Display", displaySizes: { sm: "2rem", md: "3rem", lg: "4rem", xl: "5rem" },
+            headingFont: "Inter", headingWeights: { regular: 400, medium: 500, semibold: 600, bold: 700 },
+            bodyFont: "Inter", bodySize: "0.9375rem", lineHeight: 1.6,
+            monoFont: "JetBrains Mono", letterSpacing: { tight: "-0.01em", normal: "0", wide: "0.02em", wider: "0.05em" },
+          },
+          buttons: {
+            primary: { bg: "#1B2A4A", text: "#FFFFFF", border: "#1B2A4A", radius: "0", paddingX: "1.75rem", paddingY: "0.75rem", hoverBg: "#2C4270", hoverText: "#FFFFFF", hoverBorder: "#2C4270" },
+            secondary: { bg: "transparent", text: "#1B2A4A", border: "#1B2A4A", radius: "0", paddingX: "1.75rem", paddingY: "0.75rem", hoverBg: "#1B2A4A", hoverText: "#FFFFFF", hoverBorder: "#1B2A4A" },
+            outline: { bg: "transparent", text: "#1A1A1A", border: "#E5E4DF", radius: "0", paddingX: "1.75rem", paddingY: "0.75rem", hoverBg: "#F8F7F4", hoverText: "#1A1A1A", hoverBorder: "#1A1A1A" },
+          },
+          layout: { containerMaxWidth: "1440px", maxWidth: "1280px", headerStyle: "classic", footerStyle: "classic", productCardLayout: "vertical", mobileMenuStyle: "drawer" },
+          header: { style: "classic", sticky: true, transparent: false, menuLocation: "header_main", showIcons: true, searchType: "overlay", cartType: "drawer" },
+        },
+        // Keep legacy structure for backward compatibility during migration
         branding: {
-          logoLight: null, logoDark: null, logoMobile: null, favicon: null,
+          logoLight: SEED_ASSETS.logo.url, logoDark: SEED_ASSETS.logo.url, logoMobile: SEED_ASSETS.logo.url, favicon: null,
           siteName: "নবME", tagline: "Premium Fashion Destination",
           description: "Premium fashion destination celebrating traditional craftsmanship.",
         },
@@ -867,11 +951,13 @@ async function main() {
     },
   });
 
-  // ─── Media Assets (placeholder) ───
+  // ─── Media Assets ───
   await prisma.mediaAsset.createMany({
     data: [
-      { url: "https://placehold.co/200x200/1B2A4A/C9A84C?text=Logo", type: "image", folder: "logo", tags: ["logo", "brand"] },
-      { url: "https://placehold.co/1920x800/1B2A4A/C9A84C?text=Hero+Main", type: "image", folder: "hero", tags: ["hero", "homepage"] },
+      { url: SEED_ASSETS.logo.url, publicId: SEED_ASSETS.logo.publicId, type: "image", folder: "logo", tags: ["logo", "brand"] },
+      { url: SEED_ASSETS.hero[0].url, publicId: SEED_ASSETS.hero[0].publicId, type: "image", folder: "hero", tags: ["hero", "homepage"] },
+      ...SEED_ASSETS.collections.map((asset) => ({ url: asset.url, publicId: asset.publicId, type: "image" as const, folder: "collections", tags: ["collection"] })),
+      ...SEED_ASSETS.products.map(([url, publicId]) => ({ url, publicId, type: "image" as const, folder: "products", tags: ["product"] })),
     ],
   });
 

@@ -6,6 +6,7 @@ import { DashboardSidebar } from "../components/DashboardSidebar";
 import { PhoneInput } from "../../components/PhoneInput";
 import { Helmet } from "react-helmet-async";
 import { Breadcrumbs } from "../components/Breadcrumbs";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface Address {
   id: string;
@@ -104,6 +105,13 @@ export default function AddressesPage() {
     setErrors({});
   }
 
+  const modalRef = useFocusTrap<HTMLDivElement>(modalOpen, closeModal);
+  const errorId = (field: keyof typeof emptyForm) => `address-${field}-error`;
+  const errorProps = (field: keyof typeof emptyForm) => ({
+    "aria-invalid": errors[field] ? true : undefined,
+    "aria-describedby": errors[field] ? errorId(field) : undefined,
+  });
+
   function handleSubmit() {
     const validationErrors = validateAddressForm(form);
     if (Object.keys(validationErrors).length > 0) {
@@ -185,10 +193,10 @@ export default function AddressesPage() {
 
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeModal} role="dialog" aria-modal="true" aria-label="Address form">
-          <div className="bg-white w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div ref={modalRef} tabIndex={-1} className="bg-white w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-4 border-b flex items-center justify-between">
               <h3 className="text-sm uppercase tracking-widest font-medium">{editingId ? "Edit Address" : "Add Address"}</h3>
-              <button onClick={closeModal} className="text-neutral-400 hover:text-neutral-900 text-lg leading-none">&times;</button>
+              <button onClick={closeModal} aria-label="Close address form" className="text-neutral-400 hover:text-neutral-900 text-lg leading-none">&times;</button>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -197,42 +205,42 @@ export default function AddressesPage() {
                   <input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} className="input-field w-full" placeholder="Home" />
                 </div>
                 <div>
-                  <label className="text-xs text-neutral-500 mb-1 block">Full Name *</label>
-                  <input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} className={`input-field w-full ${errors.fullName ? "input-error" : ""}`} />
-                  {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
+                  <label htmlFor="address-fullName" className="text-xs text-neutral-500 mb-1 block">Full Name *</label>
+                  <input id="address-fullName" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} className={`input-field w-full ${errors.fullName ? "input-error" : ""}`} {...errorProps("fullName")} />
+                  {errors.fullName && <p id={errorId("fullName")} className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
                 </div>
                 <div>
-                  <label className="text-xs text-neutral-500 mb-1 block">Phone *</label>
-                  <PhoneInput value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} className={errors.phone ? "input-error" : ""} />
-                  {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
+                  <label htmlFor="address-phone" className="text-xs text-neutral-500 mb-1 block">Phone *</label>
+                  <PhoneInput id="address-phone" value={form.phone} onChange={(v) => setForm((f) => ({ ...f, phone: v }))} className={errors.phone ? "input-error" : ""} ariaInvalid={!!errors.phone} ariaDescribedBy={errors.phone ? errorId("phone") : undefined} />
+                  {errors.phone && <p id={errorId("phone")} className="text-xs text-red-500 mt-1">{errors.phone}</p>}
                 </div>
                 <div className="col-span-2">
-                  <label className="text-xs text-neutral-500 mb-1 block">Address Line 1 *</label>
-                  <input value={form.line1} onChange={(e) => setForm({ ...form, line1: e.target.value })} className={`input-field w-full ${errors.line1 ? "input-error" : ""}`} />
-                  {errors.line1 && <p className="text-xs text-red-500 mt-1">{errors.line1}</p>}
+                  <label htmlFor="address-line1" className="text-xs text-neutral-500 mb-1 block">Address Line 1 *</label>
+                  <input id="address-line1" value={form.line1} onChange={(e) => setForm({ ...form, line1: e.target.value })} className={`input-field w-full ${errors.line1 ? "input-error" : ""}`} {...errorProps("line1")} />
+                  {errors.line1 && <p id={errorId("line1")} className="text-xs text-red-500 mt-1">{errors.line1}</p>}
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs text-neutral-500 mb-1 block">Address Line 2</label>
                   <input value={form.line2} onChange={(e) => setForm({ ...form, line2: e.target.value })} className="input-field w-full" />
                 </div>
                 <div>
-                  <label className="text-xs text-neutral-500 mb-1 block">City *</label>
-                  <input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className={`input-field w-full ${errors.city ? "input-error" : ""}`} />
-                  {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
+                  <label htmlFor="address-city" className="text-xs text-neutral-500 mb-1 block">City *</label>
+                  <input id="address-city" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className={`input-field w-full ${errors.city ? "input-error" : ""}`} {...errorProps("city")} />
+                  {errors.city && <p id={errorId("city")} className="text-xs text-red-500 mt-1">{errors.city}</p>}
                 </div>
                 <div>
                   <label className="text-xs text-neutral-500 mb-1 block">District</label>
                   <input value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} className="input-field w-full" />
                 </div>
                 <div>
-                  <label className="text-xs text-neutral-500 mb-1 block">State *</label>
-                  <input value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} className={`input-field w-full ${errors.state ? "input-error" : ""}`} />
-                  {errors.state && <p className="text-xs text-red-500 mt-1">{errors.state}</p>}
+                  <label htmlFor="address-state" className="text-xs text-neutral-500 mb-1 block">State *</label>
+                  <input id="address-state" value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })} className={`input-field w-full ${errors.state ? "input-error" : ""}`} {...errorProps("state")} />
+                  {errors.state && <p id={errorId("state")} className="text-xs text-red-500 mt-1">{errors.state}</p>}
                 </div>
                 <div>
-                  <label className="text-xs text-neutral-500 mb-1 block">Pincode *</label>
-                  <input value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} className={`input-field w-full ${errors.pincode ? "input-error" : ""}`} />
-                  {errors.pincode && <p className="text-xs text-red-500 mt-1">{errors.pincode}</p>}
+                  <label htmlFor="address-pincode" className="text-xs text-neutral-500 mb-1 block">Pincode *</label>
+                  <input id="address-pincode" value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} className={`input-field w-full ${errors.pincode ? "input-error" : ""}`} {...errorProps("pincode")} />
+                  {errors.pincode && <p id={errorId("pincode")} className="text-xs text-red-500 mt-1">{errors.pincode}</p>}
                 </div>
                 <div className="flex items-center gap-2">
                   <input type="checkbox" id="isDefault" checked={form.isDefault} onChange={(e) => setForm({ ...form, isDefault: e.target.checked })} className="accent-neutral-900" />

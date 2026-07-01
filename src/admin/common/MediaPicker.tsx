@@ -2,6 +2,8 @@ import { useState, useRef, useCallback } from "react";
 import { Upload, ImageOff, X, Loader2, FileUp } from "lucide-react";
 import { adminApi } from "../../lib/api/admin";
 
+const MAX_UPLOAD_SIZE = 20 * 1024 * 1024;
+
 interface MediaPickerProps {
   value: string;
   onChange: (url: string, publicId?: string) => void;
@@ -14,7 +16,7 @@ interface MediaPickerProps {
 
 export function MediaPicker({
   value, onChange, label, folder = "general",
-  accept = "image/jpeg,image/png,image/webp,image/avif,image/gif,image/svg+xml,image/bmp,image/tiff",
+  accept = "image/jpeg,image/png,image/webp,image/avif,image/gif,image/bmp,image/tiff",
   preview = true, placeholder = "Paste image URL or upload",
 }: MediaPickerProps) {
   const [uploading, setUploading] = useState(false);
@@ -22,11 +24,9 @@ export function MediaPicker({
   const [broken, setBroken] = useState(false);
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
-  const MAX_SIZE = 50 * 1024 * 1024;
-
   const doUpload = useCallback(async (file: File) => {
-    if (file.size > MAX_SIZE) {
-      setError("File exceeds 50MB limit");
+    if (file.size > MAX_UPLOAD_SIZE) {
+      setError("File exceeds 20MB limit");
       return;
     }
     setError("");
@@ -87,7 +87,7 @@ export function MediaPicker({
                   <ImageOff size={14} className="text-neutral-400" />
                 </div>
               ) : (
-                <img src={value} alt=""
+                <img src={value} alt={`${label} preview`}
                   className="w-full h-full object-cover"
                   onError={() => setBroken(true)} onLoad={() => setBroken(false)} />
               )}

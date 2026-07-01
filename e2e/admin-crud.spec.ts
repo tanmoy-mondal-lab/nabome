@@ -1,11 +1,14 @@
 import { test, expect } from '@playwright/test';
+import { getAdminCredentials } from './admin-credentials';
+
+const { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } = getAdminCredentials();
 
 test.describe('Admin CRUD Operations', () => {
   test.beforeEach(async ({ page }) => {
     // Login as admin
     await page.goto('/login');
-    await page.fill('input[name="email"]', process.env.ADMIN_EMAIL || 'admin@nabome.online');
-    await page.fill('input[name="password"]', process.env.ADMIN_PASSWORD || 'Admin123456!');
+    await page.fill('input[name="email"]', ADMIN_EMAIL);
+    await page.fill('input[name="password"]', ADMIN_PASSWORD);
     await page.click('button[type="submit"]');
     await page.waitForURL(/.*admin/);
   });

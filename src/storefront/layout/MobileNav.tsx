@@ -7,6 +7,7 @@ import { useAuthStore } from "../../stores/auth-store";
 import { useSettings } from "../hooks/useSettings";
 import { useNavigation } from "../hooks/useNavigation";
 import { cn } from "../../lib/utils/cn";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 export function MobileNav() {
   const { isMobileMenuOpen, closeMobileMenu } = useUIStore();
@@ -15,6 +16,7 @@ export function MobileNav() {
   const { data: settings } = useSettings();
   const { data: navItems = [] } = useNavigation("mobile");
   const [expanded, setExpanded] = useState<string[]>([]);
+  const navRef = useFocusTrap<HTMLElement>(isMobileMenuOpen, closeMobileMenu);
 
   const toggleExpand = (label: string) => {
     setExpanded((prev) => prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]);
@@ -26,16 +28,18 @@ export function MobileNav() {
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" onClick={closeMobileMenu} />
           <motion.aside
+            ref={navRef}
             initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
             className="fixed top-0 left-0 bottom-0 z-50 w-80 bg-white shadow-elevated"
             role="dialog"
             aria-modal="true"
             aria-label="Mobile navigation menu"
+            tabIndex={-1}
           >
             <div className="flex items-center justify-between px-6 h-16 border-b border-neutral-100">
               <span className="font-display text-xl tracking-widest">{settings?.siteName || "নবME"}</span>
-              <button onClick={closeMobileMenu} className="p-1 hover:text-neutral-600 transition-colors"><X className="w-5 h-5" /></button>
+              <button onClick={closeMobileMenu} aria-label="Close mobile navigation" className="p-1 hover:text-neutral-600 transition-colors"><X className="w-5 h-5" /></button>
             </div>
 
             <nav className="p-6 space-y-1 overflow-y-auto h-[calc(100vh-4rem)]">

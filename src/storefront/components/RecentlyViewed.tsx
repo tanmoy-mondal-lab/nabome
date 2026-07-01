@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Clock, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
@@ -9,7 +9,7 @@ import { getRecentlyViewed, clearRecentlyViewed } from "../lib/recommendations";
 export function RecentlyViewed() {
   const [products, setProducts] = useState<Record<string, unknown>[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const slugs = getRecentlyViewed().slice(0, 8);
+  const slugs = useMemo(() => getRecentlyViewed().slice(0, 8), []);
 
   useEffect(() => {
     if (!slugs.length) return;
@@ -17,7 +17,7 @@ export function RecentlyViewed() {
       .then((res) => (res as Record<string, unknown>).product as Record<string, unknown>)
       .catch(() => null)))
       .then((results) => setProducts(results.filter(Boolean) as Record<string, unknown>[]));
-  }, []);
+  }, [slugs]);
 
   if (!products.length) return null;
 

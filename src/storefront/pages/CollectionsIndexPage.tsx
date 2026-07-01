@@ -17,6 +17,7 @@ export default function CollectionsIndexPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["collections"],
     queryFn: () => api.get<{ collections: Collection[] }>("/collections").then((r) => r.collections ?? []),
+    retry: false,
   });
 
   const collections = data ?? [];

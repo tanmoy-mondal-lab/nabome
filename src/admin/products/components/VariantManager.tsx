@@ -307,7 +307,14 @@ export function VariantManager({
                             <div className="grid grid-cols-4 gap-1.5">
                               {variantImages.map((img, imgIdx) => (
                                 <div key={imgIdx} className="relative group aspect-square bg-neutral-100 rounded-md overflow-hidden border border-neutral-200">
-                                  <SafeImage src={img.url} alt="" className="w-full h-full object-cover" useTransform={false} />
+                                  <SafeImage
+                                    src={img.url}
+                                    alt=""
+                                    aria-hidden="true"
+                                    role="presentation"
+                                    className="w-full h-full object-cover"
+                                    useTransform={false}
+                                  />
                                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
                                     {!img.isPrimary && (
                                       <button onClick={() => setVariantPrimaryImage(v.id, imgIdx)} className="bg-white text-[8px] px-1 py-0.5 rounded shadow-sm">Primary</button>

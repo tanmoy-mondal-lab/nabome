@@ -14,6 +14,20 @@ import { useSettings } from "../hooks/useSettings";
 import { canonical, ogImageFallback, websiteSchema } from "../../lib/seo";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? value as Record<string, unknown> : {};
+}
+
+function parseStructuredData(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
 function ScrollToTopOnNavigate() {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -29,25 +43,39 @@ export function StorefrontLayout() {
   const isCheckout = pathname === "/checkout";
 
   useEffect(() => {
-    const themeData = settings?.theme;
-    if (!themeData) return;
-    const design = (themeData.design ?? {}) as Record<string, unknown>;
-    const colors = (design.colors ?? {}) as Record<string, unknown>;
+    const themeData = asRecord(settings?.theme);
+    const design = asRecord(themeData.design);
+    const colors = Object.keys(asRecord(design.colors)).length
+      ? asRecord(design.colors)
+      : asRecord(themeData.colors);
+    const typography = asRecord(design.typography);
     const root = document.documentElement.style;
-    if (colors.primary) root.setProperty("--color-primary", colors.primary as string);
-    if (colors.accent) root.setProperty("--color-accent", colors.accent as string);
+    if (colors.primary) root.setProperty("--color-brand", colors.primary as string);
+    if (colors.accent) root.setProperty("--color-gold", colors.accent as string);
     if (colors.background) root.setProperty("--color-bg", colors.background as string);
     if (colors.text) root.setProperty("--color-text", colors.text as string);
+    if (typography.displayFont) root.setProperty("--font-display", `"${typography.displayFont}", Georgia, serif`);
+    if (typography.bodyFont) root.setProperty("--font-body", `"${typography.bodyFont}", Inter, sans-serif`);
+    if (typography.baseSize) root.fontSize = typography.baseSize as string;
   }, [settings?.theme]);
 
-  const siteName = settings?.siteName || "নবME";
-  const seo = settings?.seo || {};
-  const siteTitle = (seo.metaTitle as string) || `${siteName} — Premium Fashion`;
-  const siteDescription = (seo.metaDesc as string) || "Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design.";
-  const ogImage = settings?.ogImageUrl || ogImageFallback();
-  const faviconUrl = settings?.faviconUrl || "";
+  const theme = asRecord(settings?.theme);
+  const branding = asRecord(theme.branding);
+  const seo = asRecord(settings?.seo);
+  const siteName = settings?.siteName || branding.brandName as string || "নবME";
+  const siteTitle = (seo.globalMetaTitle as string) || `${siteName} — Premium Fashion`;
+  const siteDescription = (seo.globalMetaDescription as string) || "Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design.";
+  const ogImage = (seo.ogImage as string) || settings?.ogImageUrl || ogImageFallback();
+  const faviconUrl = settings?.faviconUrl || branding.favicon as string || "";
+  const configuredCanonical = typeof seo.canonicalUrl === "string" ? seo.canonicalUrl.replace(/\/+$/, "") : "";
+  const customSchema = parseStructuredData(seo.structuredData);
+  const customCss = typeof theme.customCSS === "string" ? theme.customCSS : "";
+  const facebookPixelId = seo.facebookPixelId as string | undefined;
+  const googleTagManagerId = seo.googleTagManagerId as string | undefined;
 
-  const currentUrl = canonical(pathname);
+  const currentUrl = configuredCanonical
+    ? `${configuredCanonical}${pathname === "/" ? "" : pathname}`
+    : canonical(pathname);
   const ws = websiteSchema();
 
   return (
@@ -58,7 +86,6 @@ export function StorefrontLayout() {
         <meta name="description" content={siteDescription} />
         <link rel="canonical" href={currentUrl} />
         <link rel="icon" type={faviconUrl.endsWith(".ico") ? "image/x-icon" : "image/svg+xml"} href={faviconUrl || "/favicon.svg"} />
-        {!faviconUrl && <link rel="alternate icon" type="image/x-icon" href="/favicon.ico" />}
         <meta name="robots" content="index, follow" />
 
         <meta property="og:title" content={siteTitle} />
@@ -76,6 +103,28 @@ export function StorefrontLayout() {
         <meta name="twitter:image" content={ogImage} />
 
         <script type="application/ld+json">{JSON.stringify(ws)}</script>
+        {customSchema && <script type="application/ld+json">{JSON.stringify(customSchema)}</script>}
+        {facebookPixelId && (
+          <script>
+            {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', '${facebookPixelId}');fbq('track', 'PageView');`}
+          </script>
+        )}
+        {facebookPixelId && <noscript><img height="1" width="1" style={{display:'none'}} src={`https://www.facebook.com/tr?id=${facebookPixelId}&ev=PageView&noscript=1`} /></noscript>}
+        {googleTagManagerId && (
+          <script>
+            {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${googleTagManagerId}');`}
+          </script>
+        )}
+        {customCss && <style>{customCss}</style>}
+        <style>{`
+          body { background-color: var(--color-bg, #fff); color: var(--color-text, #262626); font-family: var(--font-body); }
+          .font-display { font-family: var(--font-display); }
+          .text-brand-500, .hover\\:text-brand-500:hover { color: var(--color-brand); }
+          .bg-brand-500 { background-color: var(--color-brand); }
+          .border-brand-500 { border-color: var(--color-brand); }
+          .text-accent-gold, .text-accent-goldLight { color: var(--color-gold); }
+          .bg-accent-gold { background-color: var(--color-gold); }
+        `}</style>
       </Helmet>
       <Header />
       <MobileNav />

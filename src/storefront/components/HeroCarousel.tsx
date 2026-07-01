@@ -101,6 +101,7 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
             <SafeImage
               src={s.posterUrl}
               alt=""
+              aria-hidden="true"
               className="w-full h-full object-cover"
               priority={i === 0}
               responsive={false}

@@ -11,6 +11,9 @@ const VALID_PAYMENT_METHODS = ["cod", "card", "upi", "netbanking", "wallet", "ra
 const STANDARD_SHIPPING = 99;
 const DEFAULT_FREE_THRESHOLD = 999;
 const DEFAULT_TAX_RATE = 5; // percentage (5%)
+const MAX_ITEM_QUANTITY = 20;
+
+class CheckoutError extends Error {}
 
 function validateAddressFields(addr: Record<string, unknown>, label: string): string | null {
   const required = ["fullName", "phone", "line1", "city", "state", "pincode"];
@@ -61,6 +64,8 @@ export async function handleCheckoutRequest(
   action: string = "checkout"
 ): Promise<Response> {
   const isGuest = action === "guest";
+  let transientGuestProfileId: string | null = null;
+  let completedOrder = false;
 
   let body: Record<string, unknown>;
   try {
@@ -83,8 +88,15 @@ export async function handleCheckoutRequest(
     items: guestItems,
   } = body as Record<string, unknown>;
 
-  if (!email || typeof email !== "string" || !email.trim()) {
+  if (!isGuest && !ctx.userId) {
+    return unauthorized("Authentication is required for customer checkout");
+  }
+
+  if (isGuest && (!email || typeof email !== "string" || !email.trim())) {
     return badRequest("Email is required");
+  }
+  if (typeof email === "string" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return badRequest("A valid email is required");
   }
 
   if (!paymentMethod || !VALID_PAYMENT_METHODS.includes(paymentMethod as typeof VALID_PAYMENT_METHODS[number])) {
@@ -95,6 +107,19 @@ export async function handleCheckoutRequest(
 
   try {
     const prisma = getPrisma(ctx.env);
+    let checkoutEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+    let profileId = ctx.userId ?? null;
+
+    if (!isGuest) {
+      const profile = await prisma.profile.findUnique({
+        where: { id: ctx.userId },
+        select: { id: true, email: true, isActive: true },
+      });
+      if (!profile?.isActive) return unauthorized("Account is unavailable");
+      checkoutEmail = profile.email;
+      profileId = profile.id;
+    }
+
     // ── Resolve cart items ──
     interface CartItemData {
       variantId: string;
@@ -106,8 +131,9 @@ export async function handleCheckoutRequest(
         size: string;
         color: string;
         stock: number;
+        isActive: boolean;
         priceAdjustment: number;
-        product: { id: string; name: string; basePrice: number };
+        product: { id: string; name: string; basePrice: number; gender: string; isActive: boolean };
         images: { url: string }[];
       };
     }
@@ -116,21 +142,42 @@ export async function handleCheckoutRequest(
 
     // Priority 1: Items from request body (always use if provided — covers both guest and authenticated with localStorage cart)
     if (Array.isArray(guestItems) && guestItems.length > 0) {
-      const variantIds = guestItems.map((i: Record<string, unknown>) => i.variantId).filter(Boolean) as string[];
+      const requestedQuantities = new Map<string, number>();
+      for (const rawItem of guestItems) {
+        if (!rawItem || typeof rawItem !== "object") throw new CheckoutError("Invalid cart item");
+        const item = rawItem as Record<string, unknown>;
+        const variantId = typeof item.variantId === "string" ? item.variantId : "";
+        const quantity = Number(item.quantity);
+        if (!variantId || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_ITEM_QUANTITY) {
+          throw new CheckoutError(`Each cart quantity must be between 1 and ${MAX_ITEM_QUANTITY}`);
+        }
+        requestedQuantities.set(variantId, (requestedQuantities.get(variantId) ?? 0) + quantity);
+      }
+      for (const quantity of requestedQuantities.values()) {
+        if (quantity > MAX_ITEM_QUANTITY) {
+          throw new CheckoutError(`Each cart quantity must be between 1 and ${MAX_ITEM_QUANTITY}`);
+        }
+      }
+
+      const variantIds = Array.from(requestedQuantities.keys());
       const variants = await prisma.productVariant.findMany({
-        where: { id: { in: variantIds } },
+        where: {
+          id: { in: variantIds },
+          isActive: true,
+          product: { isActive: true },
+        },
         include: {
           product: true,
           images: { take: 1, where: { isPrimary: true } },
         },
       });
       const variantMap = new Map(variants.map((v) => [v.id, v]));
-      cartItems = guestItems.map((item: Record<string, unknown>) => {
-        const variant = variantMap.get(item.variantId as string);
-        if (!variant) throw new Error(`Variant ${item.variantId} not found`);
+      cartItems = Array.from(requestedQuantities.entries()).map(([variantId, quantity]) => {
+        const variant = variantMap.get(variantId);
+        if (!variant) throw new CheckoutError("A cart item is unavailable");
         return {
           variantId: variant.id,
-          quantity: Number(item.quantity) || 1,
+          quantity,
           variant: {
             id: variant.id,
             productId: variant.productId,
@@ -138,11 +185,14 @@ export async function handleCheckoutRequest(
             size: variant.size,
             color: variant.color,
             stock: variant.stock,
+            isActive: variant.isActive,
             priceAdjustment: Number(variant.priceAdjustment),
             product: {
               id: variant.product.id,
               name: variant.product.name,
               basePrice: Number(variant.product.basePrice),
+              gender: variant.product.gender,
+              isActive: variant.product.isActive,
             },
             images: variant.images as { url: string }[],
           },
@@ -178,11 +228,14 @@ export async function handleCheckoutRequest(
             size: item.variant.size,
             color: item.variant.color,
             stock: item.variant.stock,
+            isActive: item.variant.isActive,
             priceAdjustment: Number(item.variant.priceAdjustment),
             product: {
               id: item.variant.product.id,
               name: item.variant.product.name,
               basePrice: Number(item.variant.product.basePrice),
+              gender: item.variant.product.gender,
+              isActive: item.variant.product.isActive,
             },
             images: item.variant.images as { url: string }[],
           },
@@ -196,27 +249,16 @@ export async function handleCheckoutRequest(
 
     // ── Stock validation ──
     for (const item of cartItems) {
+      if (!item.variant.isActive || !item.variant.product.isActive) {
+        return badRequest(`${item.variant.product.name} is no longer available`);
+      }
+      if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_ITEM_QUANTITY) {
+        return badRequest(`Each cart quantity must be between 1 and ${MAX_ITEM_QUANTITY}`);
+      }
       if (item.quantity > item.variant.stock) {
         return badRequest(
           `Insufficient stock for ${item.variant.product.name} (${item.variant.size}/${item.variant.color})`
         );
-      }
-    }
-
-    // ── Resolve or create guest profile ──
-    let profileId = ctx.userId ?? null;
-    if (!isGuest && !profileId) {
-      const existing = await prisma.profile.findUnique({ where: { email: email as string } });
-      if (existing) {
-        profileId = existing.id;
-      } else {
-        const guest = await prisma.profile.create({
-          data: {
-            email: email as string,
-            firstName: (email as string).split("@")[0] || "Guest",
-          },
-        });
-        profileId = guest.id;
       }
     }
 
@@ -237,13 +279,52 @@ export async function handleCheckoutRequest(
       if (err) return badRequest(err);
     }
 
+    if (isGuest) {
+      // Check if a guest profile already exists for this email
+      let guestProfile = await prisma.profile.findUnique({
+        where: { email: checkoutEmail },
+        select: { id: true, preferences: true },
+      });
+
+      if (!guestProfile) {
+        // Create new guest profile with real email so addresses can be retrieved later
+        guestProfile = await prisma.profile.create({
+          data: {
+            email: checkoutEmail,
+            firstName: checkoutEmail.split("@")[0] || "Guest",
+            marketingOptIn: false,
+            preferences: { guest: true },
+            emailVerified: true, // Guest orders don't require email verification
+          },
+        });
+      } else {
+        // Update existing profile to mark as guest if not already
+        await prisma.profile.update({
+          where: { id: guestProfile.id },
+          data: { preferences: { ...(guestProfile.preferences as Record<string, unknown> || {}), guest: true } },
+        });
+      }
+      profileId = guestProfile.id;
+      transientGuestProfileId = guestProfile.id;
+    }
+
     const resolveAddress = async (
       addrBody: unknown,
       addrId: unknown,
       type: string
     ): Promise<string | null> => {
-      if (typeof addrId === "string") return addrId;
-      if (addrBody && typeof addrBody === "object" && profileId) {
+      if (!profileId) {
+        throw new CheckoutError("Checkout profile is missing");
+      }
+      if (typeof addrId === "string") {
+        const ownedAddress = await prisma.address.findFirst({
+          where: { id: addrId, profileId },
+          select: { id: true },
+        });
+        if (!ownedAddress) throw new CheckoutError("Address not found");
+        return ownedAddress.id;
+      }
+      if (addrBody && typeof addrBody === "object") {
         const a = addrBody as Record<string, unknown>;
         const addr = await prisma.address.create({
           data: {
@@ -270,6 +351,7 @@ export async function handleCheckoutRequest(
       shippingAddressId,
       "shipping"
     );
+    if (!resolvedShippingId) return badRequest("Shipping address is required");
 
     const sameShip = sameAsShipping === true || sameAsShipping === "true";
     let resolvedBillingId: string | null = null;
@@ -278,6 +360,7 @@ export async function handleCheckoutRequest(
     } else {
       resolvedBillingId = await resolveAddress(billingAddress, billingAddressId, "billing");
     }
+    if (!resolvedBillingId) return badRequest("Billing address is required");
 
     // ── Calculate totals ──
     let subtotal = 0;
@@ -297,41 +380,95 @@ export async function handleCheckoutRequest(
 
     // ── Coupon application ──
     let discount = 0;
-    let appliedCouponId: string | null = null;
+    let appliedCoupon: { id: string; usageLimit: number | null; perUserLimit: number } | null = null;
     if (couponCode && typeof couponCode === "string") {
       const coupon = await prisma.coupon.findUnique({
         where: { code: couponCode.toUpperCase() },
       });
-      if (
-        coupon &&
-        coupon.isActive &&
-        coupon.startDate <= new Date() &&
-        coupon.endDate >= new Date()
-      ) {
-        if (subtotal >= Number(coupon.minOrderValue ?? 0)) {
-          if (coupon.discountType === "percentage") {
-            discount = Math.min(
-              subtotal * (Number(coupon.discountValue) / 100),
-              Number(coupon.maxDiscount ?? Infinity)
-            );
-          } else {
-            discount = Number(coupon.discountValue);
-          }
-          discount = Math.round(discount * 100) / 100;
-          appliedCouponId = coupon.id;
-        }
+      const now = new Date();
+      if (!coupon || !coupon.isActive || coupon.startDate > now || coupon.endDate < now) {
+        throw new CheckoutError("Coupon is invalid or expired");
       }
+      if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
+        throw new CheckoutError("Coupon has reached its usage limit");
+      }
+      if (subtotal < Number(coupon.minOrderValue ?? 0)) {
+        throw new CheckoutError(
+          `Minimum order value of ₹${Number(coupon.minOrderValue).toLocaleString("en-IN")} required`
+        );
+      }
+      if (
+        coupon.applicableGender &&
+        cartItems.some((item) => item.variant.product.gender !== coupon.applicableGender)
+      ) {
+        throw new CheckoutError("Coupon is not applicable to every item in this cart");
+      }
+      const userUsageCount = await prisma.couponRedemption.count({
+        where: { couponId: coupon.id, profileId: profileId! },
+      });
+      if (userUsageCount >= coupon.perUserLimit) {
+        throw new CheckoutError("Coupon usage limit reached for this customer");
+      }
+
+      if (coupon.discountType === "percentage") {
+        discount = Math.min(
+          subtotal * (Number(coupon.discountValue) / 100),
+          Number(coupon.maxDiscount ?? Infinity)
+        );
+      } else {
+        discount = Number(coupon.discountValue);
+      }
+      discount = Math.min(subtotal, Math.round(discount * 100) / 100);
+      appliedCoupon = {
+        id: coupon.id,
+        usageLimit: coupon.usageLimit,
+        perUserLimit: coupon.perUserLimit,
+      };
     }
 
     const total = Math.max(0, Math.round((subtotal + shippingCost + tax - discount) * 100) / 100);
+    const orderNumber = generateOrderNumber();
 
     // ── Create order in transaction ──
     const order = await prisma.$transaction(async (tx) => {
+      // First, reserve stock
+      for (const item of cartItems) {
+        const updated = await tx.productVariant.updateMany({
+          where: {
+            id: item.variantId,
+            isActive: true,
+            stock: { gte: item.quantity },
+            product: { isActive: true },
+          },
+          data: {
+            stock: { decrement: item.quantity },
+            reservedStock: { increment: item.quantity },
+          },
+        });
+        if (updated.count !== 1) {
+          throw new CheckoutError(
+            `Insufficient stock for ${item.variant.product.name} (${item.variant.size}/${item.variant.color})`
+          );
+        }
+      }
+
+      // Create Razorpay order inside transaction to ensure atomicity
+      let razorpayOrderId: string | null = null;
+      if (paymentMethod !== "cod") {
+        try {
+          razorpayOrderId = await createRazorpayOrder(total, "INR", orderNumber, ctx.env);
+        } catch (razorpayError) {
+          // If Razorpay fails, rollback the entire transaction (stock will be released)
+          throw new CheckoutError(`Payment initialization failed: ${(razorpayError as Error).message}`);
+        }
+      }
+
+      // Create the database order
       const newOrder = await tx.order.create({
         data: {
-          orderNumber: generateOrderNumber(),
+          orderNumber,
           profileId,
-          email: email as string,
+          email: checkoutEmail,
           status: "pending",
           subtotal,
           shippingCost,
@@ -342,6 +479,7 @@ export async function handleCheckoutRequest(
           currency: "INR",
           paymentMethod: paymentMethod as string,
           paymentStatus: "pending",
+          razorpayOrderId,
           shippingAddressId: resolvedShippingId,
           billingAddressId: resolvedBillingId,
           giftMessage: typeof giftMessage === "string" ? giftMessage : null,
@@ -373,19 +511,6 @@ export async function handleCheckoutRequest(
         include: { items: true },
       });
 
-      // Decrement stock in batch
-      await Promise.all(
-        cartItems.map((item) =>
-          tx.productVariant.update({
-            where: { id: item.variantId },
-            data: {
-              stock: { decrement: item.quantity },
-              reservedStock: { increment: item.quantity },
-            },
-          })
-        )
-      );
-
       // Record inventory movements in batch
       await tx.inventoryMovement.createMany({
         data: cartItems.map((item) => ({
@@ -398,20 +523,34 @@ export async function handleCheckoutRequest(
       });
 
       // Update coupon usage
-      if (appliedCouponId) {
-        await tx.coupon.update({
-          where: { id: appliedCouponId },
+      if (appliedCoupon) {
+        const couponUpdated = await tx.coupon.updateMany({
+          where: {
+            id: appliedCoupon.id,
+            isActive: true,
+            startDate: { lte: new Date() },
+            endDate: { gte: new Date() },
+            ...(appliedCoupon.usageLimit !== null
+              ? { usedCount: { lt: appliedCoupon.usageLimit } }
+              : {}),
+          },
           data: { usedCount: { increment: 1 } },
         });
-        if (profileId) {
-          await tx.couponRedemption.create({
-            data: {
-              couponId: appliedCouponId,
-              orderId: newOrder.id,
-              profileId,
-            },
-          });
+        if (couponUpdated.count !== 1) throw new CheckoutError("Coupon is no longer available");
+
+        const userUsageCount = await tx.couponRedemption.count({
+          where: { couponId: appliedCoupon.id, profileId: profileId! },
+        });
+        if (userUsageCount >= appliedCoupon.perUserLimit) {
+          throw new CheckoutError("Coupon usage limit reached for this customer");
         }
+        await tx.couponRedemption.create({
+          data: {
+            couponId: appliedCoupon.id,
+            orderId: newOrder.id,
+            profileId: profileId!,
+          },
+        });
       }
 
       // Clear cart
@@ -439,16 +578,7 @@ export async function handleCheckoutRequest(
 
       return newOrder;
     }, { timeout: 15000 });
-
-    // ── Create Razorpay order for online payments ──
-    let razorpayOrderId: string | null = null;
-    if (paymentMethod !== "cod") {
-      razorpayOrderId = await createRazorpayOrder(total, "INR", order.orderNumber, ctx.env);
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { razorpayOrderId },
-      });
-    }
+    completedOrder = true;
 
     // ── Send order confirmation email ──
     try {
@@ -477,13 +607,16 @@ export async function handleCheckoutRequest(
         orderNumber: order.orderNumber,
         total: Number(order.total),
         paymentMethod,
-        isGuest: !profileId,
+        isGuest,
       },
       ...extractRequestMeta(req),
     });
 
-    return success({ order, razorpayOrderId });
+    return success({ order, razorpayOrderId: order.razorpayOrderId });
   } catch (err) {
+    // Guest profiles are now persistent (real email) so no cleanup needed
+    // They can be reused for future guest orders
+    if (err instanceof CheckoutError) return badRequest(err.message);
     return serverError(err);
   }
 }

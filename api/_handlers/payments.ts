@@ -4,6 +4,7 @@ import type { RequestContext } from "../_lib/types";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
 import { cleanSecret } from "../_lib/secrets";
+import { requireAdmin } from "../_lib/auth-middleware";
 
 async function createHMACSHA256(secret: string, data: string, env: any): Promise<string> {
   const enc = new TextEncoder();
@@ -16,6 +17,15 @@ async function createHMACSHA256(secret: string, data: string, env: any): Promise
   return Array.from(new Uint8Array(sig))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
+}
+
+function timingSafeEqualHex(left: string, right: string): boolean {
+  if (left.length !== right.length) return false;
+  let mismatch = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    mismatch |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
+  return mismatch === 0;
 }
 
 async function callRazorpay(
@@ -58,9 +68,9 @@ export async function handlePaymentRequest(
     case "verify":
       return handleVerify(req, ctx.env);
     case "failed":
-      return handleFailed(req, ctx.env);
+      return handleFailed(req, ctx, ctx.env);
     case "retry":
-      return handleRetry(req, ctx.env);
+      return handleRetry(req, ctx, ctx.env);
     case "refund":
       return handleRefund(req, ctx, ctx.env);
     case "webhook":
@@ -87,14 +97,16 @@ async function handleVerify(req: Request, env: any): Promise<Response> {
       return serverError(new Error("Razorpay secret not configured"));
     }
 
-    const expected = await createHMACSHA256(keySecret, `${razorpayOrderId}|${razorpayPaymentId}`, env);
-
-    if (expected !== razorpaySignature) {
-      return badRequest("Invalid payment signature");
-    }
-
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
+    if (!order.razorpayOrderId || order.razorpayOrderId !== razorpayOrderId) {
+      return badRequest("Payment order does not match this order");
+    }
+
+    const expected = await createHMACSHA256(keySecret, `${razorpayOrderId}|${razorpayPaymentId}`, env);
+    if (!timingSafeEqualHex(expected, razorpaySignature)) {
+      return badRequest("Invalid payment signature");
+    }
 
     if (order.paymentStatus === "paid") {
       logAction(null, "payment.verify_duplicate", {
@@ -105,6 +117,18 @@ async function handleVerify(req: Request, env: any): Promise<Response> {
       }, env);
       return success({ success: true, alreadyProcessed: true });
     }
+    if (!["pending", "failed"].includes(order.paymentStatus)) {
+      return badRequest("Order is not awaiting payment");
+    }
+
+    const paymentAlreadyUsed = await prisma.order.findFirst({
+      where: {
+        razorpayPaymentId,
+        id: { not: orderId },
+      },
+      select: { id: true },
+    });
+    if (paymentAlreadyUsed) return badRequest("Payment has already been applied to another order");
 
     await prisma.$transaction(async (tx) => {
       await tx.order.update({
@@ -125,17 +149,19 @@ async function handleVerify(req: Request, env: any): Promise<Response> {
         },
       });
 
-      await tx.notification.create({
-        data: {
-          profileId: order.profileId!,
-          orderId,
-          type: "payment_success",
-          channel: "in_app",
-          title: "Payment Successful",
-          body: `Payment of ₹${Number(order.total)} for order ${order.orderNumber} was successful.`,
-          data: { orderNumber: order.orderNumber, razorpayPaymentId },
-        },
-      });
+      if (order.profileId) {
+        await tx.notification.create({
+          data: {
+            profileId: order.profileId,
+            orderId,
+            type: "payment_success",
+            channel: "in_app",
+            title: "Payment Successful",
+            body: `Payment of ₹${Number(order.total)} for order ${order.orderNumber} was successful.`,
+            data: { orderNumber: order.orderNumber, razorpayPaymentId },
+          },
+        });
+      }
     });
 
     // ── Send payment success email ──
@@ -164,16 +190,30 @@ async function handleVerify(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleFailed(req: Request, env: any): Promise<Response> {
+async function handleFailed(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const body = await req.json();
-    const { orderId, errorCode, errorDescription } = body;
+    const { orderId, razorpayOrderId, errorCode, errorDescription } = body;
 
-    if (!orderId) return badRequest("orderId is required");
+    if (!orderId || !razorpayOrderId) return badRequest("orderId and razorpayOrderId are required");
 
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
+    if (order.razorpayOrderId !== razorpayOrderId) {
+      return badRequest("Payment order does not match this order");
+    }
+    if (order.paymentStatus === "paid") {
+      return success({ success: true, ignored: true });
+    }
+    if (order.paymentStatus !== "pending") {
+      return badRequest("Order is not awaiting payment");
+    }
+
+    // Ownership validation: only the order owner can mark payment as failed
+    if (ctx.userId && order.profileId !== ctx.userId) {
+      return notFound("Order not found");
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.order.update({
@@ -181,19 +221,21 @@ async function handleFailed(req: Request, env: any): Promise<Response> {
         data: { paymentStatus: "failed" },
       });
 
-      await tx.notification.create({
-        data: {
-          profileId: order.profileId!,
-          orderId,
-          type: "payment_failed",
-          channel: "in_app",
-          title: "Payment Failed",
-          body: errorDescription
-            ? `Payment failed: ${errorDescription}`
-            : "Payment failed. Please try again.",
-          data: { errorCode, errorDescription, orderNumber: order.orderNumber },
-        },
-      });
+      if (order.profileId) {
+        await tx.notification.create({
+          data: {
+            profileId: order.profileId,
+            orderId,
+            type: "payment_failed",
+            channel: "in_app",
+            title: "Payment Failed",
+            body: errorDescription
+              ? `Payment failed: ${errorDescription}`
+              : "Payment failed. Please try again.",
+            data: { errorCode, errorDescription, orderNumber: order.orderNumber },
+          },
+        });
+      }
     });
 
     // ── Send payment failure email ──
@@ -221,7 +263,7 @@ async function handleFailed(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleRetry(req: Request, env: any): Promise<Response> {
+async function handleRetry(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const body = await req.json();
@@ -231,6 +273,9 @@ async function handleRetry(req: Request, env: any): Promise<Response> {
 
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
+    if (!ctx.userId || order.profileId !== ctx.userId) {
+      return notFound("Order not found");
+    }
     if (order.paymentStatus !== "failed") {
       return badRequest("Only failed payments can be retried");
     }
@@ -256,6 +301,8 @@ async function handleRetry(req: Request, env: any): Promise<Response> {
 }
 
 async function handleRefund(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
   try {
     const prisma = getPrisma(env);
     const body = await req.json();
@@ -288,8 +335,7 @@ async function handleRefund(req: Request, ctx: RequestContext, env: any): Promis
       return badRequest("No Razorpay payment found for this order");
     }
 
-    const refundData = await callRazorpay("/refunds", "POST", {
-      payment_id: order.razorpayPaymentId,
+    const refundData = await callRazorpay(`/payments/${encodeURIComponent(order.razorpayPaymentId)}/refund`, "POST", {
       amount: Math.round(refundAmount * 100),
       notes: { order_id: orderId, order_number: order.orderNumber },
     }, env);

@@ -15,8 +15,8 @@ export function ProductRecommendations({ title, type, currentSlug }: ProductReco
   const { data, isLoading } = useQuery({
     queryKey: ["recommendations", type],
     queryFn: async () => {
-      if (type === "featured") return api.get<{ products: Record<string, unknown>[] }>("/api/products", { params: { action: "featured" } });
-      if (type === "newArrivals") return api.get<{ products: Record<string, unknown>[] }>("/api/products", { params: { action: "newArrivals" } });
+      if (type === "featured") return api.get<{ products: Record<string, unknown>[] }>("/api/products/featured");
+      if (type === "newArrivals") return api.get<{ products: Record<string, unknown>[] }>("/api/products/new");
       return { products: [] };
     },
     staleTime: 1000 * 60 * 5,

@@ -187,7 +187,7 @@ export default function AnnouncementsPage() {
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Link URL</label>
               <input value={form.linkUrl} onChange={(e) => setForm({ ...form, linkUrl: e.target.value })}
-                placeholder="/shop" className={inputClass} />
+                placeholder="/products" className={inputClass} />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Link Text</label>

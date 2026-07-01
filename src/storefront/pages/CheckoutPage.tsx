@@ -350,6 +350,7 @@ export default function CheckoutPage() {
           if (payErr?.code) {
             await customerApi.reportPaymentFailed({
               orderId: (order.id ?? order.orderId) as string,
+              razorpayOrderId: razorpayOrderId!,
               errorDescription: payErr.description || payErr.message,
             });
             setApiError(`Payment failed: ${payErr.description || "Please try again."}`);
@@ -383,23 +384,28 @@ export default function CheckoutPage() {
         errors[field] ? "border-red-400" : "border-neutral-200"
       );
     const labelCls = "text-xs text-neutral-500 mb-1 block font-body";
+    const errorId = (field: keyof ShippingFormState) => `${prefix}-${field}-error`;
+    const errorProps = (field: keyof ShippingFormState) => ({
+      "aria-invalid": errors[field] ? true : undefined,
+      "aria-describedby": errors[field] ? errorId(field) : undefined,
+    });
 
     return (
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2 sm:col-span-1">
           <label className={labelCls} htmlFor={`${prefix}-fullName`}>Full Name *</label>
-          <input id={`${prefix}-fullName`} value={form.fullName} onChange={(e) => update("fullName", e.target.value)} className={inputCls("fullName")} placeholder="John Doe" />
-          {errors.fullName && <p className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
+          <input id={`${prefix}-fullName`} value={form.fullName} onChange={(e) => update("fullName", e.target.value)} className={inputCls("fullName")} placeholder="John Doe" {...errorProps("fullName")} />
+          {errors.fullName && <p id={errorId("fullName")} className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
         </div>
         <div className="col-span-2 sm:col-span-1">
           <label className={labelCls} htmlFor={`${prefix}-phone`}>Phone *</label>
-          <PhoneInput id={`${prefix}-phone`} value={form.phone} onChange={(v) => update("phone", v)} />
-          {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
+          <PhoneInput id={`${prefix}-phone`} value={form.phone} onChange={(v) => update("phone", v)} ariaInvalid={!!errors.phone} ariaDescribedBy={errors.phone ? errorId("phone") : undefined} />
+          {errors.phone && <p id={errorId("phone")} className="text-xs text-red-500 mt-1">{errors.phone}</p>}
         </div>
         <div className="col-span-2">
           <label className={labelCls} htmlFor={`${prefix}-line1`}>Street Address / Line 1 *</label>
-          <input id={`${prefix}-line1`} value={form.line1} onChange={(e) => update("line1", e.target.value)} className={inputCls("line1")} placeholder="123 Main Street" />
-          {errors.line1 && <p className="text-xs text-red-500 mt-1">{errors.line1}</p>}
+          <input id={`${prefix}-line1`} value={form.line1} onChange={(e) => update("line1", e.target.value)} className={inputCls("line1")} placeholder="123 Main Street" {...errorProps("line1")} />
+          {errors.line1 && <p id={errorId("line1")} className="text-xs text-red-500 mt-1">{errors.line1}</p>}
         </div>
         <div className="col-span-2">
           <label className={labelCls} htmlFor={`${prefix}-line2`}>Apartment / Line 2 (optional)</label>
@@ -407,8 +413,8 @@ export default function CheckoutPage() {
         </div>
         <div>
           <label className={labelCls} htmlFor={`${prefix}-city`}>City *</label>
-          <input id={`${prefix}-city`} value={form.city} onChange={(e) => update("city", e.target.value)} className={inputCls("city")} placeholder="Mumbai" />
-          {errors.city && <p className="text-xs text-red-500 mt-1">{errors.city}</p>}
+          <input id={`${prefix}-city`} value={form.city} onChange={(e) => update("city", e.target.value)} className={inputCls("city")} placeholder="Mumbai" {...errorProps("city")} />
+          {errors.city && <p id={errorId("city")} className="text-xs text-red-500 mt-1">{errors.city}</p>}
         </div>
         <div>
           <label className={labelCls} htmlFor={`${prefix}-district`}>District</label>
@@ -416,18 +422,18 @@ export default function CheckoutPage() {
         </div>
         <div>
           <label className={labelCls} htmlFor={`${prefix}-state`}>State *</label>
-          <select id={`${prefix}-state`} value={form.state} onChange={(e) => update("state", e.target.value)} className={inputCls("state")}>
+          <select id={`${prefix}-state`} value={form.state} onChange={(e) => update("state", e.target.value)} className={inputCls("state")} {...errorProps("state")}>
             <option value="">Select state</option>
             {INDIAN_STATES.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          {errors.state && <p className="text-xs text-red-500 mt-1">{errors.state}</p>}
+          {errors.state && <p id={errorId("state")} className="text-xs text-red-500 mt-1">{errors.state}</p>}
         </div>
         <div>
           <label className={labelCls} htmlFor={`${prefix}-pincode`}>Pincode *</label>
-          <input id={`${prefix}-pincode`} value={form.pincode} onChange={(e) => update("pincode", e.target.value)} className={inputCls("pincode")} placeholder="400001" maxLength={6} />
-          {errors.pincode && <p className="text-xs text-red-500 mt-1">{errors.pincode}</p>}
+          <input id={`${prefix}-pincode`} value={form.pincode} onChange={(e) => update("pincode", e.target.value)} className={inputCls("pincode")} placeholder="400001" maxLength={6} {...errorProps("pincode")} />
+          {errors.pincode && <p id={errorId("pincode")} className="text-xs text-red-500 mt-1">{errors.pincode}</p>}
         </div>
         <div>
           <label className={labelCls} htmlFor={`${prefix}-country`}>Country</label>

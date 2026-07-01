@@ -6,12 +6,21 @@ import { usePolicyPages } from "../hooks/usePolicyPages";
 import { NewsletterForm } from "../components/NewsletterForm";
 
 const SOCIAL_ICONS: Record<string, typeof Instagram> = { instagram: Instagram, youtube: Youtube, twitter: Twitter, facebook: Facebook };
+const DEFAULT_POLICY_LINKS = [
+  { label: "Privacy", url: "/privacy" },
+  { label: "Terms", url: "/terms" },
+  { label: "Shipping & Returns", url: "/shipping-returns" },
+  { label: "FAQ", url: "/faq" },
+];
 
 export function Footer() {
   const { data: settings } = useSettings();
   const { data: footerSections = [] } = useFooter();
   const { data: policyPages = [] } = usePolicyPages();
 
+  const theme = settings?.theme as Record<string, unknown> | undefined;
+  const themeBranding = theme?.branding as Record<string, unknown> | undefined;
+  const footerConfig = theme?.footer as Record<string, unknown> | undefined;
   const socialLinks = (settings?.socialLinks as Record<string, string>[]) ?? [];
   const columns = footerSections.reduce<Array<typeof footerSections>>((acc, section) => {
     const col = (section.column as number) ?? 0;
@@ -27,7 +36,7 @@ export function Footer() {
   return (
     <footer className="bg-luxe-charcoal text-neutral-300">
       {/* Newsletter Bar */}
-      <div className="border-b border-white/5">
+      {footerConfig?.showNewsletter !== false && <div className="border-b border-white/5">
         <div className="container-wide py-10 flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <p className="text-xs tracking-[0.2em] uppercase text-accent-goldLight mb-1">{(settings?.preferences as Record<string, unknown>)?.newsletterTitle as string || "Stay Connected"}</p>
@@ -35,18 +44,18 @@ export function Footer() {
           </div>
           <NewsletterForm layout="inline" />
         </div>
-      </div>
+      </div>}
 
       {/* Main Footer */}
       <div className="container-wide py-16">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-10">
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-2">
-            <Link to="/" className="font-display text-xl tracking-[0.3em] text-white">{settings?.siteName || "নবME"}</Link>
+            <Link to="/" className="font-display text-xl tracking-[0.3em] text-white">{settings?.siteName || themeBranding?.brandName as string || "নবME"}</Link>
             <p className="text-sm text-neutral-500 mt-4 leading-relaxed max-w-xs">
-              {settings?.tagline || "Premium fashion for the discerning individual. Curated collections delivered worldwide."}
+              {settings?.tagline || themeBranding?.brandTagline as string || themeBranding?.brandDescription as string || "Premium fashion for the discerning individual. Curated collections delivered worldwide."}
             </p>
-            <div className="flex gap-3 mt-8">
+            {footerConfig?.showSocialLinks !== false && <div className="flex gap-3 mt-8">
               {socialLinks.map((link) => {
                 const platform = link.platform as string;
                 const Icon = SOCIAL_ICONS[platform];
@@ -59,7 +68,7 @@ export function Footer() {
                   </a>
                 );
               })}
-            </div>
+            </div>}
           </div>
 
           {/* Link Columns */}
@@ -96,13 +105,13 @@ export function Footer() {
           ))}
 
           {/* Contact Column */}
-          <div className="col-span-2 md:col-span-1">
+          {footerConfig?.showContact !== false && <div className="col-span-2 md:col-span-1">
             <h4 className="text-xs uppercase tracking-[0.15em] text-white font-medium mb-5">Contact</h4>
             <div className="space-y-3 text-sm text-neutral-400">
               <p>{settings?.contactEmail || "hello@নবME.com"}</p>
               <p>{settings?.contactPhone || "+91 1800 123 4567"}</p>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -112,15 +121,16 @@ export function Footer() {
           <p className="text-xs text-neutral-600">
             &copy; {new Date().getFullYear()} {settings?.siteName || "নবME"}. All rights reserved.
           </p>
-          <div className="flex items-center gap-6 text-xs text-neutral-500">
+          {footerConfig?.showPolicyLinks !== false && <div className="flex items-center gap-6 text-xs text-neutral-500">
             {(() => {
               const footerLinks = (settings?.preferences as Record<string, unknown>)?.footerLinks as { label: string; url: string }[] | undefined;
-              const links = footerLinks?.length ? footerLinks : policyPages.map((p) => ({ label: p.title, url: `/${p.slug}` }));
+              const policyLinks = policyPages.map((p) => ({ label: p.title, url: `/${p.slug}` }));
+              const links = footerLinks?.length ? footerLinks : (policyLinks.length ? policyLinks : DEFAULT_POLICY_LINKS);
               return links.map((link) => (
                 <Link key={link.url} to={link.url} className="hover:text-white transition-colors">{link.label}</Link>
               ));
             })()}
-          </div>
+          </div>}
           <button onClick={scrollToTop}
             className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-white transition-colors"
           >

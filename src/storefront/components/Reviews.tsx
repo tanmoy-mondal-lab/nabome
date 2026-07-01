@@ -22,7 +22,7 @@ export function Reviews({ productId, slug }: ReviewsProps) {
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["reviews", slug, page],
     queryFn: () => api.get<{ reviews: Record<string, unknown>[]; stats: { total: number; averageRating: number; distribution: Record<string, number> } }>(
-      "/api/products", { params: { action: "reviews", slug, page } }
+      `/api/products/${slug}/reviews`, { params: { page } }
     ),
   });
 

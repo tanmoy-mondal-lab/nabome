@@ -60,7 +60,7 @@ export function useAuth() {
     return () => {
       if (refreshTimer.current) clearInterval(refreshTimer.current);
     };
-  }, [store.refreshToken, store.expiresAt]);
+  }, [store]);
 
   const login = useCallback(
     async (data: LoginRequest) => {

@@ -9,12 +9,16 @@ import { withRateLimit, getRateLimitKey, RATE_LIMIT_CONFIG } from "./rate-limit"
 import { validateCsrf, csrfError } from "./csrf";
 import { getPrisma } from "./prisma";
 import { cleanSecret } from "./secrets";
+import { hashToken } from "./token-hash";
 import type { RequestContext } from "./types";
 import type { Env } from "./env";
+import { getEnv } from "./env";
 
 function getSupabaseAdmin(env?: Env) {
-  const url = cleanSecret(env?.SUPABASE_URL) || cleanSecret(env?.VITE_SUPABASE_URL);
-  const key = cleanSecret(env?.SUPABASE_SERVICE_ROLE_KEY);
+  // Use provided env, or fall back to process.env for local development
+  const effectiveEnv = env || getEnv();
+  const url = cleanSecret(effectiveEnv.SUPABASE_URL) || cleanSecret(effectiveEnv.VITE_SUPABASE_URL);
+  const key = cleanSecret(effectiveEnv.SUPABASE_SERVICE_ROLE_KEY);
   if (!url || !key) throw new Error("Missing Supabase admin credentials");
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -40,6 +44,48 @@ const DEFAULT_OPTIONS: AuthOptions = {
   rateLimit: false,
   csrf: false,
 };
+
+interface ActiveSessionResult {
+  role: "customer" | "admin";
+}
+
+async function resolveActiveSession(
+  token: string,
+  userId: string,
+  env?: Env
+): Promise<ActiveSessionResult | null> {
+  const prisma = getPrisma(env);
+  const tokenHash = await hashToken(token);
+  const now = new Date();
+
+  const session = await prisma.authSession.findFirst({
+    where: {
+      profileId: userId,
+      isActive: true,
+      expiresAt: { gt: now },
+      OR: [
+        { accessToken: tokenHash },
+        // One-time compatibility for sessions created before token hashing.
+        { accessToken: token },
+      ],
+    },
+    select: {
+      profile: {
+        select: {
+          role: true,
+        },
+      },
+    },
+  });
+
+  if (!session) {
+    return null;
+  }
+
+  return {
+    role: session.profile?.role ?? "customer",
+  };
+}
 
 /**
  * Authenticate a request and return context or error response.
@@ -91,16 +137,14 @@ export async function authenticate(
         return unauthorized("Invalid or expired token");
       }
 
-      // Read role from the profile table (source of truth), not from JWT metadata
-      const prisma = getPrisma(env);
-      const profile = await prisma.profile.findUnique({
-        where: { id: user.id },
-        select: { role: true },
-      });
+      const session = await resolveActiveSession(token, user.id, env);
+      if (!session) {
+        return unauthorized("Session expired — please log in again");
+      }
 
       const ctx: RequestContext = {
         userId: user.id,
-        userRole: profile?.role ?? "customer",
+        userRole: session.role,
       };
 
       // 4. Role check
@@ -118,18 +162,17 @@ export async function authenticate(
   if (authHeader?.startsWith("Bearer ")) {
     try {
       const supabase = getSupabaseAdmin(env);
-      const { data: { user } } = await supabase.auth.getUser(authHeader.slice(7));
+      const token = authHeader.slice(7);
+      const { data: { user } } = await supabase.auth.getUser(token);
       if (user) {
-        // Read role from DB, not JWT
-        const prisma = getPrisma(env);
-        const profile = await prisma.profile.findUnique({
-          where: { id: user.id },
-          select: { role: true },
-        });
+        const session = await resolveActiveSession(token, user.id, env);
+        if (!session) {
+          return { ctx: {} };
+        }
         return {
           ctx: {
             userId: user.id,
-            userRole: profile?.role ?? "customer",
+            userRole: session.role,
           },
         };
       }

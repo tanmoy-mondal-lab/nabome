@@ -7,6 +7,7 @@ import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { Helmet } from "react-helmet-async";
 import { Breadcrumbs } from "../components/Breadcrumbs";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface Ticket {
   id: string;
@@ -72,6 +73,12 @@ export default function SupportTicketsPage() {
       setCreateForm({ subject: "", message: "", orderId: "" });
     },
   });
+
+  function closeCreateModal() {
+    setShowCreate(false);
+  }
+
+  const createModalRef = useFocusTrap<HTMLDivElement>(showCreate, closeCreateModal);
 
   const replyMutation = useMutation({
     mutationFn: () => customerApi.addSupportReply(selectedTicket!, { message: replyText }),
@@ -209,11 +216,11 @@ export default function SupportTicketsPage() {
       </div>
 
       {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowCreate(false)} role="dialog" aria-modal="true" aria-label="Create support ticket">
-          <div className="bg-white w-full max-w-lg mx-4 premium-card" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={closeCreateModal} role="dialog" aria-modal="true" aria-label="Create support ticket">
+          <div ref={createModalRef} tabIndex={-1} className="bg-white w-full max-w-lg mx-4 premium-card" onClick={(e) => e.stopPropagation()}>
             <div className="px-6 py-4 border-b flex items-center justify-between">
               <h3 className="text-sm uppercase tracking-widest font-medium">Create Support Ticket</h3>
-              <button onClick={() => setShowCreate(false)} className="text-neutral-400 hover:text-neutral-900 text-lg leading-none">&times;</button>
+              <button onClick={closeCreateModal} aria-label="Close support ticket form" className="text-neutral-400 hover:text-neutral-900 text-lg leading-none">&times;</button>
             </div>
             <div className="p-6 space-y-4">
               <div>
@@ -230,7 +237,7 @@ export default function SupportTicketsPage() {
               </div>
             </div>
             <div className="px-6 py-4 border-t flex justify-end gap-3">
-              <button onClick={() => setShowCreate(false)} className="btn-ghost">Cancel</button>
+              <button onClick={closeCreateModal} className="btn-ghost">Cancel</button>
               <button
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending || !createForm.subject || !createForm.message}

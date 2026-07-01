@@ -35,7 +35,8 @@ export function setCsrfCookie(response: Response, env?: any): Response {
   const token = generateToken();
   const nodeEnv = env?.NODE_ENV ?? (typeof process !== "undefined" ? process.env?.NODE_ENV : undefined);
   const cfPages = env?.CF_PAGES ?? (typeof process !== "undefined" ? process.env?.CF_PAGES : undefined);
-  const isSecure = nodeEnv === "production" || cfPages === "true";
+  // Use Secure flag in production or when running on Cloudflare Pages (any CF_PAGES value indicates production)
+  const isSecure = nodeEnv === "production" || cfPages !== undefined;
   response.headers.append(
     "Set-Cookie",
     `${CSRF_COOKIE_NAME}=${token}; Path=/; SameSite=Strict${isSecure ? "; Secure" : ""}; Max-Age=86400`

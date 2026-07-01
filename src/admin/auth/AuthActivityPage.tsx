@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
@@ -42,7 +43,18 @@ interface LoginAttempt {
 type Tab = "sessions" | "attempts";
 
 export default function AuthActivityPage() {
-  const [tab, setTab] = useState<Tab>("sessions");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [tab, setTab] = useState<Tab>(tabParam === "attempts" ? "attempts" : "sessions");
+
+  useEffect(() => {
+    setTab(tabParam === "attempts" ? "attempts" : "sessions");
+  }, [tabParam]);
+
+  const selectTab = (nextTab: Tab) => {
+    setTab(nextTab);
+    setSearchParams(nextTab === "attempts" ? { tab: "attempts" } : { tab: "sessions" }, { replace: true });
+  };
 
   return (
     <div className="space-y-6">
@@ -58,7 +70,7 @@ export default function AuthActivityPage() {
         ]).map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key)}
+            onClick={() => selectTab(t.key)}
             className={cn(
               "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
               tab === t.key

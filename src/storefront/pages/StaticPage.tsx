@@ -5,6 +5,7 @@ import { Breadcrumbs } from "../components/Breadcrumbs";
 import { canonical } from "../../lib/seo";
 import { api } from "../../lib/api/client";
 import SectionRenderer from "../sections/SectionRenderer";
+import { sanitizeHTML } from "../../lib/sanitize-html";
 
 interface StaticPageData {
   id: string;
@@ -69,6 +70,7 @@ export function StaticPage() {
     },
     enabled: !!slug,
     staleTime: 1000 * 60 * 10,
+    retry: false,
   });
 
   if (isLoading) {
@@ -81,12 +83,18 @@ export function StaticPage() {
 
   if (error || !data) {
     return (
-      <div className="container-page section-padding">
-        <div className="max-w-3xl">
-          <h1 className="font-display text-display-3 text-neutral-900 mb-6">Page Not Found</h1>
-          <p className="text-body-base text-neutral-600">The page you're looking for doesn't exist or has been removed.</p>
+      <>
+        <Helmet>
+          <title>Page Not Found — নবME</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Helmet>
+        <div className="container-page section-padding">
+          <div className="max-w-3xl">
+            <h1 className="font-display text-display-3 text-neutral-900 mb-6">Page Not Found</h1>
+            <p className="text-body-base text-neutral-600">The page you're looking for doesn't exist or has been removed.</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -130,7 +138,7 @@ export function StaticPage() {
             {isHtml ? (
               <div
                 className="prose prose-neutral space-y-6 text-body-base text-neutral-600 font-editorial leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: contentString }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHTML(contentString) }}
               />
             ) : (
               <p className="text-body-base text-neutral-600">{contentString}</p>

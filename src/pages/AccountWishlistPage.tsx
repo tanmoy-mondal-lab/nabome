@@ -65,7 +65,7 @@ export default function AccountWishlistPage() {
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => (
         <div key={item.id} className="premium-card overflow-hidden group">
-          <Link to={`/p/${item.variant.product.slug}`} className="block aspect-[3/4] bg-neutral-100 relative overflow-hidden">
+          <Link to={`/products/${item.variant.product.slug}`} className="block aspect-[3/4] bg-neutral-100 relative overflow-hidden">
             {item.variant.images[0] ? (
               <img src={item.variant.images[0].url} alt={item.variant.images[0].altText ?? item.variant.product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
             ) : (
@@ -73,7 +73,7 @@ export default function AccountWishlistPage() {
             )}
           </Link>
           <div className="p-4">
-            <Link to={`/p/${item.variant.product.slug}`} className="font-display text-sm text-neutral-900 line-clamp-1 hover:text-brand-500">
+            <Link to={`/products/${item.variant.product.slug}`} className="font-display text-sm text-neutral-900 line-clamp-1 hover:text-brand-500">
               {item.variant.product.name}
             </Link>
             <p className="text-xs text-neutral-400 mt-1">

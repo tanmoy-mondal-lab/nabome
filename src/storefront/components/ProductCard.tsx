@@ -87,7 +87,7 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
 
   if (view === "list") {
     return (
-      <div className="premium-card flex gap-6 p-4 group">
+      <div className="premium-card product-card flex gap-6 p-4 group">
         <Link to={`/products/${slug}`} className="w-32 h-44 shrink-0 bg-neutral-50 overflow-hidden">
           <SafeImage src={primaryImage || "/placeholder.svg"} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-luxe-out group-hover:scale-105" />
         </Link>
@@ -119,7 +119,7 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
   return (
     <motion.div
       initial={prefersReducedMotion ? undefined : { opacity: 0 }} animate={{ opacity: 1 }}
-      className="premium-card premium-card-lift group relative bg-white"
+      className="premium-card premium-card-lift product-card group relative bg-white"
     >
         <Link to={`/products/${slug}`} className="block aspect-[3/4] bg-neutral-50 overflow-hidden relative">
           {!imageLoaded && <div className="absolute inset-0 bg-neutral-100 animate-pulse" />}

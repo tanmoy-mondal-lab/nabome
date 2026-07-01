@@ -7,6 +7,7 @@ export function useProduct(slug: string | undefined) {
     queryFn: () => api.get<{ product: Record<string, unknown> }>(`/api/products/${slug}`),
     enabled: !!slug,
     staleTime: 1000 * 60 * 10,
+    retry: false,
   });
 }
 
@@ -15,6 +16,7 @@ export function useSearch(q: string) {
     queryKey: ["search", q],
     queryFn: () => api.get<{ products: unknown[]; pagination: { total: number } }>("/api/products/search", { params: { q } }),
     enabled: q.length >= 2,
+    retry: false,
   });
 }
 
@@ -23,5 +25,6 @@ export function useProductListing(params: Record<string, string>) {
     queryKey: ["products", params],
     queryFn: () => api.get<{ products: Record<string, unknown>[]; pagination: { total: number } }>("/api/products", { params: { ...params, limit: 50 } }),
     staleTime: 1000 * 60 * 5,
+    retry: false,
   });
 }

@@ -64,7 +64,10 @@ export function Header() {
 
   const notifCount = notifData?.count ?? 0;
 
-  const headerConfig = (settings?.preferences as Record<string, unknown>)?.headerConfig as {
+  const theme = settings?.theme as Record<string, unknown> | undefined;
+  const themeBranding = theme?.branding as Record<string, unknown> | undefined;
+  const headerConfig = ((theme?.header as Record<string, unknown> | undefined)
+    ?? (settings?.preferences as Record<string, unknown>)?.headerConfig) as {
     maxNavItems?: number;
     sticky?: boolean;
     transparent?: boolean;
@@ -168,11 +171,11 @@ export function Header() {
           {/* Center: Logo - Fixed positioning */}
           <div className="flex items-center justify-center md:absolute md:left-1/2 md:-translate-x-1/2">
             <Link to="/" className="block">
-              {settings?.logoUrl ? (
-                <img src={settings.logoUrl} alt={settings?.siteName || "নবME"} className="h-8 md:h-10 w-auto" />
+              {(settings?.logoUrl || themeBranding?.logo) ? (
+                <img src={(settings?.logoUrl || themeBranding?.logo) as string} alt={settings?.siteName || themeBranding?.brandName as string || "নবME"} className="h-8 md:h-10 w-auto" />
               ) : (
                 <span className="font-display text-xl md:text-2xl tracking-[0.35em] text-neutral-900 hover:text-brand-500 transition-colors duration-300">
-                  {settings?.siteName || "নবME"}
+                  {settings?.siteName || themeBranding?.brandName as string || "নবME"}
                 </span>
               )}
             </Link>

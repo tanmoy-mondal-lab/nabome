@@ -674,6 +674,7 @@ export default function ProductFormPage() {
             uploadingMedia={uploadingMedia}
             onUploadStart={() => setUploadingMedia(true)}
             onUploadEnd={() => setUploadingMedia(false)}
+            productName={form.name}
             onPendingImage={(data) => {
               if (data) {
                 setPendingImage({ url: data.url, publicId: data.publicId, variantId: data.variantId });

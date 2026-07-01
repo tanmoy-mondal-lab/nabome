@@ -1,6 +1,7 @@
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
+import { optionalAuth } from "../_lib/auth-middleware";
 
 export async function handleCouponRequest(
   req: Request,
@@ -23,6 +24,8 @@ async function handleValidate(ctx: RequestContext, req: Request, env: any): Prom
   if (!code) return badRequest("Coupon code is required");
 
   try {
+    const authCtx = await optionalAuth(req, env);
+    const userId = ctx.userId || authCtx.userId;
     const prisma = getPrisma(env);
     const coupon = await prisma.coupon.findUnique({
       where: { code: code.toUpperCase() },
@@ -54,11 +57,11 @@ async function handleValidate(ctx: RequestContext, req: Request, env: any): Prom
       return success({ valid: false, message: "This coupon is not applicable for this category" });
     }
 
-    if (ctx.userId) {
+    if (userId) {
       const userUsageCount = await prisma.couponRedemption.count({
         where: {
           couponId: coupon.id,
-          profileId: ctx.userId,
+          profileId: userId,
         },
       });
 

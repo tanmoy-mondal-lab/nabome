@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { getAdminCredentials } from './admin-credentials';
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@nabome.online';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin123456!';
+const { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } = getAdminCredentials();
 
 test.describe('Admin - Auth & Dashboard', () => {
   test('admin can login', async ({ page }) => {
@@ -446,9 +446,19 @@ test.describe('Admin - System', () => {
     await page.waitForTimeout(1000);
   });
 
-  test('sessions page loads', async ({ page }) => {
+  test('auth activity sessions page loads', async ({ page }) => {
     await page.goto('/admin/sessions');
-    await expect(page).toHaveURL(/.*admin\/sessions/);
+    await expect(page).toHaveURL(/.*admin\/auth\?tab=sessions/);
+    await expect(page.getByRole('button', { name: /active sessions/i })).toBeVisible();
+    await expect(page.getByText(/No sessions found|User|Email/i).first()).toBeVisible();
+    await page.waitForTimeout(1000);
+  });
+
+  test('auth activity login attempts tab loads', async ({ page }) => {
+    await page.goto('/admin/login-attempts');
+    await expect(page).toHaveURL(/.*admin\/auth\?tab=attempts/);
+    await expect(page.getByRole('button', { name: /login attempts/i })).toBeVisible();
+    await expect(page.getByPlaceholder(/search by email/i)).toBeVisible();
     await page.waitForTimeout(1000);
   });
 

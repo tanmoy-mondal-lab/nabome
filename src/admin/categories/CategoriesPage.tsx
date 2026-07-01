@@ -474,7 +474,7 @@ function CategoryRow({
               <span className="w-5" />
             )}
             {category.imageUrl ? (
-              <SafeImage src={category.imageUrl} alt="" className="w-8 h-8 rounded object-cover border border-neutral-100" />
+              <SafeImage src={category.imageUrl} alt={`${category.name} category image`} className="w-8 h-8 rounded object-cover border border-neutral-100" />
             ) : (
               <div className="w-8 h-8 rounded bg-neutral-100 flex items-center justify-center">
                 <Folder className="w-4 h-4 text-neutral-400" />

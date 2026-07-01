@@ -141,6 +141,8 @@ export default function AdminRoutes() {
           <Route path="campaigns" element={<CampaignsPage />} />
           <Route path="abandoned-carts" element={<AbandonedCartsPage />} />
           <Route path="auth" element={<AuthActivityPage />} />
+          <Route path="sessions" element={<Navigate to="/admin/auth?tab=sessions" replace />} />
+          <Route path="login-attempts" element={<Navigate to="/admin/auth?tab=attempts" replace />} />
           <Route path="audit-log" element={<AuditLogPage />} />
           <Route path="wishlists" element={<WishlistsPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />

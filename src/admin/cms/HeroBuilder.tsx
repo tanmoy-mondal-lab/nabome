@@ -97,7 +97,7 @@ export default function HeroBuilder() {
 
   const openCreate = () => {
     setEditIdx(null);
-    setForm({ id: crypto.randomUUID(), videoUrl: "", posterUrl: "", title: "", subtitle: "", ctaText: "Shop Now", ctaUrl: "/shop", soundEnabled: true });
+    setForm({ id: crypto.randomUUID(), videoUrl: "", posterUrl: "", title: "", subtitle: "", ctaText: "Shop Now", ctaUrl: "/products", soundEnabled: true });
     setModalOpen(true);
   };
 
@@ -250,7 +250,14 @@ export default function HeroBuilder() {
                         {slide.videoUrl ? (
                           <video src={slide.videoUrl} className="w-full h-full object-cover" muted />
                         ) : slide.posterUrl ? (
-                          <SafeImage src={slide.posterUrl} alt="" className="w-full h-full object-cover" useTransform={false} />
+                          <SafeImage
+                            src={slide.posterUrl}
+                            alt=""
+                            aria-hidden="true"
+                            role="presentation"
+                            className="w-full h-full object-cover"
+                            useTransform={false}
+                          />
                         ) : (
                           <Film size={24} className="text-neutral-300" />
                         )}

@@ -280,7 +280,7 @@ function HeroSlideEditor({
   const addSlide = () => {
     const slide: HeroSlide = {
       id: crypto.randomUUID(), videoUrl: "", posterUrl: "", title: "",
-      subtitle: "", ctaText: "Shop Now", ctaUrl: "/shop", soundEnabled: true,
+      subtitle: "", ctaText: "Shop Now", ctaUrl: "/products", soundEnabled: true,
     };
     onChangeSlides([...slides, slide]);
     setEditingIdx(slides.length);
@@ -376,7 +376,13 @@ function HeroSlideEditor({
                       <input value={slide.posterUrl} onChange={(e) => updateSlide(i, { posterUrl: e.target.value })}
                         placeholder="Fallback image URL" className="flex-1 px-3 py-2.5 text-sm border border-neutral-200 focus:outline-none focus:border-neutral-400" />
                       {slide.posterUrl && (
-                        <img src={slide.posterUrl} alt="" className="w-10 h-10 object-cover border border-neutral-200 shrink-0" />
+                        <img
+                          src={slide.posterUrl}
+                          alt=""
+                          aria-hidden="true"
+                          role="presentation"
+                          className="w-10 h-10 object-cover border border-neutral-200 shrink-0"
+                        />
                       )}
                     </div>
                   </Field>

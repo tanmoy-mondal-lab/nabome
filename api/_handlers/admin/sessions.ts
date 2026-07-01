@@ -28,7 +28,19 @@ async function handleList(req: Request, env: any): Promise<Response> {
     const [items, total] = await Promise.all([
       prisma.authSession.findMany({
         where: where as never,
-        include: { profile: { select: { id: true, firstName: true, lastName: true, email: true } } },
+        select: {
+          id: true,
+          profileId: true,
+          userAgent: true,
+          ipAddress: true,
+          deviceName: true,
+          isActive: true,
+          revokedAt: true,
+          lastActiveAt: true,
+          expiresAt: true,
+          createdAt: true,
+          profile: { select: { id: true, firstName: true, lastName: true, email: true } },
+        },
         orderBy: { lastActiveAt: "desc" }, skip: (page - 1) * limit, take: limit,
       }),
       prisma.authSession.count({ where: where as never }),

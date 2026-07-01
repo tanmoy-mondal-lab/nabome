@@ -3,22 +3,51 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
-import { Plus, X, GripVertical, Image, Link, Package } from "lucide-react";
+import { Plus, X, GripVertical, Image, Package } from "lucide-react";
 import { MediaPicker } from "../common/MediaPicker";
 import { useToast } from "../../components/ui/Toast";
 
 interface LookbookItem {
   id: string;
-  type: string;
-  title: string;
+  type?: string;
+  title?: string;
   description?: string;
+  caption?: string;
+  imageUrl?: string;
+  imagePublicId?: string;
   mediaUrl?: string;
   mediaPublicId?: string;
   linkUrl?: string;
   linkText?: string;
   productId?: string;
-  position: number;
+  position?: number;
+  sortOrder?: number;
   aspectRatio?: number;
+}
+
+function normalizeItemForForm(item: LookbookItem, index: number): LookbookItem {
+  const productId = item.productId ?? "";
+  return {
+    ...item,
+    type: item.type ?? (productId ? "product" : "image"),
+    title: item.title ?? item.caption ?? "",
+    mediaUrl: item.mediaUrl ?? item.imageUrl ?? "",
+    mediaPublicId: item.mediaPublicId ?? item.imagePublicId ?? "",
+    position: item.position ?? item.sortOrder ?? index,
+    sortOrder: item.sortOrder ?? item.position ?? index,
+  };
+}
+
+function serializeItemForApi(item: LookbookItem, index: number) {
+  return {
+    imageUrl: item.mediaUrl || item.imageUrl || "",
+    imagePublicId: item.mediaPublicId || item.imagePublicId || null,
+    productId: item.productId || null,
+    caption: item.caption || item.title || item.description || null,
+    hotspotX: null,
+    hotspotY: null,
+    sortOrder: item.sortOrder ?? item.position ?? index,
+  };
 }
 
 export default function LookbookFormPage() {
@@ -62,7 +91,7 @@ export default function LookbookFormPage() {
         metaTitle: (lb.metaTitle as string) ?? "",
         metaDescription: (lb.metaDesc as string) ?? "",
       });
-      setItems((lb.items as LookbookItem[]) ?? []);
+      setItems(((lb.items as LookbookItem[]) ?? []).map(normalizeItemForForm));
       setFormInitialized(true);
     }
   }, [lookbookQuery.data, formInitialized]);
@@ -123,7 +152,7 @@ export default function LookbookFormPage() {
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       metaTitle: form.metaTitle || null,
       metaDesc: form.metaDescription || null,
-      items,
+      items: items.map(serializeItemForApi),
     };
     saveMutation.mutate(payload);
   };
@@ -222,17 +251,8 @@ export default function LookbookFormPage() {
                     <button onClick={() => addItem("image")} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors">
                       <Image size={14} /> Image
                     </button>
-                    <button onClick={() => addItem("video")} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors">
-                      <Image size={14} /> Video
-                    </button>
                     <button onClick={() => addItem("product")} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors">
-                      <Package size={14} /> Product
-                    </button>
-                    <button onClick={() => addItem("text")} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors">
-                      <Link size={14} /> Text Block
-                    </button>
-                    <button onClick={() => addItem("shop_the_look")} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors">
-                      <Package size={14} /> Shop The Look
+                      <Package size={14} /> Product Hotspot
                     </button>
                   </div>
                 )}
@@ -253,7 +273,7 @@ export default function LookbookFormPage() {
                     <div className="flex-1 space-y-2">
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-medium px-1.5 py-0.5 bg-white rounded-full border border-neutral-200">
-                          {item.type.replace(/_/g, " ")}
+                          {(item.type ?? "image").replace(/_/g, " ")}
                         </span>
                         <input placeholder="Title" value={item.title}
                           onChange={(e) => updateItem(idx, "title", e.target.value)}
@@ -263,13 +283,13 @@ export default function LookbookFormPage() {
                         </button>
                       </div>
                       {item.type !== "text" && (
-                        <MediaPicker value={item.mediaUrl ?? ""} onChange={(url: string, publicId?: string) => {
+                        <MediaPicker value={item.mediaUrl ?? item.imageUrl ?? ""} onChange={(url: string, publicId?: string) => {
                           updateItem(idx, "mediaUrl", url);
                           updateItem(idx, "mediaPublicId", publicId ?? "");
                         }}
-                          folder={item.type === "video" ? "lookbooks/video" : "lookbooks"}
-                          accept={item.type === "video" ? "video/mp4,video/webm,video/quicktime" : "image/*"}
-                          placeholder={item.type === "video" ? "Video URL" : "Image URL"} />
+                          folder="lookbooks"
+                          accept="image/*"
+                          placeholder="Image URL" />
                       )}
                       {item.type === "text" && (
                         <textarea rows={3} placeholder="Content…" value={item.description ?? ""}

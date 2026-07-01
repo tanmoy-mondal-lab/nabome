@@ -15,6 +15,7 @@ test.describe('Navigation - Desktop', () => {
 
   test('header navigation links are visible', async ({ page }) => {
     const navLinks = page.locator('nav a[href], header a[href]');
+    await expect(navLinks.first()).toBeVisible({ timeout: 10000 });
     const count = await navLinks.count();
     expect(count).toBeGreaterThan(0);
   });

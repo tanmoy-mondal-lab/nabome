@@ -10,6 +10,7 @@ import { useCartStore } from "../stores/cart-store";
 import { useAuthStore } from "../../stores/auth-store";
 import { cn } from "../../lib/utils/cn";
 import { SafeImage } from "../../components/SafeImage";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface QuickViewModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
   const [selectedColor, setSelectedColor] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const modalRef = useFocusTrap<HTMLDivElement>(isOpen, onClose);
 
   useEffect(() => {
     setSelectedImage(0);
@@ -110,6 +112,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
           />
 
           <motion.div
+            ref={modalRef}
             initial={prefersReducedMotion ? undefined : { x: "100%" }}
             animate={prefersReducedMotion ? undefined : { x: 0 }}
             exit={prefersReducedMotion ? undefined : { x: "100%" }}
@@ -117,6 +120,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
             role="dialog"
             aria-modal="true"
             aria-label="Quick view"
+            tabIndex={-1}
             className={cn(
               "fixed right-0 top-0 h-full z-50 bg-white shadow-2xl overflow-y-auto",
               "w-full md:w-[480px] lg:w-[560px]"

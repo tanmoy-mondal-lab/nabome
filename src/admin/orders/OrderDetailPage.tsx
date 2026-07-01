@@ -263,7 +263,7 @@ export default function OrderDetailPage() {
               {order.items?.map((item) => (
                 <div key={item.id} className="flex gap-3 pb-3 border-b border-neutral-50 last:border-0 last:pb-0">
                   <div className="w-14 h-14 bg-neutral-100 rounded shrink-0 overflow-hidden">
-                    {item.product?.images?.[0] ? <SafeImage src={item.product.images[0].url} alt="" className="w-full h-full object-cover" useTransform={false} /> : null}
+                    {item.product?.images?.[0] ? <SafeImage src={item.product.images[0].url} alt={`${item.product?.name ?? "Order item"} image`} className="w-full h-full object-cover" useTransform={false} /> : null}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-neutral-900 truncate">{item.product?.name}</p>
