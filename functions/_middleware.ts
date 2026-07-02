@@ -218,17 +218,23 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const html = await response.text();
   try {
     const payload = await getSeoPayload(context.request, context.env as unknown as Env);
+    const responseHeaders = new Headers(response.headers);
+    responseHeaders.delete("content-length");
+    responseHeaders.delete("content-encoding");
     return new Response(injectMeta(html, payload), {
       status: response.status,
       statusText: response.statusText,
-      headers: response.headers,
+      headers: responseHeaders,
     });
   } catch (error) {
     console.error("[SEO] Failed to inject server-side metadata:", error);
+    const fallbackHeaders = new Headers(response.headers);
+    fallbackHeaders.delete("content-length");
+    fallbackHeaders.delete("content-encoding");
     return new Response(html, {
       status: response.status,
       statusText: response.statusText,
-      headers: response.headers,
+      headers: fallbackHeaders,
     });
   }
 };
