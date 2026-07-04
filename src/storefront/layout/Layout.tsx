@@ -147,7 +147,7 @@ export function StorefrontLayout() {
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:bg-brand-500 focus:text-white focus:px-4 focus:py-2 focus:rounded md:focus:top-4 md:focus:left-4 focus:bottom-[80px] focus:left-4">
         Skip to content
       </a>
-      <main id="main-content" className="flex-1 pb-16 md:pb-0" style={{ paddingTop: `${headerHeight}px` }}>
+      <main id="main-content" className="flex-1 pb-[calc(60px+env(safe-area-inset-bottom,0px))] md:pb-0" style={{ paddingTop: `${headerHeight}px` }}>
         <ErrorBoundary
           fallback={
             <div className="min-h-[400px] flex items-center justify-center px-4">

@@ -12,13 +12,20 @@ interface SafeImageProps extends ImgHTMLAttributes<HTMLImageElement> {
 }
 
 const FALLBACK =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Crect fill='%23f5f5f5' width='400' height='400'/%3E%3Ctext x='200' y='200' text-anchor='middle' dominant-baseline='central' fill='%23ccc' font-size='14' font-family='sans-serif'%3EImage%3C/text%3E%3C/svg%3E";
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 400'%3E%3Crect fill='%23f5f5f5' width='300' height='400'/%3E%3Ctext x='150' y='200' text-anchor='middle' dominant-baseline='central' fill='%23ccc' font-size='14' font-family='sans-serif'%3EImage%3C/text%3E%3C/svg%3E";
 
 export function SafeImage({
   src, alt, fallback = FALLBACK, useTransform = true,
   transformWidth, responsive = false, priority = false, className = "", ...props
 }: SafeImageProps) {
   const [failed, setFailed] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(src);
+
+  // Reset error state when src changes (e.g., variant color switch)
+  if (src !== currentSrc) {
+    setCurrentSrc(src);
+    if (failed) setFailed(false);
+  }
 
   if (!src || failed) {
     return (

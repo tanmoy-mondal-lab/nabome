@@ -73,8 +73,8 @@ async function handleList(ctx: RequestContext, req: Request, env: any): Promise<
   }
 
   const url = new URL(req.url);
-  const page = parseInt(url.searchParams.get("page") ?? "1");
-  const limit = parseInt(url.searchParams.get("limit") ?? "10");
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "10") || 10));
   const status = url.searchParams.get("status");
 
   const where: Record<string, unknown> = { profileId: ctx.userId };

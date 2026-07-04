@@ -23,19 +23,21 @@ export default function BannerPromoSection({ section }: BannerPromoSectionProps)
   const content = (section.content ?? {}) as BannerPromoContent;
   const imageUrl = content.imageUrl;
 
-  if (!imageUrl) return null;
-
   const ctaText = content.ctaText ?? "Shop Now";
   const ctaUrl = content.ctaUrl ?? "/products";
 
   return (
     <section className="relative h-[60vh] min-h-[280px] md:min-h-[400px] flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0">
-        <SafeImage
-          src={imageUrl}
-          alt={section.title || "Promotional banner"}
-          className="w-full h-full object-cover"
-        />
+        {imageUrl ? (
+          <SafeImage
+            src={imageUrl}
+            alt={section.title || "Promotional banner"}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-neutral-200" />
+        )}
         {/* Desktop: lighter gradient overlay */}
         <div className="absolute inset-0 md:bg-gradient-to-t md:from-black/40 md:via-black/10 md:to-black/10 bg-gradient-to-t from-black/60 via-black/30 to-black/20" />
       </div>

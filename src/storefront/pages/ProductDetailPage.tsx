@@ -395,13 +395,13 @@ export default function ProductDetailPage() {
 
         <div className="mt-20 lg:mt-28">
           <div className="border-b border-neutral-200">
-            <div className="flex gap-0">
+            <div className="flex gap-0 overflow-x-auto">
               {(["description", "features", "specs"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "relative px-10 py-5 text-[11px] font-body font-medium tracking-[0.2em] uppercase transition-all duration-300",
+                    "relative px-4 sm:px-10 py-5 text-[11px] font-body font-medium tracking-[0.2em] uppercase transition-all duration-300",
                     activeTab === tab
                       ? "text-neutral-900"
                       : "text-neutral-400 hover:text-neutral-600"
@@ -548,7 +548,7 @@ export default function ProductDetailPage() {
       </div>
 
       {showSizeGuide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowSizeGuide(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowSizeGuide(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowSizeGuide(false); }}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -557,6 +557,10 @@ export default function ProductDetailPage() {
             transition={{ duration: 0.2 }}
             className="relative bg-white p-8 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Size guide"
+            tabIndex={-1}
           >
             <button
               onClick={() => setShowSizeGuide(false)}

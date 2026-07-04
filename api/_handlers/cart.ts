@@ -132,27 +132,27 @@ async function handleSyncCart(req: Request, ctx: RequestContext): Promise<Respon
       });
     }
 
-    // Delete all existing items
-    await prisma.cartItem.deleteMany({
-      where: { cartId: cart.id }
-    });
-
-    // Add new items
-    if (items.length > 0) {
-      await prisma.cartItem.createMany({
-        data: items.map(item => ({
-          cartId: cart.id,
-          variantId: item.variantId,
-          quantity: item.quantity
-        })),
-        skipDuplicates: true
+    // Atomically replace all items within a transaction
+    await prisma.$transaction(async (tx) => {
+      await tx.cartItem.deleteMany({
+        where: { cartId: cart.id }
       });
-    }
 
-    // Update cart timestamp
-    await prisma.cart.update({
-      where: { id: cart.id },
-      data: { updatedAt: new Date() }
+      if (items.length > 0) {
+        await tx.cartItem.createMany({
+          data: items.map(item => ({
+            cartId: cart.id,
+            variantId: item.variantId,
+            quantity: item.quantity
+          })),
+          skipDuplicates: true
+        });
+      }
+
+      await tx.cart.update({
+        where: { id: cart.id },
+        data: { updatedAt: new Date() }
+      });
     });
 
     return success({ message: "Cart synced successfully" });

@@ -126,7 +126,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   const isNew = bodyData.isNew as boolean | undefined;
   const gender = bodyData.gender as string | undefined;
 
-  if (!name || basePriceNum === 0 || isNaN(basePriceNum)) {
+  if (!name || basePriceNum <= 0 || isNaN(basePriceNum)) {
     return badRequest("Name and base price are required");
   }
 
@@ -290,15 +290,7 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
 async function handleDelete(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const images = await prisma.productImage.findMany({ where: { productId }, select: { publicId: true, type: true } });
-    const imageIds = images.filter((i) => i.type !== "video").map((i) => i.publicId).filter(Boolean) as string[];
-    const videoIds = images.filter((i) => i.type === "video").map((i) => i.publicId).filter(Boolean) as string[];
-    if (imageIds.length > 0) await destroyCloudinaryAssets(imageIds);
-    if (videoIds.length > 0) await destroyCloudinaryAssets(videoIds, ctx.env, "video");
-    const variants = await prisma.productVariant.findMany({ where: { productId }, select: { videoPublicId: true } });
-    const variantVideoIds = variants.map((v) => v.videoPublicId).filter(Boolean) as string[];
-    if (variantVideoIds.length > 0) await destroyCloudinaryAssets(variantVideoIds, ctx.env, "video");
-    await prisma.productImage.deleteMany({ where: { productId } });
+    // Soft-delete: only deactivate, preserve images for potential restore
     await prisma.product.update({
       where: { id: productId },
       data: { isActive: false },
@@ -312,6 +304,7 @@ async function handleDelete(productId: string, req: Request, ctx: RequestContext
 
     return success({ message: "Product deactivated" });
   } catch (err) {
+    if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Product not found");
     return serverError(err);
   }
 }
@@ -373,7 +366,7 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
       const removedImageIds = removedImages.filter((img) => img.type !== "video").map((img) => img.publicId).filter(Boolean) as string[];
       const removedVideoIdsFromImages = removedImages.filter((img) => img.type === "video").map((img) => img.publicId).filter(Boolean) as string[];
       if (removedImageIds.length > 0) {
-        await destroyCloudinaryAssets(removedImageIds, env);
+        await destroyCloudinaryAssets(removedImageIds);
       }
       if (removedVideoIdsFromImages.length > 0) {
         await destroyCloudinaryAssets(removedVideoIdsFromImages, env, "video");
@@ -557,6 +550,38 @@ async function handleDuplicate(productId: string, req: Request, ctx: RequestCont
       });
     }
 
+    // Duplicate images
+    const sourceImages = await prisma.productImage.findMany({
+      where: { productId },
+      orderBy: { sortOrder: "asc" as const },
+    });
+    if (sourceImages.length > 0) {
+      // Fetch new variants to map old variant IDs to new ones
+      const newVariants = await prisma.productVariant.findMany({
+        where: { productId: product.id },
+        select: { id: true, size: true, color: true },
+      });
+      const oldVariants = source.variants;
+      const variantIdMap = new Map<string, string>();
+      for (const oldV of oldVariants) {
+        const newV = newVariants.find((nv) => nv.size === oldV.size && nv.color === oldV.color);
+        if (newV) variantIdMap.set(oldV.id, newV.id);
+      }
+
+      await prisma.productImage.createMany({
+        data: sourceImages.map((img) => ({
+          productId: product.id,
+          url: img.url,
+          publicId: img.publicId,
+          altText: img.altText,
+          sortOrder: img.sortOrder,
+          isPrimary: img.isPrimary,
+          type: img.type,
+          variantId: img.variantId ? (variantIdMap.get(img.variantId) ?? null) : null,
+        })),
+      });
+    }
+
     // Duplicate attributes
     if (source.attributes.length > 0) {
       await prisma.productAttribute.createMany({
@@ -601,7 +626,12 @@ async function handleRestore(productId: string, req: Request, ctx: RequestContex
 // ─── Bulk Status ───
 
 async function handleBulkStatus(req: Request, ctx: RequestContext): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { ids, status } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
   if (typeof status !== "boolean") return badRequest("status boolean required");
@@ -645,7 +675,12 @@ async function handleBulkCategory(req: Request, env: any): Promise<Response> {
 // ─── Bulk Delete ───
 
 async function handleBulkDelete(req: Request, ctx: RequestContext): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { ids } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
   try {

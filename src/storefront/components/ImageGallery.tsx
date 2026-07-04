@@ -168,17 +168,22 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
               <ChevronLeft className="w-6 h-6" />
             </button>
 
-            <motion.img
+            <motion.div
               key={activeIndex}
-              src={img(activeImage?.url ?? "", { width: 1600 })}
-              alt={activeImage?.altText ?? ""}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.3 }}
-              className="max-w-[90vw] max-h-[90vh] object-contain"
+              className="max-w-[90vw] max-h-[90vh]"
               onClick={(e) => e.stopPropagation()}
-            />
+            >
+              <SafeImage
+                src={img(activeImage?.url ?? "", { width: 1600 })}
+                alt={activeImage?.altText ?? ""}
+                className="max-w-[90vw] max-h-[90vh] object-contain"
+                useTransform={false}
+              />
+            </motion.div>
 
             <button
               onClick={(e) => { e.stopPropagation(); goNext(); }}

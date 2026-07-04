@@ -13,7 +13,7 @@ const inputVariants = cva(
         ghost: "border-0 bg-transparent px-0 py-2 hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:ring-0",
       },
       inputSize: {
-        sm: "px-3 py-2 text-xs",
+        sm: "px-3 py-2 text-[max(12px,1rem)]",
         md: "px-4 py-3",
         lg: "px-5 py-4 text-base",
       },

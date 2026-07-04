@@ -8,14 +8,15 @@ export function useWishlist() {
   const [error, setError] = useState<string | null>(null);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  const fetch = useCallback(async () => {
+  const fetch = useCallback(async (signal?: AbortSignal) => {
     if (!isAuthenticated) { setItems([]); setError(null); return; }
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<{ items: Record<string, unknown>[] }>("/wishlist");
+      const res = await api.get<{ items: Record<string, unknown>[] }>("/wishlist", { signal });
       setItems(res.items ?? []);
-    } catch {
+    } catch (err) {
+      if (signal?.aborted) return;
       setItems([]);
       setError("Failed to load wishlist.");
     }

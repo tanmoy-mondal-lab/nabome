@@ -31,8 +31,8 @@ class ApiError extends Error {
 
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
-let refreshRetryCount = 0;
 const MAX_REFRESH_RETRIES = 2;
+let refreshRetryCount = 0;
 
 function getStoredAuth():
   | { accessToken: string; refreshToken: string; expiresAt: number }
@@ -198,10 +198,12 @@ async function request<T>(
       if (newAuth?.accessToken) {
         headers.set("Authorization", `Bearer ${newAuth.accessToken}`);
       }
+      // Create a fresh abort controller for retry (original signal may be aborted by timeout)
+      const retryController = new AbortController();
       const retryResponse = await fetch(url.toString(), {
         ...fetchOptions,
         headers,
-        signal: combinedSignal,
+        signal: retryController.signal,
         body:
           body instanceof FormData
             ? body

@@ -50,7 +50,12 @@ async function handleDetail(id: string, env: any): Promise<Response> {
 }
 
 async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { name, description, logoUrl, logoPublicId, websiteUrl, sortOrder } = body;
   if (!name) return badRequest("Brand name is required");
   const prisma = getPrisma(env);
@@ -72,7 +77,12 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
 }
 
 async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   try {
     const prisma = getPrisma(env);
     const existing = await prisma.brand.findUnique({ where: { id } });
@@ -105,6 +115,8 @@ async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: 
 async function handleDelete(id: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const existing = await prisma.brand.findUnique({ where: { id }, select: { id: true } });
+    if (!existing) return notFound("Brand not found");
     await prisma.brand.update({ where: { id }, data: { isActive: false } });
     logAction(ctx.userId, "admin.brands.delete", {
       entity: "brand",
@@ -112,5 +124,8 @@ async function handleDelete(id: string, req: Request, ctx: RequestContext, env: 
       ...extractRequestMeta(req),
     });
     return success({ message: "Brand archived" });
-  } catch (err) { return notFound("Brand not found"); }
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Brand not found");
+    return serverError(err);
+  }
 }

@@ -114,17 +114,8 @@ export default function MediaLibrary() {
       try {
         const res = await adminApi.uploadFile(item.file, item.folder, item.file.name);
         const assetType = getAssetType(res.mimeType || item.file.type);
-        await adminApi.createMedia({
-          url: res.url,
-          publicId: res.publicId,
-          type: assetType,
-          altText: item.file.name,
-          folder: item.folder,
-          width: res.width,
-          height: res.height,
-          fileSize: res.bytes,
-          mimeType: res.mimeType || item.file.type,
-        });
+        // uploadFile already creates a mediaAsset record via the backend /upload endpoint,
+        // so we don't call createMedia again to avoid duplicate records.
         completed++;
       } catch {
         failed++;

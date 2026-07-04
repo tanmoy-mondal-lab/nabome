@@ -76,7 +76,12 @@ async function handleList(req: Request, env: any): Promise<Response> {
 }
 
 async function handleCreate(req: Request, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { url, publicId, altText, width, height, fileSize, mimeType, type, tags, folder } = body;
 
   if (!url) return badRequest("URL is required");
@@ -112,12 +117,18 @@ async function handleDelete(assetId: string, env: any): Promise<Response> {
     await prisma.mediaAsset.delete({ where: { id: assetId } });
     return success({ message: "Asset deleted" });
   } catch (err) {
-    return notFound("Asset not found");
+    if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Asset not found");
+    return serverError(err);
   }
 }
 
 async function handleUpdate(assetId: string, req: Request, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { altText, folder, tags } = body;
 
   try {
@@ -133,6 +144,7 @@ async function handleUpdate(assetId: string, req: Request, env: any): Promise<Re
     });
     return success(asset);
   } catch (err) {
-    return notFound("Asset not found");
+    if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Asset not found");
+    return serverError(err);
   }
 }

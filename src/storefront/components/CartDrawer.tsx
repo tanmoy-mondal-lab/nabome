@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, ShoppingBag, Trash2, Plus, Minus, AlertCircle } from "lucide-react";
@@ -14,6 +14,15 @@ export function CartDrawer() {
   const { items, removeItem, updateQuantity, subtotal, total } = useCart();
   const prefersReducedMotion = useReducedMotion();
   const [syncError, setSyncError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isCartOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isCartOpen]);
 
   function handleCheckout() {
     closeCart();
@@ -116,7 +125,7 @@ export function CartDrawer() {
                               {item.quantity > 1 ? (
                                 <button
                                   onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
-                                  className="min-w-[32px] h-8 flex items-center justify-center hover:bg-neutral-50 transition-colors"
+                                  className="min-w-[44px] h-11 flex items-center justify-center hover:bg-neutral-50 transition-colors"
                                   aria-label="Decrease quantity"
                                 >
                                   <Minus className="w-3 h-3" />
@@ -124,7 +133,7 @@ export function CartDrawer() {
                               ) : (
                                 <button
                                   onClick={() => removeItem(item.variantId)}
-                                  className="min-w-[32px] h-8 flex items-center justify-center hover:bg-red-50 text-red-400 hover:text-red-500 transition-colors"
+                                  className="min-w-[44px] h-11 flex items-center justify-center hover:bg-red-50 text-red-400 hover:text-red-500 transition-colors"
                                   aria-label="Remove item"
                                 >
                                   <Trash2 className="w-3 h-3" />
@@ -133,7 +142,7 @@ export function CartDrawer() {
                               <span className="px-3 text-sm font-medium min-w-[2rem] text-center">{item.quantity}</span>
                               <button
                                 onClick={() => updateQuantity(item.variantId, Math.min(item.quantity + 1, item.maxQuantity))}
-                                className="min-w-[32px] h-8 flex items-center justify-center hover:bg-neutral-50 transition-colors"
+                                className="min-w-[44px] h-11 flex items-center justify-center hover:bg-neutral-50 transition-colors"
                                 aria-label="Increase quantity"
                               >
                                 <Plus className="w-3 h-3" />

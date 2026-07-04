@@ -421,8 +421,9 @@ export async function handleCheckoutRequest(
       ) {
         throw new CheckoutError("Coupon is not applicable to every item in this cart");
       }
+      if (!profileId) throw new CheckoutError("Profile is required for coupon validation");
       const userUsageCount = await prisma.couponRedemption.count({
-        where: { couponId: coupon.id, profileId: profileId! },
+        where: { couponId: coupon.id, profileId },
       });
       if (userUsageCount >= coupon.perUserLimit) {
         throw new CheckoutError("Coupon usage limit reached for this customer");
@@ -561,17 +562,19 @@ export async function handleCheckoutRequest(
         });
         if (couponUpdated.count !== 1) throw new CheckoutError("Coupon is no longer available");
 
+        if (!profileId) throw new CheckoutError("Profile is required for coupon redemption");
         const userUsageCount = await tx.couponRedemption.count({
-          where: { couponId: appliedCoupon.id, profileId: profileId! },
+          where: { couponId: appliedCoupon.id, profileId },
         });
         if (userUsageCount >= appliedCoupon.perUserLimit) {
           throw new CheckoutError("Coupon usage limit reached for this customer");
         }
+        if (!profileId) throw new CheckoutError("Profile is required for coupon redemption");
         await tx.couponRedemption.create({
           data: {
             couponId: appliedCoupon.id,
             orderId: newOrder.id,
-            profileId: profileId!,
+            profileId,
           },
         });
       }

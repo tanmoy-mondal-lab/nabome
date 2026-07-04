@@ -80,8 +80,8 @@ export async function handleProductRequest(
 async function handleList(req: Request, env: any): Promise<Response> {
   const prisma = getPrisma(env);
   const url = new URL(req.url);
-  const page = parseInt(url.searchParams.get("page") ?? "1");
-  const limit = parseInt(url.searchParams.get("limit") ?? "12");
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "12") || 12));
   const category = url.searchParams.get("category");
   const subcategory = url.searchParams.get("subcategory");
   const collection = url.searchParams.get("collection");
@@ -264,8 +264,8 @@ async function handleSearch(req: Request, env: any): Promise<Response> {
   const prisma = getPrisma(env);
   const url = new URL(req.url);
   const q = url.searchParams.get("q");
-  const page = parseInt(url.searchParams.get("page") ?? "1");
-  const limit = parseInt(url.searchParams.get("limit") ?? "12");
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") ?? "12") || 12));
 
   if (!q || q.length < 2) {
     return badRequest("Search query must be at least 2 characters");

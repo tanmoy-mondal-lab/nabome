@@ -95,7 +95,27 @@ function injectMeta(html: string, payload: SeoPayload): string {
   ].join("\n    ");
 
   const withTitle = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(payload.title)}</title>`);
-  return withTitle.replace("</head>", `    ${tags}\n  </head>`);
+
+  // Find the first </head> that is NOT inside a <script> tag
+  const headClose = "</head>";
+  let searchFrom = 0;
+  let headCloseIndex = -1;
+  while (searchFrom < withTitle.length) {
+    const idx = withTitle.indexOf(headClose, searchFrom);
+    if (idx === -1) break;
+    // Check if there's an unclosed <script> before this </head>
+    const before = withTitle.slice(0, idx);
+    const lastOpenScript = before.lastIndexOf("<script");
+    const lastCloseScript = before.lastIndexOf("</script>");
+    if (lastOpenScript === -1 || lastCloseScript > lastOpenScript) {
+      headCloseIndex = idx;
+      break;
+    }
+    searchFrom = idx + headClose.length;
+  }
+
+  if (headCloseIndex === -1) return withTitle;
+  return withTitle.slice(0, headCloseIndex) + `    ${tags}\n  ` + headClose + withTitle.slice(headCloseIndex + headClose.length);
 }
 
 async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {

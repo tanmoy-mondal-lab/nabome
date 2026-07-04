@@ -31,6 +31,15 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
   const modalRef = useFocusTrap<HTMLDivElement>(isOpen, onClose);
 
   useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
+
+  useEffect(() => {
     setSelectedImage(0);
     setSelectedColor("");
     setSelectedSize("");

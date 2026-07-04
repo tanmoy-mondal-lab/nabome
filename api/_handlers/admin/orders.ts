@@ -257,6 +257,13 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
         const items = await tx.orderItem.findMany({ where: { orderId } });
         const variantItems = items.filter((item) => item.variantId);
         if (variantItems.length) {
+          const variantIds = variantItems.map((item) => item.variantId!);
+          const variants = await tx.productVariant.findMany({
+            where: { id: { in: variantIds } },
+            select: { id: true, stock: true },
+          });
+          const variantMap = new Map(variants.map((v) => [v.id, v]));
+
           await Promise.all(
             variantItems.map((item) =>
               tx.productVariant.update({
@@ -269,13 +276,16 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
             )
           );
           await tx.inventoryMovement.createMany({
-            data: variantItems.map((item) => ({
-              variantId: item.variantId!,
-              quantityChange: item.quantity,
-              stockAfter: item.quantity,
-              reason: "cancellation",
-              referenceId: order.orderNumber,
-            })),
+            data: variantItems.map((item) => {
+              const variant = variantMap.get(item.variantId!);
+              return {
+                variantId: item.variantId!,
+                quantityChange: item.quantity,
+                stockAfter: (variant?.stock ?? 0) + item.quantity,
+                reason: "cancellation",
+                referenceId: order.orderNumber,
+              };
+            }),
           });
         }
       }

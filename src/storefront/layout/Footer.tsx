@@ -66,7 +66,7 @@ export function Footer() {
             <p className="md:text-white/40 md:mt-5 text-sm text-neutral-500 mt-4 leading-relaxed max-w-xs">
               {settings?.tagline || themeBranding?.brandTagline as string || themeBranding?.brandDescription as string || "Premium fashion for the discerning individual. Curated collections delivered worldwide."}
             </p>
-            {footerConfig?.showSocialLinks !== false && <div className="flex gap-4 mt-8">
+            {footerConfig?.showSocialLinks !== false && <div className="flex flex-wrap gap-4 mt-8">
               {socialLinks.map((link) => {
                 const platform = link.platform as string;
                 const Icon = SOCIAL_ICONS[platform];

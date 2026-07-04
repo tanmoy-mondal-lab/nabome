@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, ChevronRight, Heart, User, ShoppingBag, Instagram } from "lucide-react";
 import { useUIStore } from "../stores/ui-store";
 import { useAuthStore } from "../../stores/auth-store";
@@ -16,6 +16,16 @@ export function MobileNav() {
   const { data: settings } = useSettings();
   const [expanded, setExpanded] = useState<string[]>([]);
   const navRef = useFocusTrap<HTMLElement>(isMobileMenuOpen, closeMobileMenu);
+  const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileMenuOpen]);
 
   const { data: navItems = [] } = useNavigation("mobile");
   const visibleNavItems = (navItems ?? []).filter((item) => item.isVisible !== false);
@@ -38,10 +48,10 @@ export function MobileNav() {
           />
           <motion.aside
             ref={navRef}
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            initial={prefersReducedMotion ? { opacity: 0 } : { x: "-100%" }}
+            animate={prefersReducedMotion ? { opacity: 1 } : { x: 0 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { x: "-100%" }}
+            transition={prefersReducedMotion ? { duration: 0.2 } : { type: "spring", damping: 30, stiffness: 300 }}
             className="fixed top-0 left-0 bottom-0 z-50 w-full max-w-[360px] bg-luxe-charcoal shadow-2xl"
             role="dialog"
             aria-modal="true"

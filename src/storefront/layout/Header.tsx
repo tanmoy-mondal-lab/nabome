@@ -49,8 +49,10 @@ export function Header() {
     const onScroll = () => {
       const current = window.scrollY;
       setScrolled(current > 20);
-      if (current > prevScrollRef.current && current > 80) setHidden(true);
-      else if (current < prevScrollRef.current) setHidden(false);
+      if (window.innerWidth < 768) {
+        if (current > prevScrollRef.current && current > 80) setHidden(true);
+        else if (current < prevScrollRef.current) setHidden(false);
+      }
       prevScrollRef.current = current;
     };
     window.addEventListener("scroll", onScroll, { passive: true });

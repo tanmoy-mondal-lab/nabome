@@ -26,11 +26,8 @@ function withCors(response: Response, request: Request, path?: string): Response
 }
 
 function isAuthPath(path: string): boolean {
-  return path.includes("/auth/login") || path.includes("/auth/register") ||
-    path.includes("/auth/verify-email") || path.includes("/auth/resend-verification") ||
-    path.includes("/contact") || path.includes("/auth/forgot-password") ||
-    path.includes("/auth/reset-password") ||
-    path.includes("/auth/verify-reset-code");
+  const authPaths = ["/auth/login", "/auth/register", "/auth/forgot-password", "/auth/reset-password", "/auth/verify-email", "/auth/verify-reset-code", "/auth/resend-verification", "/contact"];
+  return authPaths.some(p => path.endsWith(p));
 }
 
 function requiresTurnstile(path: string): boolean {
@@ -631,11 +628,12 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
     } else if (path.includes("/api/admin/")) {
       rateConfig = RATE_LIMIT_CONFIG.admin;
     }
+    const normalizedPath = path.replace(/\/[a-f0-9-]{20,}/gi, "/:id").replace(/\/\d+/g, "/:id");
     const rateKey = getRateLimitKey(
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
         ?? request.headers.get("cf-connecting-ip")
         ?? "unknown",
-      path,
+      normalizedPath,
       context.userId,
     );
     const rateResult = await checkRateLimit(rateKey, rateConfig, env);

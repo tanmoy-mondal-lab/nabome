@@ -30,8 +30,6 @@ export default function VideoBannerSection({ section }: VideoBannerSectionProps)
   const config = (section.content ?? {}) as VideoBannerConfig;
   const { videoUrl, posterImage, ctaText, ctaUrl } = config;
 
-  if (!posterImage && !videoUrl) return null;
-
   const showVideo = !!videoUrl;
 
   return (
@@ -50,7 +48,9 @@ export default function VideoBannerSection({ section }: VideoBannerSectionProps)
         <div className="absolute inset-0">
           <SafeImage src={posterImage} alt={section.title || "Video banner poster"} className="w-full h-full object-cover" />
         </div>
-      ) : null}
+      ) : (
+        <div className="absolute inset-0 bg-neutral-900" />
+      )}
       <div className="absolute inset-0 md:bg-gradient-to-t md:from-black/40 md:via-black/10 md:to-black/10 bg-gradient-to-t from-black/60 via-black/30 to-black/20" />
 
       <motion.div

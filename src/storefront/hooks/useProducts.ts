@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 
 export function useProduct(slug: string | undefined) {
@@ -16,6 +16,7 @@ export function useSearch(q: string, page = 1) {
     queryKey: ["search", q, page],
     queryFn: ({ signal }) => api.get<{ products: unknown[]; pagination: { total: number; totalPages: number } }>("/products/search", { params: { q, page: String(page) }, signal }),
     enabled: q.length >= 2,
+    placeholderData: keepPreviousData,
     retry: 2,
   });
 }

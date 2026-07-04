@@ -188,6 +188,7 @@ async function handleDeletePage(pageId: string, req: Request, ctx: RequestContex
     if (page.ogImage) {
       await destroyCloudinaryAsset(page.ogImage, env);
     }
+    await cleanupSectionMedia(page.content, {}, env);
     await prisma.staticPage.delete({ where: { id: pageId } });
     await logAction(ctx.userId, "admin.cms.page.delete", {
       entity: "staticPage",
@@ -287,7 +288,8 @@ async function handleDeleteHomeSection(sectionId: string, req: Request, ctx: Req
     const prisma = getPrisma(env);
     const section = await prisma.homepageSection.findUnique({ where: { id: sectionId } });
     if (!section) return notFound("Section not found");
-    const cleaned = await cleanupSectionMedia(section.content, section.content, env);
+    // Clean up all media in the section content by comparing with empty (removes everything)
+    const cleaned = await cleanupSectionMedia(section.content, {}, env);
     const sectionContent = asRecord(cleaned);
     if (sectionContent?.imagePublicId) {
       await destroyCloudinaryAsset(String(sectionContent.imagePublicId), env);

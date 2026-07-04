@@ -653,8 +653,9 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }
     });
 
     const allRefunds = await tx.refund.findMany({
-      where: { orderId: order.id, status: "completed" },
+      where: { orderId: order.id, status: "completed", id: { not: refundRecord.id } },
     });
+    // Only add current refund amount if it's already completed (not the one we just created)
     const totalRefunded = allRefunds.reduce((sum, r) => sum + Number(r.amount), 0) + (refundStatus === "processed" ? Number(refundAmount) : 0);
     const orderTotal = Number(order.total);
     const isFullRefund = totalRefunded >= orderTotal;
@@ -776,7 +777,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
 
   const expected = await createHMACSHA256(webhookSecret, rawBody, env);
 
-  if (expected !== signature) {
+  if (!timingSafeEqualHex(expected, signature)) {
     console.error("[WEBHOOK] Invalid signature");
     return success({ status: "invalid_signature" });
   }

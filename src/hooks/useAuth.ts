@@ -36,20 +36,23 @@ export function useAuth() {
     if (!store.refreshToken || !store.expiresAt) return;
 
     const checkAndRefresh = async () => {
+      const current = useAuthStore.getState();
+      if (!current.refreshToken || !current.expiresAt) return;
+
       const now = Math.floor(Date.now() / 1000);
-      const timeUntilExpiry = store.expiresAt! - now;
+      const timeUntilExpiry = current.expiresAt - now;
 
       if (timeUntilExpiry > REFRESH_MARGIN_SECONDS) return;
 
       try {
-        const res = await authApi.refresh(store.refreshToken!);
-        store.setTokens(
+        const res = await authApi.refresh(current.refreshToken);
+        current.setTokens(
           res.session.accessToken,
           res.session.refreshToken,
           res.session.expiresAt
         );
       } catch {
-        store.clearAuth();
+        current.clearAuth();
         useCartStore.getState().switchUser();
       }
     };

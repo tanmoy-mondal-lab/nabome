@@ -33,7 +33,7 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
   const price = salePrice && salePrice > 0 ? salePrice : basePrice;
   const compareAtPrice = product.compareAtPrice ? Number(product.compareAtPrice) : null;
   const images = product.images ?? [];
-  const primaryImage = images[0]?.url;
+  const primaryImage = images.find((img) => img.isPrimary)?.url ?? images[0]?.url;
   const hoverImage = images[1]?.url;
   const labels = product.productLabels ?? [];
   const gender = product.gender;

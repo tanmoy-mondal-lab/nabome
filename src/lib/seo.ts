@@ -155,9 +155,7 @@ export function img(url: string | undefined | null, options?: ImgOptions): strin
   const transforms: string[] = [];
   if (options?.width) transforms.push(`w_${options.width}`);
   if (options?.height) transforms.push(`h_${options.height}`);
-  if (options?.quality) transforms.push(`q_${options.quality}`);
   transforms.push(options?.format ? `f_${options.format}` : "f_auto");
-  transforms.push("q_auto");
 
   return url.replace(
     `/image/upload/`,

@@ -119,7 +119,7 @@ export function useNavigation(location: "header" | "footer" | "mobile" | "sideba
     queryKey: ["cms", "navigation", location],
     queryFn: async () => {
       try {
-        return await api.get<NavigationResponse>(`/cms/navigation?location=${location}`);
+        return await api.get<NavigationResponse>("/cms/navigation", { params: { location } });
       } catch {
         return { menus: [] };
       }

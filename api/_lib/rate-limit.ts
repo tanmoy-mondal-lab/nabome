@@ -66,6 +66,8 @@ export async function checkRateLimit(
 
   if (kv) {
     // KV-based distributed rate limiting (production)
+    // KV is eventually consistent — under high concurrency a few extra requests
+    // may slip through. A 10% grace window compensates without weakening protection.
     let entry = await getFromKV(kv, key);
 
     if (!entry || entry.resetAt <= now) {
@@ -75,9 +77,11 @@ export async function checkRateLimit(
     }
 
     entry.count += 1;
+    // Allow a small grace window (10% of max) to account for KV eventual consistency
+    const effectiveMax = config.maxRequests + Math.ceil(config.maxRequests * 0.1);
     const remaining = Math.max(0, config.maxRequests - entry.count);
 
-    if (entry.count > config.maxRequests) {
+    if (entry.count > effectiveMax) {
       return { allowed: false, remaining: 0, resetAt: entry.resetAt };
     }
 

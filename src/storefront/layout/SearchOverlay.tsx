@@ -55,6 +55,15 @@ export function SearchOverlay() {
   }, []);
 
   useEffect(() => {
+    if (isSearchOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isSearchOpen]);
+
+  useEffect(() => {
     if (isSearchOpen) setTimeout(() => inputRef.current?.focus(), 100);
     if (!isSearchOpen) setQuery("");
   }, [isSearchOpen]);
