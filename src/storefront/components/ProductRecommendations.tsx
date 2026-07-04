@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api/client";
 import { ProductCard } from "./ProductCard";
+import type { Product } from "../../types/product";
 
 interface ProductRecommendationsProps {
   title?: string;
@@ -15,9 +16,9 @@ export function ProductRecommendations({ title, type, currentSlug }: ProductReco
   const { data, isLoading } = useQuery({
     queryKey: ["recommendations", type, currentSlug],
     queryFn: async () => {
-      if (type === "featured") return api.get<{ products: Record<string, unknown>[] }>("/api/products/featured");
-      if (type === "newArrivals") return api.get<{ products: Record<string, unknown>[] }>("/api/products/new");
-      if (type === "similar" && currentSlug) return api.get<{ products: Record<string, unknown>[] }>(`/api/products/${currentSlug}/similar`);
+      if (type === "featured") return api.get<{ products: Product[] }>("/api/products/featured");
+      if (type === "newArrivals") return api.get<{ products: Product[] }>("/api/products/new");
+      if (type === "similar" && currentSlug) return api.get<{ products: Product[] }>(`/api/products/${currentSlug}/similar`);
       return { products: [] };
     },
     staleTime: 1000 * 60 * 5,

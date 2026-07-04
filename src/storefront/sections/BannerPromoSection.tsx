@@ -29,14 +29,15 @@ export default function BannerPromoSection({ section }: BannerPromoSectionProps)
   const ctaUrl = content.ctaUrl ?? "/products";
 
   return (
-    <section className="relative h-[60vh] min-h-[400px] flex items-center justify-center overflow-hidden">
+    <section className="relative h-[60vh] min-h-[280px] md:min-h-[400px] flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0">
         <SafeImage
           src={imageUrl}
           alt={section.title || "Promotional banner"}
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-black/20" />
+        {/* Desktop: lighter gradient overlay */}
+        <div className="absolute inset-0 md:bg-gradient-to-t md:from-black/40 md:via-black/10 md:to-black/10 bg-gradient-to-t from-black/60 via-black/30 to-black/20" />
       </div>
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -46,14 +47,15 @@ export default function BannerPromoSection({ section }: BannerPromoSectionProps)
         className="relative z-10 text-center px-6"
       >
         {section.title && (
-          <h2 className="text-4xl md:text-5xl font-display text-white mb-3">{section.title}</h2>
+          <h2 className="text-4xl md:text-6xl md:mb-4 font-display text-white mb-3">{section.title}</h2>
         )}
         {section.subtitle && (
-          <p className="text-neutral-300 font-editorial text-lg mb-8 max-w-md mx-auto">
+          <p className="md:text-white/60 md:font-body md:text-base md:mb-10 text-neutral-300 font-editorial text-lg mb-8 max-w-md mx-auto">
             {section.subtitle}
           </p>
         )}
-        <Link to={ctaUrl} className="btn-primary">
+        {/* Desktop: text link CTA */}
+        <Link to={ctaUrl} className="md:text-[11px] md:tracking-[0.25em] md:uppercase md:text-white/80 md:hover:text-white md:transition-colors md:inline-flex md:items-center md:gap-2 btn-primary">
           {ctaText}
         </Link>
       </motion.div>

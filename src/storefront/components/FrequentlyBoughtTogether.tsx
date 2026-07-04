@@ -5,9 +5,10 @@ import { PriceDisplay } from "./PriceDisplay";
 import { formatPrice } from "../../lib/utils/format";
 import { SafeImage } from "../../components/SafeImage";
 import { useSettings } from "../hooks/useSettings";
+import type { Product } from "../../types/product";
 
 interface FrequentlyBoughtTogetherProps {
-  products: Record<string, unknown>[];
+  products: Product[];
   mainProduct: Record<string, unknown>;
 }
 
@@ -30,23 +31,37 @@ export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBo
       return;
     }
     const all = [mainProduct, ...products];
+    const store = useCartStore.getState();
+    const bundleFactor = 1 - bundleDiscountPercent / 100;
+
     all.forEach((p) => {
       const images = (p.images as { url: string }[]) ?? [];
       const variants = (p.variants as Record<string, unknown>[]) ?? [];
       const v = variants[0];
       if (!v) return;
+
+      const variantId = v.id as string;
+      const fullPrice = Number(p.basePrice ?? 0) + Number((v.priceAdjustment as number) ?? 0);
+      const discountedPrice = Math.round(fullPrice * bundleFactor * 100) / 100;
+
+      // Remove existing cart item so the bundle price takes effect
+      const existing = store.items.find((i) => i.variantId === variantId);
+      if (existing) {
+        store.removeItem(variantId);
+      }
+
       addItem({
         productId: p.id as string,
-        variantId: v.id as string,
+        variantId,
         name: p.name as string,
         slug: p.slug as string,
-        sku: v.sku as string || "",
-        size: v.size as string || "One Size",
-        color: v.color as string || "",
-        colorHex: v.colorHex as string || "",
+        sku: (v.sku as string) || "",
+        size: (v.size as string) || "One Size",
+        color: (v.color as string) || "",
+        colorHex: (v.colorHex as string) || "",
         image: images[0]?.url || "",
-        price: Number(p.basePrice ?? 0) + Number((v.priceAdjustment as number) ?? 0),
-        compareAtPrice: p.compareAtPrice ? Number(p.compareAtPrice) : null,
+        price: discountedPrice,
+        compareAtPrice: fullPrice,
         quantity: 1,
         maxQuantity: (v.stock as number) || 99,
       });

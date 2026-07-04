@@ -42,11 +42,52 @@ interface NavigationResponse {
 
 const DEFAULT_NAV_BY_LOCATION: Record<NavigationMenu["location"], NavigationItem[]> = {
   header: [
-    { id: "home", label: "Home", link: "/" },
-    { id: "products", label: "Products", link: "/products" },
-    { id: "collections", label: "Collections", link: "/collections" },
-    { id: "lookbooks", label: "Lookbooks", link: "/lookbooks" },
-    { id: "faq", label: "FAQ", link: "/faq" },
+    {
+      id: "men", label: "Men", link: "/categories/men", type: "mega_menu",
+      megaMenuColumns: [
+        {
+          id: "men-clothing", title: "Clothing",
+          items: [
+            { label: "Shirts", url: "/products?category=men&subcategory=shirts" },
+            { label: "Trousers", url: "/products?category=men&subcategory=trousers" },
+            { label: "Blazers", url: "/products?category=men&subcategory=blazers" },
+            { label: "Kurtas", url: "/products?category=men&subcategory=kurtas" },
+          ],
+        },
+        {
+          id: "men-featured", title: "Featured",
+          items: [
+            { label: "New Arrivals", url: "/categories/men?sort=newest" },
+            { label: "Best Sellers", url: "/categories/men?sort=best_selling" },
+            { label: "All Men", url: "/categories/men" },
+          ],
+        },
+      ],
+    },
+    {
+      id: "women", label: "Women", link: "/categories/women", type: "mega_menu",
+      megaMenuColumns: [
+        {
+          id: "women-clothing", title: "Clothing",
+          items: [
+            { label: "Dresses", url: "/products?category=women&subcategory=dresses" },
+            { label: "Sarees", url: "/products?category=women&subcategory=sarees" },
+            { label: "Suits", url: "/products?category=women&subcategory=suits" },
+          ],
+        },
+        {
+          id: "women-featured", title: "Featured",
+          items: [
+            { label: "New Arrivals", url: "/categories/women?sort=newest" },
+            { label: "Best Sellers", url: "/categories/women?sort=best_selling" },
+            { label: "All Women", url: "/categories/women" },
+          ],
+        },
+      ],
+    },
+    { id: "accessories", label: "Accessories", link: "/categories/accessories" },
+    { id: "collections", label: "Collections", link: "/products" },
+    { id: "lookbook", label: "Lookbook", link: "/lookbooks" },
   ],
   footer: [
     { id: "privacy", label: "Privacy", link: "/privacy" },
@@ -55,18 +96,20 @@ const DEFAULT_NAV_BY_LOCATION: Record<NavigationMenu["location"], NavigationItem
     { id: "faq", label: "FAQ", link: "/faq" },
   ],
   mobile: [
-    { id: "home", label: "Home", link: "/" },
-    { id: "products", label: "Products", link: "/products" },
-    { id: "collections", label: "Collections", link: "/collections" },
-    { id: "lookbooks", label: "Lookbooks", link: "/lookbooks" },
+    { id: "men", label: "Men", link: "/categories/men" },
+    { id: "women", label: "Women", link: "/categories/women" },
+    { id: "accessories", label: "Accessories", link: "/categories/accessories" },
+    { id: "collections", label: "Collections", link: "/products" },
+    { id: "lookbook", label: "Lookbook", link: "/lookbooks" },
     { id: "faq", label: "FAQ", link: "/faq" },
     { id: "support", label: "Support", link: "/account/support" },
   ],
   sidebar: [
-    { id: "home", label: "Home", link: "/" },
-    { id: "products", label: "Products", link: "/products" },
-    { id: "collections", label: "Collections", link: "/collections" },
-    { id: "lookbooks", label: "Lookbooks", link: "/lookbooks" },
+    { id: "men", label: "Men", link: "/categories/men" },
+    { id: "women", label: "Women", link: "/categories/women" },
+    { id: "accessories", label: "Accessories", link: "/categories/accessories" },
+    { id: "collections", label: "Collections", link: "/products" },
+    { id: "lookbook", label: "Lookbook", link: "/lookbooks" },
     { id: "faq", label: "FAQ", link: "/faq" },
   ],
 };
@@ -76,7 +119,7 @@ export function useNavigation(location: "header" | "footer" | "mobile" | "sideba
     queryKey: ["cms", "navigation", location],
     queryFn: async () => {
       try {
-        return await api.get<NavigationResponse>(`/api/cms/navigation?location=${location}`);
+        return await api.get<NavigationResponse>(`/cms/navigation?location=${location}`);
       } catch {
         return { menus: [] };
       }

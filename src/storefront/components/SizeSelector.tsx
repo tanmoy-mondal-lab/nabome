@@ -23,6 +23,8 @@ export function SizeSelector({ sizes, selected, onChange, stock }: SizeSelectorP
               key={size}
               onClick={() => !isOut && onChange(size)}
               disabled={isOut}
+              aria-label={`Select size ${size}`}
+              aria-pressed={selected === size}
               className={cn(
                 "min-w-[3rem] px-4 py-3 text-sm border transition-all",
                 selected === size

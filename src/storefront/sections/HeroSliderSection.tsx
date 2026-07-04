@@ -78,14 +78,14 @@ export default function HeroSliderSection({ section }: HeroSliderSectionProps) {
 
   return (
     <section
-      className="relative h-screen min-h-[700px] bg-neutral-950 flex items-center overflow-hidden"
+      className="relative h-[85vh] md:h-screen min-h-[300px] md:min-h-[600px] bg-neutral-950 flex items-center overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={() => setPaused(true)}
       onTouchEnd={() => setPaused(false)}
     >
       <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-neutral-950/85 via-neutral-900/60 to-neutral-950/40 z-10" />
+        <div className="absolute inset-0 md:bg-gradient-to-br md:from-neutral-950/50 md:via-neutral-900/30 md:to-neutral-950/20 bg-gradient-to-br from-neutral-950/85 via-neutral-900/60 to-neutral-950/40 z-10" />
       </div>
 
       <motion.div
@@ -98,35 +98,56 @@ export default function HeroSliderSection({ section }: HeroSliderSectionProps) {
         <motion.p
           variants={fadeUp}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="editorial-caption text-accent-gold mb-5"
+          className="md:text-[11px] md:tracking-[0.3em] md:text-white/70 editorial-caption text-accent-gold mb-5 md:mb-8"
         >
           {slide.caption}
         </motion.p>
         <motion.h1
           variants={fadeUp}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="font-display text-display-1 text-white leading-[0.95] mb-6"
+          className="font-display text-display-2 md:text-[5.5rem] md:leading-[0.92] md:tracking-[-0.02em] text-white leading-[0.95] mb-6 md:mb-8"
         >
           <>{slide.title}</>
         </motion.h1>
         <motion.p
           variants={fadeUp}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="display-2 font-editorial text-xl md:text-2xl text-neutral-300 max-w-xl mb-10 leading-relaxed"
+          className="font-editorial text-lg md:text-xl text-neutral-300 md:text-white/60 max-w-xl mb-10 md:mb-12 leading-relaxed md:max-w-lg"
         >
           {slide.subtitle}
         </motion.p>
         <motion.div
           variants={fadeUp}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="flex gap-5"
+          className="flex flex-col sm:flex-row gap-4 sm:gap-5 w-full sm:w-auto"
         >
-          <Link to="/products" className="btn-primary">Shop Women</Link>
-          <Link to="/products?gender=men" className="btn-secondary border-white text-white hover:bg-white hover:text-neutral-900">Shop Men</Link>
+          {/* Mobile: keep existing buttons */}
+          <Link to="/products" className="md:hidden btn-primary text-center">Shop Women</Link>
+          <Link to="/products?gender=men" className="md:hidden btn-secondary border-white text-white hover:bg-white hover:text-neutral-900 text-center">Shop Men</Link>
+          {/* Desktop: clean text link CTA */}
+          <Link to="/products" className="hidden md:inline-flex items-center gap-2 text-[11px] tracking-[0.25em] uppercase text-white/80 hover:text-white transition-colors duration-300 group/cta">
+            Explore Collection
+            <span className="inline-block transition-transform duration-300 group-hover/cta:translate-x-1">&rarr;</span>
+          </Link>
         </motion.div>
       </motion.div>
 
-      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5">
+      {/* Desktop: minimal dot indicators */}
+      <div className="hidden md:flex absolute bottom-12 left-1/2 -translate-x-1/2 z-20 items-center gap-3">
+        {fallbackSlides.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrentSlide(i)}
+            className={`rounded-full transition-all duration-500 ease-luxe-out ${
+              i === currentSlide ? "bg-white w-6 h-[1px]" : "bg-white/30 w-[1px] h-[1px] hover:bg-white/50"
+            }`}
+            aria-label={`Slide ${i + 1}`}
+          />
+        ))}
+      </div>
+
+      {/* Mobile: keep existing dots */}
+      <div className="md:hidden absolute bottom-12 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5">
         {fallbackSlides.map((_, i) => (
           <button
             key={i}
@@ -139,11 +160,12 @@ export default function HeroSliderSection({ section }: HeroSliderSectionProps) {
         ))}
       </div>
 
+      {/* Desktop: remove bouncing chevron — show only on mobile */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5, duration: 1 }}
-        className="absolute bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-20"
+        className="md:hidden absolute bottom-32 left-1/2 -translate-x-1/2 z-20"
       >
         <motion.div
           animate={{ y: [0, 8, 0] }}

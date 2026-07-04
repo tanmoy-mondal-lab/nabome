@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { motion } from "framer-motion";
-import { Heart, ShoppingBag, Shield, Truck, RotateCcw, Star, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Heart, ShoppingBag, Shield, Truck, RotateCcw, Star, X, ChevronDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 import { useProduct } from "../hooks/useProducts";
@@ -18,6 +18,7 @@ import { ProductCard } from "../components/ProductCard";
 import { Reviews } from "../components/Reviews";
 import { FrequentlyBoughtTogether } from "../components/FrequentlyBoughtTogether";
 import { RecentlyViewed } from "../components/RecentlyViewed";
+import type { Product } from "../../types/product";
 import { useCartStore } from "../stores/cart-store";
 import { useWishlist } from "../hooks/useWishlist";
 import { useAuthStore } from "../../stores/auth-store";
@@ -34,7 +35,7 @@ export default function ProductDetailPage() {
   const { data: productData, isLoading: loading, error: queryError } = useProduct(slug);
   const { data: settingsData } = useSettings();
   const product = (productData as { product?: Record<string, unknown> })?.product;
-  const related = (product?.relatedProducts as Record<string, unknown>[]) ?? [];
+  const related = (product?.relatedProducts as Product[]) ?? [];
 
   const reviewCount = Number((product?._count as Record<string, unknown>)?.reviews ?? 0);
 
@@ -50,6 +51,7 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"description" | "features" | "specs">("description");
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [showMoreSections, setShowMoreSections] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const justAdded = useCartStore((s) => s.justAdded);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -69,7 +71,7 @@ export default function ProductDetailPage() {
   if (loading) {
     return (
       <div className="container-page section-padding">
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-16">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-8 lg:gap-16">
           <div className="aspect-[3/4] bg-luxe-ivory animate-pulse" />
           <div className="space-y-6">
             <div className="h-3 bg-luxe-ivory animate-pulse rounded w-1/4" />
@@ -134,10 +136,6 @@ export default function ProductDetailPage() {
 
   function handleAddToCart() {
     if (!matchedVariant || !product) return;
-    if (!isAuthenticated) {
-      navigate("/auth/login", { state: { from: window.location.pathname } });
-      return;
-    }
     addItem({
       productId: product.id as string,
       variantId: matchedVariant.id as string,
@@ -157,10 +155,6 @@ export default function ProductDetailPage() {
 
   function handleWishlistToggle() {
     if (!matchedVariant) return;
-    if (!isAuthenticated) {
-      navigate("/auth/login", { state: { from: window.location.pathname } });
-      return;
-    }
     if (isInWishlist(matchedVariant.id as string)) {
       removeFromWishlist(matchedVariant.id as string);
     } else {
@@ -205,14 +199,14 @@ export default function ProductDetailPage() {
         ]))}</script>
       </Helmet>
 
-      <div className="container-page pt-6 pb-20">
+      <div className="container-page pt-8 pb-24">
         <Breadcrumbs items={[
           { label: "Home", href: "/" },
           ...(category ? [{ label: category.name as string, href: `/products?category=${(category.slug as string) || ""}` }] : []),
           { label: product.name as string },
-        ]} className="mb-8" />
+        ]} className="mb-10" />
 
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-16">
+        <div className="grid md:grid-cols-2 gap-8 md:gap-12 lg:gap-20">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -225,7 +219,7 @@ export default function ProductDetailPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-            className="space-y-6"
+            className="space-y-8"
           >
             {brand && (
               <Link
@@ -255,7 +249,7 @@ export default function ProductDetailPage() {
                       ))}
                     </div>
                   )}
-                  <h1 className="font-display text-heading-1 md:text-display-3 text-neutral-900 text-balance leading-tight">
+                  <h1 className="font-display text-heading-2 md:text-display-3 text-neutral-900 text-balance leading-tight">
                     {product.name as string}
                   </h1>
                 </div>
@@ -339,7 +333,7 @@ export default function ProductDetailPage() {
                 onClick={handleAddToCart}
                 disabled={!matchedVariant || (matchedVariant.stock as number) === 0}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2.5 py-3.5 font-body text-xs font-medium tracking-widest uppercase transition-all duration-300",
+                  "flex-1 flex items-center justify-center gap-2.5 py-4 font-body text-xs font-medium tracking-widest uppercase transition-all duration-300",
                   justAdded === matchedVariant?.id
                     ? "bg-green-600 text-white"
                     : "bg-brand-500 text-white hover:bg-brand-600 active:bg-brand-700",
@@ -362,7 +356,7 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-px bg-neutral-100 overflow-hidden">
+            <div className="flex gap-6 overflow-x-auto pb-2 snap-x snap-mandatory -mx-4 px-4 md:grid md:grid-cols-3 md:gap-px md:bg-neutral-100 md:overflow-visible md:pb-0 md:snap-none md:mx-0 md:px-0">
               {[
                 { icon: Truck, label: "Free Shipping", desc: `Orders above ${formatPrice(freeShippingThreshold)}` },
                 { icon: RotateCcw, label: "Easy Returns", desc: "30-day policy" },
@@ -382,7 +376,24 @@ export default function ProductDetailPage() {
           </motion.div>
         </div>
 
-        <div className="mt-16 lg:mt-24">
+        {/* Mobile Sticky CTA Bar */}
+        <div className="md:hidden fixed bottom-[calc(60px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-30 bg-white border-t border-neutral-100 p-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-neutral-900 truncate">{product.name as string}</p>
+              <p className="text-lg font-semibold text-brand-600">{formatPrice(variantPrice)}</p>
+            </div>
+            <button
+              onClick={handleAddToCart}
+              disabled={!selectedSize || !selectedColor}
+              className="bg-neutral-900 text-white px-8 py-3 text-sm uppercase tracking-wider font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Add to Cart
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-20 lg:mt-28">
           <div className="border-b border-neutral-200">
             <div className="flex gap-0">
               {(["description", "features", "specs"] as const).map((tab) => (
@@ -390,7 +401,7 @@ export default function ProductDetailPage() {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "relative px-8 py-4 text-[11px] font-body font-medium tracking-[0.2em] uppercase transition-all duration-300",
+                    "relative px-10 py-5 text-[11px] font-body font-medium tracking-[0.2em] uppercase transition-all duration-300",
                     activeTab === tab
                       ? "text-neutral-900"
                       : "text-neutral-400 hover:text-neutral-600"
@@ -444,25 +455,25 @@ export default function ProductDetailPage() {
                 <div className="divide-y divide-neutral-100">
                   {!!product.material && (
                     <div className="flex py-4">
-                      <span className="w-36 text-[10px] font-body font-medium tracking-[0.2em] uppercase text-neutral-400 shrink-0">Material</span>
+                      <span className="w-24 md:w-36 text-[10px] font-body font-medium tracking-[0.2em] uppercase text-neutral-400 shrink-0">Material</span>
                       <span className="text-sm text-neutral-800">{product.material as string}</span>
                     </div>
                   )}
                   {!!product.gender && (
                     <div className="flex py-4">
-                      <span className="w-36 text-[10px] font-body font-medium tracking-[0.2em] uppercase text-neutral-400 shrink-0">Gender</span>
+                      <span className="w-24 md:w-36 text-[10px] font-body font-medium tracking-[0.2em] uppercase text-neutral-400 shrink-0">Gender</span>
                       <span className="text-sm text-neutral-800 capitalize">{(product.gender as string)}</span>
                     </div>
                   )}
                   {!!brand && (
                     <div className="flex py-4">
-                      <span className="w-36 text-[10px] font-body font-medium tracking-[0.2em] uppercase text-neutral-400 shrink-0">Brand</span>
+                      <span className="w-24 md:w-36 text-[10px] font-body font-medium tracking-[0.2em] uppercase text-neutral-400 shrink-0">Brand</span>
                       <span className="text-sm text-neutral-800">{brand.name as string}</span>
                     </div>
                   )}
                   {!!product.careInstructions && (
                     <div className="flex py-4">
-                      <span className="w-36 text-[10px] font-body font-medium tracking-[0.2em] uppercase text-neutral-400 shrink-0">Care</span>
+                      <span className="w-24 md:w-36 text-[10px] font-body font-medium tracking-[0.2em] uppercase text-neutral-400 shrink-0">Care</span>
                       <span className="text-sm text-neutral-800">{product.careInstructions as string}</span>
                     </div>
                   )}
@@ -474,13 +485,13 @@ export default function ProductDetailPage() {
       </div>
 
       {related.length > 0 && (
-        <section className="bg-luxe-ivory py-16 md:py-24">
+        <section className="bg-luxe-ivory py-20 md:py-28">
           <div className="container-page">
-            <div className="text-center mb-10">
-              <h2 className="font-display text-heading-1 text-neutral-900 mb-2">Complete the Look</h2>
+            <div className="text-center mb-12">
+              <h2 className="font-display text-display-1 text-neutral-900 mb-2">Complete the Look</h2>
               <div className="w-12 h-px bg-accent-gold mx-auto" />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
               {related.slice(0, 4).map((r) => (
                 <ProductCard key={r.id as string} product={r} />
               ))}
@@ -503,27 +514,38 @@ export default function ProductDetailPage() {
         </div>
       </section>
 
-      <section className="py-16 md:py-24 bg-luxe-ivory">
-        <div className="container-page max-w-4xl text-center">
-          <h2 className="font-display text-heading-1 text-neutral-900 mb-6">About This Piece</h2>
-          <div className="w-12 h-px bg-accent-gold mx-auto mb-8" />
-          <div className="editorial-lead text-neutral-700 leading-loose">
-            {product.description as string}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 md:py-24">
-        <div className="container-page">
-          <Reviews productId={product.id as string} slug={slug!} />
-        </div>
-      </section>
-
-      <section className="py-16 md:py-24 bg-luxe-ivory">
-        <div className="container-page">
-          <RecentlyViewed />
-        </div>
-      </section>
+      {/* Collapsible: lower-priority sections */}
+      <div className="border-t border-neutral-100">
+        <button
+          onClick={() => setShowMoreSections(!showMoreSections)}
+          className="w-full flex items-center justify-center gap-2 py-6 text-[11px] tracking-[0.2em] uppercase text-neutral-500 hover:text-neutral-900 transition-colors"
+        >
+          {showMoreSections ? "Show Less" : "Show More"}
+          <ChevronDown className={cn("w-4 h-4 transition-transform duration-300", showMoreSections && "rotate-180")} />
+        </button>
+        <AnimatePresence>
+          {showMoreSections && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-hidden"
+            >
+              <section className="py-8 md:py-12">
+                <div className="container-page">
+                  <Reviews productId={product.id as string} slug={slug!} />
+                </div>
+              </section>
+              <section className="py-8 md:py-12 bg-luxe-ivory">
+                <div className="container-page">
+                  <RecentlyViewed />
+                </div>
+              </section>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {showSizeGuide && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowSizeGuide(false)}>
@@ -563,20 +585,11 @@ export default function ProductDetailPage() {
                       </tr>
                     ))
                   ) : (
-                    [
-                      { size: "XS", chest: "34-36", length: "26" },
-                      { size: "S", chest: "36-38", length: "27" },
-                      { size: "M", chest: "38-40", length: "28" },
-                      { size: "L", chest: "40-42", length: "29" },
-                      { size: "XL", chest: "42-44", length: "30" },
-                      { size: "XXL", chest: "44-46", length: "31" },
-                    ].map((row) => (
-                      <tr key={row.size} className="border-b border-neutral-50">
-                        <td className="py-3 font-medium text-neutral-900">{row.size}</td>
-                        <td className="py-3 text-neutral-600">{row.chest}</td>
-                        <td className="py-3 text-neutral-600">{row.length}</td>
-                      </tr>
-                    ))
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-sm text-neutral-500">
+                        No size guide available for this product. <a href="/faq" className="text-brand-500 hover:underline">Contact us for sizing help.</a>
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>

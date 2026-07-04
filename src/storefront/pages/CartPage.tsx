@@ -5,6 +5,7 @@ import { ArrowLeft, Shield, Truck, RotateCcw, X, ShoppingBag } from "lucide-reac
 import { useCart } from "../hooks/useCart";
 import { QuantitySelector } from "../components/QuantitySelector";
 import { Breadcrumbs } from "../components/Breadcrumbs";
+import { ProductRecommendations } from "../components/ProductRecommendations";
 import { formatPrice } from "../../lib/utils/format";
 import { SafeImage } from "../../components/SafeImage";
 import { cn } from "../../lib/utils/cn";
@@ -104,6 +105,10 @@ export default function CartPage() {
             ))}
           </div>
         </motion.div>
+
+        <div className="mt-16">
+          <ProductRecommendations title="You Might Like" type="featured" />
+        </div>
       </div>
     );
   }
@@ -118,12 +123,12 @@ export default function CartPage() {
         <meta property="og:description" content="View your shopping cart on নবME." />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      <div className="container-page pt-8 pb-24">
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Shopping Cart" }]} className="mb-8" />
+      <div className="container-page pt-10 pb-28">
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Shopping Cart" }]} className="mb-10" />
 
-        <div className="flex items-end justify-between mb-10">
+        <div className="flex items-end justify-between mb-12">
           <div>
-            <h1 className="font-display text-heading-1 md:text-display-3 text-neutral-900 text-balance">
+            <h1 className="font-display text-display-1 md:text-display-2 text-neutral-900 text-balance">
               Shopping Cart
             </h1>
             <p className="text-body-sm text-neutral-500 mt-2 font-editorial">
@@ -138,7 +143,7 @@ export default function CartPage() {
           </button>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-10 lg:gap-14">
+        <div className="grid lg:grid-cols-3 gap-12 lg:gap-16">
           <div className="lg:col-span-2">
             <AnimatePresence mode="popLayout">
               {items.map((item) => (
@@ -156,7 +161,7 @@ export default function CartPage() {
                 >
                   <Link
                     to={`/products/${item.slug}`}
-                    className="w-28 h-36 shrink-0 bg-luxe-ivory overflow-hidden relative"
+                    className="w-24 h-32 md:w-28 md:h-36 shrink-0 bg-luxe-ivory overflow-hidden relative"
                   >
                     <SafeImage
                       src={item.image}
@@ -355,6 +360,22 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Sticky Checkout Bar */}
+      {items.length > 0 && (
+        <div className="md:hidden fixed bottom-[calc(60px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-30 bg-white border-t border-neutral-100 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm text-neutral-600">Total</span>
+            <span className="text-xl font-semibold text-neutral-900">{formatPrice(finalTotal)}</span>
+          </div>
+          <Link
+            to="/checkout"
+            className="block w-full bg-neutral-900 text-white text-center py-3.5 text-sm uppercase tracking-wider font-medium hover:bg-neutral-800 transition-colors"
+          >
+            Proceed to Checkout
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
-import { Plus, X, GripVertical, Image, Package } from "lucide-react";
+import { Plus, X, GripVertical, Image, Package, Crosshair } from "lucide-react";
+import ShopTheLookManager from "./ShopTheLookManager";
 import { MediaPicker } from "../common/MediaPicker";
 import { useToast } from "../../components/ui/Toast";
 
@@ -65,6 +66,7 @@ export default function LookbookFormPage() {
   });
   const [items, setItems] = useState<LookbookItem[]>([]);
   const [showAddItem, setShowAddItem] = useState(false);
+  const [showShopTheLook, setShowShopTheLook] = useState(false);
   const [formInitialized, setFormInitialized] = useState(false);
 
   const lookbookQuery = useQuery({
@@ -335,6 +337,13 @@ export default function LookbookFormPage() {
             </div>
           </section>
 
+          {isEdit && (
+            <button onClick={() => setShowShopTheLook(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-brand-600 border border-brand-200 rounded-xl hover:bg-brand-50 transition-colors">
+              <Crosshair size={14} /> Shop The Look
+            </button>
+          )}
+
           <section className="premium-card rounded-2xl p-6 space-y-4">
             <h2 className="font-medium text-sm text-neutral-900">SEO</h2>
             <div>
@@ -357,6 +366,17 @@ export default function LookbookFormPage() {
           </button>
         </div>
       </div>
+
+      {showShopTheLook && id && (
+        <ShopTheLookManager
+          lookId={id}
+          onSave={(data) => {
+            toast("Shop The Look saved", "success");
+            setShowShopTheLook(false);
+          }}
+          onClose={() => setShowShopTheLook(false)}
+        />
+      )}
     </div>
   );
 }

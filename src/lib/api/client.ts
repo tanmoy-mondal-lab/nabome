@@ -2,12 +2,19 @@
 // API CLIENT — Base HTTP client with auth token injection
 // and automatic 401 → refresh → retry interceptor
 // ─────────────────────────────────────────────────────────────
+//
+// Convention: all path arguments omit the /api prefix.
+// Example: api.get('/products') → GET /api/products
+// The client adds the /api prefix automatically.
 
 const BASE_URL = "/api";
+const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
 interface RequestOptions extends Omit<RequestInit, "body"> {
   body?: unknown;
   params?: Record<string, string | number | undefined>;
+  signal?: AbortSignal;
+  timeout?: number;
 }
 
 class ApiError extends Error {
@@ -24,6 +31,8 @@ class ApiError extends Error {
 
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
+let refreshRetryCount = 0;
+const MAX_REFRESH_RETRIES = 2;
 
 function getStoredAuth():
   | { accessToken: string; refreshToken: string; expiresAt: number }
@@ -116,7 +125,7 @@ async function request<T>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { body, params, ...fetchOptions } = options;
+  const { body, params, timeout = DEFAULT_TIMEOUT, ...fetchOptions } = options;
 
   const cleanEndpoint = endpoint.startsWith("/api") ? endpoint : `${BASE_URL}${endpoint}`;
   const url = new URL(cleanEndpoint, window.location.origin);
@@ -152,16 +161,23 @@ async function request<T>(
     }
   }
 
+  const abortController = new AbortController();
+  const timeoutId = setTimeout(() => abortController.abort(), timeout);
+  const combinedSignal = options.signal
+    ? combineAbortSignals(options.signal, abortController.signal)
+    : abortController.signal;
+
   const response = await fetch(url.toString(), {
     ...fetchOptions,
     headers,
+    signal: combinedSignal,
     body:
       body instanceof FormData
         ? body
         : body !== undefined
           ? JSON.stringify(body)
           : undefined,
-  });
+  }).finally(() => clearTimeout(timeoutId));
 
   if (response.status === 401 && auth?.refreshToken) {
     // ── Auto-refresh on 401 ──
@@ -175,6 +191,8 @@ async function request<T>(
     refreshPromise = null;
 
     if (refreshed) {
+      // Reset retry count on successful refresh
+      refreshRetryCount = 0;
       // Retry the original request with new token
       const newAuth = getStoredAuth();
       if (newAuth?.accessToken) {
@@ -183,6 +201,7 @@ async function request<T>(
       const retryResponse = await fetch(url.toString(), {
         ...fetchOptions,
         headers,
+        signal: combinedSignal,
         body:
           body instanceof FormData
             ? body
@@ -192,10 +211,15 @@ async function request<T>(
       });
 
       if (retryResponse.status === 204) {
-        return {} as T;
+        return null as T;
       }
 
       if (!retryResponse.ok) {
+        // If we get 401 again on retry, try refresh once more with limit
+        if (retryResponse.status === 401 && refreshRetryCount < MAX_REFRESH_RETRIES) {
+          refreshRetryCount++;
+          return request<T>(endpoint, { ...options, body, params });
+        }
         const retryData = await retryResponse.json().catch(() => ({}));
         throw new ApiError(
           retryData.error?.message ??
@@ -208,13 +232,14 @@ async function request<T>(
       return retryData.data ?? retryData;
     }
 
+    refreshRetryCount = 0;
     clearStoredAuth();
     window.dispatchEvent(new CustomEvent("auth:logout"));
     throw new ApiError("Session expired — please log in again", 401);
   }
 
   if (response.status === 204) {
-    return {} as T;
+    return null as T;
   }
 
   if (!response.ok) {
@@ -228,6 +253,19 @@ async function request<T>(
 
   const data = await response.json();
   return data.data ?? data;
+}
+
+// Combine multiple AbortSignals into one
+function combineAbortSignals(...signals: AbortSignal[]): AbortSignal {
+  const controller = new AbortController();
+  for (const signal of signals) {
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+      return controller.signal;
+    }
+    signal.addEventListener("abort", () => controller.abort(signal.reason), { once: true });
+  }
+  return controller.signal;
 }
 
 export const api = {

@@ -81,7 +81,7 @@ async function handleValidate(ctx: RequestContext, req: Request, env: any): Prom
     let discountAmount = 0;
     if (coupon.discountType === "percentage") {
       discountAmount = (orderValue * Number(coupon.discountValue)) / 100;
-      if (coupon.maxDiscount) {
+      if (coupon.maxDiscount != null) {
         discountAmount = Math.min(discountAmount, Number(coupon.maxDiscount));
       }
     } else {

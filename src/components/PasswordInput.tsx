@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { Input } from "./ui/Input";
 
 interface PasswordInputProps {
   id?: string;
@@ -19,18 +20,18 @@ export function PasswordInput({ id, name, value, onChange, placeholder, required
 
   return (
     <div className={`relative ${className}`}>
-      <input
+      <Input
         id={id}
         name={name}
         type={visible ? "text" : "password"}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="input-field w-full pr-10"
         placeholder={placeholder}
         required={required}
         autoComplete={autoComplete}
         aria-invalid={ariaInvalid || undefined}
         aria-describedby={ariaDescribedBy}
+        className="pr-10"
       />
       <button
         type="button"

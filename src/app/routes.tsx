@@ -25,6 +25,7 @@ const FaqPage = lazy(() => import("../storefront/pages/FaqPage"));
 const StaticPage = lazy(() => import("../storefront/pages/StaticPage").then((m) => ({ default: m.StaticPage })));
 
 const CollectionsIndexPage = lazy(() => import("../storefront/pages/CollectionsIndexPage"));
+const CategoryPage = lazy(() => import("../storefront/pages/CategoryPage"));
 
 // Dashboard pages
 const DashboardOverview = lazy(() => import("../storefront/pages/DashboardPage"));
@@ -46,6 +47,7 @@ export const STOREFRONT_ROUTES = (
     <Route path="wishlist" element={<WishlistPage />} />
     <Route path="collections" element={<CollectionsIndexPage />} />
     <Route path="collections/:slug" element={<CollectionPage />} />
+    <Route path="categories/:slug" element={<CategoryPage />} />
     <Route path="checkout" element={<CheckoutPage />} />
     <Route path="privacy" element={<StaticPage />} />
     <Route path="terms" element={<StaticPage />} />

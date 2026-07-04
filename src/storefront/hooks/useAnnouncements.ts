@@ -18,7 +18,7 @@ interface AnnouncementsResponse {
 export function useAnnouncements() {
   return useQuery({
     queryKey: ["cms", "announcements"],
-    queryFn: () => api.get<AnnouncementsResponse>("/api/cms/announcements"),
+    queryFn: ({ signal }) => api.get<AnnouncementsResponse>("/cms/announcements", { signal }),
     select: (data) => {
       const announcements = data?.announcements ?? [];
       return announcements[0] ?? null;

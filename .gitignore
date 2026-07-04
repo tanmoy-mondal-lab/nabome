@@ -29,3 +29,17 @@ dist-ssr
 # Wrangler
 .wrangler/
 _worker.bundle
+
+# Test artifacts
+playwright-report/
+test-results/
+coverage/
+
+# Audit screenshots
+.audit-*.png
+
+# One-time scripts
+*.sh
+
+# Misc
+.plan/

@@ -17,7 +17,7 @@ interface FooterResponse {
 export function useFooter() {
   return useQuery({
     queryKey: ["cms", "footer"],
-    queryFn: () => api.get<FooterResponse>("/api/cms/footer"),
+    queryFn: () => api.get<FooterResponse>("/cms/footer"),
     select: (data) => data?.sections ?? [],
     staleTime: 1000 * 60 * 10, // 10 minutes
     gcTime: 1000 * 60 * 60, // 1 hour

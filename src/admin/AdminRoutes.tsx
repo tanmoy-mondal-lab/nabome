@@ -16,9 +16,9 @@ const ReturnDetailPage = lazy(() => import("./returns/ReturnDetailPage"));
 const CustomersPage = lazy(() => import("./customers/CustomersPage"));
 const CMSPage = lazy(() => import("./cms/CMSPage"));
 const HomepageBuilder = lazy(() => import("./cms/HomepageBuilder"));
-const HeaderBuilder = lazy(() => import("./cms/HeaderBuilder"));
 const FooterBuilder = lazy(() => import("./cms/FooterBuilder"));
 const HeroBuilder = lazy(() => import("./cms/HeroBuilder"));
+const HeaderBuilder = lazy(() => import("./cms/HeaderBuilder"));
 const MediaLibrary = lazy(() => import("./media/MediaLibrary"));
 const SEOPage = lazy(() => import("./seo/SEOPage"));
 const ThemeBuilder = lazy(() => import("./theme/ThemeBuilder"));
@@ -116,8 +116,8 @@ export default function AdminRoutes() {
           <Route path="cms/brand-story" element={<Navigate to="/admin/cms" replace />} />
           <Route path="cms/homepage" element={<HomepageBuilder />} />
           <Route path="cms/hero-builder" element={<HeroBuilder />} />
-          <Route path="cms/header" element={<HeaderBuilder />} />
           <Route path="cms/footer" element={<FooterBuilder />} />
+          <Route path="cms/header-builder" element={<HeaderBuilder />} />
 
           <Route path="media" element={<MediaLibrary />} />
           <Route path="seo" element={<SEOPage />} />

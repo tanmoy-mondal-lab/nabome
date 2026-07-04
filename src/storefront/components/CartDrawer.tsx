@@ -42,7 +42,7 @@ export function CartDrawer() {
             animate={prefersReducedMotion ? undefined : { x: 0 }}
             exit={prefersReducedMotion ? undefined : { x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed right-0 top-0 h-full w-full max-w-[480px] bg-white z-50 shadow-2xl flex flex-col"
+            className="fixed right-0 top-0 h-full w-full max-w-full sm:max-w-[480px] bg-white z-50 shadow-2xl flex flex-col"
           >
             <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-100">
               <div className="flex items-center gap-3">
@@ -87,6 +87,9 @@ export function CartDrawer() {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-neutral-900 truncate">{item.name}</p>
+                              {item.maxQuantity === 0 && (
+                                <p className="text-[10px] font-medium text-red-500 mt-0.5">Out of stock — remove from cart?</p>
+                              )}
                               <div className="flex gap-2 mt-1">
                                 {item.size && (
                                   <span className="text-[10px] tracking-[0.1em] uppercase text-neutral-400">

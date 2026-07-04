@@ -41,19 +41,24 @@ export default function TrustBarSection({ section }: TrustBarSectionProps) {
   const icons = items.map((_, i) => defaultIcons[i] ?? Truck);
 
   return (
-    <section className="container-wide section-padding-sm border-t border-neutral-100">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-12 gap-y-10">
+    <section className="container-wide py-12 md:py-16 md:border-t md:border-neutral-100 border-t border-neutral-100">
+      <div className="grid grid-cols-2 md:grid-cols-4 md:gap-x-16 gap-x-12 gap-y-10">
         {items.map((item, i) => {
           const Icon = iconMap[item.title.replace(/\s+/g, "")] ?? icons[i];
           return (
             <div key={item.title} className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-brand-50 text-brand-600 mb-4">
+              {/* Desktop: no circle bg, just icon */}
+              <div className="hidden md:flex inline-flex items-center justify-center mb-5">
+                <Icon className="w-5 h-5 text-neutral-400" strokeWidth={1.5} />
+              </div>
+              {/* Mobile: keep existing circle bg */}
+              <div className="md:hidden inline-flex items-center justify-center w-12 h-12 rounded-full bg-brand-50 text-brand-600 mb-4">
                 <Icon className="w-5 h-5" />
               </div>
-              <h4 className="text-sm font-semibold text-neutral-900 mb-1">
+              <h4 className="md:text-[12px] md:tracking-[0.1em] md:font-normal md:text-neutral-700 md:mb-1 text-sm font-semibold text-neutral-900 mb-1">
                 {item.title}
               </h4>
-              <p className="text-xs text-neutral-500">{item.description}</p>
+              <p className="md:text-[11px] md:text-neutral-400 text-xs text-neutral-500">{item.description}</p>
             </div>
           );
         })}

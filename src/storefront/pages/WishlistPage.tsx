@@ -47,18 +47,18 @@ export default function WishlistPage() {
           <link rel="canonical" href={canonical("/account/wishlist")} />
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
-        <Breadcrumbs items={[{ label: "My Wishlist" }]} className="mb-6" />
+        <Breadcrumbs items={[{ label: "My Wishlist" }]} className="mb-10" />
         <motion.div initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }} animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }} className="text-center max-w-md mx-auto">
-          <div className="w-24 h-24 mx-auto mb-8 bg-luxe-ivory rounded-full flex items-center justify-center">
+          <div className="w-24 h-24 mx-auto mb-10 bg-luxe-ivory rounded-full flex items-center justify-center">
             <Heart className="w-10 h-10 text-brand-400" />
           </div>
-          <h1 className="font-display text-display-3 text-neutral-900 mb-4 text-balance">Login to View Your Wishlist</h1>
-          <p className="text-body-base text-neutral-500 mb-10 leading-relaxed font-editorial">
+          <h1 className="font-display text-display-1 text-neutral-900 mb-5 text-balance">Login to View Your Wishlist</h1>
+          <p className="text-body-base text-neutral-500 mb-12 leading-relaxed font-editorial">
             Save your favorite pieces and come back to them anytime.
           </p>
           <Link
             to="/auth/login"
-            className="inline-flex items-center gap-2 bg-neutral-900 text-white px-10 py-4 text-[11px] font-body font-medium tracking-[0.2em] uppercase hover:bg-neutral-800 transition-all duration-300"
+            className="inline-flex items-center gap-2 bg-neutral-900 text-white px-12 py-4 text-[11px] font-body font-medium tracking-[0.2em] uppercase hover:bg-neutral-800 transition-all duration-300"
           >
             Sign In
           </Link>
@@ -76,9 +76,9 @@ export default function WishlistPage() {
           <link rel="canonical" href={canonical("/account/wishlist")} />
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
-        <Breadcrumbs items={[{ label: "My Wishlist" }]} className="mb-6" />
-        <div className="text-center py-12">
-          <p className="text-sm text-neutral-500 mb-3">Failed to load wishlist.</p>
+        <Breadcrumbs items={[{ label: "My Wishlist" }]} className="mb-10" />
+        <div className="text-center py-16">
+          <p className="text-sm text-neutral-500 mb-4">Failed to load wishlist.</p>
           <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
         </div>
       </div>
@@ -94,18 +94,18 @@ export default function WishlistPage() {
           <link rel="canonical" href={canonical("/account/wishlist")} />
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
-        <Breadcrumbs items={[{ label: "My Wishlist" }]} className="mb-6" />
+        <Breadcrumbs items={[{ label: "My Wishlist" }]} className="mb-10" />
         <motion.div initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20 }} animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }} className="text-center max-w-md mx-auto">
-          <div className="w-24 h-24 mx-auto mb-8 bg-luxe-ivory rounded-full flex items-center justify-center">
+          <div className="w-24 h-24 mx-auto mb-10 bg-luxe-ivory rounded-full flex items-center justify-center">
             <Heart className="w-10 h-10 text-brand-400" />
           </div>
-          <h1 className="font-display text-display-3 text-neutral-900 mb-4 text-balance">Your Wishlist is Empty</h1>
-          <p className="text-body-base text-neutral-500 mb-10 leading-relaxed font-editorial">
+          <h1 className="font-display text-display-1 text-neutral-900 mb-5 text-balance">Your Wishlist is Empty</h1>
+          <p className="text-body-base text-neutral-500 mb-12 leading-relaxed font-editorial">
             Start saving your favorite pieces.
           </p>
           <Link
             to="/products"
-            className="inline-flex items-center gap-2 bg-neutral-900 text-white px-10 py-4 text-[11px] font-body font-medium tracking-[0.2em] uppercase hover:bg-neutral-800 transition-all duration-300"
+            className="inline-flex items-center gap-2 bg-neutral-900 text-white px-12 py-4 text-[11px] font-body font-medium tracking-[0.2em] uppercase hover:bg-neutral-800 transition-all duration-300"
           >
             <ArrowLeft className="w-4 h-4" /> Explore Collection
           </Link>
@@ -122,11 +122,11 @@ export default function WishlistPage() {
         <link rel="canonical" href={canonical("/account/wishlist")} />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      <div className="container-page pt-8 pb-24">
-        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "My Wishlist" }]} className="mb-8" />
+      <div className="container-page pt-10 pb-28">
+        <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "My Wishlist" }]} className="mb-10" />
 
-        <div className="mb-10">
-          <h1 className="font-display text-heading-1 md:text-display-3 text-neutral-900 text-balance">
+        <div className="mb-12">
+          <h1 className="font-display text-display-1 md:text-display-2 text-neutral-900 text-balance">
             My Wishlist
           </h1>
           <p className="text-body-sm text-neutral-500 mt-2 font-editorial">
@@ -134,7 +134,7 @@ export default function WishlistPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
           <AnimatePresence mode="popLayout">
             {items.map((wishlistItem) => {
               // Data is nested: variant.product

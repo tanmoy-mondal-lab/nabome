@@ -120,6 +120,10 @@ import { handleAdminProductLabelRequest } from "./_handlers/admin/product-labels
 import { handleAdminRelatedProductRequest } from "./_handlers/admin/related-products";
 import { handleAdminInventoryRequest } from "./_handlers/admin/inventory";
 import { handleAdminSubcategoryRequest } from "./_handlers/admin/subcategories";
+import { handleBrandRequest } from "./_handlers/brands";
+import { handleSizeGuideRequest } from "./_handlers/size-guides";
+import { handleTagRequest } from "./_handlers/tags";
+import { handleCampaignRequest } from "./_handlers/campaigns";
 
 import { handleReturnRequest } from "./_handlers/returns";
 import { handleRefundRequest } from "./_handlers/refunds";
@@ -137,7 +141,7 @@ import { handleAdminProductAttributeRequest } from "./_handlers/admin/product-at
 import { handleAdminAddressRequest } from "./_handlers/admin/addresses";
 import { handleAdminSessionRequest } from "./_handlers/admin/sessions";
 import { handleAdminLoginAttemptRequest } from "./_handlers/admin/login-attempts";
-import { GET as handleSitemap } from "./sitemap.xml";
+import { buildSitemapResponse } from "./_lib/site-files";
 import { GET as handleHealth } from "./health";
 
 // ─── Route registration ───
@@ -146,7 +150,7 @@ import { GET as handleHealth } from "./health";
 route("GET", "/api/health", (req, ctx) => handleHealth(req, { env: ctx.env }));
 
 // Sitemap
-route("GET", "/sitemap.xml", (req, ctx) => handleSitemap(req, { env: ctx.env }));
+route("GET", "/sitemap.xml", (_req, ctx) => buildSitemapResponse(ctx.env));
 
 // Public routes
 route("GET", "/api/auth/me", (req, ctx) => handleAuthRequest(req, ctx, [], "me"), { auth: true });
@@ -182,6 +186,24 @@ route("GET", "/api/subcategories", (req, ctx) => handleCategoryRequest(req, ctx,
 
 route("GET", "/api/collections", (req, ctx) => handleCollectionRequest(req, ctx, [], "list"));
 route("GET", "/api/collections/:slug", (req, ctx, p) => handleCollectionRequest(req, ctx, p, "detail"));
+
+// Public brands, size guides, tags, subcategories
+route("GET", "/api/brands", (req, ctx) => handleBrandRequest(req, ctx, [], "list"));
+route("GET", "/api/brands/:slug", (req, ctx, p) => handleBrandRequest(req, ctx, p, "detail"));
+
+route("GET", "/api/size-guides", (req, ctx) => handleSizeGuideRequest(req, ctx, [], "list"));
+route("GET", "/api/size-guides/:slug", (req, ctx, p) => handleSizeGuideRequest(req, ctx, p, "detail"));
+
+route("GET", "/api/tags", (req, ctx) => handleTagRequest(req, ctx, [], "list"));
+route("GET", "/api/tags/:slug", (req, ctx, p) => handleTagRequest(req, ctx, p, "detail"));
+route("GET", "/api/tags/:slug/products", (req, ctx, p) => handleTagRequest(req, ctx, p, "products"));
+
+route("GET", "/api/subcategories/:slug", (req, ctx, p) => handleCategoryRequest(req, ctx, p, "subcategoryDetail"));
+
+// Public campaigns
+route("GET", "/api/campaigns", (req, ctx) => handleCampaignRequest(req, ctx, [], "list"));
+route("GET", "/api/campaigns/active", (req, ctx) => handleCampaignRequest(req, ctx, [], "active"));
+route("GET", "/api/campaigns/:id", (req, ctx, p) => handleCampaignRequest(req, ctx, p, "detail"));
 
 route("GET", "/api/cms/homepage", (req, ctx) => handleCMSRequest(req, ctx, [], "homepage"));
 route("GET", "/api/cms/pages", (req, ctx) => handleCMSRequest(req, ctx, [], "pages"));
@@ -577,13 +599,12 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
     const params = match.slice(1);
 
     // CSRF validation for state-changing methods
-    // Auth routes and admin routes are exempt (admin already protected by JWT + admin role)
-    // Upload endpoint is exempt (protected by auth + no cookie-based state change)
+    // Auth routes and upload endpoint are exempt (auth routes use their own mechanisms)
+    // Admin routes are NOT exempt — CSRF provides defense-in-depth alongside JWT
     if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
       const isPublicWebhook = path === "/api/payments/webhook";
-      const isAdminRoute = path.startsWith("/api/admin/");
       const isUpload = path === "/api/upload";
-      if (!isPublicWebhook && !isAuthPath(path) && !isAdminRoute && !isUpload && !validateCsrf(request)) {
+      if (!isPublicWebhook && !isAuthPath(path) && !isUpload && !validateCsrf(request)) {
         return withCors(csrfError(), request, path);
       }
     }

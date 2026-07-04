@@ -13,7 +13,7 @@ export function useWishlist() {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<{ items: Record<string, unknown>[] }>("/api/wishlist");
+      const res = await api.get<{ items: Record<string, unknown>[] }>("/wishlist");
       setItems(res.items ?? []);
     } catch {
       setItems([]);
@@ -35,7 +35,7 @@ export function useWishlist() {
     setItems((prev) => [placeholder, ...prev]);
 
     try {
-      await api.post("/api/wishlist", { variantId });
+      await api.post("/wishlist", { variantId });
       // Re-fetch to get full data with product info
       await fetch();
     } catch {
@@ -51,7 +51,7 @@ export function useWishlist() {
     setItems((prev) => prev.filter((i) => (i.variantId as string) !== variantId));
 
     try {
-      await api.delete(`/api/wishlist/${variantId}`);
+      await api.delete(`/wishlist/${variantId}`);
     } catch {
       // Rollback on error
       setItems(previous);

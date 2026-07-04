@@ -27,6 +27,20 @@ export interface CartItem {
 
 const CART_STORAGE_KEY = "nabome-cart";
 let syncTimer: ReturnType<typeof setTimeout> | null = null;
+let syncFailureCount = 0;
+const MAX_SYNC_FAILURES = 3;
+
+// Emit a custom event when sync fails too many times
+function emitSyncFailure(): void {
+  syncFailureCount++;
+  if (syncFailureCount >= MAX_SYNC_FAILURES) {
+    window.dispatchEvent(new CustomEvent("cart:sync-failed", { detail: { failures: syncFailureCount } }));
+  }
+}
+
+function resetSyncFailureCount(): void {
+  syncFailureCount = 0;
+}
 
 function getUserId(): string {
   try {
@@ -126,7 +140,9 @@ async function syncServerCart(): Promise<void> {
     await api.post("/cart/sync", {
       items: toServerItems(items),
     });
+    resetSyncFailureCount();
   } catch {
+    emitSyncFailure();
     // Keep the local cart; retry on the next mutation.
   }
 }
@@ -156,6 +172,16 @@ async function mergeGuestCartOnServer(items?: CartItem[]): Promise<void> {
       // Fall back to the current local cart if merge fails.
       return;
     }
+  }
+
+  // Clean up old guest cart data from localStorage after successful merge
+  try {
+    const guestKey = `${CART_STORAGE_KEY}-guest`;
+    if (localStorage.getItem(guestKey)) {
+      localStorage.removeItem(guestKey);
+    }
+  } catch {
+    // Silently continue if localStorage is unavailable
   }
 
   await hydrateServerCart();
@@ -268,12 +294,14 @@ export const useCartStore = create<CartState>()(
       discountAmount: () => {
         const sub = get().subtotal();
         if (!get().discountType) return 0;
-        return get().discountType === "percentage" ? sub * (get().discount / 100) : get().discount;
+        const raw = get().discountType === "percentage" ? sub * (get().discount / 100) : get().discount;
+        return Math.round(raw * 100) / 100;
       },
 
       total: () => {
         const sub = get().subtotal();
-        return Math.max(0, sub - get().discountAmount());
+        const raw = sub - get().discountAmount();
+        return Math.max(0, Math.round(raw * 100) / 100);
       },
     }),
     { name: CART_STORAGE_KEY, storage: userCartStorage }

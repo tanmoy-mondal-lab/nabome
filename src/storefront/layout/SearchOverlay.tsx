@@ -2,14 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, TrendingUp, Clock, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useUIStore } from "../stores/ui-store";
 import { useSearch } from "../hooks/useProducts";
 import { useCategories } from "../hooks/useCategories";
 import { SafeImage } from "../../components/SafeImage";
 import { formatPrice } from "../../lib/utils/format";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
+import { api } from "../../lib/api/client";
 
-const TRENDING = ["Summer Dresses", "Linen Shirts", "Leather Bags", "Sneakers", "Silk Scarves"];
+const FALLBACK_TRENDING = ["Summer Dresses", "Linen Shirts", "Leather Bags", "Sneakers", "Silk Scarves"];
 
 function getUserKey(): string {
   try {
@@ -33,6 +35,15 @@ export function SearchOverlay() {
   const overlayRef = useFocusTrap<HTMLDivElement>(isSearchOpen, closeSearch);
   const { data, isFetching, isError } = useSearch(debouncedQuery);
   const { data: categories = [] } = useCategories();
+
+  const { data: trendingData } = useQuery({
+    queryKey: ["search-trending"],
+    queryFn: () => api.get<{ trending: string[] }>("/api/search/trending"),
+    staleTime: 1000 * 60 * 60,
+    retry: false,
+  });
+
+  const trending = trendingData?.trending ?? FALLBACK_TRENDING;
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query), 300);
@@ -82,22 +93,22 @@ export function SearchOverlay() {
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && query.trim()) handleSearch(query.trim()); }}
                   placeholder="Search products, categories, collections..."
-                  className="w-full pl-12 pr-4 py-4 text-lg border-b-2 border-neutral-900 focus:outline-none focus:border-accent-gold bg-transparent"
+                  className="w-full md:py-5 md:text-xl md:border-b md:border-neutral-200 md:focus:border-neutral-900 pl-12 pr-4 py-4 text-lg border-b border-neutral-200 focus:outline-none focus:border-neutral-900 bg-transparent"
                 />
               </div>
-              <button onClick={closeSearch} className="p-2.5 hover:text-neutral-600 transition-colors" aria-label="Close search"><X className="w-6 h-6" /></button>
+              <button onClick={closeSearch} className="p-2.5 md:text-neutral-400 md:hover:text-neutral-700 hover:text-neutral-600 transition-colors" aria-label="Close search"><X className="md:w-5 md:h-5 w-6 h-6" /></button>
             </div>
 
             {!query && (
-              <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 md:gap-12 gap-8">
                 <div>
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-neutral-500 mb-4 editorial-caption">
+                  <div className="flex items-center gap-2 md:text-[10px] md:tracking-[0.2em] md:text-neutral-400 md:mb-5 text-xs uppercase tracking-widest text-neutral-500 mb-4 editorial-caption">
                     <TrendingUp className="w-3 h-3" /> Trending
                   </div>
-                  <ul className="space-y-3">
-                    {TRENDING.map((t) => (
+                  <ul className="md:space-y-4 space-y-3">
+                    {trending.map((t) => (
                       <li key={t}>
-                        <button onClick={() => { setQuery(t); handleSearch(t); }} className="text-sm text-neutral-700 hover:text-brand-500 transition-colors tracking-fashion">
+                        <button onClick={() => { setQuery(t); handleSearch(t); }} className="md:text-[13px] md:text-neutral-600 md:hover:text-neutral-900 md:tracking-wide text-sm text-neutral-700 hover:text-brand-500 transition-colors tracking-fashion">
                           {t}
                         </button>
                       </li>
@@ -105,13 +116,13 @@ export function SearchOverlay() {
                   </ul>
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-neutral-500 mb-4 editorial-caption">
+                  <div className="flex items-center gap-2 md:text-[10px] md:tracking-[0.2em] md:text-neutral-400 md:mb-5 text-xs uppercase tracking-widest text-neutral-500 mb-4 editorial-caption">
                     <Sparkles className="w-3 h-3" /> Categories
                   </div>
-                  <ul className="space-y-3">
+                  <ul className="md:space-y-4 space-y-3">
                     {categories.slice(0, 6).map((c) => (
                       <li key={c.slug}>
-                        <Link to={`/products?category=${c.slug}`} onClick={closeSearch} className="text-sm text-neutral-700 hover:text-brand-500 transition-colors tracking-fashion">
+                        <Link to={`/products?category=${c.slug}`} onClick={closeSearch} className="md:text-[13px] md:text-neutral-600 md:hover:text-neutral-900 md:tracking-wide text-sm text-neutral-700 hover:text-brand-500 transition-colors tracking-fashion">
                           {c.name}
                         </Link>
                       </li>
@@ -120,13 +131,13 @@ export function SearchOverlay() {
                 </div>
                 {recent.length > 0 && (
                   <div className="md:col-span-2">
-                    <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-neutral-500 mb-4 editorial-caption">
+                    <div className="flex items-center gap-2 md:text-[10px] md:tracking-[0.2em] md:text-neutral-400 md:mb-5 text-xs uppercase tracking-widest text-neutral-500 mb-4 editorial-caption">
                       <Clock className="w-3 h-3" /> Recent Searches
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {recent.map((r) => (
                         <button key={r} onClick={() => { setQuery(r); handleSearch(r); }}
-                          className="text-xs bg-neutral-100 px-3 py-1.5 rounded-full text-neutral-700 hover:bg-neutral-200 hover:text-neutral-900 transition-colors">
+                          className="md:text-[11px] md:bg-transparent md:border md:border-neutral-200 md:px-4 md:py-2 md:text-neutral-600 md:hover:border-neutral-400 md:transition-all md:rounded-none text-xs bg-neutral-100 px-3 py-1.5 rounded-full text-neutral-700 hover:bg-neutral-200 hover:text-neutral-900 transition-colors">
                           {r}
                         </button>
                       ))}
@@ -138,11 +149,11 @@ export function SearchOverlay() {
 
             {query && matchingCategories.length > 0 && results.length === 0 && (
               <div className="max-w-3xl mx-auto mb-6">
-                <p className="text-xs uppercase tracking-widest text-neutral-400 mb-3">Categories</p>
+                <p className="md:text-[10px] md:tracking-[0.2em] text-xs uppercase tracking-widest text-neutral-400 mb-3">Categories</p>
                 <div className="flex flex-wrap gap-2">
                   {matchingCategories.map((c) => (
                     <Link key={c.slug} to={`/products?category=${c.slug}`} onClick={closeSearch}
-                      className="text-sm bg-neutral-100 px-4 py-2 rounded text-neutral-700 hover:bg-neutral-900 hover:text-white transition-all">
+                      className="md:text-[12px] md:bg-transparent md:border md:border-neutral-200 md:px-5 md:py-2.5 md:text-neutral-600 md:hover:border-neutral-900 md:hover:text-neutral-900 md:rounded-none text-sm bg-neutral-100 px-4 py-2 rounded text-neutral-700 hover:bg-neutral-900 hover:text-white transition-all">
                       {c.name}
                     </Link>
                   ))}
@@ -158,23 +169,23 @@ export function SearchOverlay() {
 
             {query && !isFetching && results.length > 0 && (
               <div className="max-w-5xl mx-auto space-y-6">
-                <p className="text-xs text-neutral-400">{(data as Record<string, unknown>)?.pagination ? ((data as Record<string, unknown>).pagination as { total?: number }).total ?? 0 : 0} results for "{query}"</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <p className="md:text-[11px] text-xs text-neutral-400">{(data as Record<string, unknown>)?.pagination ? ((data as Record<string, unknown>).pagination as { total?: number }).total ?? 0 : 0} results for &ldquo;{query}&rdquo;</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 md:gap-6 gap-4">
                   {results.slice(0, 8).map((p) => {
                     const images = p.images as { url: string }[] ?? [];
                     return (
-                      <Link key={p.id as string} to={`/products/${p.slug}`} onClick={closeSearch} className="group premium-card p-3 shadow-subtle hover:shadow-card transition-shadow">
-                        <div className="aspect-[3/4] bg-neutral-50 mb-2 overflow-hidden rounded">
-                          <SafeImage src={images[0]?.url} alt={p.name as string} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <Link key={p.id as string} to={`/products/${p.slug}`} onClick={closeSearch} className="group md:p-0 p-3 premium-card md:border-0 md:shadow-none">
+                        <div className="aspect-[3/4] bg-neutral-50 mb-2 overflow-hidden md:rounded-none rounded">
+                          <SafeImage src={images[0]?.url} alt={p.name as string} className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-500" />
                         </div>
-                        <p className="text-sm font-medium text-neutral-900 truncate">{p.name as string}</p>
-                        <p className="text-sm text-brand-600">{formatPrice(Number(p.basePrice))}</p>
+                        <p className="md:text-[13px] md:font-normal text-sm font-medium text-neutral-900 truncate">{p.name as string}</p>
+                        <p className="md:text-[13px] md:text-neutral-500 text-sm text-brand-600">{formatPrice(Number(p.basePrice))}</p>
                       </Link>
                     );
                   })}
                 </div>
                 {((((data as Record<string, unknown>)?.pagination as { total?: number })?.total ?? 0) > 8) && (
-                  <Link to={`/search?q=${encodeURIComponent(query)}`} onClick={closeSearch} className="block text-center text-sm text-brand-600 hover:underline py-4">
+                  <Link to={`/search?q=${encodeURIComponent(query)}`} onClick={closeSearch} className="block text-center md:text-[12px] md:text-neutral-500 md:hover:text-neutral-900 md:py-6 text-sm text-brand-600 hover:underline py-4">
                     View all {((data as Record<string, unknown>)?.pagination as { total?: number })?.total ?? 0} results
                   </Link>
                 )}
@@ -192,7 +203,7 @@ export function SearchOverlay() {
             {query && !isFetching && results.length === 0 && debouncedQuery.length >= 2 && !isError && (
               <div className="max-w-3xl mx-auto text-center py-12">
                 <Search className="w-10 h-10 mx-auto text-neutral-300 mb-3" />
-                <p className="text-neutral-500">No products found for "{query}"</p>
+                <p className="text-neutral-500">No products found for &ldquo;{query}&rdquo;</p>
                 <p className="text-xs text-neutral-400 mt-1">Try a different search term or browse categories.</p>
               </div>
             )}

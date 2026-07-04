@@ -8,9 +8,9 @@ import { cleanSecret } from "../_lib/secrets";
 import type { Env } from "../_lib/env";
 
 const VALID_PAYMENT_METHODS = ["cod", "card", "upi", "netbanking", "wallet", "razorpay"] as const;
-const STANDARD_SHIPPING = 99;
+const DEFAULT_SHIPPING_COST = 99;
 const DEFAULT_FREE_THRESHOLD = 999;
-const DEFAULT_TAX_RATE = 5; // percentage (5%)
+const DEFAULT_TAX_RATE = 5;
 const MAX_ITEM_QUANTITY = 20;
 
 class CheckoutError extends Error {}
@@ -64,8 +64,8 @@ export async function handleCheckoutRequest(
   action: string = "checkout"
 ): Promise<Response> {
   const isGuest = action === "guest";
-  let transientGuestProfileId: string | null = null;
   let completedOrder = false;
+  const createdAddressIds: string[] = []; // Track addresses created for cleanup on failure
 
   let body: Record<string, unknown>;
   try {
@@ -305,7 +305,7 @@ export async function handleCheckoutRequest(
         });
       }
       profileId = guestProfile.id;
-      transientGuestProfileId = guestProfile.id;
+      // Track for potential cleanup (profile is kept intentionally for reuse)
     }
 
     const resolveAddress = async (
@@ -326,6 +326,22 @@ export async function handleCheckoutRequest(
       }
       if (addrBody && typeof addrBody === "object") {
         const a = addrBody as Record<string, unknown>;
+        // Dedup: look for existing matching address for this profile
+        const existing = await prisma.address.findFirst({
+          where: {
+            profileId,
+            fullName: a.fullName as string,
+            phone: a.phone as string,
+            line1: a.line1 as string,
+            city: a.city as string,
+            state: a.state as string,
+            pincode: a.pincode as string,
+            addressType: type,
+          },
+          select: { id: true },
+        });
+        if (existing) return existing.id;
+
         const addr = await prisma.address.create({
           data: {
             profileId,
@@ -341,6 +357,7 @@ export async function handleCheckoutRequest(
             addressType: type,
           },
         });
+        createdAddressIds.push(addr.id);
         return addr.id;
       }
       return null;
@@ -362,23 +379,24 @@ export async function handleCheckoutRequest(
     }
     if (!resolvedBillingId) return badRequest("Billing address is required");
 
-    // ── Calculate totals ──
+    // ── Calculate subtotal ──
     let subtotal = 0;
     for (const item of cartItems) {
       const price = item.variant.product.basePrice + item.variant.priceAdjustment;
       subtotal += price * item.quantity;
     }
 
+    // ── Settings ──
     const settings = await prisma.siteSetting.findFirst();
     const taxRate = settings ? Number(settings.taxRate) : DEFAULT_TAX_RATE;
     const freeThreshold = settings?.freeShippingThreshold
       ? Number(settings.freeShippingThreshold)
       : DEFAULT_FREE_THRESHOLD;
+    const rawPrefs = settings?.preferences && typeof settings.preferences === 'object'
+      ? (settings.preferences as Record<string, unknown>)
+      : {};
 
-    const shippingCost = subtotal >= freeThreshold ? 0 : STANDARD_SHIPPING;
-    const tax = Math.round(subtotal * taxRate) / 100;
-
-    // ── Coupon application ──
+    // ── Coupon application (calculated before tax so we tax the discounted amount) ──
     let discount = 0;
     let appliedCoupon: { id: string; usageLimit: number | null; perUserLimit: number } | null = null;
     if (couponCode && typeof couponCode === "string") {
@@ -426,6 +444,11 @@ export async function handleCheckoutRequest(
       };
     }
 
+    // ── Calculate tax and totals ──
+    const shippingCostPrice = Number(rawPrefs.shippingCost ?? DEFAULT_SHIPPING_COST);
+    const shippingCost = subtotal >= freeThreshold ? 0 : shippingCostPrice;
+    const taxableAmount = Math.max(0, subtotal - discount);
+    const tax = Math.round(taxableAmount * taxRate) / 100;
     const total = Math.max(0, Math.round((subtotal + shippingCost + tax - discount) * 100) / 100);
     const orderNumber = generateOrderNumber();
 
@@ -614,8 +637,17 @@ export async function handleCheckoutRequest(
 
     return success({ order, razorpayOrderId: order.razorpayOrderId });
   } catch (err) {
-    // Guest profiles are now persistent (real email) so no cleanup needed
-    // They can be reused for future guest orders
+    // Clean up any addresses created before the transaction in case of failure
+    if (!completedOrder && createdAddressIds.length > 0) {
+      try {
+        const prisma = getPrisma(ctx.env);
+        await prisma.address.deleteMany({
+          where: { id: { in: createdAddressIds } },
+        });
+      } catch (cleanupErr) {
+        console.error("[CHECKOUT] Failed to clean up orphaned addresses:", cleanupErr);
+      }
+    }
     if (err instanceof CheckoutError) return badRequest(err.message);
     return serverError(err);
   }

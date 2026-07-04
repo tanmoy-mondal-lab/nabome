@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 import { ProductGrid } from "../components/ProductGrid";
+import type { Product } from "../../types/product";
 
 interface SectionData {
   sectionType: string;
@@ -93,7 +94,7 @@ function useProductSource(content: Record<string, unknown>, sectionTitleFallback
 
   const { data: res, isLoading: loading } = useQuery({
     queryKey: ["products", "section", source, sourceValue, limit],
-    queryFn: () => api.get<{ products: Record<string, unknown>[] }>(endpoint, Object.keys(params).length > 0 ? { params } : undefined),
+    queryFn: () => api.get<{ products: Product[] }>(endpoint, Object.keys(params).length > 0 ? { params } : undefined),
     staleTime: 1000 * 60 * 10,
   });
 
@@ -110,9 +111,9 @@ export default function ProductGridSection({ section }: ProductGridSectionProps)
   if (loading) {
     return (
       <section className="container-wide section-padding">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-12">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="aspect-[3/4] bg-neutral-100 animate-pulse rounded" />
+            <div key={i} className="aspect-[3/4] bg-neutral-100 animate-pulse rounded-sm" />
           ))}
         </div>
       </section>
@@ -123,27 +124,31 @@ export default function ProductGridSection({ section }: ProductGridSectionProps)
 
   if (isNew) {
     return (
-      <section className="luxe-gradient bg-neutral-950 section-padding">
+      <section className="md:bg-white bg-neutral-950 section-padding">
         <div className="container-wide">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
-            className="flex items-end justify-between mb-12"
+            className="md:flex md:items-end md:justify-between md:mb-20 mb-12"
           >
             <div>
-              <p className="editorial-caption text-accent-gold mb-3">{sectionCaption}</p>
-              <h2 className="text-4xl md:text-5xl font-display text-white leading-tight">{sectionTitle}</h2>
+              {/* Desktop: quiet caption, no gold */}
+              <p className="md:text-[10px] md:tracking-[0.2em] md:uppercase md:text-neutral-400 editorial-caption md:mb-4 text-accent-gold mb-3">{sectionCaption}</p>
+              {/* Desktop: larger heading, dark text */}
+              <h2 className="md:text-display-1 md:text-neutral-900 text-4xl md:text-5xl font-display text-white leading-tight">{sectionTitle}</h2>
               {section.subtitle && (
-                <p className="text-neutral-400 font-editorial text-lg mt-3 max-w-lg">{section.subtitle}</p>
+                <p className="md:text-neutral-500 md:font-body md:text-base text-neutral-400 font-editorial text-lg mt-3 max-w-lg">{section.subtitle}</p>
               )}
             </div>
+            {/* Desktop: text link with arrow, not button */}
             <Link
               to={viewAllUrl}
-              className="btn-outline border-white/30 text-white hover:bg-white hover:text-neutral-900 hidden md:inline-flex"
+              className="md:text-[11px] md:tracking-[0.2em] md:uppercase md:text-neutral-500 md:hover:text-neutral-900 md:transition-colors md:duration-300 md:inline-flex md:items-center md:gap-2 btn-outline border-white/30 text-white hover:bg-white hover:text-neutral-900 hidden md:inline-flex"
             >
               View All
+              <span>&rarr;</span>
             </Link>
           </motion.div>
           <ProductGrid products={products} columns={4} />
@@ -167,17 +172,21 @@ export default function ProductGridSection({ section }: ProductGridSectionProps)
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.7 }}
-        className="flex items-end justify-between mb-12"
+        className="md:flex md:items-end md:justify-between md:mb-20 mb-12"
       >
         <div>
-          <p className="editorial-caption text-accent-gold mb-3">{sectionCaption}</p>
-          <h2 className="text-4xl md:text-5xl font-display text-neutral-900 leading-tight">{sectionTitle}</h2>
+          {/* Desktop: quiet caption */}
+          <p className="md:text-[10px] md:tracking-[0.2em] md:uppercase md:text-neutral-400 editorial-caption md:mb-4 text-accent-gold mb-3">{sectionCaption}</p>
+          {/* Desktop: larger heading */}
+          <h2 className="md:text-display-1 md:text-neutral-900 text-4xl md:text-5xl font-display text-neutral-900 leading-tight">{sectionTitle}</h2>
           {section.subtitle && (
-            <p className="editorial-lead mt-3 max-w-lg">{section.subtitle}</p>
+            <p className="md:text-neutral-500 md:font-body md:text-base editorial-lead mt-3 max-w-lg">{section.subtitle}</p>
           )}
         </div>
-        <Link to={viewAllUrl} className="btn-outline hidden md:inline-flex">
+        {/* Desktop: text link */}
+        <Link to={viewAllUrl} className="md:text-[11px] md:tracking-[0.2em] md:uppercase md:text-neutral-500 md:hover:text-neutral-900 md:transition-colors md:duration-300 md:inline-flex md:items-center md:gap-2 btn-outline hidden md:inline-flex">
           View All
+          <span>&rarr;</span>
         </Link>
       </motion.div>
       <ProductGrid products={products} columns={4} />

@@ -6,6 +6,7 @@ import { useSearch } from "../hooks/useProducts";
 import { ProductGrid } from "../components/ProductGrid";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { canonical } from "../../lib/seo";
+import type { Product } from "../../types/product";
 
 export default function SearchResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,7 +16,7 @@ export default function SearchResultsPage() {
   const currentPage = parseInt(searchParams.get("page") || "1", 10);
   const { data: searchRes, isLoading: loading, error: queryError, refetch } = useSearch(q, currentPage);
 
-  const products = (searchRes as Record<string, unknown>)?.products as Record<string, unknown>[] ?? [];
+  const products = (searchRes as Record<string, unknown>)?.products as Product[] ?? [];
   const total = ((searchRes as Record<string, unknown>)?.pagination as { total?: number })?.total ?? 0;
   const totalPages = ((searchRes as Record<string, unknown>)?.pagination as { totalPages?: number })?.totalPages ?? 0;
 

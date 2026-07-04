@@ -34,31 +34,31 @@ export default function CollectionsIndexPage() {
         <meta property="og:description" content="Explore our curated collections of premium fashion at নবME." />
         <meta property="og:url" content={canonical("/collections")} />
       </Helmet>
-      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Collections" }]} className="mb-8" />
-      <h1 className="font-display text-display-3 text-neutral-900 mb-10">Our Collections</h1>
+      <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "Collections" }]} className="mb-10" />
+      <h1 className="font-display text-display-1 md:text-display-2 text-neutral-900 mb-12">Our Collections</h1>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="aspect-[4/5] bg-luxe-ivory animate-pulse" />
+            <div key={i} className="aspect-[4/5] bg-luxe-ivory animate-pulse rounded-sm" />
           ))}
         </div>
       ) : error ? (
-        <div className="text-center py-12">
-          <p className="text-sm text-neutral-500 mb-3">Failed to load collections.</p>
+        <div className="text-center py-16">
+          <p className="text-sm text-neutral-500 mb-4">Failed to load collections.</p>
           <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
         </div>
       ) : collections.length === 0 ? (
         <p className="text-neutral-500 font-editorial">No collections available yet.</p>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
           {collections.map((c: any) => (
             <Link
               key={c.id}
               to={`/collections/${c.slug}`}
               className="group block"
             >
-              <div className="aspect-[4/5] bg-luxe-ivory overflow-hidden mb-3">
+              <div className="aspect-[4/5] bg-luxe-ivory overflow-hidden mb-4 rounded-sm">
                 {(c.heroImageUrl || c.imageUrl) ? (
                   <SafeImage
                     src={c.heroImageUrl || c.imageUrl}
@@ -75,7 +75,7 @@ export default function CollectionsIndexPage() {
                 {c.name}
               </h3>
               {c.description && (
-                <p className="text-[10px] text-neutral-400 mt-1 line-clamp-2">{c.description}</p>
+                <p className="text-[10px] text-neutral-400 mt-1.5 line-clamp-2">{c.description}</p>
               )}
             </Link>
           ))}

@@ -62,6 +62,7 @@ enum CampaignType {
   banner
   popup
   discount
+  flash_sale
 }
 
 enum SectionType {
@@ -77,6 +78,7 @@ enum SectionType {
   product_grid
   trust_bar
   custom_html
+  video_banner
 }
 
 enum Visibility {

@@ -103,7 +103,7 @@ async function handleBuild(env: any): Promise<Response> {
         slug: c.slug,
         description: c.description ?? undefined,
         imageUrl: c.imageUrl ?? undefined,
-        url: `/products?category=${encodeURIComponent(c.slug)}`,
+        url: `/categories/${encodeURIComponent(c.slug)}`,
         updatedAt: c.updatedAt.toISOString(),
       })),
       ...collections.map((c) => ({

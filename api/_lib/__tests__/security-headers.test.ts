@@ -37,6 +37,13 @@ describe('Security Headers - CSP & Hardening', () => {
       expect(csp).toContain('data:');
     });
 
+    it('should allow media playback from self and Cloudinary', () => {
+      const csp = SECURITY_HEADERS['Content-Security-Policy'];
+      expect(csp).toContain("media-src 'self'");
+      expect(csp).toContain('https://res.cloudinary.com');
+      expect(csp).toContain('blob:');
+    });
+
     it('should restrict connect-src to self and API domains', () => {
       const csp = SECURITY_HEADERS['Content-Security-Policy'];
       expect(csp).toContain("connect-src 'self'");

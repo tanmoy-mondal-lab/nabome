@@ -10,6 +10,7 @@ import { useCartStore } from "../stores/cart-store";
 import { useAuthStore } from "../../stores/auth-store";
 import { Helmet } from "react-helmet-async";
 import { canonical } from "../../lib/seo";
+import type { Product, ProductVariant } from "../../types/product";
 
 export default function LookbookDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -86,8 +87,8 @@ export default function LookbookDetailPage() {
       <div className="space-y-16">
         {items.map((item, i) => {
           const type = (item.type as string | undefined) ?? "image";
-          const product = item.product as Record<string, unknown> | null | undefined;
-          const products = product ? [product] : ((item.products as Record<string, unknown>[] | undefined) ?? []);
+          const product = item.product as Product | null | undefined;
+          const products = product ? [product] : ((item.products as Product[] | undefined) ?? []);
           const imageUrl = (item.imageUrl as string | undefined) ?? (item.mediaUrl as string | undefined);
           const caption = (item.caption as string | undefined) ?? (item.title as string | undefined) ?? "";
 
@@ -130,7 +131,7 @@ export default function LookbookDetailPage() {
                       }
                       products.forEach((p) => {
                         const images = (p.images as { url: string }[]) ?? [];
-                        const variants = (p.variants as Record<string, unknown>[]) ?? [];
+                        const variants = (p.variants as ProductVariant[]) ?? [];
                         const v = variants[0];
                         if (!v) return;
                         addItem({

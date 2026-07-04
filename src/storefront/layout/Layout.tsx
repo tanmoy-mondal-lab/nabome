@@ -42,17 +42,16 @@ export function StorefrontLayout() {
   const { data: settings } = useSettings();
   const isCheckout = pathname === "/checkout";
   const headerRef = useRef<HTMLDivElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(64);
+  const [headerHeight, setHeaderHeight] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches ? 112 : 64);
 
   useEffect(() => {
-    if (!headerRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setHeaderHeight(entry.contentRect.height);
-      }
-    });
-    observer.observe(headerRef.current);
-    return () => observer.disconnect();
+    const mql = window.matchMedia("(min-width: 768px)");
+    function updateHeaderHeight() {
+      setHeaderHeight(mql.matches ? 112 : 64);
+    }
+    updateHeaderHeight();
+    mql.addEventListener("change", updateHeaderHeight);
+    return () => mql.removeEventListener("change", updateHeaderHeight);
   }, []);
 
   useEffect(() => {
@@ -145,7 +144,7 @@ export function StorefrontLayout() {
       <MobileNav />
       <SearchOverlay />
       <CartDrawer />
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:bg-brand-500 focus:text-white focus:px-4 focus:py-2 focus:rounded">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:bg-brand-500 focus:text-white focus:px-4 focus:py-2 focus:rounded md:focus:top-4 md:focus:left-4 focus:bottom-[80px] focus:left-4">
         Skip to content
       </a>
       <main id="main-content" className="flex-1 pb-16 md:pb-0" style={{ paddingTop: `${headerHeight}px` }}>

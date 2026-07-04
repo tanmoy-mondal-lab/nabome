@@ -52,12 +52,12 @@ export default function CollectionGridSection({ section }: CollectionGridSection
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.7 }}
-        className="text-center mb-14"
+        className="text-center md:mb-20 mb-14"
       >
-        <p className="editorial-caption text-accent-gold mb-3">{section.subtitle || "Curated Worlds"}</p>
-        <h2 className="text-4xl md:text-5xl font-display text-neutral-900">{title}</h2>
+        <p className="md:text-[10px] md:tracking-[0.2em] md:uppercase md:text-neutral-400 editorial-caption md:mb-4 text-accent-gold mb-3">{section.subtitle || "Curated Worlds"}</p>
+        <h2 className="text-4xl md:text-6xl font-display text-neutral-900">{title}</h2>
       </motion.div>
-      <div className={`grid grid-cols-1 ${gridCols} gap-8`}>
+      <div className={`grid grid-cols-1 ${gridCols} md:gap-10 gap-8`}>
         {collections.map((col, i) => {
           const image = (col.heroImageUrl as string) || "";
           return (
@@ -70,23 +70,24 @@ export default function CollectionGridSection({ section }: CollectionGridSection
             >
               <Link
                 to={`/collections/${col.slug}`}
-                className="group relative block aspect-[3/4] bg-neutral-100 overflow-hidden rounded-sm"
+                className="group relative block aspect-[3/4] bg-neutral-100 overflow-hidden md:rounded-none rounded-sm"
               >
                 {image && (
                   <SafeImage
                     src={image}
                     alt={col.name as string}
-                    className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-all duration-700 md:group-hover:scale-[1.03] group-hover:scale-105"
                   />
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-7 transform transition-transform duration-500 group-hover:-translate-y-2">
-                  <h3 className="text-2xl font-display text-white mb-1">{col.name as string}</h3>
-                  <p className="editorial-caption text-neutral-400 mb-2">
+                {/* Desktop: lighter gradient overlay */}
+                <div className="absolute inset-0 md:bg-gradient-to-t md:from-black/40 md:via-transparent md:to-transparent bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 md:p-10 p-7 transform transition-transform duration-500 group-hover:-translate-y-2">
+                  <h3 className="md:text-3xl md:tracking-wide text-2xl font-display text-white mb-1">{col.name as string}</h3>
+                  <p className="md:text-[11px] md:tracking-[0.15em] md:text-white/60 editorial-caption text-neutral-400 mb-2">
                     {(col.description as string) || ""}
                   </p>
-                  <span className="text-[10px] uppercase tracking-[0.15em] text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    View Collection →
+                  <span className="md:text-[10px] md:tracking-[0.2em] md:uppercase md:text-white/60 md:opacity-0 md:group-hover:opacity-100 md:transition-opacity md:duration-300 text-[10px] uppercase tracking-[0.15em] text-white/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    View Collection &rarr;
                   </span>
                 </div>
               </Link>

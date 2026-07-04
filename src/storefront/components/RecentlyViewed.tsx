@@ -5,15 +5,16 @@ import { Clock, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { api } from "../../lib/api/client";
 import { ProductCard } from "./ProductCard";
 import { getRecentlyViewed, clearRecentlyViewed } from "../lib/recommendations";
+import type { Product } from "../../types/product";
 
 export function RecentlyViewed() {
-  const [products, setProducts] = useState<Record<string, unknown>[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const slugs = useMemo(() => getRecentlyViewed().slice(0, 8), []);
 
   useEffect(() => {
     if (!slugs.length) return;
-    api.get<{ products: Record<string, unknown>[] }>(`/api/products/by-slugs?slugs=${slugs.join(",")}`)
+    api.get<{ products: Product[] }>(`/api/products/by-slugs?slugs=${slugs.join(",")}`)
       .then((res) => setProducts(res?.products ?? []))
       .catch(() => setProducts([]));
   }, [slugs]);

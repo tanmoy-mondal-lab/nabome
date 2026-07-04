@@ -62,22 +62,22 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="container-page py-8">
+    <div className="container-page py-10">
       <Helmet>
         <title>My Orders — নবME</title>
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
-      <h1 className="text-2xl md:text-3xl font-display text-neutral-900 mb-8 tracking-fashion">My Orders</h1>
-      <div className="grid lg:grid-cols-4 gap-8">
+      <h1 className="text-display-1 md:text-display-2 font-display text-neutral-900 mb-10 tracking-fashion">My Orders</h1>
+      <div className="grid lg:grid-cols-4 gap-10">
         <DashboardSidebar />
-        <div className="lg:col-span-3 space-y-6">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="lg:col-span-3 space-y-8">
+          <div className="flex items-center gap-3 flex-wrap">
             {statusTabs.map((tab) => (
               <button
                 key={tab.value}
                 onClick={() => handleTabChange(tab.value)}
                 className={cn(
-                  "px-4 py-2 text-xs uppercase tracking-wider whitespace-nowrap rounded-full transition-colors",
+                  "px-5 py-2.5 text-xs uppercase tracking-wider whitespace-nowrap rounded-full transition-colors",
                   activeTab === tab.value
                     ? "bg-neutral-900 text-white"
                     : "bg-neutral-100 text-neutral-500 hover:bg-neutral-200"
@@ -89,14 +89,14 @@ export default function OrdersPage() {
           </div>
 
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-neutral-100 animate-pulse rounded" />
+                <div key={i} className="h-24 bg-neutral-100 animate-pulse rounded" />
               ))}
             </div>
           ) : isError ? (
-            <div className="text-center py-12 premium-card shadow-subtle">
-              <p className="text-sm text-neutral-500 mb-3">Failed to load orders.</p>
+            <div className="text-center py-16 premium-card shadow-subtle">
+              <p className="text-sm text-neutral-500 mb-4">Failed to load orders.</p>
               <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
             </div>
           ) : orders.length === 0 ? (

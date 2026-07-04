@@ -3,6 +3,7 @@ import { Home, Search, Heart, ShoppingBag, User } from "lucide-react";
 import { useCartStore } from "../stores/cart-store";
 import { useAuthStore } from "../../stores/auth-store";
 import { cn } from "../../lib/utils/cn";
+import { hapticMedium } from "../../lib/utils/haptic";
 
 const NAV_ITEMS = [
   { href: "/", icon: Home, label: "Home" },
@@ -19,6 +20,7 @@ export function BottomNav() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   function handleNavClick(href: string) {
+    hapticMedium();
     const needsAuth = href === "/account" || href === "/account/wishlist";
     if (needsAuth && !isAuthenticated) {
       navigate("/auth/login", { state: { from: href } });
@@ -27,8 +29,11 @@ export function BottomNav() {
   }
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-neutral-200 pb-safe">
-      <div className="flex items-center justify-around h-14">
+    <nav
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-premium border-t border-neutral-100/80"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+    >
+      <div className="flex items-center justify-around h-[60px] px-2">
         {NAV_ITEMS.map(({ href, icon: Icon, label, showCount }) => {
           const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
           const needsAuth = href === "/account" || href === "/account/wishlist";
@@ -40,19 +45,24 @@ export function BottomNav() {
               onClick={() => handleNavClick(href)}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 relative h-full px-3 transition-colors duration-200",
-                isActive ? "text-brand-500" : "text-neutral-500 hover:text-neutral-700"
+                "flex flex-col items-center justify-center gap-1 relative h-full px-4 transition-all duration-300",
+                isActive ? "text-brand-600" : "text-neutral-400 active:text-neutral-600"
               )}
             >
               <div className="relative">
-                <Icon className="w-5 h-5" />
+                <Icon className={cn("w-[22px] h-[22px] transition-all duration-300", isActive && "stroke-[2.5px]")} />
                 {showCount && itemCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-brand-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center shadow-sm">
-                    {itemCount > 9 ? "9+" : itemCount}
+                  <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] bg-brand-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 shadow-md">
+                    {itemCount > 99 ? "99+" : itemCount}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] tracking-wider font-medium">{label}</span>
+              <span className={cn("text-[10px] tracking-[0.08em] font-medium transition-all duration-300", isActive && "font-semibold")}>
+                {label}
+              </span>
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-[2px] bg-brand-600 rounded-full" />
+              )}
             </Link>
           );
         })}

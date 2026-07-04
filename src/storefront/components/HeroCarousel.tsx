@@ -73,7 +73,7 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
 
   return (
     <section
-      className="relative h-screen max-h-[900px] min-h-[600px] w-full overflow-hidden bg-neutral-900"
+      className="relative h-[85vh] md:h-screen max-h-[900px] min-h-[300px] md:min-h-[600px] w-full overflow-hidden bg-neutral-900"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -150,12 +150,22 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.6 }}
+              className="flex flex-col sm:flex-row gap-4 sm:gap-5 w-full sm:w-auto"
             >
+              {/* Mobile: outline button */}
               <Link
                 to={slide.ctaUrl}
-                className="inline-block bg-white text-neutral-900 px-8 py-3 text-sm font-medium tracking-wider hover:bg-neutral-100 transition-colors"
+                className="md:hidden inline-flex items-center justify-center gap-2 border-2 border-white text-white px-8 py-3 text-sm font-medium tracking-wider hover:bg-white hover:text-neutral-900 transition-colors text-center"
               >
                 {slide.ctaText}
+              </Link>
+              {/* Desktop: clean text link CTA */}
+              <Link
+                to={slide.ctaUrl}
+                className="hidden md:inline-flex items-center gap-2 text-[11px] tracking-[0.25em] uppercase text-white/80 hover:text-white transition-colors duration-300 group/cta"
+              >
+                {slide.ctaText}
+                <span className="inline-block transition-transform duration-300 group-hover/cta:translate-x-1">&rarr;</span>
               </Link>
             </motion.div>
           )}

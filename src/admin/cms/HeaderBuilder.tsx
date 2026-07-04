@@ -12,6 +12,25 @@ import {
   Smartphone, Globe, Monitor,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DraggableSyntheticListeners,
+} from "@dnd-kit/core";
+import type { DraggableAttributes } from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { type NavigationMenu, type NavigationItem, type MegaMenuColumn, type PromotionalMenuContent } from "../../cms/core/cms-types";
 import { useToast } from "../../components/ui/Toast";
 
@@ -42,6 +61,28 @@ const DEFAULT_HEADER_CONFIG: HeaderConfig = {
   menuStyle: "standard",
   maxNavItems: 6,
 };
+
+function SortableItem({
+  id,
+  children,
+}: {
+  id: string;
+  children: (props: {
+    listeners?: DraggableSyntheticListeners;
+    attributes: DraggableAttributes;
+    setNodeRef: (node: HTMLElement | null) => void;
+    transform: { x: number; y: number; scaleX: number; scaleY: number } | null;
+    transition: string | undefined;
+    isDragging: boolean;
+  }) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  return (
+    <div ref={setNodeRef} style={{ opacity: isDragging ? 0.5 : 1 }}>
+      {children({ listeners, attributes, setNodeRef, transform, transition, isDragging })}
+    </div>
+  );
+}
 
 export default function HeaderBuilder() {
   const queryClient = useQueryClient();
@@ -148,6 +189,11 @@ export default function HeaderBuilder() {
   };
 
   const handleSave = () => {
+    const emptyLabels = form.items.filter((item) => !item.label?.trim());
+    if (emptyLabels.length > 0) {
+      toast("All menu items must have a label", "error");
+      return;
+    }
     saveMutation.mutate();
   };
 
@@ -159,7 +205,7 @@ export default function HeaderBuilder() {
   const addItem = (type: NavigationItem["type"] = "link") => {
     const id = crypto.randomUUID();
     const newItem: NavigationItem = {
-      id, type, label: "", url: "/", link: "/", target: "_self",
+      id, type, label: "", url: "/", target: "_self",
       children: type === "dropdown" || type === "mega_menu" ? [] : undefined,
       megaMenuColumns: type === "mega_menu" ? [{ id: crypto.randomUUID(), title: "", items: [] }] : undefined,
       promotionalContent: type === "promotional" ? { title: "", description: "", image: "", linkUrl: "", linkText: "" } : undefined,
@@ -172,7 +218,14 @@ export default function HeaderBuilder() {
   const updateItem = (idx: number, field: keyof NavigationItem, value: unknown) => {
     setForm((prev) => ({
       ...prev,
-      items: prev.items.map((item, i) => (i === idx ? { ...item, [field]: value } : item)),
+      items: prev.items.map((item, i) => {
+        if (i !== idx) return item;
+        const updated = { ...item, [field]: value };
+        // Keep link and url in sync — url is the source of truth in the admin editor
+        if (field === "url") updated.link = value as string;
+        if (field === "link") updated.url = value as string;
+        return updated;
+      }),
     }));
   };
 
@@ -192,7 +245,7 @@ export default function HeaderBuilder() {
   const addChildItem = (parentIdx: number) => {
     const child: NavigationItem = {
       id: crypto.randomUUID(),
-      type: "link", label: "", url: "/", link: "/", target: "_self",
+      type: "link", label: "", url: "/", target: "_self",
       isVisible: true, isHighlighted: false,
     };
     setForm((prev) => ({
@@ -289,6 +342,53 @@ export default function HeaderBuilder() {
     if (typeof headerConfig[key] === "boolean") {
       setHeaderConfig((prev) => ({ ...prev, [key]: !prev[key] }));
     }
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setForm((prev) => {
+      const oldIndex = prev.items.findIndex((item) => item.id === active.id);
+      const newIndex = prev.items.findIndex((item) => item.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      return { ...prev, items: arrayMove(prev.items, oldIndex, newIndex) };
+    });
+  };
+
+  const cleanupItemOnTypeChange = (idx: number, newType: NavigationItem["type"]) => {
+    setForm((prev) => ({
+      ...prev,
+      items: prev.items.map((item, i) => {
+        if (i !== idx) return item;
+        const cleaned = { ...item, type: newType };
+        // Clean up fields that don't belong to the new type
+        if (newType !== "dropdown" && newType !== "mega_menu") {
+          cleaned.children = undefined;
+        }
+        if (newType !== "mega_menu") {
+          cleaned.megaMenuColumns = undefined;
+        }
+        if (newType !== "promotional") {
+          cleaned.promotionalContent = undefined;
+        }
+        // Ensure the required sub-structures exist for the new type
+        if (newType === "dropdown" || newType === "mega_menu") {
+          cleaned.children = cleaned.children ?? [];
+        }
+        if (newType === "mega_menu") {
+          cleaned.megaMenuColumns = cleaned.megaMenuColumns ?? [{ id: crypto.randomUUID(), title: "", items: [] }];
+        }
+        if (newType === "promotional") {
+          cleaned.promotionalContent = cleaned.promotionalContent ?? { title: "", description: "", image: "", linkUrl: "", linkText: "" };
+        }
+        return cleaned;
+      }),
+    }));
   };
 
   if (loading) {
@@ -484,18 +584,40 @@ export default function HeaderBuilder() {
                   <p className="text-xs text-neutral-400">No menu items yet. Click the buttons above to add links, dropdowns, or mega menus.</p>
                 </div>
               ) : (
-                form.items.map((item, idx) => {
-                  const isExpanded = expandedItems.has(item.id);
-                  const childCount = (item.children?.length ?? 0) + (item.megaMenuColumns?.flatMap((c) => c.items).length ?? 0);
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={form.items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                    {form.items.map((item, idx) => {
+                      const isExpanded = expandedItems.has(item.id);
+                      const childCount = (item.children?.length ?? 0) + (item.megaMenuColumns?.flatMap((c) => c.items).length ?? 0);
 
-                  return (
-                    <div key={item.id} className={`bg-white rounded-xl border transition-all shadow-subtle ${isExpanded ? "border-neutral-300" : "border-neutral-200 hover:border-neutral-300"}`}>
-                      {/* Accordion Header — always visible */}
-                      <div
-                        className="flex items-center gap-2.5 px-4 py-3 cursor-pointer select-none"
-                        onClick={() => toggleItemExpanded(item.id)}
-                      >
-                        <GripVertical size={15} className="text-neutral-300 shrink-0 cursor-grab" onClick={(e) => e.stopPropagation()} />
+                      return (
+                        <SortableItem key={item.id} id={item.id}>
+                          {({ listeners, setNodeRef, transform, transition }) => {
+                            const sortableStyle: React.CSSProperties = transform
+                              ? {
+                                  transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+                                  transition,
+                                  zIndex: 50,
+                                  position: "relative" as const,
+                                }
+                              : {};
+                            return (
+                              <div
+                                ref={setNodeRef}
+                                style={sortableStyle}
+                                className={`bg-white rounded-xl border transition-all shadow-subtle ${isExpanded ? "border-neutral-300" : "border-neutral-200 hover:border-neutral-300"}`}
+                              >
+                                {/* Accordion Header — always visible */}
+                                <div
+                                  className="flex items-center gap-2.5 px-4 py-3 cursor-pointer select-none"
+                                  onClick={() => toggleItemExpanded(item.id)}
+                                >
+                                  <GripVertical
+                                    size={15}
+                                    className="text-neutral-300 shrink-0 cursor-grab"
+                                    onClick={(e) => e.stopPropagation()}
+                                    {...listeners}
+                                  />
                         {isExpanded ? <ChevronDown size={14} className="text-neutral-400 shrink-0" /> : <ChevronRight size={14} className="text-neutral-400 shrink-0" />}
                         <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-md font-medium capitalize ${
                           item.type === "mega_menu" ? "bg-purple-50 text-purple-700" :
@@ -530,7 +652,10 @@ export default function HeaderBuilder() {
                           {/* Row 1: Type + Label + URL */}
                           <div className="flex items-center gap-2.5">
                             <select value={item.type}
-                              onChange={(e) => updateItem(idx, "type", e.target.value as NavigationItem["type"])}
+                              onChange={(e) => {
+                                const newType = e.target.value as NavigationItem["type"];
+                                cleanupItemOnTypeChange(idx, newType);
+                              }}
                               className="text-xs px-2 py-1.5 border border-neutral-200 rounded-lg bg-white font-medium">
                               <option value="link">Link</option>
                               <option value="dropdown">Dropdown</option>
@@ -700,10 +825,15 @@ export default function HeaderBuilder() {
                         </div>
                       )}
                     </div>
-                  );
-                })
-              )}
-            </div>
+                    );
+                  }}
+                </SortableItem>
+              );
+            })}
+          </SortableContext>
+        </DndContext>
+      )}
+    </div>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-neutral-100">

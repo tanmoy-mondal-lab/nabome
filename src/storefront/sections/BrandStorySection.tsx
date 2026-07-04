@@ -47,49 +47,49 @@ export default function BrandStorySection({ section }: BrandStorySectionProps) {
   const parts = headline.split("Endures");
 
   return (
-    <section className="bg-luxe-ivory section-padding">
+    <section className="md:bg-white bg-luxe-ivory section-padding">
       <div className="container-wide">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="grid md:grid-cols-2 gap-12 items-center"
+          className="grid md:grid-cols-2 md:gap-20 gap-12 items-center"
         >
           <div>
-            <p className="editorial-caption text-accent-gold mb-3">
+            <p className="md:text-[10px] md:tracking-[0.2em] md:uppercase md:text-neutral-400 editorial-caption md:mb-4 text-accent-gold mb-3">
               {section.subtitle ?? "Our Heritage"}
             </p>
-            <h2 className="text-4xl md:text-5xl font-display text-neutral-900 leading-tight">
+            <h2 className="text-4xl md:text-6xl md:leading-[0.95] font-display text-neutral-900 leading-tight">
               {parts.length > 1 ? (
                 <>
                   {parts[0]}
-                  <span className="text-accent-gold">Endures</span>
+                  <span className="md:text-brand-500 text-accent-gold">Endures</span>
                   {parts[1]}
                 </>
               ) : (
                 headline
               )}
             </h2>
-            <p className="editorial-lead text-neutral-600 mt-5 leading-relaxed">{body}</p>
-            <div className="grid grid-cols-3 gap-6 mt-8 pt-8 border-t border-neutral-200">
+            <p className="md:text-neutral-500 md:font-body md:text-base md:leading-relaxed editorial-lead text-neutral-600 mt-5 leading-relaxed">{body}</p>
+            <div className="grid grid-cols-3 gap-6 md:mt-10 md:pt-10 md:border-t md:border-neutral-100 mt-8 pt-8 border-t border-neutral-200">
               {stats.map((s) => (
                 <div key={s.label}>
-                  <p className="text-2xl md:text-3xl font-display text-neutral-900">{s.value}</p>
-                  <p className="text-xs text-neutral-500 mt-1">{s.label}</p>
+                  <p className="md:text-4xl md:text-neutral-900 md:font-display text-2xl md:text-3xl font-display text-neutral-900">{s.value}</p>
+                  <p className="md:text-[11px] md:text-neutral-400 md:tracking-wide mt-1 text-xs text-neutral-500">{s.label}</p>
                 </div>
               ))}
             </div>
           </div>
-          <div className="relative aspect-[4/5] bg-neutral-200 overflow-hidden rounded-sm group">
+          <div className="relative aspect-[4/5] bg-neutral-200 overflow-hidden md:rounded-none rounded-sm group">
             {imageUrl && (
               <SafeImage
                 src={imageUrl}
                 alt={headline || "Brand story image"}
-                className="w-full h-full object-cover transition-transform duration-700 ease-luxe-out group-hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-700 ease-luxe-out md:group-hover:scale-[1.03] group-hover:scale-105"
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
           </div>
         </motion.div>
       </div>

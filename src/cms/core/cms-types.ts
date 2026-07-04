@@ -348,6 +348,7 @@ export interface ThemeHeaderConfig {
   accountIcon: boolean;
   menuLocation: "left" | "center" | "right";
   menuStyle: "standard" | "mega" | "dropdown" | "accordion";
+  maxNavItems?: number;
 }
 
 export interface ThemeFooterConfig {

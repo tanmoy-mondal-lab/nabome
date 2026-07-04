@@ -22,7 +22,7 @@ interface CategoriesResponse {
 export function useCategories() {
   return useQuery({
     queryKey: ["categories"],
-    queryFn: () => api.get<CategoriesResponse>("/api/categories"),
+    queryFn: ({ signal }) => api.get<CategoriesResponse>("/categories", { signal }),
     select: (data) => data?.categories ?? [],
     staleTime: 1000 * 60 * 10, // 10 minutes
     gcTime: 1000 * 60 * 60, // 1 hour

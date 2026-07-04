@@ -17,7 +17,7 @@ export function usePolicyPages() {
   return useQuery({
     queryKey: ["cms", "policyPages"],
     queryFn: async () => {
-      const res = await api.get<PagesResponse>("/api/cms/pages");
+      const res = await api.get<PagesResponse>("/cms/pages");
       const pages = res.pages ?? [];
       const defaultPages = pages.filter((p) => DEFAULT_POLICY_SLUGS.includes(p.slug));
       if (defaultPages.length > 0) return defaultPages;

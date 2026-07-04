@@ -60,13 +60,13 @@ export default function TestimonialsSection({ section }: TestimonialsSectionProp
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="text-center mb-12"
+        className="text-center md:mb-16 mb-12"
       >
-        <h2 className="text-4xl md:text-5xl font-display text-neutral-900 mb-3">
+        <h2 className="md:text-6xl md:text-neutral-900 md:mb-4 text-4xl md:text-5xl font-display text-neutral-900 mb-3">
           {title}
         </h2>
         {subtitle && (
-          <p className="text-neutral-500 max-w-xl mx-auto">{subtitle}</p>
+          <p className="text-base max-w-xl mx-auto text-neutral-500">{subtitle}</p>
         )}
       </motion.div>
 
@@ -75,19 +75,19 @@ export default function TestimonialsSection({ section }: TestimonialsSectionProp
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true }}
-        className={`grid ${getColumns(testimonials.length)} gap-8`}
+        className={`grid ${getColumns(testimonials.length)} md:gap-10 gap-8`}
       >
         {testimonials.map((t, i) => (
           <motion.div
             key={i}
             variants={cardVariants}
-            className="premium-card-lift p-6 bg-white flex flex-col"
+            className="md:p-8 p-6 bg-white flex flex-col md:border md:border-neutral-100 premium-card-lift"
           >
             <StarRating rating={t.rating} className="mb-3" />
-            <p className="text-neutral-700 leading-relaxed flex-1 mb-4">
+            <p className="md:text-neutral-600 md:leading-[1.8] text-neutral-700 leading-relaxed flex-1 mb-4">
               &ldquo;{t.text}&rdquo;
             </p>
-            <div className="flex items-center gap-3 pt-4 border-t border-neutral-100">
+            <div className="flex items-center gap-3 md:pt-6 md:border-t md:border-neutral-100 pt-4 border-t border-neutral-100">
               {t.avatar ? (
                 <SafeImage
                   src={t.avatar}
@@ -100,9 +100,9 @@ export default function TestimonialsSection({ section }: TestimonialsSectionProp
                 </div>
               )}
               <div>
-                <p className="text-sm font-semibold text-neutral-900">{t.name}</p>
+                <p className="md:text-sm md:font-medium md:text-neutral-900 text-sm font-semibold text-neutral-900">{t.name}</p>
                 {t.location && (
-                  <p className="text-xs text-neutral-500">{t.location}</p>
+                  <p className="md:text-[11px] md:text-neutral-400 text-xs text-neutral-500">{t.location}</p>
                 )}
               </div>
             </div>

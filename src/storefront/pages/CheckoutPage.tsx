@@ -16,25 +16,12 @@ import { useAuthStore } from "../../stores/auth-store";
 import { customerApi } from "../../lib/api/customer";
 import { addressesApi, type Address } from "../../lib/api/addresses";
 import { useRazorpay } from "../../lib/razorpay/use-razorpay";
-import { PhoneInput } from "../../components/PhoneInput";
-import { SafeImage } from "../../components/SafeImage";
 import { useSettings } from "../hooks/useSettings";
 import { api } from "../../lib/api/client";
 import { Helmet } from "react-helmet-async";
 import { canonical } from "../../lib/seo";
-
-const INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
-  "Chhattisgarh", "Goa", "Gujarat", "Haryana",
-  "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala",
-  "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya",
-  "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan",
-  "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
-  "Uttarakhand", "Uttar Pradesh", "West Bengal",
-  "Andaman and Nicobar Islands", "Chandigarh",
-  "Dadra and Nagar Haveli and Daman and Diu", "Delhi",
-  "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry",
-] as const;
+import { AddressForm, EMPTY_SHIPPING, validateAddress, type ShippingFormState } from "../components/checkout/AddressForm";
+import { OrderSummary } from "../components/checkout/OrderSummary";
 
 const PAYMENT_METHODS = [
   { value: "card", label: "Credit / Debit Card", description: "Visa, Mastercard, RuPay", icon: CreditCard },
@@ -50,36 +37,12 @@ const NET_BANKING_BANKS = [
   "Canara Bank", "Union Bank of India", "IDBI Bank", "Federal Bank",
 ];
 
-interface ShippingFormState {
-  fullName: string;
-  phone: string;
-  line1: string;
-  line2: string;
-  city: string;
-  district: string;
-  state: string;
-  pincode: string;
-  country: string;
-}
-
 interface CardFormState {
   number: string;
   expiry: string;
   cvv: string;
   name: string;
 }
-
-const EMPTY_SHIPPING: ShippingFormState = {
-  fullName: "",
-  phone: "",
-  line1: "",
-  line2: "",
-  city: "",
-  district: "",
-  state: "",
-  pincode: "",
-  country: "India",
-};
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -119,10 +82,15 @@ export default function CheckoutPage() {
   const [guestEmailError, setGuestEmailError] = useState("");
 
   const { data: settingsData } = useSettings();
+
+  const rawPreferences = settingsData?.preferences && typeof settingsData.preferences === 'object'
+    ? (settingsData.preferences as Record<string, unknown>)
+    : {};
+
   const siteSettings = {
-    taxRate: Number(settingsData?.preferences && typeof settingsData.preferences === 'object' ? (settingsData.preferences as Record<string, unknown>).taxRate ?? 5 : 5),
-    freeShippingThreshold: Number(settingsData?.preferences && typeof settingsData.preferences === 'object' ? (settingsData.preferences as Record<string, unknown>).freeShippingThreshold ?? 500 : 500),
-    shippingCost: Number(settingsData?.preferences && typeof settingsData.preferences === 'object' ? (settingsData.preferences as Record<string, unknown>).shippingCost ?? 99 : 99),
+    taxRate: Number(settingsData?.taxRate ?? rawPreferences.taxRate ?? 5),
+    freeShippingThreshold: Number(settingsData?.freeShippingThreshold ?? rawPreferences.freeShippingThreshold ?? 500),
+    shippingCost: Number(rawPreferences.shippingCost ?? 99),
   };
 
   const { loaded: razorpayLoaded, openRazorpay } = useRazorpay();
@@ -160,30 +128,10 @@ export default function CheckoutPage() {
   }, [isAuthenticated]);
 
   const shippingCost = subtotal >= siteSettings.freeShippingThreshold ? 0 : siteSettings.shippingCost;
-  const tax = Math.round(subtotal * siteSettings.taxRate) / 100;
-  const grandTotal = total + shippingCost + tax;
+  const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+  const tax = Math.round(discountedSubtotal * siteSettings.taxRate) / 100;
+  const grandTotal = discountedSubtotal + shippingCost + tax;
   const email = isAuthenticated ? (user?.email || "") : guestEmail;
-
-  function validateAddress(
-    form: ShippingFormState,
-    setErrors: (e: Partial<Record<keyof ShippingFormState, string>>) => void
-  ): boolean {
-    const errs: Partial<Record<keyof ShippingFormState, string>> = {};
-    if (!form.fullName.trim()) errs.fullName = "Full name is required";
-    if (!form.phone.trim()) errs.phone = "Phone number is required";
-    else {
-      const digits = form.phone.replace(/\D/g, "");
-      const localNumber = digits.length > 10 ? digits.slice(-10) : digits;
-      if (!/^[6-9]\d{9}$/.test(localNumber)) errs.phone = "Enter a valid 10-digit number";
-    }
-    if (!form.line1.trim()) errs.line1 = "Address is required";
-    if (!form.city.trim()) errs.city = "City is required";
-    if (!form.state) errs.state = "Select a state";
-    if (!form.pincode.trim()) errs.pincode = "Pincode is required";
-    else if (!/^\d{6}$/.test(form.pincode.trim())) errs.pincode = "Enter a valid 6-digit pincode";
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  }
 
   function handleContinueToPayment() {
     if (!isAuthenticated) {
@@ -203,6 +151,39 @@ export default function CheckoutPage() {
   }
 
   function handleContinueToReview() {
+    // Validate payment method selection before proceeding
+    if (paymentMethod === "card" || paymentMethod === "upi" || paymentMethod === "netbanking") {
+      if (paymentMethod === "card") {
+        if (cardForm.number.replace(/\D/g, "").length < 13) {
+          setApiError("Please enter a valid card number");
+          return;
+        }
+        if (cardForm.expiry.length < 4) {
+          setApiError("Please enter a valid expiry date (MMYY)");
+          return;
+        }
+        if (cardForm.cvv.length < 3) {
+          setApiError("Please enter a valid CVV");
+          return;
+        }
+        if (!cardForm.name.trim()) {
+          setApiError("Please enter the name on card");
+          return;
+        }
+      }
+      if (paymentMethod === "upi") {
+        const upiPattern = /^[\w.-]+@[\w]+$/;
+        if (!upiId.trim() || !upiPattern.test(upiId.trim())) {
+          setApiError("Please enter a valid UPI ID (e.g., username@upi)");
+          return;
+        }
+      }
+      if (paymentMethod === "netbanking" && !selectedBank) {
+        setApiError("Please select your bank");
+        return;
+      }
+    }
+    setApiError("");
     setStep("confirm");
   }
 
@@ -367,81 +348,6 @@ export default function CheckoutPage() {
     setProcessing(false);
   }
 
-  function renderAddressForm(
-    form: ShippingFormState,
-    setForm: (f: ShippingFormState) => void,
-    errors: Partial<Record<keyof ShippingFormState, string>>,
-    setErrors: (e: Partial<Record<keyof ShippingFormState, string>>) => void,
-    prefix: string
-  ) {
-    const update = (field: keyof ShippingFormState, value: string) => {
-      setForm({ ...form, [field]: value });
-      if (errors[field]) setErrors({ ...errors, [field]: undefined });
-    };
-    const inputCls = (field: keyof ShippingFormState) =>
-      cn(
-        "input-field w-full px-3 py-2.5 text-sm",
-        errors[field] ? "border-red-400" : "border-neutral-200"
-      );
-    const labelCls = "text-xs text-neutral-500 mb-1 block font-body";
-    const errorId = (field: keyof ShippingFormState) => `${prefix}-${field}-error`;
-    const errorProps = (field: keyof ShippingFormState) => ({
-      "aria-invalid": errors[field] ? true : undefined,
-      "aria-describedby": errors[field] ? errorId(field) : undefined,
-    });
-
-    return (
-      <div className="grid grid-cols-2 gap-4">
-        <div className="col-span-2 sm:col-span-1">
-          <label className={labelCls} htmlFor={`${prefix}-fullName`}>Full Name *</label>
-          <input id={`${prefix}-fullName`} value={form.fullName} onChange={(e) => update("fullName", e.target.value)} className={inputCls("fullName")} placeholder="John Doe" {...errorProps("fullName")} />
-          {errors.fullName && <p id={errorId("fullName")} className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
-        </div>
-        <div className="col-span-2 sm:col-span-1">
-          <label className={labelCls} htmlFor={`${prefix}-phone`}>Phone *</label>
-          <PhoneInput id={`${prefix}-phone`} value={form.phone} onChange={(v) => update("phone", v)} ariaInvalid={!!errors.phone} ariaDescribedBy={errors.phone ? errorId("phone") : undefined} />
-          {errors.phone && <p id={errorId("phone")} className="text-xs text-red-500 mt-1">{errors.phone}</p>}
-        </div>
-        <div className="col-span-2">
-          <label className={labelCls} htmlFor={`${prefix}-line1`}>Street Address / Line 1 *</label>
-          <input id={`${prefix}-line1`} value={form.line1} onChange={(e) => update("line1", e.target.value)} className={inputCls("line1")} placeholder="123 Main Street" {...errorProps("line1")} />
-          {errors.line1 && <p id={errorId("line1")} className="text-xs text-red-500 mt-1">{errors.line1}</p>}
-        </div>
-        <div className="col-span-2">
-          <label className={labelCls} htmlFor={`${prefix}-line2`}>Apartment / Line 2 (optional)</label>
-          <input id={`${prefix}-line2`} value={form.line2} onChange={(e) => update("line2", e.target.value)} className={inputCls("line2")} placeholder="Apartment, suite, etc." />
-        </div>
-        <div>
-          <label className={labelCls} htmlFor={`${prefix}-city`}>City *</label>
-          <input id={`${prefix}-city`} value={form.city} onChange={(e) => update("city", e.target.value)} className={inputCls("city")} placeholder="Mumbai" {...errorProps("city")} />
-          {errors.city && <p id={errorId("city")} className="text-xs text-red-500 mt-1">{errors.city}</p>}
-        </div>
-        <div>
-          <label className={labelCls} htmlFor={`${prefix}-district`}>District</label>
-          <input id={`${prefix}-district`} value={form.district} onChange={(e) => update("district", e.target.value)} className={inputCls("district")} placeholder="Mumbai City" />
-        </div>
-        <div>
-          <label className={labelCls} htmlFor={`${prefix}-state`}>State *</label>
-          <select id={`${prefix}-state`} value={form.state} onChange={(e) => update("state", e.target.value)} className={inputCls("state")} {...errorProps("state")}>
-            <option value="">Select state</option>
-            {INDIAN_STATES.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
-          {errors.state && <p id={errorId("state")} className="text-xs text-red-500 mt-1">{errors.state}</p>}
-        </div>
-        <div>
-          <label className={labelCls} htmlFor={`${prefix}-pincode`}>Pincode *</label>
-          <input id={`${prefix}-pincode`} value={form.pincode} onChange={(e) => update("pincode", e.target.value)} className={inputCls("pincode")} placeholder="400001" maxLength={6} {...errorProps("pincode")} />
-          {errors.pincode && <p id={errorId("pincode")} className="text-xs text-red-500 mt-1">{errors.pincode}</p>}
-        </div>
-        <div>
-          <label className={labelCls} htmlFor={`${prefix}-country`}>Country</label>
-          <input id={`${prefix}-country`} value={form.country} className={inputCls("country")} readOnly />
-        </div>
-      </div>
-    );
-  }
 
   if (!items.length && step !== "success") {
     return (
@@ -487,15 +393,15 @@ export default function CheckoutPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
-            className="w-20 h-20 mx-auto bg-luxe-ivory rounded-full flex items-center justify-center mb-6"
+            className="w-24 h-24 mx-auto bg-luxe-ivory rounded-full flex items-center justify-center mb-8"
           >
-            <CheckCircle className="w-10 h-10 text-accent-gold" />
+            <CheckCircle className="w-12 h-12 text-accent-gold" />
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="font-display text-display-1 text-neutral-900 mb-3"
+            className="font-display text-display-1 text-neutral-900 mb-4"
           >
             Order Confirmed!
           </motion.h1>
@@ -503,7 +409,7 @@ export default function CheckoutPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="text-neutral-500 mb-2"
+            className="text-neutral-500 mb-3"
           >
             Thank you for your purchase. Your order has been placed successfully.
           </motion.p>
@@ -511,7 +417,7 @@ export default function CheckoutPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="text-sm text-neutral-400 mb-8"
+            className="text-sm text-neutral-400 mb-10"
           >
             Order ID: <span className="font-mono text-accent-gold font-medium">{orderId}</span>
           </motion.p>
@@ -519,7 +425,7 @@ export default function CheckoutPage() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
-            className="text-sm text-neutral-500 mb-8"
+            className="text-sm text-neutral-500 mb-10"
           >
             A confirmation email has been sent to your registered email address.
           </motion.p>
@@ -531,14 +437,14 @@ export default function CheckoutPage() {
           >
             <Link
               to="/products"
-              className="btn-primary px-8 py-3 text-sm uppercase tracking-widest"
+              className="btn-primary px-10 py-4 text-sm uppercase tracking-widest"
             >
               Continue Shopping
             </Link>
             {orderId && (
               <Link
                 to={`/account/orders/${orderId}`}
-                className="btn-outline px-8 py-3 text-sm uppercase tracking-widest"
+                className="btn-outline px-10 py-4 text-sm uppercase tracking-widest"
               >
                 View Order
               </Link>
@@ -687,7 +593,7 @@ export default function CheckoutPage() {
                     {isAuthenticated && savedAddresses.length > 0 && (
                       <p className="text-xs font-body text-neutral-500 uppercase tracking-fashion">New Address</p>
                     )}
-                    {renderAddressForm(shipping, setShipping, shippingErrors, setShippingErrors, "shipping")}
+                    <AddressForm form={shipping} setForm={setShipping} errors={shippingErrors} setErrors={setShippingErrors} prefix="shipping" />
                   </div>
                 )}
 
@@ -717,7 +623,7 @@ export default function CheckoutPage() {
                       <MapPin className="w-4 h-4 text-neutral-400" />
                       <h3 className="text-xs font-body text-neutral-500 uppercase tracking-fashion">Billing Address</h3>
                     </div>
-                    {renderAddressForm(billing, setBilling, billingErrors, setBillingErrors, "billing")}
+                    <AddressForm form={billing} setForm={setBilling} errors={billingErrors} setErrors={setBillingErrors} prefix="billing" />
                     {Object.keys(billingErrors).length > 0 && (
                       <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 text-sm text-red-700">
                         <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
@@ -1059,70 +965,21 @@ export default function CheckoutPage() {
 
         {/* ── Right Column: Order Summary ── */}
         <div className="lg:col-span-2">
-          <div className="premium-card p-6 sticky top-24 space-y-5 shadow-card">
-            <h3 className="text-sm uppercase tracking-fashion font-display text-neutral-900">Order Summary</h3>
-
-            <div className="space-y-3 max-h-72 overflow-y-auto">
-              {items.map((item) => (
-                <div key={item.variantId} className="flex gap-3">
-                  <SafeImage
-                    src={item.image || "/placeholder.svg"}
-                    alt={item.name}
-                    className="w-14 h-18 object-cover bg-luxe-ivory shrink-0 rounded"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-neutral-900 truncate">{item.name}</p>
-                    <p className="text-xs text-neutral-400">
-                      {item.size && `Size: ${item.size}`}{item.color && item.size ? ", " : ""}{item.color && `Color: ${item.color}`}
-                    </p>
-                    <p className="text-xs text-neutral-500">Qty: {item.quantity}</p>
-                    <p className="text-xs font-medium text-neutral-900 mt-0.5">{formatPrice(item.price * item.quantity)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t pt-4 space-y-2.5 text-sm">
-              <div className="flex justify-between text-neutral-600">
-                <span>Subtotal</span>
-                <span>{formatPrice(subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-neutral-600">
-                <span>Shipping</span>
-                {shippingCost === 0 ? (
-                  <span className="text-green-600 font-medium">Free</span>
-                ) : (
-                  <span>{formatPrice(shippingCost)}</span>
-                )}
-              </div>
-              <div className="flex justify-between text-neutral-600">
-                <span>Tax ({siteSettings.taxRate}%)</span>
-                <span>{formatPrice(tax)}</span>
-              </div>
-              {discountAmount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount {couponCode && <span className="text-xs">({couponCode})</span>}</span>
-                  <span>-{formatPrice(discountAmount)}</span>
-                </div>
-              )}
-              <div className="border-t pt-2.5 flex justify-between font-medium text-neutral-900 text-base">
-                <span>Total</span>
-                <span>{formatPrice(grandTotal)}</span>
-              </div>
-            </div>
-
-            {subtotal < siteSettings.freeShippingThreshold && (
-              <p className="text-xs text-amber-600 text-center trust-badge">
-                Add {formatPrice(siteSettings.freeShippingThreshold - subtotal)} more for free shipping!
-              </p>
-            )}
-
-            <div className="flex items-center justify-center gap-4 text-[10px] text-neutral-400 pt-2 border-t">
-              <span className="trust-badge flex items-center gap-1"><Lock className="w-3 h-3" /> Secure Checkout</span>
-              <span className="trust-badge flex items-center gap-1"><RotateCcw className="w-3 h-3" /> Free Returns</span>
-              <span className="trust-badge flex items-center gap-1"><Package className="w-3 h-3" /> COD Available</span>
-            </div>
-          </div>
+          <OrderSummary
+            items={items}
+            subtotal={subtotal}
+            shippingCost={shippingCost}
+            tax={tax}
+            taxRate={siteSettings.taxRate}
+            discountAmount={discountAmount}
+            couponCode={couponCode}
+            grandTotal={grandTotal}
+          />
+          {subtotal < siteSettings.freeShippingThreshold && (
+            <p className="text-xs text-amber-600 text-center mt-3 trust-badge">
+              Add {formatPrice(siteSettings.freeShippingThreshold - subtotal)} more for free shipping!
+            </p>
+          )}
         </div>
       </div>
     </div>

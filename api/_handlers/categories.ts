@@ -15,6 +15,8 @@ export async function handleCategoryRequest(
       return handleDetail(params[0], ctx.env);
     case "subcategories":
       return handleSubcategories(req, ctx.env);
+    case "subcategoryDetail":
+      return handleSubcategoryDetail(params[0], ctx.env);
     default:
       return badRequest("Unknown action");
   }
@@ -89,6 +91,34 @@ async function handleSubcategories(req: Request, env: any): Promise<Response> {
     });
 
     return success({ subcategories });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleSubcategoryDetail(slug: string, env: any): Promise<Response> {
+  try {
+    const prisma = getPrisma(env);
+    const subcategory = await prisma.subcategory.findFirst({
+      where: { slug, isActive: true },
+      include: {
+        category: { select: { id: true, name: true, slug: true } },
+        products: {
+          where: { isActive: true },
+          include: {
+            variants: { where: { isActive: true } },
+            images: { where: { isPrimary: true } },
+            brand: { select: { id: true, name: true, slug: true } },
+          },
+          orderBy: { sortOrder: "asc" },
+        },
+        _count: { select: { products: true } },
+      },
+    });
+
+    if (!subcategory) return notFound("Subcategory not found");
+
+    return success({ subcategory });
   } catch (err) {
     return serverError(err);
   }

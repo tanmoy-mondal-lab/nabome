@@ -7,6 +7,7 @@ import { ProductGrid } from "../components/ProductGrid";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { canonical, collectionSchema, breadcrumbSchema } from "../../lib/seo";
 import { img } from "../../lib/seo";
+import type { Product } from "../../types/product";
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
@@ -19,7 +20,7 @@ export default function CollectionPage() {
   const [colRes, prodRes] = useQueries({
     queries: [
       { queryKey: ["collection", slug], queryFn: () => api.get<{ collection: Record<string, unknown> }>(`/api/collections/${slug}`), enabled: !!slug, staleTime: 1000 * 60 * 10, retry: false },
-      { queryKey: ["products", "collection", slug], queryFn: () => api.get<{ products: Record<string, unknown>[] }>("/api/products", { params: { collection: slug, limit: 50 } }), enabled: !!slug, staleTime: 1000 * 60 * 5, retry: false },
+      { queryKey: ["products", "collection", slug], queryFn: () => api.get<{ products: Product[] }>("/api/products", { params: { collection: slug, limit: 50 } }), enabled: !!slug, staleTime: 1000 * 60 * 5, retry: false },
     ],
   });
 
@@ -76,22 +77,22 @@ export default function CollectionPage() {
         ]))}</script>
       </Helmet>
 
-      <div className="container-page py-8">
+      <div className="container-page py-10">
         <Breadcrumbs items={[
           { label: "Collections", href: "/collections" },
           { label: collection.name as string },
-        ]} className="mb-6" />
+        ]} className="mb-10" />
 
-        <motion.div {...fadeUp} className="text-center mb-12">
-          {season && <p className="text-accent-gold text-xs tracking-[0.2em] uppercase mb-3">{season}</p>}
-          <h1 className="text-3xl md:text-5xl font-display text-neutral-900">{collection.name as string}</h1>
-          {description && <p className="text-neutral-600 text-base mt-4 max-w-xl mx-auto">{description}</p>}
+        <motion.div {...fadeUp} className="text-center mb-16">
+          {season && <p className="text-accent-gold text-xs tracking-[0.2em] uppercase mb-4">{season}</p>}
+          <h1 className="text-display-1 md:text-display-2 font-display text-neutral-900">{collection.name as string}</h1>
+          {description && <p className="text-neutral-600 text-base mt-5 max-w-xl mx-auto">{description}</p>}
         </motion.div>
 
         {products.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-24">
             <p className="text-neutral-500">No products in this collection yet.</p>
-            <Link to="/products" className="text-brand-500 hover:underline mt-2 inline-block">Browse all products</Link>
+            <Link to="/products" className="text-brand-500 hover:underline mt-3 inline-block">Browse all products</Link>
           </div>
         ) : (
           <ProductGrid products={products} />

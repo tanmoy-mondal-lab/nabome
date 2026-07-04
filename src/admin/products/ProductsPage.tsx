@@ -409,7 +409,7 @@ export default function ProductsPage() {
             key={tab.key}
             onClick={() => { setStatusTab(tab.key); setPage(1); setSelected(new Set()); }}
             className={cn(
-              "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors",
+              "flex items-center gap-1.5 px-5 py-3 text-sm font-medium border-b-2 -mb-px transition-colors",
               statusTab === tab.key
                 ? "border-neutral-900 text-neutral-900"
                 : "border-transparent text-neutral-500 hover:text-neutral-700"
@@ -423,36 +423,36 @@ export default function ProductsPage() {
 
       {/* Stats Row */}
       {!isLoading && products.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white border border-neutral-200 rounded-xl px-4 py-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bg-white border border-neutral-200 rounded-xl px-5 py-4">
             <p className="text-[11px] uppercase tracking-wider text-neutral-400 font-medium">Total Products</p>
-            <p className="font-display text-xl text-neutral-900 mt-0.5">{stats.total}</p>
+            <p className="font-display text-2xl text-neutral-900 mt-1">{stats.total}</p>
           </div>
-          <div className="bg-white border border-neutral-200 rounded-xl px-4 py-3">
+          <div className="bg-white border border-neutral-200 rounded-xl px-5 py-4">
             <p className="text-[11px] uppercase tracking-wider text-neutral-400 font-medium">Total Stock</p>
-            <p className="font-display text-xl text-neutral-900 mt-0.5">{stats.totalStock.toLocaleString()}</p>
+            <p className="font-display text-2xl text-neutral-900 mt-1">{stats.totalStock.toLocaleString()}</p>
           </div>
-          <div className="bg-white border border-neutral-200 rounded-xl px-4 py-3">
+          <div className="bg-white border border-neutral-200 rounded-xl px-5 py-4">
             <div className="flex items-center gap-1.5">
               <p className="text-[11px] uppercase tracking-wider text-neutral-400 font-medium">Low Stock</p>
               {stats.lowStock > 0 && <Package size={12} className="text-amber-500" />}
             </div>
-            <p className={cn("font-display text-xl mt-0.5", stats.lowStock > 0 ? "text-amber-600" : "text-neutral-900")}>{stats.lowStock}</p>
+            <p className={cn("font-display text-2xl mt-1", stats.lowStock > 0 ? "text-amber-600" : "text-neutral-900")}>{stats.lowStock}</p>
           </div>
-          <div className="bg-white border border-neutral-200 rounded-xl px-4 py-3">
+          <div className="bg-white border border-neutral-200 rounded-xl px-5 py-4">
             <p className="text-[11px] uppercase tracking-wider text-neutral-400 font-medium">Out of Stock</p>
-            <p className={cn("font-display text-xl mt-0.5", stats.outOfStock > 0 ? "text-red-600" : "text-neutral-900")}>{stats.outOfStock}</p>
+            <p className={cn("font-display text-2xl mt-1", stats.outOfStock > 0 ? "text-red-600" : "text-neutral-900")}>{stats.outOfStock}</p>
           </div>
         </div>
       )}
 
       {/* Filter Bar */}
       {showFilter && (
-        <div className="flex flex-wrap items-center gap-3 p-4 bg-white border border-neutral-200 rounded-xl">
+        <div className="flex flex-wrap items-center gap-4 p-5 bg-white border border-neutral-200 rounded-xl">
           <select
             value={filters.gender}
             onChange={(e) => setFilters({ ...filters, gender: e.target.value })}
-            className="px-3 py-1.5 text-sm border border-neutral-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+            className="px-4 py-2 text-sm border border-neutral-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
           >
             <option value="">All Genders</option>
             <option value="men">Men</option>
@@ -477,7 +477,7 @@ export default function ProductsPage() {
       )}
 
       {/* Toolbar: Search + View Toggle */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
           <input
             ref={searchRef}
@@ -485,7 +485,7 @@ export default function ProductsPage() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="Search products... (⌘K)"
-            className="w-full pl-10 pr-4 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+            className="w-full pl-10 pr-4 py-3 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
           />
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -494,7 +494,7 @@ export default function ProductsPage() {
         <div className="flex items-center border border-neutral-200 rounded-lg overflow-hidden">
           <button
             onClick={() => setViewMode("table")}
-            className={cn("p-2 transition-colors", viewMode === "table" ? "bg-neutral-900 text-white" : "text-neutral-500 hover:bg-neutral-50")}
+            className={cn("p-2.5 transition-colors", viewMode === "table" ? "bg-neutral-900 text-white" : "text-neutral-500 hover:bg-neutral-50")}
           >
             <List size={16} />
           </button>

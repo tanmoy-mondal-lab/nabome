@@ -84,10 +84,18 @@ export default {
       // ─── CUSTOM SPACING ───
       spacing: {
         "18": "4.5rem",
+        "20": "5rem",
         "22": "5.5rem",
+        "26": "6.5rem",
         "30": "7.5rem",
         "34": "8.5rem",
         "38": "9.5rem",
+      },
+
+      // ─── DESKTOP HEADER HEIGHT ───
+      height: {
+        "header": "4.5rem",
+        "header-lg": "5rem",
       },
 
       // ─── LUXURY ANIMATION SYSTEM ───
@@ -141,8 +149,14 @@ export default {
           "50%": { transform: "translateY(-8px)" },
         },
         imageReveal: {
-          "0%": { clipPath: "inset(0 100% 0 0)" },
-          "100%": { clipPath: "inset(0 0 0 0)" },
+          "0%": {
+            WebkitClipPath: "inset(0 100% 0 0)",
+            clipPath: "inset(0 100% 0 0)",
+          },
+          "100%": {
+            WebkitClipPath: "inset(0 0 0 0)",
+            clipPath: "inset(0 0 0 0)",
+          },
         },
       },
 

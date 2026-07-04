@@ -67,17 +67,17 @@ export default function DashboardPage() {
 
   if (dashboardLoading || statsLoading) {
     return (
-      <div className="container-page py-8">
+      <div className="container-page py-10">
         <Helmet>
           <title>My Account — নবME</title>
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-neutral-200 rounded w-48" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-neutral-200 rounded" />)}
+        <div className="animate-pulse space-y-8">
+          <div className="h-10 bg-neutral-200 rounded w-56" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-28 bg-neutral-200 rounded" />)}
           </div>
-          <div className="h-48 bg-neutral-200 rounded" />
+          <div className="h-56 bg-neutral-200 rounded" />
         </div>
       </div>
     );
@@ -85,13 +85,13 @@ export default function DashboardPage() {
 
   if (dashboardError || statsError) {
     return (
-      <div className="container-page py-8">
+      <div className="container-page py-10">
         <Helmet>
           <title>My Account — নবME</title>
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
-        <div className="text-center py-12">
-          <p className="text-sm text-neutral-500 mb-3">Failed to load account data.</p>
+        <div className="text-center py-16">
+          <p className="text-sm text-neutral-500 mb-4">Failed to load account data.</p>
           <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
         </div>
       </div>

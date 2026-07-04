@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
+import type { Theme, ThemeHeaderConfig, ThemeFooterConfig, ThemeBranding } from "../../cms/core/cms-types";
 
 export interface SiteSettings {
   siteName: string;
@@ -19,7 +20,7 @@ export interface SiteSettings {
   address?: string;
   googleAnalyticsId?: string;
   facebookPixelId?: string;
-  theme?: Record<string, unknown>;
+  theme?: Theme;
   seo?: Record<string, unknown>;
   preferences?: Record<string, unknown>;
   socialLinks?: Array<{ platform: string; url: string; label?: string }>;
@@ -38,7 +39,7 @@ export function useSettings() {
 
   return useQuery({
     queryKey: ["settings", "public"],
-    queryFn: () => api.get<SiteSettings>("/api/settings", { params: { action: "public" } }),
+    queryFn: ({ signal }) => api.get<SiteSettings>("/settings", { params: { action: "public" }, signal }),
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 30,
   });

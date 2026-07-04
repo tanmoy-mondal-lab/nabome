@@ -7,9 +7,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 import { ProductGrid } from "../components/ProductGrid";
 import { Breadcrumbs } from "../components/Breadcrumbs";
-import { PriceDisplay } from "../components/PriceDisplay";
+import { SafeImage } from "../../components/SafeImage";
+import { formatPrice } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { canonical } from "../../lib/seo";
+import type { Product } from "../../types/product";
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
@@ -37,11 +39,130 @@ interface CategoryOption {
   subcategories?: { id: string; name: string; slug: string; categoryId: string }[];
 }
 
+type ProductRecord = Record<string, unknown>;
+
+function asString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function asRecord(value: unknown): ProductRecord | undefined {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as ProductRecord : undefined;
+}
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value as T[] : [];
+}
+
+function ProductCardSkeleton() {
+  return (
+    <div className="rounded-2xl overflow-hidden bg-white">
+      <div className="aspect-[3/4] bg-luxe-ivory animate-pulse" />
+      <div className="space-y-2 p-2.5">
+        <div className="h-2 w-16 rounded-full bg-luxe-ivory animate-pulse" />
+        <div className="h-3.5 w-4/5 rounded bg-luxe-ivory animate-pulse" />
+        <div className="h-3.5 w-20 rounded bg-luxe-ivory animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
+function MobileProductCard({ product, index }: { product: ProductRecord; index: number }) {
+  const name = asString(product.name) || "Product";
+  const slug = asString(product.slug);
+  const basePrice = Number(product.basePrice ?? 0);
+  const salePrice = product.salePrice != null ? Number(product.salePrice) : null;
+  const price = salePrice && salePrice > 0 ? salePrice : basePrice;
+  const compareAtPrice = product.compareAtPrice != null ? Number(product.compareAtPrice) : null;
+  const images = asArray<{ url: string }>(product.images);
+  const primaryImage = images[0]?.url || "/placeholder.svg";
+  const gender = asString(product.gender);
+  const brandName = asString(asRecord(product.brand)?.name);
+  const categoryName = asString(asRecord(product.category)?.name);
+  const collectionName = asString(asRecord(product.collection)?.name);
+  const labels = asArray<{ label?: ProductRecord }>(product.productLabels);
+  const labelName = asString(asRecord(labels[0]?.label)?.name);
+  const promoBadge = compareAtPrice && compareAtPrice > price
+    ? `${Math.round((1 - price / compareAtPrice) * 100)}% OFF`
+    : product.isNew
+      ? "New"
+      : "";
+  const eyebrow = [brandName, gender].filter(Boolean).join(" · ") || labelName || [categoryName, collectionName].filter(Boolean).join(" · ");
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.16) }}
+      className="md:hidden"
+    >
+      <Link
+        to={`/products/${slug}`}
+        className="group block overflow-hidden rounded-2xl bg-white"
+        aria-label={name}
+      >
+        <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-luxe-ivory via-white to-neutral-50">
+          <SafeImage
+            src={primaryImage}
+            alt={name}
+            responsive
+            priority={index < 4}
+            className="h-full w-full object-cover transition-transform duration-700 ease-luxe-out group-hover:scale-[1.03]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-transparent" />
+          {promoBadge && (
+            <span className="absolute top-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-semibold tracking-[0.15em] text-neutral-700 shadow-subtle">
+              {promoBadge}
+            </span>
+          )}
+          {images.length > 1 && (
+            <span className="absolute bottom-2 right-2 rounded-full bg-white/80 px-2 py-0.5 text-[8px] uppercase tracking-[0.15em] text-neutral-600">
+              {images.length}
+            </span>
+          )}
+        </div>
+
+        <div className="p-2.5 space-y-1.5">
+          {eyebrow && (
+            <p className="text-[9px] tracking-[0.12em] text-neutral-400 line-clamp-1 uppercase">
+              {eyebrow}
+            </p>
+          )}
+
+          <h2 className="text-[13px] font-medium leading-4 tracking-[-0.01em] text-neutral-900 line-clamp-1">
+            {name}
+          </h2>
+
+          <div className="flex items-baseline gap-x-1.5">
+            <span className="text-[13px] font-medium text-neutral-900">
+              {formatPrice(price)}
+            </span>
+            {compareAtPrice && compareAtPrice > price && (
+              <span className="text-[10px] text-neutral-400 line-through">
+                {formatPrice(compareAtPrice)}
+              </span>
+            )}
+          </div>
+        </div>
+      </Link>
+    </motion.article>
+  );
+}
+
 export default function ProductListingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 768px)");
+    function update(e: MediaQueryListEvent | MediaQueryList) {
+      setShowFilters(e.matches);
+    }
+    update(mql);
+    mql.addEventListener("change", update);
+    return () => mql.removeEventListener("change", update);
+  }, []);
 
   // Pull-to-refresh state
   const [pullDistance, setPullDistance] = useState(0);
@@ -104,7 +225,7 @@ export default function ProductListingPage() {
 
   const { data: res, isLoading: loading, error: queryError } = useQuery({
     queryKey: ["products", apiUrl, params],
-    queryFn: () => api.get<{ products: Record<string, unknown>[]; pagination?: { total: number; totalPages: number }; total?: number; totalPages?: number }>(apiUrl, { params }),
+    queryFn: () => api.get<{ products: Product[]; pagination?: { total: number; totalPages: number }; total?: number; totalPages?: number }>(apiUrl, { params }),
     staleTime: 1000 * 60 * 5,
     retry: false,
   });
@@ -136,17 +257,27 @@ export default function ProductListingPage() {
     setSearchParams(next);
   }
 
+  function updateParams(...updates: [string, string][]) {
+    const next = new URLSearchParams(searchParams);
+    for (const [key, value] of updates) {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    }
+    next.set("page", "1");
+    setSearchParams(next);
+  }
+
   return (
     <>
       <Helmet>
-        <title>{q ? `Search: "${q}" — নবME` : "All Products — নবME"}</title>
-        <meta name="description" content={q ? `Search results for "${q}" on নবME.` : "Browse all products on নবME."} />
+        <title>{q ? `Search: "${q}" — নবME` : "Collections — নবME"}</title>
+        <meta name="description" content={q ? `Search results for "${q}" on নবME.` : "Browse our curated collections at নবME."} />
         <link rel="canonical" href={canonical("/products")} />
       </Helmet>
 
       <div
         ref={containerRef}
-        className="container-page py-8"
+        className="container-page py-8 md:py-12"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -164,64 +295,81 @@ export default function ProductListingPage() {
         <Breadcrumbs items={[
           { label: "Home", href: "/" },
           { label: q ? `Search: ${q}` : "Products" },
-        ]} className="mb-6" />
+        ]} className="mb-8" />
 
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-10 gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-display text-neutral-900">
-              {q ? `Results for "${q}"` : "All Products"}
+            <h1 className="text-display-1 md:text-display-2 font-display text-neutral-900">
+              {q ? `Results for "${q}"` : "Collections"}
             </h1>
-            <p className="text-sm text-neutral-500 mt-1">{total} {total === 1 ? "product" : "products"} found</p>
+            <p className="text-sm text-neutral-500 mt-2">{total} {total === 1 ? "product" : "products"} found</p>
           </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setShowFilters(!showFilters)}
-              className={cn("flex items-center gap-2 px-4 py-2 rounded text-sm border transition-colors",
-                showFilters ? "bg-neutral-900 text-white border-neutral-900" : "border-neutral-200 hover:border-neutral-300"
-              )}>
-              <SlidersHorizontal size={16} /> Filters
-            </button>
-            <select value={sort} onChange={(e) => updateParam("sort", e.target.value)}
-              className="select-field px-3 py-2 text-sm">
-              {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-            <div className="flex border border-neutral-200 rounded overflow-hidden">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="flex gap-2">
+              <button onClick={() => setShowFilters(!showFilters)}
+                className={cn("flex flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 rounded-2xl text-sm font-medium border transition-all duration-300",
+                  showFilters ? "bg-neutral-900 text-white border-neutral-900 shadow-subtle" : "border-neutral-200 hover:border-neutral-400 hover:shadow-subtle"
+                )}>
+                <SlidersHorizontal size={15} /> Filters
+                {(gender || category || subcategory || collection) && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-500" />
+                )}
+              </button>
+              <select value={sort} onChange={(e) => updateParam("sort", e.target.value)}
+                className="select-field flex-1 md:flex-none md:min-w-[220px] px-4 py-3 text-sm rounded-2xl border border-neutral-200">
+                {SORT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+            <div className="hidden md:flex border border-neutral-200 rounded-2xl overflow-hidden">
               <button onClick={() => setView("grid")}
-                className={cn("p-2", view === "grid" ? "bg-neutral-900 text-white" : "text-neutral-400")}>
+                className={cn("p-2.5 transition-colors", view === "grid" ? "bg-neutral-900 text-white" : "text-neutral-400 hover:text-neutral-600")}>
                 <Grid3X3 size={16} />
               </button>
               <button onClick={() => setView("list")}
-                className={cn("p-2", view === "list" ? "bg-neutral-900 text-white" : "text-neutral-400")}>
+                className={cn("p-2.5 transition-colors", view === "list" ? "bg-neutral-900 text-white" : "text-neutral-400 hover:text-neutral-600")}>
                 <List size={16} />
               </button>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-2 mb-6 flex-wrap">
+        <div className="flex gap-2 mb-6 md:mb-8 overflow-x-auto pb-1 hide-scrollbar">
           {gender && (
             <button onClick={() => updateParam("gender", "")}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs bg-neutral-100 rounded-full hover:bg-neutral-200">
-              {gender} <X size={12} />
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0">
+              {gender} <X size={11} />
             </button>
           )}
           {category && (
-            <button onClick={() => { updateParam("category", ""); updateParam("subcategory", ""); }}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs bg-neutral-100 rounded-full hover:bg-neutral-200">
-              {category} <X size={12} />
+            <button onClick={() => updateParams(["category", ""], ["subcategory", ""])}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0">
+              {category} <X size={11} />
             </button>
           )}
           {subcategory && (
             <button onClick={() => updateParam("subcategory", "")}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs bg-neutral-100 rounded-full hover:bg-neutral-200">
-              {subcategory} <X size={12} />
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0">
+              {subcategory} <X size={11} />
+            </button>
+          )}
+          {collection && (
+            <button onClick={() => updateParam("collection", "")}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0">
+              {collection} <X size={11} />
+            </button>
+          )}
+          {q && (
+            <button onClick={() => updateParam("q", "")}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0">
+              "{q}" <X size={11} />
             </button>
           )}
         </div>
 
-        <div className="flex gap-8">
+        <div className="flex gap-10">
           {showFilters && (
-            <div className="hidden md:block w-64 shrink-0">
-              <div className="sticky top-24 space-y-6">
+            <div className="hidden md:block w-72 shrink-0">
+              <div className="space-y-8">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-medium tracking-[0.15em] uppercase text-neutral-900">Filters</h3>
                   <button onClick={() => setShowFilters(false)} className="text-neutral-400 hover:text-neutral-600">
@@ -231,7 +379,7 @@ export default function ProductListingPage() {
                 {categories && categories.length > 0 && (
                   <div>
                     <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Category</label>
-                    <select value={category} onChange={(e) => { updateParam("category", e.target.value); updateParam("subcategory", ""); }}
+                    <select value={category} onChange={(e) => updateParams(["category", e.target.value], ["subcategory", ""])}
                       className="select-field text-sm">
                       <option value="">All</option>
                       {categories.map((c: CategoryOption) => <option key={c.id} value={c.slug}>{c.name}</option>)}
@@ -267,47 +415,81 @@ export default function ProductListingPage() {
             </div>
           )}
 
-          {showFilters && (
-            <div className="md:hidden bg-white border border-neutral-200 rounded p-4 mb-6">
-              <div className="grid grid-cols-2 gap-4">
-                {categories && categories.length > 0 && (
-                  <div>
-                    <label className="text-xs font-medium text-neutral-500 mb-2 block">Category</label>
-                    <select value={category} onChange={(e) => { updateParam("category", e.target.value); updateParam("subcategory", ""); }}
-                      className="select-field text-sm">
-                      <option value="">All</option>
-                      {categories.map((c: CategoryOption) => <option key={c.id} value={c.slug}>{c.name}</option>)}
-                    </select>
+          {/* Mobile Filter Bottom Sheet */}
+          <AnimatePresence>
+            {showFilters && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
+                  onClick={() => setShowFilters(false)}
+                />
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                  className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white rounded-t-3xl max-h-[85vh] flex flex-col"
+                >
+                  <div className="flex justify-center pt-3 pb-2">
+                    <div className="w-10 h-1 rounded-full bg-neutral-300" />
                   </div>
-                )}
-                {category && categories && (() => {
-                  const selectedCat = categories.find((c: CategoryOption) => c.slug === category);
-                  const subs = selectedCat?.subcategories ?? [];
-                  if (subs.length === 0) return null;
-                  return (
-                    <div>
-                      <label className="text-xs font-medium text-neutral-500 mb-2 block">Subcategory</label>
-                      <select value={subcategory} onChange={(e) => updateParam("subcategory", e.target.value)}
-                        className="select-field text-sm">
-                        <option value="">All</option>
-                        {subs.map((s: { id: string; name: string; slug: string }) => <option key={s.id} value={s.slug}>{s.name}</option>)}
-                      </select>
-                    </div>
-                  );
-                })()}
-                {collections && collections.length > 0 && (
-                  <div>
-                    <label className="text-xs font-medium text-neutral-500 mb-2 block">Collection</label>
-                    <select value={collection} onChange={(e) => updateParam("collection", e.target.value)}
-                      className="select-field text-sm">
-                      <option value="">All</option>
-                      {collections.map((c: { id: string; name: string; slug: string }) => <option key={c.id} value={c.slug}>{c.name}</option>)}
-                    </select>
+                  <div className="flex items-center justify-between px-5 pb-4 border-b border-neutral-100">
+                    <h3 className="text-sm font-semibold tracking-[0.05em] uppercase text-neutral-900">Filters</h3>
+                    <button onClick={() => setShowFilters(false)} className="p-2 -mr-2 text-neutral-400 hover:text-neutral-600 rounded-full hover:bg-neutral-100 transition-colors">
+                      <X size={18} />
+                    </button>
                   </div>
-                )}
-              </div>
-            </div>
-          )}
+                  <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+                    {categories && categories.length > 0 && (
+                      <div>
+                        <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Category</label>
+                        <select value={category} onChange={(e) => updateParams(["category", e.target.value], ["subcategory", ""])}
+                          className="select-field text-sm">
+                          <option value="">All</option>
+                          {categories.map((c: CategoryOption) => <option key={c.id} value={c.slug}>{c.name}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {category && categories && (() => {
+                      const selectedCat = categories.find((c: CategoryOption) => c.slug === category);
+                      const subs = selectedCat?.subcategories ?? [];
+                      if (subs.length === 0) return null;
+                      return (
+                        <div>
+                          <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Subcategory</label>
+                          <select value={subcategory} onChange={(e) => updateParam("subcategory", e.target.value)}
+                            className="select-field text-sm">
+                            <option value="">All</option>
+                            {subs.map((s: { id: string; name: string; slug: string }) => <option key={s.id} value={s.slug}>{s.name}</option>)}
+                          </select>
+                        </div>
+                      );
+                    })()}
+                    {collections && collections.length > 0 && (
+                      <div>
+                        <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Collection</label>
+                        <select value={collection} onChange={(e) => updateParam("collection", e.target.value)}
+                          className="select-field text-sm">
+                          <option value="">All</option>
+                          {collections.map((c: { id: string; name: string; slug: string }) => <option key={c.id} value={c.slug}>{c.name}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                  <div className="px-5 py-4 border-t border-neutral-100">
+                    <button onClick={() => setShowFilters(false)}
+                      className="w-full py-3 bg-neutral-900 text-white text-sm font-medium rounded-2xl hover:bg-neutral-800 transition-colors">
+                      Show Results
+                    </button>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
 
           <div className="flex-1 min-w-0">
             {queryError ? (
@@ -322,13 +504,22 @@ export default function ProductListingPage() {
                 </button>
               </div>
             ) : loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 md:gap-6">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                  <div key={i} className="aspect-[3/4] bg-neutral-100 animate-pulse rounded" />
+                  <ProductCardSkeleton key={i} />
                 ))}
               </div>
             ) : products.length > 0 ? (
-              <ProductGrid products={products} />
+              <>
+                <div className="grid grid-cols-2 gap-3 md:hidden">
+                  {products.map((product, index) => (
+                    <MobileProductCard key={product.id as string} product={product as unknown as ProductRecord} index={index} />
+                  ))}
+                </div>
+                <div className="hidden md:block">
+                  <ProductGrid products={products} view={view} />
+                </div>
+              </>
             ) : (
               <div className="text-center py-20">
                 <div className="w-16 h-16 mx-auto mb-4 bg-neutral-100 rounded-full flex items-center justify-center">
