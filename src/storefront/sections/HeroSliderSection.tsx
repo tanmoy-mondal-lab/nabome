@@ -50,15 +50,34 @@ export default function HeroSliderSection({ section }: HeroSliderSectionProps) {
   const hasSlides = slides.length > 0;
 
   const fallbackSlides = useMemo(() => {
-    return [
-      {
-        image: "",
+    const hasVideo = slides.some((s) => s.videoUrl);
+    
+    if (hasVideo) {
+      return slides.filter((s) => s.videoUrl).map((slide) => ({
+        id: slide.id,
+        videoUrl: slide.videoUrl || "",
+        posterUrl: slide.posterUrl || "",
         caption: section.title || "Premium Fashion Destination",
-        title: section.title || "Discover Your Signature Style",
-        subtitle: section.subtitle || "Curated collections for the discerning individual. Explore luxury fashion crafted for every occasion.",
-      },
-    ];
-  }, [section.title, section.subtitle]);
+        title: slide.title || section.title || "Discover Your Signature Style",
+        subtitle: slide.subtitle || section.subtitle || "Curated collections for the discerning individual. Explore luxury fashion crafted for every occasion.",
+        ctaText: "Explore Collection",
+        ctaUrl: "/products",
+        soundEnabled: false,
+      }));
+    }
+    
+    return slides.filter((s) => s.posterUrl).map((slide) => ({
+      id: slide.id || "fallback-slide",
+      videoUrl: "",
+      posterUrl: slide.posterUrl || "",
+      caption: section.title || "Premium Fashion Destination",
+      title: slide.title || section.title || "Discover Your Signature Style",
+      subtitle: slide.subtitle || section.subtitle || "Curated collections for the discerning individual. Explore luxury fashion crafted for every occasion.",
+      ctaText: "Explore Collection",
+      ctaUrl: "/products",
+      soundEnabled: false,
+    }));
+  }, [slides, section.title, section.subtitle]);
 
   const nextSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev + 1) % fallbackSlides.length);
@@ -105,7 +124,7 @@ export default function HeroSliderSection({ section }: HeroSliderSectionProps) {
         <motion.h1
           variants={fadeUp}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="font-display text-display-2 md:text-[5.5rem] md:leading-[0.92] md:tracking-[-0.02em] text-white leading-[0.95] mb-6 md:mb-8"
+          className="font-display text-display-2 md:text-[5.5rem] md:leading-[0.92] md:tracking-[-0.02em] text-white leading-[0.95] mb-6 md:mb-8 max-w-4xl"
         >
           <>{slide.title}</>
         </motion.h1>

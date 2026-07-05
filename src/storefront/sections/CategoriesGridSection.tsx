@@ -81,6 +81,7 @@ export default function CategoriesGridSection({ section }: CategoriesGridSection
                 <SafeImage
                   src={cat.imageUrl}
                   alt={cat.name}
+                  responsive
                   className="w-full h-full object-cover transition-all duration-700 md:group-hover:scale-[1.03] group-hover:scale-105"
                 />
               ) : (

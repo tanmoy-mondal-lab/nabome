@@ -203,32 +203,35 @@ async function handleMergeCart(req: Request, ctx: RequestContext): Promise<Respo
 
     if (cart) {
       // Merge items: update quantities for existing variants, add new ones
-      const existingVariants = new Map(activeCart.items.map(item => [item.variantId, item]));
-      
-      for (const item of items) {
-        const existing = existingVariants.get(item.variantId);
-        if (existing) {
-          await prisma.cartItem.update({
-            where: { id: existing.id },
-            data: { quantity: existing.quantity + item.quantity }
-          });
-        } else {
-          await prisma.cartItem.create({
-            data: {
-              cartId: cart.id,
-              variantId: item.variantId,
-              quantity: item.quantity
-            }
-          });
+      // Wrapped in transaction to prevent race condition (R4)
+      await prisma.$transaction(async (tx) => {
+        const existingVariants = new Map(activeCart.items.map(item => [item.variantId, item]));
+        
+        for (const item of items) {
+          const existing = existingVariants.get(item.variantId);
+          if (existing) {
+            await tx.cartItem.update({
+              where: { id: existing.id },
+              data: { quantity: existing.quantity + item.quantity }
+            });
+          } else {
+            await tx.cartItem.create({
+              data: {
+                cartId: cart.id,
+                variantId: item.variantId,
+                quantity: item.quantity
+              }
+            });
+          }
         }
-      }
-    }
 
-    // Update cart timestamp
-    await prisma.cart.update({
-      where: { id: activeCart.id },
-      data: { updatedAt: new Date() }
-    });
+        // Update cart timestamp
+        await tx.cart.update({
+          where: { id: activeCart.id },
+          data: { updatedAt: new Date() }
+        });
+      });
+    }
 
     return success({ message: "Cart merged successfully" });
   } catch (err) {

@@ -1,13 +1,25 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { X, ChevronRight, Heart, User, ShoppingBag, Instagram } from "lucide-react";
+import { X, ChevronRight, Heart, User, ShoppingBag, Instagram, Youtube, Twitter, Facebook, Linkedin, Bookmark, Music2, MessageCircle, Globe } from "lucide-react";
 import { useUIStore } from "../stores/ui-store";
 import { useAuthStore } from "../../stores/auth-store";
 import { useSettings } from "../hooks/useSettings";
 import { useNavigation, type NavigationItem } from "../hooks/useNavigation";
 import { cn } from "../../lib/utils/cn";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
+
+const SOCIAL_ICONS: Record<string, typeof Instagram> = {
+  instagram: Instagram,
+  youtube: Youtube,
+  twitter: Twitter,
+  facebook: Facebook,
+  linkedin: Linkedin,
+  pinterest: Bookmark,
+  tiktok: Music2,
+  whatsapp: MessageCircle,
+  other: Globe,
+};
 
 export function MobileNav() {
   const { isMobileMenuOpen, closeMobileMenu } = useUIStore();
@@ -71,8 +83,32 @@ export function MobileNav() {
               </button>
             </div>
 
-            <nav className="p-6 overflow-y-auto h-[calc(100vh-4rem)]">
-              <div className="space-y-2">
+            <nav className="p-6 overflow-y-auto h-[calc(100vh-4rem)] pb-[env(safe-area-inset-bottom,0px)]">
+              {/* Quick Actions Section */}
+              <div className="mb-6 pb-6 border-b border-white/10">
+                <div className="grid grid-cols-2 gap-3">
+                  <Link to="/products" onClick={closeMobileMenu} className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-200" aria-label="Shop products">
+                    <ShoppingBag className="w-6 h-6 text-white/70 mb-2" />
+                    <span className="text-xs text-white/80">Shop</span>
+                  </Link>
+                  <Link to="/collections" onClick={closeMobileMenu} className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-200" aria-label="View wishlist">
+                    <Heart className="w-6 h-6 text-white/70 mb-2" />
+                    <span className="text-xs text-white/80">Wishlist</span>
+                  </Link>
+                  <Link to={isAuthenticated ? "/account" : "/auth/login"} onClick={closeMobileMenu} className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-200" aria-label="My account">
+                    <User className="w-6 h-6 text-white/70 mb-2" />
+                    <span className="text-xs text-white/80">Account</span>
+                  </Link>
+                  <Link to="/lookbooks" onClick={closeMobileMenu} className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-200" aria-label="Browse lookbooks">
+                    <Instagram className="w-6 h-6 text-white/70 mb-2" />
+                    <span className="text-xs text-white/80">Lookbooks</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Main Navigation */}
+              <div className="space-y-1">
+                <p className="text-[10px] uppercase tracking-widest text-white/40 mb-4 px-4">Browse</p>
                 {visibleNavItems.map((menu, index) => {
                   const hasChildren = (menu.children?.length ?? 0) > 0;
                   const hasMegaColumns = (menu.megaMenuColumns?.length ?? 0) > 0;
@@ -84,17 +120,17 @@ export function MobileNav() {
                       key={menu.label}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
+                      transition={{ delay: index * 0.05 }}
                     >
                       {isExpandable ? (
                         <>
                           <button
                             onClick={() => toggleExpand(menu.label)}
                             aria-expanded={open}
-                            className="flex items-center justify-between w-full px-4 py-4 text-white/90 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
+                            className="flex items-center justify-between w-full px-4 py-3 text-white/90 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
                           >
-                            <span className="font-display text-2xl tracking-wide">{menu.label}</span>
-                            <ChevronRight className={cn("w-5 h-5 text-white/40 transition-transform duration-300", open && "rotate-90")} />
+                            <span className="font-display text-lg tracking-wide">{menu.label}</span>
+                            <ChevronRight className={cn("w-4 h-4 text-white/40 transition-transform duration-300", open && "rotate-90")} />
                           </button>
                           <AnimatePresence>
                             {open && (
@@ -189,6 +225,22 @@ export function MobileNav() {
                 })}
               </div>
 
+              {/* Support Section */}
+              <div className="mt-8 pt-6 border-t border-white/10">
+                <p className="text-[10px] uppercase tracking-widest text-white/40 mb-4 px-4">Support</p>
+                <div className="space-y-1">
+                  <Link to="/faq" onClick={closeMobileMenu} className="block px-4 py-3 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200 text-sm">
+                    FAQ
+                  </Link>
+                  <Link to="/contact" onClick={closeMobileMenu} className="block px-4 py-3 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200 text-sm">
+                    Contact Us
+                  </Link>
+                  <Link to="/shipping-returns" onClick={closeMobileMenu} className="block px-4 py-3 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200 text-sm">
+                    Shipping & Returns
+                  </Link>
+                </div>
+              </div>
+
               <div className="my-8 border-t border-white/10" />
 
               <div className="space-y-1">
@@ -221,14 +273,32 @@ export function MobileNav() {
               <div className="mt-8 px-4">
                 <p className="text-white/40 text-xs tracking-wider uppercase mb-3">Follow Us</p>
                 <div className="flex gap-3">
-                  <a
-                    href="https://instagram.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:border-white/40 transition-all duration-200"
-                  >
-                    <Instagram className="w-4 h-4" />
-                  </a>
+                  {(settings?.socialLinks ?? []).length > 0 ? (
+                    (settings?.socialLinks ?? []).map((link: { platform?: string; url?: string }) => {
+                      const Icon = SOCIAL_ICONS[link.platform as string] || Instagram;
+                      return (
+                        <a
+                          key={link.platform}
+                          href={link.url as string}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:border-white/40 transition-all duration-200"
+                          aria-label={`Follow us on ${link.platform}`}
+                        >
+                          <Icon className="w-4 h-4" />
+                        </a>
+                      );
+                    })
+                  ) : (
+                    <a
+                      href="https://instagram.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:border-white/40 transition-all duration-200"
+                    >
+                      <Instagram className="w-4 h-4" />
+                    </a>
+                  )}
                 </div>
               </div>
             </nav>

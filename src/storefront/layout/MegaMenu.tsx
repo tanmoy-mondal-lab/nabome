@@ -67,7 +67,7 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
           <div className="grid grid-cols-1 md:grid-cols-2 md:gap-12 gap-8 items-center">
             {activeItem.promotionalContent.image && (
               <div className="relative md:aspect-[16/10] aspect-[16/9] bg-neutral-100 overflow-hidden md:rounded-none rounded-2xl group">
-                <SafeImage src={activeItem.promotionalContent.image} alt={activeItem.promotionalContent.title || "Promotional banner"} className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-700" />
+                <SafeImage src={activeItem.promotionalContent.image} alt={activeItem.promotionalContent.title || "Promotional banner"} responsive className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-700" />
               </div>
             )}
             <div>
@@ -113,10 +113,14 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
             ))}
             {activeItem.image && (
               <div className="col-span-1 row-span-2">
-                <div className="relative md:aspect-[4/3] aspect-[4/3] bg-neutral-100 overflow-hidden md:rounded-none rounded-2xl group cursor-pointer"
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="relative md:aspect-[4/3] aspect-[4/3] bg-neutral-100 overflow-hidden md:rounded-none rounded-2xl group cursor-pointer"
                   onClick={() => { const u = activeItem.link || activeItem.url; if (u) navigate(u); setActiveMegaMenu(null); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const u = activeItem.link || activeItem.url; if (u) navigate(u); setActiveMegaMenu(null); } }}
                 >
-                  <SafeImage src={activeItem.image} alt={activeItem.description || "Featured collection"} className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-700" />
+                  <SafeImage src={activeItem.image} alt={activeItem.description || "Featured collection"} responsive className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 md:p-8 p-6">
                     <p className="text-white md:text-[10px] md:tracking-[0.2em] md:font-normal text-xs tracking-[0.15em] uppercase font-medium">Featured</p>
@@ -172,10 +176,14 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
             {hasBanner && (
               <div className="col-span-4">
                 {activeItem.image && (
-                  <div className="relative md:aspect-[4/3] aspect-[4/3] bg-neutral-100 overflow-hidden md:rounded-none rounded-2xl group cursor-pointer mb-4"
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    className="relative md:aspect-[4/3] aspect-[4/3] bg-neutral-100 overflow-hidden md:rounded-none rounded-2xl group cursor-pointer mb-4"
                     onClick={() => { const u = activeItem.link || activeItem.url; if (u) navigate(u); setActiveMegaMenu(null); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const u = activeItem.link || activeItem.url; if (u) navigate(u); setActiveMegaMenu(null); } }}
                   >
-                    <SafeImage src={activeItem.image} alt={activeItem.description || "Featured collection"} className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-700" />
+                    <SafeImage src={activeItem.image} alt={activeItem.description || "Featured collection"} responsive className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-700" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 md:p-8 p-6">
                       <p className="text-white md:text-[10px] md:tracking-[0.2em] md:font-normal text-xs tracking-[0.15em] uppercase font-medium">Featured</p>
@@ -208,9 +216,9 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
       <div className="md:hidden border-t border-neutral-50 bg-luxe-ivory/50">
         <div className="container-wide py-3 flex items-center justify-between">
           <p className="text-xs text-neutral-400 tracking-wider">
-            {(settings?.preferences as Record<string, unknown>)?.promoText as string || "Free shipping on orders above ₹999 · Easy 30-day returns · Secure checkout"}
+            {(settings?.preferences?.promoText as string) || "Free shipping on orders above ₹999 · Easy 30-day returns · Secure checkout"}
           </p>
-          <span className="text-[10px] text-accent-gold tracking-widest uppercase">{(settings?.preferences as Record<string, unknown>)?.promoTagline as string || "New Season Now Available"}</span>
+          <span className="text-[10px] text-accent-gold tracking-widest uppercase">{(settings?.preferences?.promoTagline as string) || "New Season Now Available"}</span>
         </div>
       </div>
     </div>

@@ -212,6 +212,7 @@ model Profile {
   orderHistoryEntries OrderStatusHistory[]
   sessions            AuthSession[]
   loginAttempts       LoginAttempt[]
+  verificationAttempts VerificationAttempt[]
   notifications       Notification[]
   supportTickets      SupportTicket[]
   assignedTickets     SupportTicket[]      @relation("AssignedSupport")
@@ -244,7 +245,7 @@ model AuthSession {
   expiresAt             DateTime  @map("expires_at") @db.Timestamptz
   createdAt             DateTime  @default(now()) @map("created_at")
 
-  profile         Profile       @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  profile         Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
   rotatedFrom     AuthSession?  @relation("SessionRotation", fields: [rotatedFromSessionId], references: [id])
   rotatedSessions AuthSession[] @relation("SessionRotation")
 
@@ -273,6 +274,26 @@ model LoginAttempt {
   @@index([ipAddress, createdAt])
   @@index([profileId])
   @@map("login_attempts")
+}
+
+// ─── VERIFICATION ATTEMPT TRACKING ───
+// Tracks OTP verification attempts for per-code lockout and brute-force prevention.
+model VerificationAttempt {
+  id         String   @id @default(uuid()) @db.Uuid
+  profileId  String?  @map("profile_id") @db.Uuid
+  email      String   @db.VarChar(255)
+  code       String   @db.VarChar(10)
+  ipAddress  String   @map("ip_address") @db.VarChar(45)
+  success    Boolean  @default(false)
+  lockedUntil DateTime? @map("locked_until") @db.Timestamptz
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  profile Profile? @relation(fields: [profileId], references: [id], onDelete: SetNull)
+
+  @@index([email, code])
+  @@index([ipAddress, createdAt])
+  @@index([profileId])
+  @@map("verification_attempts")
 }
 
 // ─── USER ACTION AUDIT LOG ───
@@ -1257,7 +1278,7 @@ model ReturnRequest {
 
 model Refund {
   id              String       @id @default(uuid()) @db.Uuid
-  returnRequestId String       @unique @map("return_request_id") @db.Uuid
+  returnRequestId String?      @unique @map("return_request_id") @db.Uuid
   orderId         String       @map("order_id") @db.Uuid
   amount          Decimal      @db.Decimal(10, 2)
   type            String       @default("full") @db.VarChar(20)
@@ -1270,7 +1291,7 @@ model Refund {
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
 
-  returnRequest ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  returnRequest ReturnRequest? @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
   order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   initiator     Profile?      @relation("RefundInitiator", fields: [initiatedBy], references: [id], onDelete: SetNull)
 

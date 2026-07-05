@@ -167,10 +167,15 @@ async function handleUpdateProfile(ctx: RequestContext, req: Request, env: any):
 }
 
 async function handleChangePassword(ctx: RequestContext, req: Request, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { currentPassword, newPassword } = body;
 
-  if (!currentPassword || !newPassword) {
+  if (!currentPassword || !newPassword || typeof currentPassword !== 'string' || typeof newPassword !== 'string') {
     return badRequest("Current password and new password are required");
   }
 
@@ -190,7 +195,7 @@ async function handleChangePassword(ctx: RequestContext, req: Request, env: any)
     const anonClient = getAnonClient(ctx.env);
     const { error: verifyError } = await anonClient.auth.signInWithPassword({
       email: user.email,
-      password: currentPassword,
+      password: currentPassword as string,
     });
 
     if (verifyError) {
@@ -199,7 +204,7 @@ async function handleChangePassword(ctx: RequestContext, req: Request, env: any)
 
     const supabase = getAdminClient(ctx.env);
     const { error: updateError } = await supabase.auth.admin.updateUserById(ctx.userId!, {
-      password: newPassword,
+      password: newPassword as string,
     });
 
     if (updateError) return badRequest(updateError.message);

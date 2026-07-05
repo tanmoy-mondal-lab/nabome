@@ -58,13 +58,14 @@ describe('websiteSchema', () => {
 
 describe('productSchema', () => {
   const baseProduct = {
+    id: 'test-id-1',
     name: 'Test Product',
     slug: 'test-product',
     basePrice: 999,
     description: 'A test product',
     images: [{ url: 'https://res.cloudinary.com/test/image/upload/test.jpg' }],
     variants: [
-      { sku: 'SKU-001', stock: 10, priceAdjustment: 0 },
+      { id: 'v1', sku: 'SKU-001', stock: 10, priceAdjustment: 0, size: 'M', color: 'Black' },
     ],
   };
 
@@ -85,8 +86,8 @@ describe('productSchema', () => {
     const schema = productSchema({
       ...baseProduct,
       variants: [
-        { sku: 'SKU-001', stock: 10, priceAdjustment: 0 },
-        { sku: 'SKU-002', stock: 5, priceAdjustment: 200 },
+        { id: 'v1', sku: 'SKU-001', stock: 10, priceAdjustment: 0, size: 'M', color: 'Black' },
+        { id: 'v2', sku: 'SKU-002', stock: 5, priceAdjustment: 200, size: 'L', color: 'Blue' },
       ],
     });
     const offers = schema.offers as Record<string, unknown>;
@@ -104,7 +105,7 @@ describe('productSchema', () => {
   it('should mark out-of-stock products', () => {
     const schema = productSchema({
       ...baseProduct,
-      variants: [{ sku: 'SKU-001', stock: 0, priceAdjustment: 0 }],
+      variants: [{ id: 'v1', sku: 'SKU-001', stock: 0, priceAdjustment: 0, size: 'M', color: 'Black' }],
     });
     const offers = schema.offers as Record<string, unknown>;
     const offerList = offers.offers as Record<string, unknown>[];
@@ -114,7 +115,7 @@ describe('productSchema', () => {
   it('should include brand when present', () => {
     const schema = productSchema({
       ...baseProduct,
-      brand: { name: 'Test Brand' },
+      brand: { id: 'b1', name: 'Test Brand', slug: 'test-brand' },
     });
     const brand = schema.brand as Record<string, unknown>;
     expect(brand['@type']).toBe('Brand');
@@ -147,9 +148,12 @@ describe('productSchema', () => {
 
   it('should limit offers to 5', () => {
     const variants = Array.from({ length: 10 }, (_, i) => ({
+      id: `v${i}`,
       sku: `SKU-${i}`,
       stock: 10,
       priceAdjustment: i * 100,
+      size: 'M',
+      color: 'Black',
     }));
     const schema = productSchema({ ...baseProduct, variants });
     const offers = schema.offers as Record<string, unknown>;
@@ -158,7 +162,7 @@ describe('productSchema', () => {
   });
 
   it('should use selected variant SKU when provided', () => {
-    const schema = productSchema(baseProduct, { sku: 'SELECTED-SKU' });
+    const schema = productSchema(baseProduct, { id: 'vs', sku: 'SELECTED-SKU', stock: 10, priceAdjustment: 0, size: 'M', color: 'Black' });
     expect(schema.sku).toBe('SELECTED-SKU');
   });
 

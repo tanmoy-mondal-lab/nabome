@@ -26,7 +26,7 @@ const DEFAULT_THEME: Theme = {
       textInverse: "#ffffff", success: "#10b981", warning: "#f59e0b", error: "#ef4444", info: "#3b82f6",
     },
     typography: {
-      displayFont: "Playfair Display", headingFont: "Inter", bodyFont: "Inter", monoFont: "SF Mono",
+      displayFont: "Cormorant Garamond", headingFont: "Inter", bodyFont: "Inter", monoFont: "SF Mono",
       baseSize: "16px", scaleRatio: "1.25",
       h1Size: "3rem", h2Size: "2.25rem", h3Size: "1.875rem", h4Size: "1.5rem",
       bodySize: "1rem", smallSize: "0.875rem",

@@ -23,7 +23,7 @@ export function useAuth() {
     const handleForceLogout = () => {
       store.clearAuth();
       useCartStore.getState().switchUser();
-      queryClient.clear();
+      queryClient.removeQueries({ queryKey: ["auth"] });
     };
     window.addEventListener("auth:logout", handleForceLogout);
     return () => window.removeEventListener("auth:logout", handleForceLogout);
@@ -54,6 +54,7 @@ export function useAuth() {
       } catch {
         current.clearAuth();
         useCartStore.getState().switchUser();
+        window.location.href = "/auth/login";
       }
     };
 
@@ -110,7 +111,7 @@ export function useAuth() {
     }
     store.clearAuth();
     useCartStore.getState().switchUser();
-    queryClient.clear();
+    queryClient.removeQueries({ queryKey: ["auth"] });
   }, [store, queryClient]);
 
   const resendVerification = useCallback(async (email: string, turnstileToken?: string) => {

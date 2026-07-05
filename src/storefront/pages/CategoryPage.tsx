@@ -70,6 +70,7 @@ function SubcategoryCard({ sub, index, categorySlug }: { sub: Subcategory; index
           <SafeImage
             src={sub.imageUrl}
             alt={sub.name}
+            responsive
             className="w-full h-full object-cover transition-all duration-700 ease-luxe-out group-hover:scale-[1.04]"
           />
         ) : (
@@ -287,6 +288,7 @@ export default function CategoryPage() {
               src={heroImage}
               alt={category?.name || "Category"}
               priority
+              responsive
               className="w-full h-full object-cover"
             />
           </motion.div>
@@ -403,11 +405,12 @@ export default function CategoryPage() {
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={cn(
-                  "flex flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 rounded-2xl text-sm font-medium border transition-all duration-300",
+                  "flex flex-1 md:flex-none items-center justify-center gap-2 px-5 py-3 rounded-2xl text-sm font-medium border transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2",
                   showFilters
                     ? "bg-neutral-900 text-white border-neutral-900 shadow-subtle"
                     : "border-neutral-200 hover:border-neutral-400 hover:shadow-subtle"
                 )}
+                aria-label={showFilters ? "Close filters" : "Open filters"}
               >
                 <SlidersHorizontal size={15} /> Filters
                 {(subcategory || gender) && (
@@ -428,12 +431,14 @@ export default function CategoryPage() {
               <button
                 onClick={() => setView("grid")}
                 className={cn("p-2.5 transition-colors", view === "grid" ? "bg-neutral-900 text-white" : "text-neutral-400 hover:text-neutral-600")}
+                aria-label="Grid view"
               >
                 <Grid3X3 size={16} />
               </button>
               <button
                 onClick={() => setView("list")}
                 className={cn("p-2.5 transition-colors", view === "list" ? "bg-neutral-900 text-white" : "text-neutral-400 hover:text-neutral-600")}
+                aria-label="List view"
               >
                 <List size={16} />
               </button>
@@ -447,6 +452,7 @@ export default function CategoryPage() {
             <button
               onClick={() => updateParam("gender", "")}
               className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0"
+              aria-label={`Remove gender filter: ${gender}`}
             >
               {gender} <X size={11} />
             </button>
@@ -455,6 +461,7 @@ export default function CategoryPage() {
             <button
               onClick={() => updateParam("subcategory", "")}
               className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0"
+              aria-label={`Remove subcategory filter: ${subcategory}`}
             >
               {subcategory} <X size={11} />
             </button>
@@ -468,7 +475,7 @@ export default function CategoryPage() {
               <div className="space-y-8 sticky top-28">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-medium tracking-[0.15em] uppercase text-neutral-900">Filters</h3>
-                  <button onClick={() => setShowFilters(false)} className="text-neutral-400 hover:text-neutral-600">
+                  <button onClick={() => setShowFilters(false)} className="text-neutral-400 hover:text-neutral-600" aria-label="Close filters">
                     <X size={14} />
                   </button>
                 </div>
@@ -519,6 +526,8 @@ export default function CategoryPage() {
                   transition={{ duration: 0.25 }}
                   className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
                   onClick={() => setShowFilters(false)}
+                  onKeyDown={(e) => { if (e.key === 'Escape') setShowFilters(false); }}
+                  tabIndex={-1}
                 />
                 <motion.div
                   initial={{ y: "100%" }}
@@ -532,7 +541,7 @@ export default function CategoryPage() {
                   </div>
                   <div className="flex items-center justify-between px-5 pb-4 border-b border-neutral-100">
                     <h3 className="text-sm font-semibold tracking-[0.05em] uppercase text-neutral-900">Filters</h3>
-                    <button onClick={() => setShowFilters(false)} className="p-2 -mr-2 text-neutral-400 hover:text-neutral-600 rounded-full hover:bg-neutral-100 transition-colors">
+                    <button onClick={() => setShowFilters(false)} className="p-2 -mr-2 text-neutral-400 hover:text-neutral-600 rounded-full hover:bg-neutral-100 transition-colors" aria-label="Close filters">
                       <X size={18} />
                     </button>
                   </div>
@@ -569,7 +578,7 @@ export default function CategoryPage() {
                   <div className="px-5 py-4 border-t border-neutral-100">
                     <button
                       onClick={() => setShowFilters(false)}
-                      className="w-full py-3 bg-neutral-900 text-white text-sm font-medium rounded-2xl hover:bg-neutral-800 transition-colors"
+                      className="btn-primary w-full rounded-2xl"
                     >
                       Show Results
                     </button>
@@ -588,7 +597,7 @@ export default function CategoryPage() {
                 </div>
                 <p className="text-neutral-500 text-lg mb-2">Failed to load products.</p>
                 <p className="text-neutral-400 text-sm mb-4">Please try again.</p>
-                <button onClick={() => window.location.reload()} className="px-6 py-3 bg-neutral-900 text-white text-xs uppercase tracking-[0.15em] hover:bg-neutral-800 transition-colors">
+                <button onClick={() => window.location.reload()} className="btn-primary">
                   Retry
                 </button>
               </div>
@@ -625,7 +634,7 @@ export default function CategoryPage() {
                 <p className="text-neutral-400 text-sm mb-4">Try adjusting your filters.</p>
                 <button
                   onClick={() => setSearchParams({})}
-                  className="px-6 py-3 bg-neutral-900 text-white text-xs uppercase tracking-[0.15em] hover:bg-neutral-800 transition-colors"
+                  className="btn-primary"
                 >
                   Clear all filters
                 </button>
@@ -646,7 +655,7 @@ export default function CategoryPage() {
                     }}
                     className={cn(
                       "w-10 h-10 rounded text-sm transition-colors",
-                      p === page ? "bg-neutral-900 text-white" : "border border-neutral-200 hover:border-neutral-300"
+                      p === page ? "bg-neutral-900 text-white" : "border border-neutral-200 hover:border-neutral-400 hover:bg-neutral-50"
                     )}
                   >
                     {p}

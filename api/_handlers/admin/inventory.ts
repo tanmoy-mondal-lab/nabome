@@ -98,20 +98,27 @@ async function handleAdjustVariant(variantId: string, req: Request, env: any): P
     const siteSettings = await prisma.siteSetting.findFirst();
     const lowStockThreshold = (siteSettings?.preferences as Record<string, unknown> | null)?.lowStockThreshold as number ?? 5;
 
-    const variant = await prisma.productVariant.findUnique({ where: { id: variantId } });
-    if (!variant) return notFound("Variant not found");
-    const newStock = variant.stock + quantityChange;
-    if (newStock < 0) return badRequest(`Insufficient stock. Current: ${variant.stock}, attempted change: ${quantityChange}`);
+    // Fix race condition by moving stock calculation inside transaction (R5)
+    const [movement, variant] = await prisma.$transaction(async (tx) => {
+      const currentVariant = await tx.productVariant.findUnique({ where: { id: variantId } });
+      if (!currentVariant) throw new Error("Variant not found");
+      
+      const newStock = currentVariant.stock + quantityChange;
+      if (newStock < 0) throw new Error(`Insufficient stock. Current: ${currentVariant.stock}, attempted change: ${quantityChange}`);
 
-    const [movement] = await prisma.$transaction([
-      prisma.inventoryMovement.create({
+      const movement = await tx.inventoryMovement.create({
         data: { variantId, quantityChange, stockAfter: newStock, reason, note: note ?? null },
-      }),
-      prisma.productVariant.update({
+      });
+      
+      await tx.productVariant.update({
         where: { id: variantId },
         data: { stock: newStock },
-      }),
-    ]);
+      });
+      
+      return [movement, { ...currentVariant, newStock }];
+    });
+
+    const newStock = (variant as { newStock: number }).newStock;
 
     // Create alert if stock is low
     if (newStock <= lowStockThreshold && newStock > 0) {

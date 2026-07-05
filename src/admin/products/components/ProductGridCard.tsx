@@ -74,7 +74,7 @@ export function ProductGridCard({ product, onEdit, onDelete, onDuplicate }: Prod
 
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
 
-        <div className="absolute bottom-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="absolute bottom-2 right-2 flex gap-1 max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
             className="p-1.5 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white transition-colors shadow-sm"

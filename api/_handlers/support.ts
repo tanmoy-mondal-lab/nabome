@@ -72,7 +72,12 @@ export async function handleSupportRequest(
 }
 
 async function handleCreateTicket(ctx: RequestContext, req: Request, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { subject, message, orderId } = body;
 
   if (!subject || !message) {
@@ -80,19 +85,19 @@ async function handleCreateTicket(ctx: RequestContext, req: Request, env: any): 
   }
 
   const prisma = getPrisma(env);
-  const name = ctx.userId
-    ? (await prisma.profile.findUnique({ where: { id: ctx.userId }, select: { firstName: true, lastName: true, email: true } }))
+  const profile = ctx.userId
+    ? await prisma.profile.findUnique({ where: { id: ctx.userId }, select: { firstName: true, lastName: true, email: true } })
     : null;
 
   try {
     const ticket = await prisma.supportTicket.create({
       data: {
         profileId: ctx.userId ?? null,
-        orderId: orderId ?? null,
-        name: name ? `${name.firstName} ${name.lastName ?? ""}`.trim() : body.name ?? "Anonymous",
-        email: name?.email ?? body.email ?? "unknown@example.com",
-        subject,
-        message,
+        orderId: orderId as string | null,
+        name: profile ? `${profile.firstName} ${profile.lastName ?? ""}`.trim() : (body.name as string | undefined) ?? "Anonymous",
+        email: profile?.email ?? (body.email as string | undefined) ?? "unknown@example.com",
+        subject: subject as string,
+        message: message as string,
         status: "open",
       },
     });
@@ -170,7 +175,12 @@ async function handleTicketDetail(ctx: RequestContext, ticketId: string, env: an
 async function handleTicketReply(ctx: RequestContext, ticketId: string, req: Request, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { message } = body;
 
   if (!message) return badRequest("Message is required");
@@ -186,7 +196,7 @@ async function handleTicketReply(ctx: RequestContext, ticketId: string, req: Req
       data: {
         ticketId,
         profileId: ctx.userId,
-        message,
+        message: message as string,
         isStaff: false,
       },
     });
@@ -269,13 +279,18 @@ async function handleAdminDetail(ticketId: string, env: any): Promise<Response> 
 }
 
 async function handleAdminUpdateStatus(ctx: RequestContext, ticketId: string, req: Request, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { status } = body;
 
   if (!status) return badRequest("Status is required");
 
   const validStatuses = ["open", "in_progress", "resolved", "closed"];
-  if (!validStatuses.includes(status)) {
+  if (!validStatuses.includes(status as string)) {
     return badRequest(`Invalid status. Must be one of: ${validStatuses.join(", ")}`);
   }
 
@@ -287,7 +302,7 @@ async function handleAdminUpdateStatus(ctx: RequestContext, ticketId: string, re
     const updated = await prisma.supportTicket.update({
       where: { id: ticketId },
       data: {
-        status,
+        status: status as "open" | "in_progress" | "resolved" | "closed",
         resolvedAt: status === "resolved" || status === "closed" ? new Date() : null,
       },
     });
@@ -299,7 +314,12 @@ async function handleAdminUpdateStatus(ctx: RequestContext, ticketId: string, re
 }
 
 async function handleAdminAssign(ctx: RequestContext, ticketId: string, req: Request, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { assignedTo } = body;
 
   if (!assignedTo) return badRequest("assignedTo is required");
@@ -309,12 +329,12 @@ async function handleAdminAssign(ctx: RequestContext, ticketId: string, req: Req
     const ticket = await prisma.supportTicket.findUnique({ where: { id: ticketId } });
     if (!ticket) return notFound("Ticket not found");
 
-    const assignee = await prisma.profile.findUnique({ where: { id: assignedTo } });
+    const assignee = await prisma.profile.findUnique({ where: { id: assignedTo as string } });
     if (!assignee) return badRequest("Assignee not found");
 
     const updated = await prisma.supportTicket.update({
       where: { id: ticketId },
-      data: { assignedTo },
+      data: { assignedTo: assignedTo as string },
       include: {
         assignee: { select: { id: true, firstName: true, lastName: true } },
       },
@@ -327,7 +347,12 @@ async function handleAdminAssign(ctx: RequestContext, ticketId: string, req: Req
 }
 
 async function handleAdminReply(ctx: RequestContext, ticketId: string, req: Request, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { message } = body;
 
   if (!message) return badRequest("Message is required");
@@ -341,7 +366,7 @@ async function handleAdminReply(ctx: RequestContext, ticketId: string, req: Requ
       data: {
         ticketId,
         profileId: ctx.userId,
-        message,
+        message: message as string,
         isStaff: true,
       },
     });
@@ -365,7 +390,12 @@ async function handleAdminFaqList(env: any): Promise<Response> {
 }
 
 async function handleAdminFaqCreate(req: Request, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { question, answer, category, sortOrder } = body;
 
   if (!question || !answer) {
@@ -376,10 +406,10 @@ async function handleAdminFaqCreate(req: Request, env: any): Promise<Response> {
     const prisma = getPrisma(env);
     const faq = await prisma.fAQ.create({
       data: {
-        question,
-        answer,
-        category: category ?? null,
-        sortOrder: sortOrder ?? 0,
+        question: question as string,
+        answer: answer as string,
+        category: category as string | null,
+        sortOrder: sortOrder as number | undefined,
       },
     });
 
@@ -390,7 +420,12 @@ async function handleAdminFaqCreate(req: Request, env: any): Promise<Response> {
 }
 
 async function handleAdminFaqUpdate(faqId: string, req: Request, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const allowedFields = ["question", "answer", "category", "sortOrder", "isActive"];
   const updateData: Record<string, unknown> = {};
 

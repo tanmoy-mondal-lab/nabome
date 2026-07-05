@@ -1,7 +1,8 @@
-import { lazy } from "react";
+import { lazy, type ReactNode } from "react";
 import { Route } from "react-router-dom";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 import { AdminRoute } from "../components/auth/AdminRoute";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 import { StorefrontLayout } from "../storefront/layout/Layout";
 
 const LoginPage = lazy(() => import("../pages/LoginPage"));
@@ -37,36 +38,38 @@ const DashboardSettings = lazy(() => import("../storefront/pages/SettingsPage"))
 const DashboardSupport = lazy(() => import("../storefront/pages/SupportTicketsPage"));
 const DashboardReturnRequest = lazy(() => import("../storefront/pages/ReturnRequestPage"));
 
+const RB = (el: ReactNode) => <ErrorBoundary>{el}</ErrorBoundary>;
+
 export const STOREFRONT_ROUTES = (
   <Route element={<StorefrontLayout />}>
-    <Route index element={<HomePage />} />
-    <Route path="products" element={<ProductListingPage />} />
-    <Route path="products/:slug" element={<ProductDetailPage />} />
-    <Route path="search" element={<SearchResultsPage />} />
-    <Route path="cart" element={<CartPage />} />
-    <Route path="wishlist" element={<WishlistPage />} />
-    <Route path="collections" element={<CollectionsIndexPage />} />
-    <Route path="collections/:slug" element={<CollectionPage />} />
-    <Route path="categories/:slug" element={<CategoryPage />} />
-    <Route path="checkout" element={<CheckoutPage />} />
-    <Route path="privacy" element={<StaticPage />} />
-    <Route path="terms" element={<StaticPage />} />
-    <Route path="faq" element={<FaqPage />} />
-    <Route path="shipping-returns" element={<StaticPage />} />
+    <Route index element={RB(<HomePage />)} />
+    <Route path="products" element={RB(<ProductListingPage />)} />
+    <Route path="products/:slug" element={RB(<ProductDetailPage />)} />
+    <Route path="search" element={RB(<SearchResultsPage />)} />
+    <Route path="cart" element={RB(<CartPage />)} />
+    <Route path="wishlist" element={RB(<WishlistPage />)} />
+    <Route path="collections" element={RB(<CollectionsIndexPage />)} />
+    <Route path="collections/:slug" element={RB(<CollectionPage />)} />
+    <Route path="categories/:slug" element={RB(<CategoryPage />)} />
+    <Route path="checkout" element={RB(<CheckoutPage />)} />
+    <Route path="privacy" element={RB(<StaticPage />)} />
+    <Route path="terms" element={RB(<StaticPage />)} />
+    <Route path="faq" element={RB(<FaqPage />)} />
+    <Route path="shipping-returns" element={RB(<StaticPage />)} />
 
-    <Route path="lookbooks" element={<LookbookPage />} />
-    <Route path="lookbooks/:slug" element={<LookbookDetailPage />} />
-    <Route path="account" element={<ProtectedRoute><DashboardOverview /></ProtectedRoute>} />
-    <Route path="account/orders" element={<ProtectedRoute><DashboardOrdersList /></ProtectedRoute>} />
-    <Route path="account/orders/:id" element={<ProtectedRoute><DashboardOrderDetail /></ProtectedRoute>} />
-    <Route path="account/orders/:id/return" element={<ProtectedRoute><DashboardReturnRequest /></ProtectedRoute>} />
-    <Route path="account/addresses" element={<ProtectedRoute><DashboardAddresses /></ProtectedRoute>} />
-    <Route path="account/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
-    <Route path="account/notifications" element={<ProtectedRoute><DashboardNotifications /></ProtectedRoute>} />
-    <Route path="account/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
-    <Route path="account/support" element={<ProtectedRoute><DashboardSupport /></ProtectedRoute>} />
+    <Route path="lookbooks" element={RB(<LookbookPage />)} />
+    <Route path="lookbooks/:slug" element={RB(<LookbookDetailPage />)} />
+    <Route path="account" element={<ErrorBoundary><ProtectedRoute><DashboardOverview /></ProtectedRoute></ErrorBoundary>} />
+    <Route path="account/orders" element={<ErrorBoundary><ProtectedRoute><DashboardOrdersList /></ProtectedRoute></ErrorBoundary>} />
+    <Route path="account/orders/:id" element={<ErrorBoundary><ProtectedRoute><DashboardOrderDetail /></ProtectedRoute></ErrorBoundary>} />
+    <Route path="account/orders/:id/return" element={<ErrorBoundary><ProtectedRoute><DashboardReturnRequest /></ProtectedRoute></ErrorBoundary>} />
+    <Route path="account/addresses" element={<ErrorBoundary><ProtectedRoute><DashboardAddresses /></ProtectedRoute></ErrorBoundary>} />
+    <Route path="account/wishlist" element={<ErrorBoundary><ProtectedRoute><WishlistPage /></ProtectedRoute></ErrorBoundary>} />
+    <Route path="account/notifications" element={<ErrorBoundary><ProtectedRoute><DashboardNotifications /></ProtectedRoute></ErrorBoundary>} />
+    <Route path="account/settings" element={<ErrorBoundary><ProtectedRoute><DashboardSettings /></ProtectedRoute></ErrorBoundary>} />
+    <Route path="account/support" element={<ErrorBoundary><ProtectedRoute><DashboardSupport /></ProtectedRoute></ErrorBoundary>} />
 
-    <Route path=":slug" element={<StaticPage />} />
+    <Route path=":slug" element={RB(<StaticPage />)} />
   </Route>
 );
 

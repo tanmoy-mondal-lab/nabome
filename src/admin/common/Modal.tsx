@@ -34,10 +34,10 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
   if (!open) return null;
 
   const sizeClasses = {
-    sm: "max-w-md",
-    md: "max-w-lg",
-    lg: "max-w-2xl",
-    xl: "max-w-4xl",
+    sm: "max-w-[calc(100vw-2rem)] sm:max-w-md",
+    md: "max-w-[calc(100vw-2rem)] sm:max-w-lg",
+    lg: "max-w-[calc(100vw-2rem)] sm:max-w-2xl",
+    xl: "max-w-[calc(100vw-2rem)] sm:max-w-4xl",
   };
 
   return (

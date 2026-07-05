@@ -353,7 +353,7 @@ export default function MediaLibrary() {
                   <p className="text-[11px] text-neutral-500 truncate">{asset.altText || "Untitled"}</p>
                   <p className="text-[10px] text-neutral-400">{formatSize(asset.fileSize)}</p>
                 </div>
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100">
+                <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-1 p-1.5 bg-black/50 md:bg-black/0 md:group-hover:bg-black/30 transition-colors md:opacity-0 md:group-hover:opacity-100 md:inset-0">
                   <button onClick={(e) => { e.stopPropagation(); copyUrl(asset.url); }}
                     className="text-white text-[10px] bg-white/20 hover:bg-white/30 px-2 py-1 rounded flex items-center gap-1">
                     <Copy size={10} /> URL

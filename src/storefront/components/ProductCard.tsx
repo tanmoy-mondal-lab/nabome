@@ -19,6 +19,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onQuickView, view = "grid" }: ProductCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
   const { add: addToWishlist, remove: removeFromWishlist, isInWishlist } = useWishlist();
@@ -39,7 +40,7 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
   const gender = product.gender;
   const isNew = product.isNew;
   const variants = product.variants ?? [];
-  const colors = [...new Set(variants.map((v) => v.colorHex).filter(Boolean))];
+  const colorEntries = [...new Map(variants.filter((v) => v.colorHex).map((v) => [v.colorHex, { hex: v.colorHex, name: v.color || "" }])).values()];
   const discount = compareAtPrice && compareAtPrice > price ? Math.round((1 - price / compareAtPrice) * 100) : 0;
 
   const defaultVariant = variants[0];
@@ -83,7 +84,7 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
     return (
       <div className="premium-card product-card flex gap-6 p-4 group">
         <Link to={`/products/${slug}`} className="w-32 h-44 shrink-0 bg-neutral-50 overflow-hidden">
-          <SafeImage src={primaryImage || "/placeholder.svg"} alt={name} className="w-full h-full object-cover transition-transform duration-700 ease-luxe-out group-hover:scale-105" />
+          <SafeImage src={primaryImage || "/placeholder.svg"} alt={name} responsive className="w-full h-full object-cover transition-transform duration-700 ease-luxe-out group-hover:scale-105" />
         </Link>
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-2">
@@ -116,15 +117,23 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
       viewport={{ once: true }}
       className="product-card group relative"
     >
-      <Link to={`/products/${slug}`} className="block md:aspect-[3/4] aspect-[3/4] bg-neutral-50 overflow-hidden relative">
-        {!imageLoaded && <div className="absolute inset-0 bg-neutral-100 animate-pulse" />}
-        <SafeImage
-          src={primaryImage} alt={name}
-          onLoad={() => setImageLoaded(true)}
-          className={cn("w-full h-full object-cover transition-all duration-700 ease-luxe-out", !prefersReducedMotion && "md:group-hover:scale-[1.03]", imageLoaded ? "opacity-100" : "opacity-0")}
-        />
+      <Link to={`/products/${slug}`} className="block md:aspect-[3/4] aspect-[3/4] bg-neutral-50 overflow-hidden relative" style={{ touchAction: 'manipulation' }}>
+        {!imageLoaded && !imageError && <div className="absolute inset-0 bg-neutral-100 animate-pulse" />}
+        {imageError ? (
+          <div className="w-full h-full flex items-center justify-center bg-neutral-100">
+            <span className="text-neutral-400 text-xs">No image</span>
+          </div>
+        ) : (
+          <SafeImage
+            src={primaryImage} alt={name}
+            responsive
+            onLoad={() => setImageLoaded(true)}
+            onError={() => { setImageLoaded(true); setImageError(true); }}
+            className={cn("w-full h-full object-cover transition-all duration-700 ease-luxe-out", !prefersReducedMotion && "md:group-hover:scale-[1.03]", imageLoaded ? "opacity-100" : "opacity-0")}
+          />
+        )}
         {hoverImage && !prefersReducedMotion && (
-          <SafeImage src={hoverImage} alt={`${name} - alternate view`} className="absolute inset-0 w-full h-full object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-700 ease-luxe-out" />
+          <SafeImage src={hoverImage} alt={`${name} - alternate view`} responsive className="absolute inset-0 w-full h-full object-cover opacity-0 md:group-hover:opacity-100 transition-opacity duration-700 ease-luxe-out" />
         )}
 
         {/* Badges — unified style for mobile and desktop */}
@@ -144,8 +153,8 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
           </span>
         )}
 
-        {/* Desktop: wishlist heart on hover — no circle bg */}
-        <div className="hidden md:flex absolute top-4 right-4 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300">
+        {/* Desktop: wishlist heart on hover — always visible on touch */}
+        <div className="hidden md:flex absolute top-4 right-4 max-md:opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity duration-300">
           <button onClick={handleToggleWishlist} className={cn("p-1 transition-colors duration-200", inWishlist ? "text-brand-600" : "text-neutral-500 hover:text-brand-600")} aria-label="Toggle wishlist">
             <AnimatePresence mode="wait">
               {inWishlist ? (
@@ -171,7 +180,7 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
 
         {/* Mobile: wishlist heart only — clean minimal overlay */}
         <div className="md:hidden absolute top-3 right-3">
-          <button onClick={handleToggleWishlist} className={cn("w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-subtle transition-all duration-200", inWishlist ? "text-red-500" : "text-neutral-600")} aria-label="Toggle wishlist">
+          <button onClick={handleToggleWishlist} className={cn("w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-subtle transition-all duration-200", inWishlist ? "text-red-500" : "text-neutral-600")} aria-label="Toggle wishlist">
             <AnimatePresence mode="wait">
               {inWishlist ? (
                 prefersReducedMotion ? (
@@ -203,12 +212,12 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
         <PriceDisplay price={price} compareAtPrice={compareAtPrice} size="sm" className="mt-1" />
 
         {/* Desktop: color swatches below name */}
-        {colors.length > 1 && (
+        {colorEntries.length > 1 && (
           <div className="hidden md:flex gap-1.5 mt-2">
-            {colors.slice(0, 5).map((hex, i) => (
-              <span key={i} className="w-2.5 h-2.5 rounded-full ring-1 ring-neutral-200" style={{ backgroundColor: hex }} aria-label={`Color option ${i + 1}`} />
+            {colorEntries.slice(0, 5).map((entry, i) => (
+              <span key={i} className="w-2.5 h-2.5 rounded-full ring-1 ring-neutral-200" style={{ backgroundColor: entry.hex }} aria-label={`Color: ${entry.name || `option ${i + 1}`}`} />
             ))}
-            {colors.length > 5 && <span className="text-[10px] text-neutral-400 ml-0.5">+{colors.length - 5}</span>}
+            {colorEntries.length > 5 && <span className="text-[10px] text-neutral-400 ml-0.5">+{colorEntries.length - 5}</span>}
           </div>
         )}
       </div>

@@ -78,8 +78,40 @@ export function DataTable<T>({
         </div>
       )}
 
+      {/* Mobile Card View */}
+      {sorted.length > 0 && (
+        <div className="block md:hidden divide-y divide-neutral-100">
+          {sorted.map((item, i) => {
+            const id = (item as Record<string, unknown>).id as string ?? String(i);
+            return (
+              <div
+                key={id}
+                className={`p-4 space-y-2 ${onRowClick ? "cursor-pointer hover:bg-neutral-50" : ""}`}
+                onClick={() => onRowClick?.(item)}
+              >
+                {columns.filter((col) => col.key !== "select").map((col) => (
+                  <div key={col.key} className="flex items-start justify-between gap-2">
+                    <span className="text-[11px] uppercase tracking-wider text-neutral-400 font-medium shrink-0 min-w-[80px]">
+                      {col.label}
+                    </span>
+                    <span className="text-sm text-neutral-700 text-right">
+                      {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key] ?? "")}
+                    </span>
+                  </div>
+                ))}
+                {actions && (
+                  <div className="flex justify-end pt-1" onClick={(e) => e.stopPropagation()}>
+                    {actions(item)}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-neutral-100 bg-neutral-50">

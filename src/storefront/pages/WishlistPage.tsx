@@ -137,19 +137,18 @@ export default function WishlistPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
           <AnimatePresence mode="popLayout">
             {items.map((wishlistItem) => {
-              // Data is nested: variant.product
-              const variant = (wishlistItem.variant ?? {}) as Record<string, unknown>;
-              const product = (variant.product ?? {}) as Record<string, unknown>;
-              const variantImages = (variant.images as { url: string; isPrimary?: boolean }[]) ?? [];
-              const images = variantImages.length > 0 ? variantImages : ((product.images as { url: string }[]) ?? []);
-              const price = Number(product.basePrice ?? 0);
-              const compareAtPrice = product.compareAtPrice ? Number(product.compareAtPrice) : null;
-              const slug = product.slug as string;
-              const name = product.name as string;
+              const variant = wishlistItem.variant;
+              const product = variant?.product;
+              const variantImages = variant?.images ?? [];
+              const images = variantImages.length > 0 ? variantImages : (product?.images ?? []);
+              const price = Number(product?.basePrice ?? 0);
+              const compareAtPrice = product?.compareAtPrice ? Number(product.compareAtPrice) : null;
+              const slug = product?.slug ?? "";
+              const name = product?.name ?? "Product";
 
               return (
                 <motion.div
-                  key={wishlistItem.id as string}
+                  key={wishlistItem.id}
                   layout
                   initial={prefersReducedMotion ? undefined : { opacity: 0, scale: 0.95 }}
                   animate={prefersReducedMotion ? undefined : { opacity: 1, scale: 1 }}
@@ -163,12 +162,14 @@ export default function WishlistPage() {
                         <SafeImage
                           src={images[0]?.url}
                           alt={name}
+                          responsive
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-luxe-out"
                         />
                         {images[1]?.url && (
                           <SafeImage
                             src={images[1].url}
                             alt={`${name} - alternate view`}
+                            responsive
                             className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-700 ease-luxe-out"
                           />
                         )}
@@ -177,6 +178,7 @@ export default function WishlistPage() {
                       <SafeImage
                         src={images[0]?.url}
                         alt={name}
+                        responsive
                         className="w-full h-full object-cover"
                       />
                     )}
@@ -229,33 +231,33 @@ export default function WishlistPage() {
                   <div className="px-1 pb-4">
                     <button
                       onClick={() => {
-                        if (!variant.id) return;
+                        if (!variant?.id || !product?.id) return;
                         addItem({
-                          productId: (product.id as string) || "",
-                          variantId: (variant.id as string) || "",
+                          productId: product.id,
+                          variantId: variant.id,
                           name: name || "",
                           slug: slug || "",
-                          sku: (variant.sku as string) || "",
-                          size: (variant.size as string) || "One Size",
-                          color: (variant.color as string) || "",
-                          colorHex: (variant.colorHex as string) || "",
+                          sku: variant.sku || "",
+                          size: variant.size || "One Size",
+                          color: variant.color || "",
+                          colorHex: variant.colorHex || "",
                           image: images[0]?.url || "",
                           price: price + Number(variant.priceAdjustment ?? 0),
                           compareAtPrice: compareAtPrice,
                           quantity: 1,
-                          maxQuantity: (variant.stock as number) || 99,
+                          maxQuantity: variant.stock || 99,
                         });
                       }}
-                      disabled={!variant.id}
+                      disabled={!variant?.id}
                       className={cn(
                         "w-full py-3 text-[10px] font-body font-medium tracking-[0.2em] uppercase flex items-center justify-center gap-2 transition-all duration-300",
-                        justAdded === variant.id
+                        justAdded === variant?.id
                           ? "bg-green-600 text-white"
                           : "bg-neutral-900 text-white hover:bg-neutral-800",
-                        !variant.id && "opacity-40 cursor-not-allowed"
+                        !variant?.id && "opacity-40 cursor-not-allowed"
                       )}
                     >
-                      {justAdded === variant.id ? (
+                      {justAdded === variant?.id ? (
                         <>
                           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />

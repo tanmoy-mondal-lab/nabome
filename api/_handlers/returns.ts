@@ -54,18 +54,23 @@ export async function handleReturnRequest(
 async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { orderId, orderItemId, reason, reasonDetail, evidenceImages } = body;
 
-  if (!orderId || !reason) return badRequest("Order ID and reason are required");
+  if (!orderId || !reason || typeof orderId !== 'string' || typeof reason !== 'string') return badRequest("Order ID and reason are required");
 
   const validReasons = ["wrong_item", "damaged_product", "size_issue", "quality_issue", "not_as_described", "changed_mind", "other"];
-  if (!validReasons.includes(reason)) return badRequest("Invalid return reason");
+  if (!validReasons.includes(reason as string)) return badRequest("Invalid return reason");
 
   try {
     const prisma = getPrisma(env);
     const order = await prisma.order.findUnique({
-      where: { id: orderId },
+      where: { id: orderId as string },
       include: { items: true },
     });
 
@@ -78,18 +83,18 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
     }
 
     if (orderItemId) {
-      const item = order.items.find((i) => i.id === orderItemId);
+      const item = order.items.find((i: any) => i.id === orderItemId);
       if (!item) return badRequest("Order item not found in this order");
     }
 
     const returnRequest = await prisma.returnRequest.create({
       data: {
-        orderId,
-        orderItemId: orderItemId ?? null,
+        orderId: orderId as string,
+        orderItemId: orderItemId as string | null ?? null,
         profileId: ctx.userId,
-        reason,
-        reasonDetail: reasonDetail ?? null,
-        evidenceImages: evidenceImages ?? [],
+        reason: reason as any,
+        reasonDetail: reasonDetail as string | null ?? null,
+        evidenceImages: evidenceImages as string[] | undefined ?? [],
         status: "pending",
       },
       include: {
@@ -98,7 +103,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
     });
 
     await prisma.order.update({
-      where: { id: orderId },
+      where: { id: orderId as string },
       data: { returnRequestedAt: new Date() },
     });
 
@@ -107,7 +112,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
       orderId,
       "return_requested",
       "Return Request Submitted",
-      `Return request for order ${returnRequest.order.orderNumber} has been submitted.`,
+      `Return request for order has been submitted.`,
       env
     );
 

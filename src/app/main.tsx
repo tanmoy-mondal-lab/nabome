@@ -4,7 +4,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { App } from "./App";
 import "../styles/globals.css";
 import { registerServiceWorker } from "../lib/serviceWorker";
-import { ConnectivityProvider } from "../components/ConnectivityIndicators";
+import { ConnectivityProvider } from "../storefront/components/ConnectivityIndicators";
 
 // Initialize enhanced offline support for mobile and desktop
 registerServiceWorker()

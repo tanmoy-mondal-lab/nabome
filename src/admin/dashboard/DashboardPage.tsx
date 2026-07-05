@@ -228,9 +228,13 @@ export default function DashboardPage() {
           <div className="h-52 flex items-end gap-px">
             {(() => {
               const maxRevenue = Math.max(...data.dailySales.map((d) => d.revenue), 1);
-              return data.dailySales.map((day, i) => {
+              const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+              const step = isMobile ? 2 : 1;
+              const visibleSales = data.dailySales.filter((_, i) => i % step === 0);
+              return visibleSales.map((day, i) => {
+                const originalIndex = i * step;
                 const height = (day.revenue / maxRevenue) * 100;
-                const showLabel = i === 0 || i === data.dailySales.length - 1 || new Date(day.date).getDate() === 1 || new Date(day.date).getDate() === 15;
+                const showLabel = originalIndex === 0 || originalIndex === data.dailySales.length - 1 || new Date(day.date).getDate() === 1 || new Date(day.date).getDate() === 15;
                 return (
                   <div key={day.date} className="flex-1 flex flex-col items-center gap-1 relative group">
                     {day.revenue > 0 && (
@@ -239,9 +243,6 @@ export default function DashboardPage() {
                           {formatPrice(day.revenue)}
                         </div>
                       </div>
-                    )}
-                    {day.revenue > 0 && (
-                      <span className="text-[10px] text-neutral-400 font-medium">{formatCompactPrice(day.revenue)}</span>
                     )}
                     <div
                       className={`w-full rounded-t transition-all duration-300 ${
@@ -252,8 +253,11 @@ export default function DashboardPage() {
                       style={{ height: `${Math.max(height, 3)}%` }}
                     />
                     {showLabel ? (
-                      <span className="text-[10px] text-neutral-400 mt-1 whitespace-nowrap">
-                        {new Date(day.date).getDate()} {new Date(day.date).toLocaleDateString("en-IN", { month: "short" })}
+                      <span className="text-[9px] sm:text-[10px] text-neutral-400 mt-1 whitespace-nowrap">
+                        {isMobile
+                          ? new Date(day.date).getDate()
+                          : `${new Date(day.date).getDate()} ${new Date(day.date).toLocaleDateString("en-IN", { month: "short" })}`
+                        }
                       </span>
                     ) : (
                       <span className="text-[10px] text-transparent mt-1">·</span>

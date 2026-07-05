@@ -43,7 +43,16 @@ export function SearchOverlay() {
     retry: false,
   });
 
+  const { data: autocompleteData } = useQuery({
+    queryKey: ["search-autocomplete", debouncedQuery],
+    queryFn: () => api.get<{ suggestions: Array<{ id: string; name: string; slug: string; price: number; image: string | null }> }>("/api/products/autocomplete", { params: { q: debouncedQuery } }),
+    enabled: debouncedQuery.length >= 2,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  });
+
   const trending = trendingData?.trending ?? FALLBACK_TRENDING;
+  const suggestions = autocompleteData?.suggestions ?? [];
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query), 300);
@@ -75,7 +84,7 @@ export function SearchOverlay() {
     closeSearch();
   }
 
-  const results = data?.products as Record<string, unknown>[] ?? [];
+  const results = data?.products ?? [];
   const matchingCategories = query.length >= 1
     ? categories.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()))
     : [];
@@ -102,6 +111,7 @@ export function SearchOverlay() {
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && query.trim()) handleSearch(query.trim()); }}
                   placeholder="Search products, categories, collections..."
+                  aria-label="Search products"
                   className="w-full md:py-5 md:text-xl md:border-b md:border-neutral-200 md:focus:border-neutral-900 pl-12 pr-4 py-4 text-lg border-b border-neutral-200 focus:outline-none focus:border-neutral-900 bg-transparent"
                 />
               </div>
@@ -117,7 +127,7 @@ export function SearchOverlay() {
                   <ul className="md:space-y-4 space-y-3">
                     {trending.map((t) => (
                       <li key={t}>
-                        <button onClick={() => { setQuery(t); handleSearch(t); }} className="md:text-[13px] md:text-neutral-600 md:hover:text-neutral-900 md:tracking-wide text-sm text-neutral-700 hover:text-brand-500 transition-colors tracking-fashion">
+                        <button onClick={() => { setQuery(t); handleSearch(t); }} className="md:text-[13px] md:text-neutral-600 md:hover:text-neutral-900 md:tracking-wide text-sm text-neutral-700 hover:text-brand-500 transition-colors tracking-fashion" aria-label={`Search for ${t}`}>
                           {t}
                         </button>
                       </li>
@@ -170,6 +180,27 @@ export function SearchOverlay() {
               </div>
             )}
 
+            {query && suggestions.length > 0 && (
+              <div className="max-w-3xl mx-auto mb-6">
+                <p className="md:text-[10px] md:tracking-[0.2em] text-xs uppercase tracking-widest text-neutral-400 mb-3">Suggestions</p>
+                <div className="space-y-2">
+                  {suggestions.map((s) => (
+                    <Link key={s.id} to={`/products/${s.slug}`} onClick={closeSearch} className="flex items-center gap-3 p-3 hover:bg-neutral-50 rounded-lg transition-colors">
+                      {s.image && (
+                        <div className="w-12 h-12 bg-neutral-100 rounded overflow-hidden flex-shrink-0">
+                          <SafeImage src={s.image} alt={s.name} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="md:text-[13px] text-sm font-medium text-neutral-900 truncate">{s.name}</p>
+                        <p className="md:text-[12px] text-xs text-neutral-500">{formatPrice(s.price)}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {query && isFetching && (
               <div className="max-w-5xl mx-auto flex justify-center py-12">
                 <div className="w-6 h-6 border-2 border-neutral-300 border-t-neutral-900 rounded-full animate-spin" />
@@ -178,24 +209,24 @@ export function SearchOverlay() {
 
             {query && !isFetching && results.length > 0 && (
               <div className="max-w-5xl mx-auto space-y-6">
-                <p className="md:text-[11px] text-xs text-neutral-400">{(data as Record<string, unknown>)?.pagination ? ((data as Record<string, unknown>).pagination as { total?: number }).total ?? 0 : 0} results for &ldquo;{query}&rdquo;</p>
+                <p className="md:text-[11px] text-xs text-neutral-400">{data?.pagination?.total ?? 0} results for &ldquo;{query}&rdquo;</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 md:gap-6 gap-4">
                   {results.slice(0, 8).map((p) => {
-                    const images = p.images as { url: string }[] ?? [];
+                    const images = p.images ?? [];
                     return (
-                      <Link key={p.id as string} to={`/products/${p.slug}`} onClick={closeSearch} className="group md:p-0 p-3 premium-card md:border-0 md:shadow-none">
+                      <Link key={p.id} to={`/products/${p.slug}`} onClick={closeSearch} className="group md:p-0 p-3 premium-card md:border-0 md:shadow-none">
                         <div className="aspect-[3/4] bg-neutral-50 mb-2 overflow-hidden md:rounded-none rounded">
-                          <SafeImage src={images[0]?.url} alt={p.name as string} className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-500" />
+                          <SafeImage src={images[0]?.url} alt={p.name} className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-500" />
                         </div>
-                        <p className="md:text-[13px] md:font-normal text-sm font-medium text-neutral-900 truncate">{p.name as string}</p>
+                        <p className="md:text-[13px] md:font-normal text-sm font-medium text-neutral-900 truncate">{p.name}</p>
                         <p className="md:text-[13px] md:text-neutral-500 text-sm text-brand-600">{formatPrice(Number(p.basePrice))}</p>
                       </Link>
                     );
                   })}
                 </div>
-                {((((data as Record<string, unknown>)?.pagination as { total?: number })?.total ?? 0) > 8) && (
+                {((data?.pagination?.total ?? 0) > 8) && (
                   <Link to={`/search?q=${encodeURIComponent(query)}`} onClick={closeSearch} className="block text-center md:text-[12px] md:text-neutral-500 md:hover:text-neutral-900 md:py-6 text-sm text-brand-600 hover:underline py-4">
-                    View all {((data as Record<string, unknown>)?.pagination as { total?: number })?.total ?? 0} results
+                    View all {data?.pagination?.total ?? 0} results
                   </Link>
                 )}
               </div>

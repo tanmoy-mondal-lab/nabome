@@ -34,6 +34,7 @@ export default function BannerPromoSection({ section }: BannerPromoSectionProps)
             src={imageUrl}
             alt={section.title || "Promotional banner"}
             className="w-full h-full object-cover"
+            loading="lazy"
           />
         ) : (
           <div className="w-full h-full bg-neutral-200" />

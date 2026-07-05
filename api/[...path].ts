@@ -34,6 +34,10 @@ function requiresTurnstile(path: string): boolean {
   return path === "/api/auth/login" ||
     path === "/api/auth/register" ||
     path === "/api/auth/forgot-password" ||
+    path === "/api/auth/change-password" ||
+    path === "/api/auth/change-email" ||
+    path === "/api/auth/verify-email" ||
+    path === "/api/auth/resend-verification" ||
     path === "/api/contact" ||
     path === "/api/newsletter";
 }
@@ -452,10 +456,10 @@ route("GET", "/api/admin/search", (req, ctx) => handleAdminSearchIndexRequest(re
 route("GET", "/api/orders/:id/invoice", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "getInvoice"), { auth: true });
 
 // Public invoice by orderNumber (serves the stored invoiceUrl like /invoices/NB-XXXX.html)
-route("GET", "/api/invoices/:orderNumber", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "getByOrderNumber"));
+route("GET", "/api/invoices/:orderNumber", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "getByOrderNumber"), { auth: true });
 
 // Payments
-route("POST", "/api/payments/verify", (req, ctx) => handlePaymentRequest(req, ctx, [], "verify"));
+route("POST", "/api/payments/verify", (req, ctx) => handlePaymentRequest(req, ctx, [], "verify"), { auth: true });
 route("POST", "/api/payments/failed", (req, ctx) => handlePaymentRequest(req, ctx, [], "failed"), { auth: true });
 route("POST", "/api/payments/retry", (req, ctx) => handlePaymentRequest(req, ctx, [], "retry"), { auth: true });
 route("POST", "/api/payments/refund", (req, ctx) => handlePaymentRequest(req, ctx, [], "refund"), { auth: true, admin: true });

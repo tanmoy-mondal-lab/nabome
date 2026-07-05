@@ -109,7 +109,7 @@ export async function authenticate(
         ? RATE_LIMIT_CONFIG.auth
         : RATE_LIMIT_CONFIG.standard;
 
-    const limitCheck = await withRateLimit(getRateLimitKey(clientIp, prefix), config);
+    const limitCheck = await withRateLimit(getRateLimitKey(clientIp, prefix), config, env);
     if (limitCheck !== null) return limitCheck;
   }
 

@@ -69,7 +69,7 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
               i === activeIndex ? "border-brand-500" : "border-transparent hover:border-neutral-300"
             )}
           >
-            <SafeImage src={image.url} alt={image.altText ?? ""} className="w-full h-full object-cover" />
+            <SafeImage src={image.url} alt={image.altText ?? ""} responsive className="w-full h-full object-cover" />
           </button>
         ))}
       </div>
@@ -77,9 +77,15 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
       <div
         ref={containerRef}
         className="relative aspect-[3/4] bg-neutral-50 overflow-hidden group"
+        style={{ touchAction: 'manipulation' }}
         onMouseEnter={() => activeImage && !isVideo(activeImage.url) && setZoomed(true)}
         onMouseLeave={() => setZoomed(false)}
         onMouseMove={activeImage && !isVideo(activeImage.url) ? handleMouseMove : undefined}
+        onClick={() => {
+          if (window.matchMedia("(pointer: coarse)").matches && activeImage && !isVideo(activeImage.url)) {
+            setZoomed((prev) => !prev);
+          }
+        }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
@@ -97,6 +103,7 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
               <SafeImage
                 src={img(activeImage.url, { width: 800 })}
                 alt={activeImage.altText ?? ""}
+                responsive
                 className="w-full h-full object-cover"
                 useTransform={false}
               />
@@ -180,6 +187,7 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
               <SafeImage
                 src={img(activeImage?.url ?? "", { width: 1600 })}
                 alt={activeImage?.altText ?? ""}
+                responsive
                 className="max-w-[90vw] max-h-[90vh] object-contain"
                 useTransform={false}
               />

@@ -1,3 +1,5 @@
+import type { Product, ProductVariant } from "../types/product";
+
 const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.nabome.online";
 const SITE_NAME = "নবME — Premium Fashion";
 
@@ -31,17 +33,17 @@ export function websiteSchema() {
 }
 
 export function productSchema(
-  product: Record<string, unknown>,
-  variant?: Record<string, unknown>
+  product: Product,
+  variant?: ProductVariant
 ): Record<string, unknown> {
-  const images = (product.images as { url: string }[]) ?? [];
-  const variants = (product.variants as Record<string, unknown>[]) ?? [];
+  const images = product.images ?? [];
+  const variants = product.variants ?? [];
   const offers = variants.map((v) => ({
     "@type": "Offer",
-    sku: (v.sku as string) || undefined,
-    price: Number(product.basePrice ?? 0) + Number((v.priceAdjustment as number) ?? 0),
+    sku: v.sku || undefined,
+    price: Number(product.basePrice ?? 0) + Number(v.priceAdjustment ?? 0),
     priceCurrency: "INR",
-    availability: (v.stock as number) > 0
+    availability: v.stock > 0
       ? "https://schema.org/InStock"
       : "https://schema.org/OutOfStock",
     url: `${SITE_URL}/products/${product.slug}`,
@@ -51,13 +53,13 @@ export function productSchema(
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    description: (product.description as string)?.slice(0, 5000),
-    sku: variant ? (variant.sku as string) : (variants[0]?.sku as string) || undefined,
+    description: product.description?.slice(0, 5000),
+    sku: variant ? variant.sku : variants[0]?.sku || undefined,
     image: images.map((i) => i.url),
     brand: product.brand
       ? {
           "@type": "Brand",
-          name: (product.brand as Record<string, unknown>).name,
+          name: product.brand.name,
         }
       : undefined,
     offers: {
@@ -66,7 +68,7 @@ export function productSchema(
       lowPrice: Number(product.basePrice ?? 0),
       highPrice: variants.reduce(
         (max, v) =>
-          Math.max(max, Number(product.basePrice ?? 0) + Number((v.priceAdjustment as number) ?? 0)),
+          Math.max(max, Number(product.basePrice ?? 0) + Number(v.priceAdjustment ?? 0)),
         0
       ),
       offerCount: offers.length,
@@ -155,6 +157,7 @@ export function img(url: string | undefined | null, options?: ImgOptions): strin
   const transforms: string[] = [];
   if (options?.width) transforms.push(`w_${options.width}`);
   if (options?.height) transforms.push(`h_${options.height}`);
+  transforms.push(options?.quality ? `q_${options.quality}` : "q_auto");
   transforms.push(options?.format ? `f_${options.format}` : "f_auto");
 
   return url.replace(

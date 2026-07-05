@@ -60,11 +60,22 @@ export default function ForgotPasswordPage() {
 
   async function handleResendCode() {
     setError(null);
+    setTurnstileError("");
+    if (turnstileEnabled && !turnstileToken) {
+      setError("Please complete the verification challenge");
+      return;
+    }
+    const shouldResetTurnstile = turnstileEnabled && !!turnstileToken;
     try {
-      await forgotPassword(email);
+      await forgotPassword(email, turnstileToken || undefined);
       setSent(true);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to send code");
+    } finally {
+      if (shouldResetTurnstile) {
+        setTurnstileToken("");
+        setTurnstileNonce((value) => value + 1);
+      }
     }
   }
 
@@ -233,7 +244,7 @@ export default function ForgotPasswordPage() {
                   value={digit}
                   onChange={(e) => handleOtpChange(i, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                  className="w-10 h-12 text-center text-lg font-mono border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900"
+                  className="w-10 sm:w-12 h-12 sm:h-14 text-center text-lg font-mono border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-neutral-900"
                 />
               ))}
             </div>

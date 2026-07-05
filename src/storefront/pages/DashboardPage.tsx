@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShoppingBag, Clock, Heart, MapPin, Bell, Settings, HelpCircle, ArrowRight } from "lucide-react";
 import { customerApi } from "../../lib/api/customer";
 import { formatPrice } from "../../lib/utils/format";
@@ -49,6 +49,7 @@ const quickLinks = [
 
 export default function DashboardPage() {
   const user = useAuthStore((s) => s.user);
+  const queryClient = useQueryClient();
 
   const { data: dashboard, isError: dashboardError, isLoading: dashboardLoading } = useQuery({
     queryKey: ["customer", "dashboard"],
@@ -92,7 +93,7 @@ export default function DashboardPage() {
         </Helmet>
         <div className="text-center py-16">
           <p className="text-sm text-neutral-500 mb-4">Failed to load account data.</p>
-          <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
+          <button onClick={() => queryClient.invalidateQueries({ queryKey: ["customer", "dashboard"] })} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
         </div>
       </div>
     );

@@ -9,7 +9,7 @@ import type { Product } from "../../types/product";
 
 interface FrequentlyBoughtTogetherProps {
   products: Product[];
-  mainProduct: Record<string, unknown>;
+  mainProduct: Product;
 }
 
 export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBoughtTogetherProps) {
@@ -19,7 +19,7 @@ export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBo
   const { data: settingsData } = useSettings();
   if (!products.length) return null;
 
-  const bundleDiscountPercent = Number((settingsData?.preferences as Record<string, unknown>)?.bundleDiscountPercent ?? 10);
+  const bundleDiscountPercent = Number(settingsData?.preferences?.bundleDiscountPercent ?? 10);
   const mainPrice = Number(mainProduct.basePrice ?? 0);
   const total = products.reduce((sum, p) => sum + Number(p.basePrice ?? 0), mainPrice);
   const discount = Math.round(total * bundleDiscountPercent / 100);
@@ -35,30 +35,29 @@ export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBo
     const bundleFactor = 1 - bundleDiscountPercent / 100;
 
     all.forEach((p) => {
-      const images = (p.images as { url: string }[]) ?? [];
-      const variants = (p.variants as Record<string, unknown>[]) ?? [];
+      const images = p.images ?? [];
+      const variants = p.variants ?? [];
       const v = variants[0];
       if (!v) return;
 
-      const variantId = v.id as string;
-      const fullPrice = Number(p.basePrice ?? 0) + Number((v.priceAdjustment as number) ?? 0);
+      const variantId = v.id;
+      const fullPrice = Number(p.basePrice ?? 0) + Number(v.priceAdjustment ?? 0);
       const discountedPrice = Math.round(fullPrice * bundleFactor * 100) / 100;
 
-      // Remove existing cart item so the bundle price takes effect
       const existing = store.items.find((i) => i.variantId === variantId);
       if (existing) {
         store.removeItem(variantId);
       }
 
       addItem({
-        productId: p.id as string,
+        productId: p.id,
         variantId,
-        name: p.name as string,
-        slug: p.slug as string,
-        sku: (v.sku as string) || "",
-        size: (v.size as string) || "One Size",
-        color: (v.color as string) || "",
-        colorHex: (v.colorHex as string) || "",
+        name: p.name,
+        slug: p.slug,
+        sku: v.sku || "",
+        size: v.size || "One Size",
+        color: v.color || "",
+        colorHex: v.colorHex || "",
         image: images[0]?.url || "",
         price: discountedPrice,
         compareAtPrice: fullPrice,
@@ -78,7 +77,7 @@ export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBo
             <div key={i} className="flex items-center gap-2 shrink-0">
               {i > 0 && <span className="text-neutral-300 text-lg">+</span>}
               <div className="flex flex-col items-center gap-1">
-                <SafeImage src={images[0]?.url || "/placeholder.svg"} alt={p.name as string} className="w-16 h-20 object-cover bg-neutral-100" />
+                <SafeImage src={images[0]?.url || "/placeholder.svg"} alt={p.name as string} responsive className="w-16 h-20 object-cover bg-neutral-100" />
                 <p className="text-[10px] text-neutral-500 text-center max-w-[64px] truncate">{p.name as string}</p>
               </div>
             </div>

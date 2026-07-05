@@ -34,9 +34,9 @@ export function registerServiceWorker(): Promise<void> {
       });
       
       // Periodic sync for mobile apps (if available)
-      if (registration.periodicSync) {
+      if ((registration as any).periodicSync) {
         try {
-          registration.periodicSync.register("content-sync", { 
+          (registration as any).periodicSync.register("content-sync", {
             minInterval: 60 * 60 * 1000 // 1 hour
           });
         } catch {
@@ -50,7 +50,8 @@ export function registerServiceWorker(): Promise<void> {
     const onError = (error: Error) => {
       console.error("Service Worker registration failed:", error);
       // Don't reject - app should work without service worker
-      resolve();n    };
+      resolve();
+    };
 
     const timeoutId = setTimeout(() => {
       onError(new Error("Service worker registration timeout"));
@@ -80,15 +81,15 @@ export function unregisterServiceWorker(): Promise<void> {
   if (!swRegistration) {
     return Promise.resolve();
   }
-  
-  return swRegistration.unregister();
+
+  return swRegistration.unregister().then(() => Promise.resolve());
 }
 
 export function skipWaiting(): Promise<void> {
   if (!swRegistration || !swRegistration.waiting) {
     return Promise.resolve();
   }
-  
+
   return new Promise((resolve) => {
     swRegistration!.waiting!.addEventListener("statechange", (e) => {
       if ((e.target as ServiceWorker).state === "activated") {
@@ -96,8 +97,8 @@ export function skipWaiting(): Promise<void> {
         window.location.reload();
       }
     });
-    
-    swRegistration.waiting!.postMessage("skipWaiting");
+
+    swRegistration!.waiting!.postMessage("skipWaiting");
   });
 }
 
@@ -124,8 +125,8 @@ export function setupConnectivityDetection() {
       console.log("Mobile device went offline - caching current state");
       
       // Request background sync for future operations
-      if (swRegistration && swRegistration.sync) {
-        swRegistration.sync.register("cart-sync").catch(() => {
+      if (swRegistration && (swRegistration as any).sync) {
+        (swRegistration as any).sync.register("cart-sync").catch(() => {
           // Silent fail - sync not critical
         });
       }
@@ -136,7 +137,7 @@ export function setupConnectivityDetection() {
     }));
   };
 
-  const intervals: number[] = [];
+  const intervals: ReturnType<typeof setInterval>[] = [];
   
   // Mobile: More frequent checks for connection stability
   if (isMobile) {
@@ -175,6 +176,6 @@ export function setupConnectivityDetection() {
     window.removeEventListener("offline", handleOffline);
     window.removeEventListener("connectionchange", handleConnectionChange);
     
-    intervals.forEach(id => clearInterval(id));
+    intervals.forEach(id => clearInterval(id as any));
   };
 }

@@ -31,8 +31,6 @@ async function sendViaResend(
   html: string,
   replyTo?: string
 ): Promise<EmailSendResult> {
-  console.log(`[EMAIL] → Sending "${subject}" to ${to} from ${from}`);
-
   try {
     const res = await fetch(RESEND_API_URL, {
       method: "POST",
@@ -59,7 +57,6 @@ async function sendViaResend(
     }
 
     const data = JSON.parse(body) as { id: string };
-    console.log(`[EMAIL] ✓ Resend accepted — id=${data.id}`);
     return { success: true, messageId: data.id };
   } catch (err) {
     const msg = `Network error: ${(err as Error).message}`;
@@ -86,8 +83,6 @@ export async function sendEmailNotification(
   data: Record<string, unknown>,
   env?: { RESEND_API_KEY?: string; EMAIL_FROM?: string; ADMIN_EMAILS?: string; SITE_URL?: string; VITE_SITE_URL?: string }
 ): Promise<void> {
-  console.log(`[EMAIL] sendEmailNotification(type=${type})`);
-
   // ── 1. Validate env ──
   const resendApiKey = cleanSecret(env?.RESEND_API_KEY);
   if (!resendApiKey) {
@@ -128,8 +123,6 @@ export async function sendEmailNotification(
     recipients = [email];
   }
 
-  console.log(`[EMAIL] Recipients: ${recipients.join(", ")}`);
-
   // ── 4. Send emails (CRITICAL PATH — must succeed) ──
   const results: EmailSendResult[] = [];
   for (const to of recipients) {
@@ -153,8 +146,6 @@ export async function sendEmailNotification(
     for (const f of failed) {
       console.error(`[EMAIL]   Error: ${f.error}`);
     }
-  } else {
-    console.log(`[EMAIL] ✓ ${type}: All ${results.length} emails sent successfully`);
   }
 
   // ── 6. Send admin notifications for customer events ──
@@ -170,7 +161,6 @@ export async function sendEmailNotification(
       ));
       for (const { adminEmail, result } of adminResults) {
         if (!result.success) console.error(`[EMAIL] ✗ Admin ${adminType} to ${adminEmail}: ${result.error}`);
-        else console.log(`[EMAIL] ✓ Admin ${adminType} sent to ${adminEmail}`);
       }
     }
   }

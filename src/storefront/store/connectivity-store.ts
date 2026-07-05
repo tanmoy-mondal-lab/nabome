@@ -62,7 +62,6 @@ export const useConnectivityStore = create<ConnectivityState>((set, get) => ({
     } else {
       if (state.isMobile) {
         hapticError();
-        void get().addToEmergencyNotification();
       }
     }
   },

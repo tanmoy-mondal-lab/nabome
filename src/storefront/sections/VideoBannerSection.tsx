@@ -46,7 +46,7 @@ export default function VideoBannerSection({ section }: VideoBannerSectionProps)
         />
       ) : posterImage ? (
         <div className="absolute inset-0">
-          <SafeImage src={posterImage} alt={section.title || "Video banner poster"} className="w-full h-full object-cover" />
+          <SafeImage src={posterImage} alt={section.title || "Video banner poster"} responsive className="w-full h-full object-cover" />
         </div>
       ) : (
         <div className="absolute inset-0 bg-neutral-900" />

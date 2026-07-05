@@ -76,6 +76,8 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
       className="relative h-[85vh] md:h-screen max-h-[900px] min-h-[300px] md:min-h-[600px] w-full overflow-hidden bg-neutral-900"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onTouchStart={() => setPaused(true)}
+      onTouchEnd={() => setPaused(false)}
     >
       {/* Video backgrounds */}
       {slides.map((s, i) => (

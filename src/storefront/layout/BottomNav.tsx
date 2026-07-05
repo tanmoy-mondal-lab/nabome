@@ -44,6 +44,7 @@ export function BottomNav() {
               to={displayHref}
               onClick={() => handleNavClick(href)}
               aria-current={isActive ? "page" : undefined}
+              aria-label={label}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 relative h-full px-4 transition-all duration-300",
                 isActive ? "text-brand-600" : "text-neutral-400 active:text-neutral-600"

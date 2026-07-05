@@ -20,13 +20,25 @@ export default function LookbookDetailPage() {
 
   const { data: res, isLoading: loading, isError } = useQuery({
     queryKey: ["lookbook", slug],
-    queryFn: () => api.get<{ lookbook: Record<string, unknown> }>(`/api/lookbooks/${slug}`),
+    queryFn: () => api.get<{ lookbook: {
+      id: string;
+      name: string;
+      slug: string;
+      description?: string;
+      coverImageUrl?: string;
+      story?: string | { narrative?: string };
+      season?: string;
+      year?: number;
+      items?: { id: string; imageUrl?: string; mediaUrl?: string; sortOrder?: number; caption?: string; title?: string; type?: string; product?: { name: string }; products?: { name: string }[]; videoUrl?: string }[];
+      metaTitle?: string;
+      metaDesc?: string;
+    } }>(`/api/lookbooks/${slug}`),
     enabled: !!slug,
     staleTime: 1000 * 60 * 10,
     retry: false,
   });
 
-  const lookbook = res?.lookbook as Record<string, unknown> | undefined;
+  const lookbook = res?.lookbook;
 
   if (loading) {
     return <div className="container-page py-8"><Helmet><title>Loading Lookbook — নবME</title><meta name="robots" content="noindex, nofollow" /></Helmet><div className="aspect-[2/1] bg-neutral-100 animate-pulse rounded" /></div>;
@@ -52,7 +64,7 @@ export default function LookbookDetailPage() {
     );
   }
 
-  const items = (lookbook.items as Record<string, unknown>[]) ?? [];
+  const items = lookbook.items ?? [];
   const storyValue = lookbook.story;
   const story = typeof storyValue === "string"
     ? storyValue
@@ -98,7 +110,7 @@ export default function LookbookDetailPage() {
                 {type === "video" ? (
                   <video src={item.videoUrl as string} controls autoPlay muted loop className="w-full rounded" />
                 ) : (
-                  <SafeImage src={imageUrl || "/placeholder.svg"} alt={caption || "Lookbook image"} className="w-full rounded" />
+                  <SafeImage src={imageUrl || "/placeholder.svg"} alt={caption || "Lookbook image"} responsive className="w-full rounded" />
                 )}
                 {!!caption && <p className="text-sm text-neutral-500 mt-3 text-center italic">{caption}</p>}
                 {products.length > 0 && (
@@ -116,7 +128,7 @@ export default function LookbookDetailPage() {
             const image = imageUrl;
             return (
               <div key={item.id as string}>
-                {image && <SafeImage src={image} alt={`Lookbook image: ${item.title as string || "Shop the look"}`} className="w-full rounded mb-6" />}
+                {image && <SafeImage src={image} alt={`Lookbook image: ${item.title as string || "Shop the look"}`} responsive className="w-full rounded mb-6" />}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                   {products.map((p) => (
                     <ProductCard key={p.id as string} product={p} />

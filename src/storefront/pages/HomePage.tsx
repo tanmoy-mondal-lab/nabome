@@ -4,10 +4,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api/client";
 import { useSettings } from "../hooks/useSettings";
+import { useProductListing } from "../hooks/useProducts";
 import SectionRenderer from "../sections/SectionRenderer";
 import { RecentlyViewed } from "../components/RecentlyViewed";
+import { ProductCard } from "../components/ProductCard";
 import { canonical } from "../../lib/seo";
 import { formatPrice } from "../../lib/utils/format";
+import type { Product } from "../../types/product";
 
 interface SectionData {
   id: string;
@@ -32,18 +35,90 @@ export default function HomePage() {
 
   const sections = homepageRes?.sections ?? [];
 
+  // Fetch featured products as fallback
+  const { data: featuredProducts, isLoading: loadingFeatured } = useProductListing(
+    sections.length === 0 ? { featured: "true", limit: "8" } : {}
+  );
+
+  const products = (featuredProducts?.products as unknown as Product[]) ?? [];
+
   useEffect(() => {
     document.title = `${siteName} — Premium Fashion`;
   }, [siteName]);
 
   if (!loading && !homepageError && sections.length === 0) {
+    // Show featured products as fallback instead of error message
     return (
-      <div className="relative h-screen min-h-[700px] bg-neutral-950 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-sm text-neutral-400 mb-4">Welcome to নবME</p>
-          <p className="text-xs text-neutral-500">Content is being prepared. Check back soon.</p>
+      <>
+        <Helmet>
+          <meta name="description" content={(settings.siteDescription as string) || "Discover premium fashion at নবME"} />
+          <link rel="canonical" href={canonical("/")} />
+          <meta property="og:title" content={`${(settings.siteName as string) || "নবME"} — Premium Fashion`} />
+          <meta property="og:description" content={(settings.siteDescription as string) || ""} />
+          {typeof settings.siteLogo === "string" && settings.siteLogo && <meta property="og:image" content={settings.siteLogo} />}
+        </Helmet>
+
+        {/* Hero Section */}
+        <div className="relative h-[60vh] min-h-[500px] bg-neutral-950 flex items-center justify-center overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(234,179,8,0.15),transparent_50%),radial-gradient(circle_at_bottom_right,rgba(255,255,255,0.05),transparent_40%)]" />
+          <div className="relative z-10 text-center px-6">
+            <h1 className="font-display text-4xl md:text-6xl lg:text-7xl text-white mb-4 tracking-wide">
+              {siteName}
+            </h1>
+            <p className="text-neutral-300 text-sm md:text-base mb-8 max-w-2xl mx-auto">
+              Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design.
+            </p>
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 bg-white text-neutral-900 px-8 py-3 text-sm font-medium tracking-wider uppercase hover:bg-neutral-100 transition-colors"
+            >
+              Shop Collection
+            </Link>
+          </div>
         </div>
-      </div>
+
+        {/* Featured Products Section */}
+        <div className="container-page section-padding">
+          <div className="text-center mb-12">
+            <h2 className="font-display text-2xl md:text-3xl text-neutral-900 mb-4">Featured Collection</h2>
+            <p className="text-neutral-500 text-sm">Discover our curated selection of premium pieces</p>
+          </div>
+
+          {loadingFeatured ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="aspect-[3/4] bg-neutral-100 animate-pulse rounded-lg" />
+              ))}
+            </div>
+          ) : products.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-neutral-500">No products available at the moment. Check back soon!</p>
+            </div>
+          )}
+
+          <div className="text-center mt-12">
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 text-sm font-medium text-neutral-900 hover:text-brand-600 transition-colors"
+            >
+              View All Products →
+            </Link>
+          </div>
+        </div>
+
+        {/* Recently Viewed */}
+        <section className="py-16 md:py-24 bg-luxe-ivory">
+          <div className="container-page">
+            <RecentlyViewed />
+          </div>
+        </section>
+      </>
     );
   }
 
@@ -84,7 +159,7 @@ export default function HomePage() {
                 <Link to="/collections" className="btn-secondary inline-flex items-center gap-2">
                   View Collections
                 </Link>
-                <Link to="/lookbooks" className="text-xs uppercase tracking-[0.35em] text-neutral-300 hover:text-white transition-colors">
+                <Link to="/lookbooks" className="text-xs uppercase tracking-[0.35em] text-neutral-300 hover:text-white focus-visible:text-white transition-colors">
                   Browse Lookbooks
                 </Link>
               </div>

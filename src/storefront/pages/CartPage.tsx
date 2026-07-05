@@ -23,9 +23,9 @@ export default function CartPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
 
   const siteSettings = {
-    freeShippingThreshold: Number(settings?.preferences && typeof settings.preferences === 'object' ? (settings.preferences as Record<string, unknown>).freeShippingThreshold ?? 500 : 500),
-    shippingCost: Number(settings?.preferences && typeof settings.preferences === 'object' ? (settings.preferences as Record<string, unknown>).shippingCost ?? 99 : 99),
-    taxRate: Number(settings?.preferences && typeof settings.preferences === 'object' ? (settings.preferences as Record<string, unknown>).taxRate ?? 5 : 5),
+    freeShippingThreshold: Number(settings?.preferences?.freeShippingThreshold ?? 500),
+    shippingCost: Number(settings?.preferences?.shippingCost ?? 99),
+    taxRate: Number(settings?.preferences?.taxRate ?? 5),
   };
 
   async function handleApplyCoupon() {
@@ -87,7 +87,7 @@ export default function CartPage() {
           </p>
           <Link
             to="/products"
-            className="inline-flex items-center gap-2 bg-neutral-900 text-white px-10 py-4 text-[11px] font-body font-medium tracking-[0.2em] uppercase hover:bg-neutral-800 transition-all duration-300"
+            className="btn-primary"
           >
             <ArrowLeft className="w-4 h-4" /> Explore Collection
           </Link>
@@ -137,7 +137,8 @@ export default function CartPage() {
           </div>
           <button
             onClick={clearCart}
-            className="text-[10px] font-body font-medium tracking-[0.15em] uppercase text-neutral-400 hover:text-red-500 transition-colors duration-300"
+            className="text-[10px] font-body font-medium tracking-[0.15em] uppercase hover:text-red-500 transition-colors duration-300"
+            aria-label="Clear all items from cart"
           >
             Clear All
           </button>
@@ -166,6 +167,7 @@ export default function CartPage() {
                     <SafeImage
                       src={item.image}
                       alt={item.name}
+                      responsive
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-luxe-out"
                     />
                   </Link>
@@ -226,7 +228,7 @@ export default function CartPage() {
             <div className="flex items-center justify-between pt-6">
               <Link
                 to="/products"
-                className="inline-flex items-center gap-2 text-[10px] font-body font-medium tracking-[0.15em] uppercase text-neutral-500 hover:text-neutral-900 transition-colors duration-300"
+                className="inline-flex items-center gap-2 text-[10px] font-body font-medium tracking-[0.15em] uppercase text-neutral-500 hover:text-neutral-900 focus-visible:text-neutral-900 transition-colors duration-300"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Continue Shopping
@@ -313,7 +315,8 @@ export default function CartPage() {
                       />
                       <button
                         onClick={handleApplyCoupon}
-                        className="px-5 py-3 text-[10px] font-body font-medium tracking-[0.15em] uppercase text-neutral-600 hover:text-neutral-900 transition-colors border-l border-neutral-200"
+                        className="px-5 py-3 text-[10px] font-body font-medium tracking-[0.15em] uppercase text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 focus-visible:text-neutral-900 transition-colors border-l border-neutral-200"
+                        aria-label="Apply coupon code"
                       >
                         Apply
                       </button>
@@ -327,7 +330,8 @@ export default function CartPage() {
                     <span className="text-xs font-body font-medium text-green-700">{couponCode} applied</span>
                     <button
                       onClick={removeCoupon}
-                      className="text-[10px] font-body font-medium tracking-[0.1em] uppercase text-green-600 hover:text-green-800 transition-colors"
+                      className="text-[10px] font-body font-medium tracking-[0.1em] uppercase text-green-600 hover:text-green-800 focus-visible:text-green-800 transition-colors"
+                      aria-label="Remove coupon"
                     >
                       Remove
                     </button>
@@ -337,7 +341,7 @@ export default function CartPage() {
 
               <button
                 onClick={() => navigate("/checkout")}
-                className="w-full mt-8 bg-brand-500 text-white py-4 text-[11px] font-body font-medium tracking-[0.2em] uppercase hover:bg-brand-600 active:bg-brand-700 transition-all duration-300 flex items-center justify-center gap-2.5"
+                className="btn-primary w-full"
               >
                 Proceed to Checkout
               </button>
@@ -370,7 +374,7 @@ export default function CartPage() {
           </div>
           <Link
             to="/checkout"
-            className="block w-full bg-neutral-900 text-white text-center py-3.5 text-sm uppercase tracking-wider font-medium hover:bg-neutral-800 transition-colors"
+            className="btn-primary w-full text-center"
           >
             Proceed to Checkout
           </Link>

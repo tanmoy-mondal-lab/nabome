@@ -4,6 +4,8 @@ import { authApi } from "../lib/api/auth";
 import { AlertCircle, CheckCircle2, Loader2, ArrowLeft } from "lucide-react";
 import { AuthShell } from "./AuthShell";
 import { Helmet } from "react-helmet-async";
+import { TurnstileWidget } from "../components/TurnstileWidget";
+import { turnstileSiteKey } from "../lib/config";
 
 const OTP_LENGTH = 6;
 
@@ -17,6 +19,7 @@ export default function VerifyEmailPage() {
   const [state, setState] = useState<VerifyState>("form");
   const [message, setMessage] = useState("");
   const [resending, setResending] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleChange = (index: number, value: string) => {
@@ -64,7 +67,7 @@ export default function VerifyEmailPage() {
 
     setState("loading");
     try {
-      const res = await authApi.verifyEmail({ email, code });
+      const res = await authApi.verifyEmail({ email, code, turnstileToken });
       setState("success");
       setMessage(res.message);
     } catch (err) {
@@ -77,13 +80,14 @@ export default function VerifyEmailPage() {
     if (!email || resending) return;
     setResending(true);
     try {
-      await authApi.resendVerification(email);
+      await authApi.resendVerification(email, turnstileToken);
       setOtp(Array(OTP_LENGTH).fill(""));
       setState("form");
       setMessage("");
       inputRefs.current[0]?.focus();
-    } catch {
-      // Silently handle
+    } catch (err) {
+      setState("error");
+      setMessage(err instanceof Error ? err.message : "Failed to resend verification code");
     } finally {
       setResending(false);
     }
@@ -202,6 +206,10 @@ export default function VerifyEmailPage() {
               autoFocus={i === 0}
             />
           ))}
+        </div>
+
+        <div className="mb-6">
+          <TurnstileWidget siteKey={turnstileSiteKey} onTokenChange={setTurnstileToken} />
         </div>
 
         <button

@@ -9,6 +9,7 @@ interface SafeImageProps extends ImgHTMLAttributes<HTMLImageElement> {
   transformWidth?: number;
   responsive?: boolean;
   priority?: boolean;
+  showSkeleton?: boolean;
 }
 
 const FALLBACK =
@@ -16,15 +17,17 @@ const FALLBACK =
 
 export function SafeImage({
   src, alt, fallback = FALLBACK, useTransform = true,
-  transformWidth, responsive = false, priority = false, className = "", ...props
+  transformWidth, responsive = false, priority = false, showSkeleton = true, className = "", ...props
 }: SafeImageProps) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(src);
 
   // Reset error state when src changes (e.g., variant color switch)
   if (src !== currentSrc) {
     setCurrentSrc(src);
     if (failed) setFailed(false);
+    if (loaded) setLoaded(false);
   }
 
   if (!src || failed) {
@@ -45,32 +48,46 @@ export function SafeImage({
     const result = imgSet(src);
     if ("srcSet" in result) {
       return (
-        <img
-          src={result.src}
-          srcSet={result.srcSet}
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          alt={alt}
-          loading={loadingAttr}
-          fetchPriority={fetchPriorityAttr}
-          onError={() => setFailed(true)}
-          className={className}
-          {...props}
-        />
+        <>
+          {showSkeleton && !loaded && (
+            <div className={`absolute inset-0 bg-neutral-100 animate-pulse ${className}`} />
+          )}
+          <img
+            src={result.src}
+            srcSet={result.srcSet}
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            alt={alt}
+            loading={loadingAttr}
+            fetchPriority={fetchPriorityAttr}
+            onError={() => setFailed(true)}
+            onLoad={() => setLoaded(true)}
+            className={className}
+            style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.3s ease-in-out' }}
+            {...props}
+          />
+        </>
       );
     }
   }
 
-  const finalSrc = useTransform ? img(src, transformWidth ? { width: transformWidth } : {}) : src;
+  const finalSrc = useTransform && !src?.includes('.jpg.jpg') ? img(src, transformWidth ? { width: transformWidth } : {}) : src;
 
   return (
-    <img
-      src={finalSrc}
-      alt={alt}
-      loading={loadingAttr}
-      fetchPriority={fetchPriorityAttr}
-      onError={() => setFailed(true)}
-      className={className}
-      {...props}
-    />
+    <>
+      {showSkeleton && !loaded && (
+        <div className={`absolute inset-0 bg-neutral-100 animate-pulse ${className}`} />
+      )}
+      <img
+        src={finalSrc}
+        alt={alt}
+        loading={loadingAttr}
+        fetchPriority={fetchPriorityAttr}
+        onError={() => setFailed(true)}
+        onLoad={() => setLoaded(true)}
+        className={className}
+        style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.3s ease-in-out' }}
+        {...props}
+      />
+    </>
   );
 }

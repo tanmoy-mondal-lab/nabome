@@ -164,31 +164,36 @@ async function handleDetailMy(refundId: string, ctx: RequestContext, env: any): 
 }
 
 async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { orderId, returnRequestId, amount, type, notes } = body;
 
-  if (!orderId || amount === undefined || !type) {
+  if (!orderId || amount === undefined || !type || typeof orderId !== 'string' || typeof type !== 'string') {
     return badRequest("Order ID, amount, and type are required");
   }
 
-  if (!["full", "partial"].includes(type)) {
+  if (!["full", "partial"].includes(type as string)) {
     return badRequest("Type must be 'full' or 'partial'");
   }
 
   try {
     const prisma = getPrisma(env);
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    const order = await prisma.order.findUnique({ where: { id: orderId as string } });
     if (!order) return notFound("Order not found");
 
     const refund = await prisma.refund.create({
       data: {
-        returnRequestId,
-        orderId,
-        amount,
-        type,
+        orderId: orderId as string,
+        amount: amount as number | string,
+        type: type as string,
         status: "pending",
         initiatedBy: ctx.userId,
-        notes: notes ?? null,
+        notes: notes as string | null ?? null,
+        returnRequestId: typeof returnRequestId === 'string' ? returnRequestId : null,
       },
     });
 
@@ -246,12 +251,14 @@ async function handleComplete(refundId: string, ctx: RequestContext, env: any): 
           refundedAt: new Date(),
         },
       }),
-      prisma.returnRequest.updateMany({
-        where: { id: refund.returnRequestId },
-        data: {
-          status: "completed",
-        },
-      }),
+      ...(refund.returnRequestId ? [
+        prisma.returnRequest.updateMany({
+          where: { id: refund.returnRequestId },
+          data: {
+            status: "completed",
+          },
+        })
+      ] : []),
     ]);
 
     await createNotification(
@@ -270,7 +277,12 @@ async function handleComplete(refundId: string, ctx: RequestContext, env: any): 
 }
 
 async function handleFail(refundId: string, req: Request, env: any): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { notes } = body;
 
   try {

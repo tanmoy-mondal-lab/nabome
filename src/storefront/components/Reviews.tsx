@@ -21,7 +21,7 @@ export function Reviews({ productId, slug }: ReviewsProps) {
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["reviews", slug, page],
-    queryFn: () => api.get<{ reviews: Record<string, unknown>[]; stats: { total: number; averageRating: number; distribution: Record<string, number> }; pagination: { totalPages: number } }>(
+    queryFn: () => api.get<{ reviews: { id: string; rating: number; title?: string; body?: string; createdAt: string; verified?: boolean; verifiedPurchase?: boolean; profile?: { firstName?: string }; images?: string[] }[]; stats: { total: number; averageRating: number; distribution: Record<string, number> }; pagination: { totalPages: number } }>(
       `/api/products/${slug}/reviews`, { params: { page } }
     ),
   });
@@ -32,11 +32,11 @@ export function Reviews({ productId, slug }: ReviewsProps) {
     onSuccess: () => { setShowForm(false); setForm({ rating: 5, title: "", body: "" }); refetch(); },
   });
 
-  const reviews = (data?.reviews ?? []) as Record<string, unknown>[];
+  const reviews = data?.reviews ?? [];
   const stats = data?.stats ?? { total: 0, averageRating: 0, distribution: {} };
   const totalPages = data?.pagination?.totalPages ?? 1;
 
-  const distTotal = Object.values(stats.distribution as Record<string, number> || {}).reduce((a, b) => a + b, 0) || 1;
+  const distTotal = Object.values(stats.distribution || {}).reduce((a, b) => a + b, 0) || 1;
 
   return (
     <section className="space-y-8">
@@ -114,17 +114,17 @@ export function Reviews({ productId, slug }: ReviewsProps) {
         <>
         <div className="space-y-6">
           {reviews.map((review) => {
-            const profile = review.profile as Record<string, unknown> ?? {};
-            const hasVerifiedPurchase = review.verified as boolean || review.verifiedPurchase as boolean;
+            const profile = review.profile ?? {};
+            const hasVerifiedPurchase = review.verified || review.verifiedPurchase;
             return (
-              <div key={review.id as string} className="border-b border-neutral-100 pb-6 last:border-0">
+              <div key={review.id} className="border-b border-neutral-100 pb-6 last:border-0">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 bg-brand-50 rounded-full flex items-center justify-center text-sm font-display text-brand-600">
-                    {((profile.firstName as string)?.[0] || "U").toUpperCase()}
+                    {(profile.firstName?.[0] || "U").toUpperCase()}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-neutral-900">{profile.firstName as string || "Anonymous"}</p>
+                      <p className="text-sm font-medium text-neutral-900">{profile.firstName || "Anonymous"}</p>
                       {hasVerifiedPurchase && (
                         <span className="flex items-center gap-0.5 text-[10px] text-green-600 font-medium">
                           <BadgeCheck className="w-3 h-3" /> Verified
@@ -132,8 +132,8 @@ export function Reviews({ productId, slug }: ReviewsProps) {
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <StarRating rating={review.rating as number} size={11} />
-                      <span className="text-[10px] text-neutral-400">{formatDate(review.createdAt as string)}</span>
+                      <StarRating rating={review.rating} size={11} />
+                      <span className="text-[10px] text-neutral-400">{formatDate(review.createdAt)}</span>
                     </div>
                   </div>
                 </div>
@@ -143,7 +143,7 @@ export function Reviews({ productId, slug }: ReviewsProps) {
                   <div className="flex gap-2 mt-3">
                     {(review.images as string[]).map((img, i) => (
                       <div key={i} className="w-16 h-16 rounded overflow-hidden bg-neutral-50">
-                        <SafeImage src={img} alt={`Review image ${i + 1}`} className="w-full h-full object-cover" />
+                        <SafeImage src={img} alt={`Review image ${i + 1}`} responsive className="w-full h-full object-cover" />
                       </div>
                     ))}
                   </div>

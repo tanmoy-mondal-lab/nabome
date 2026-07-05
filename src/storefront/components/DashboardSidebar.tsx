@@ -45,7 +45,7 @@ export function DashboardSidebar() {
         {/* Mobile close button */}
         <div className="flex items-center justify-between px-4 py-3 lg:hidden border-b border-neutral-100">
           <span className="font-medium text-sm text-neutral-900">Account Menu</span>
-          <button onClick={() => setMobileOpen(false)} className="p-1 hover:text-neutral-600 transition-colors">
+          <button onClick={() => setMobileOpen(false)} className="p-1 hover:text-neutral-600 transition-colors" aria-label="Close account menu">
             <X className="w-5 h-5" />
           </button>
         </div>

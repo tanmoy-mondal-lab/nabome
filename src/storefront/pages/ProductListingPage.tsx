@@ -333,7 +333,7 @@ export default function ProductListingPage() {
           </div>
         </div>
 
-        <div className="flex gap-2 mb-6 md:mb-8 overflow-x-auto pb-1 hide-scrollbar">
+        <div className="flex gap-2 mb-6 md:mb-8 overflow-x-auto pb-1 hide-scrollbar relative after:pointer-events-none after:absolute after:right-0 after:top-0 after:bottom-0 after:w-8 after:bg-gradient-to-l after:from-white after:to-transparent">
           {gender && (
             <button onClick={() => updateParam("gender", "")}
               className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0">
@@ -499,7 +499,7 @@ export default function ProductListingPage() {
                 </div>
                 <p className="text-neutral-500 text-lg mb-2">Failed to load products.</p>
                 <p className="text-neutral-400 text-sm mb-4">Please try again or refresh the page.</p>
-                <button onClick={() => window.location.reload()} className="btn-primary">
+                <button onClick={() => queryClient.invalidateQueries({ queryKey: ["products"] })} className="btn-primary">
                   Retry
                 </button>
               </div>

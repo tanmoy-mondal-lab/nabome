@@ -93,5 +93,3 @@ export function ConnectivityProvider({ children }: { children: React.ReactNode }
   useConnectivityManager();
   return children;
 }
-
-export { OfflineIndicator, EmergencyModeIndicator };

@@ -15,6 +15,9 @@ export function CartDrawer() {
   const prefersReducedMotion = useReducedMotion();
   const [syncError, setSyncError] = useState<string | null>(null);
 
+  // Calculate total quantity (sum of all item quantities) to match header
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+
   useEffect(() => {
     if (isCartOpen) {
       document.body.style.overflow = 'hidden';
@@ -52,12 +55,15 @@ export function CartDrawer() {
             exit={prefersReducedMotion ? undefined : { x: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="fixed right-0 top-0 h-full w-full max-w-full sm:max-w-[480px] bg-white z-50 shadow-2xl flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Shopping cart"
           >
             <div className="flex items-center justify-between px-6 py-5 border-b border-neutral-100">
               <div className="flex items-center gap-3">
                 <ShoppingBag className="w-5 h-5 text-neutral-900" />
                 <h2 className="text-sm font-medium tracking-[0.15em] uppercase text-neutral-900">
-                  Shopping Bag ({items.length})
+                  Shopping Bag ({totalQuantity})
                 </h2>
               </div>
               <button onClick={closeCart} className="p-2 -mr-2 text-neutral-400 hover:text-neutral-600 transition-colors" aria-label="Close cart">
@@ -114,7 +120,7 @@ export function CartDrawer() {
                             </div>
                             <button
                               onClick={() => removeItem(item.variantId)}
-                              className="p-1 text-neutral-300 hover:text-red-500 transition-colors shrink-0"
+                              className="min-w-[44px] min-h-[44px] flex items-center justify-center p-0 text-neutral-300 hover:text-red-500 transition-colors shrink-0"
                               aria-label="Remove item"
                             >
                               <Trash2 className="w-4 h-4" />

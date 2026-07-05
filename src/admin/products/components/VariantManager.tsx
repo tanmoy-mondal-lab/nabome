@@ -238,7 +238,7 @@ export function VariantManager({
 
                   {/* Variant Fields - Always visible */}
                   <div className="px-5 pb-3">
-                    <div className="grid grid-cols-8 gap-1.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-1.5">
                       <div>
                         <label className="block text-[10px] text-neutral-400 mb-0.5 uppercase">SKU</label>
                         <input value={v.sku} onChange={(e) => updateVariant(i, "sku", e.target.value)} className="w-full px-2 py-1 text-[11px] border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-neutral-300" />

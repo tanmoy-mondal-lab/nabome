@@ -76,7 +76,7 @@ function SortableItem({
     isDragging: boolean;
   }) => React.ReactNode;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: id || crypto.randomUUID() });
   return (
     <div ref={setNodeRef} style={{ opacity: isDragging ? 0.5 : 1 }}>
       {children({ listeners, attributes, setNodeRef, transform, transition, isDragging })}
@@ -102,7 +102,23 @@ export default function HeaderBuilder() {
     queryKey: ["admin", "navigation"],
     queryFn: async () => {
       const res = await adminApi.getNavigationMenus();
-      return (res.menus as NavigationMenu[]) ?? [];
+      const rawMenus = (res.menus as NavigationMenu[]) ?? [];
+      // Ensure every menu item has a valid id for drag-and-drop
+      return rawMenus.map((menu) => ({
+        ...menu,
+        items: (menu.items ?? []).map((item) => ({
+          ...item,
+          id: item.id || crypto.randomUUID(),
+          children: item.children?.map((child) => ({
+            ...child,
+            id: child.id || crypto.randomUUID(),
+          })),
+          megaMenuColumns: item.megaMenuColumns?.map((col) => ({
+            ...col,
+            id: col.id || crypto.randomUUID(),
+          })),
+        })),
+      }));
     },
   });
 
@@ -353,8 +369,8 @@ export default function HeaderBuilder() {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     setForm((prev) => {
-      const oldIndex = prev.items.findIndex((item) => item.id === active.id);
-      const newIndex = prev.items.findIndex((item) => item.id === over.id);
+      const oldIndex = prev.items.findIndex((item) => String(item.id) === String(active.id));
+      const newIndex = prev.items.findIndex((item) => String(item.id) === String(over.id));
       if (oldIndex === -1 || newIndex === -1) return prev;
       return { ...prev, items: arrayMove(prev.items, oldIndex, newIndex) };
     });

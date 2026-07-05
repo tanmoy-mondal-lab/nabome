@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, ShoppingBag, Shield, Truck, RotateCcw, Star, X, ChevronDown } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { api } from "../../lib/api/client";
 import { useProduct } from "../hooks/useProducts";
 import { ImageGallery } from "../components/ImageGallery";
@@ -34,10 +35,10 @@ export default function ProductDetailPage() {
   const navigate = useNavigate();
   const { data: productData, isLoading: loading, error: queryError } = useProduct(slug);
   const { data: settingsData } = useSettings();
-  const product = (productData as { product?: Record<string, unknown> })?.product;
-  const related = (product?.relatedProducts as Product[]) ?? [];
+  const product = productData?.product;
+  const related = product?.relatedProducts ?? [];
 
-  const reviewCount = Number((product?._count as Record<string, unknown>)?.reviews ?? 0);
+  const reviewCount = product?._count?.reviews ?? 0;
 
   const { data: reviewStats } = useQuery({
     queryKey: ["review-stats", slug],
@@ -46,11 +47,13 @@ export default function ProductDetailPage() {
     staleTime: 1000 * 60 * 5,
   });
 
+  const queryClient = useQueryClient();
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"description" | "features" | "specs">("description");
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const sizeGuideRef = useFocusTrap<HTMLDivElement>(showSizeGuide, () => setShowSizeGuide(false));
   const [showMoreSections, setShowMoreSections] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const justAdded = useCartStore((s) => s.justAdded);
@@ -89,7 +92,7 @@ export default function ProductDetailPage() {
     return (
       <div className="container-page section-padding text-center">
         <h1 className="font-display text-display-1 text-neutral-900 mb-4 text-balance">{error}</h1>
-        <button onClick={() => window.location.reload()} className="text-brand-500 hover:underline text-sm">
+        <button onClick={() => queryClient.invalidateQueries({ queryKey: ["product", slug] })} className="text-brand-500 hover:underline text-sm">
           Retry
         </button>
         <div className="mt-4">
@@ -108,13 +111,13 @@ export default function ProductDetailPage() {
     );
   }
 
-  const allImages = (product.images as { url: string; altText?: string }[]) ?? [];
-  const variants = (product.variants as Record<string, unknown>[]) ?? [];
-  const sizes = [...new Set(variants.map((v) => v.size as string).filter(Boolean))];
-  const colors = [...new Map(variants.filter((v) => v.colorHex).map((v) => [v.colorHex as string, { hex: v.colorHex as string, name: v.color as string }])).values()];
-  const brand = product.brand as Record<string, unknown>;
-  const category = product.category as Record<string, unknown>;
-  const labels = (product.productLabels as { label: Record<string, unknown> }[]) ?? [];
+  const allImages = product.images ?? [];
+  const variants = product.variants ?? [];
+  const sizes = [...new Set(variants.map((v) => v.size).filter(Boolean))];
+  const colors = [...new Map(variants.filter((v): v is typeof v & { colorHex: string } => !!v.colorHex).map((v) => [v.colorHex, { hex: v.colorHex, name: v.color }])).values()];
+  const brand = product.brand;
+  const category = product.category;
+  const labels = product.productLabels ?? [];
   const basePrice = Number(product.basePrice ?? 0);
   const salePrice = product.salePrice ? Number(product.salePrice) : null;
   const price = salePrice && salePrice > 0 ? salePrice : basePrice;
@@ -122,7 +125,7 @@ export default function ProductDetailPage() {
 
   const filteredVariants = variants.filter((v) => !selectedColor || v.colorHex === selectedColor);
   const sizeStock: Record<string, number> = {};
-  filteredVariants.forEach((v) => { sizeStock[v.size as string] = (v.stock as number) ?? 0; });
+  filteredVariants.forEach((v) => { sizeStock[v.size] = v.stock ?? 0; });
 
   const matchedVariant = variants.find((v) => v.size === selectedSize && v.colorHex === selectedColor)
     ?? variants.find((v) => v.size === selectedSize)
@@ -131,79 +134,79 @@ export default function ProductDetailPage() {
 
   const variantPrice = price + (Number(matchedVariant?.priceAdjustment ?? 0));
 
-  const variantImages = ((matchedVariant as Record<string, unknown>)?.images as { url: string; altText?: string }[]) ?? [];
+  const variantImages = matchedVariant?.images ?? [];
   const images = variantImages.length > 0 ? [...variantImages, ...allImages.filter((ai) => !variantImages.some((vi) => vi.url === ai.url))] : allImages;
 
   function handleAddToCart() {
     if (!matchedVariant || !product) return;
     addItem({
-      productId: product.id as string,
-      variantId: matchedVariant.id as string,
-      name: product.name as string,
-      slug: product.slug as string,
-      sku: matchedVariant.sku as string,
-      size: matchedVariant.size as string || "One Size",
-      color: matchedVariant.color as string || "",
-      colorHex: matchedVariant.colorHex as string || "",
+      productId: product.id,
+      variantId: matchedVariant.id,
+      name: product.name,
+      slug: product.slug,
+      sku: matchedVariant.sku,
+      size: matchedVariant.size || "One Size",
+      color: matchedVariant.color || "",
+      colorHex: matchedVariant.colorHex || "",
       image: images[0]?.url || "",
       price: variantPrice,
       compareAtPrice: compareAtPrice,
       quantity,
-      maxQuantity: (matchedVariant.stock as number) || 99,
+      maxQuantity: matchedVariant.stock || 99,
     });
   }
 
   function handleWishlistToggle() {
     if (!matchedVariant) return;
-    if (isInWishlist(matchedVariant.id as string)) {
-      removeFromWishlist(matchedVariant.id as string);
+    if (isInWishlist(matchedVariant.id)) {
+      removeFromWishlist(matchedVariant.id);
     } else {
-      addToWishlist(matchedVariant.id as string);
+      addToWishlist(matchedVariant.id);
     }
   }
 
   const averageRating = reviewStats?.stats?.averageRating ?? 0;
 
-  const freeShippingThreshold = Number((settingsData?.preferences as Record<string, unknown>)?.freeShippingThreshold ?? 500);
-  const locale = (settingsData?.preferences as Record<string, unknown>)?.locale as string || "en_IN";
-  const sizeGuideData = product.sizeGuide as { measurements?: { size: string; chest?: string; waist?: string; length?: string }[] } | undefined;
+  const freeShippingThreshold = Number(settingsData?.preferences?.freeShippingThreshold ?? 500);
+  const locale = (settingsData?.preferences?.locale as string) || "en_IN";
+  const sizeGuideData = product.sizeGuide;
 
   return (
     <div className="bg-white">
       <Helmet>
-        <meta name="description" content={(product.description as string)?.slice(0, 160)} />
+        <meta name="description" content={product.description?.slice(0, 160)} />
         <link rel="canonical" href={canonical(`/products/${slug}`)} />
         <meta name="robots" content="index, follow" />
 
-        <meta property="og:title" content={`${product.name as string} — নবME`} />
-        <meta property="og:description" content={(product.description as string)?.slice(0, 200)} />
+        <meta property="og:title" content={`${product.name} — নবME`} />
+        <meta property="og:description" content={product.description?.slice(0, 200)} />
         <meta property="og:type" content="product" />
         <meta property="og:url" content={canonical(`/products/${slug}`)} />
         <meta property="og:site_name" content="নবME" />
         <meta property="og:locale" content={locale} />
-        {(product.images as { url: string }[])?.[0] && (
-          <meta property="og:image" content={img((product.images as { url: string }[])[0].url, { width: 1200, height: 630 })} />
+        {product.images?.[0] && (
+          <meta property="og:image" content={img(product.images[0].url, { width: 1200, height: 630 })} />
         )}
 
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${product.name as string} — নবME`} />
-        <meta name="twitter:description" content={(product.description as string)?.slice(0, 160)} />
-        {(product.images as { url: string }[])?.[0] && (
-          <meta name="twitter:image" content={img((product.images as { url: string }[])[0].url, { width: 1200, height: 630 })} />
+        <meta name="twitter:title" content={`${product.name} — নবME`} />
+        <meta name="twitter:description" content={product.description?.slice(0, 160)} />
+        {product.images?.[0] && (
+          <meta name="twitter:image" content={img(product.images[0].url, { width: 1200, height: 630 })} />
         )}
 
         <script type="application/ld+json">{JSON.stringify(productSchema(product))}</script>
         <script type="application/ld+json">{JSON.stringify(breadcrumbSchema([
-          ...(category ? [{ label: category.name as string, url: `/products?category=${(category.slug as string) || ""}` }] : []),
-          { label: product.name as string },
+          ...(category ? [{ label: category.name, url: `/products?category=${category.slug || ""}` }] : []),
+          { label: product.name },
         ]))}</script>
       </Helmet>
 
       <div className="container-page pt-8 pb-24">
         <Breadcrumbs items={[
           { label: "Home", href: "/" },
-          ...(category ? [{ label: category.name as string, href: `/products?category=${(category.slug as string) || ""}` }] : []),
-          { label: product.name as string },
+          ...(category ? [{ label: category.name, href: `/products?category=${category.slug || ""}` }] : []),
+          { label: product.name },
         ]} className="mb-10" />
 
         <div className="grid md:grid-cols-2 gap-8 md:gap-12 lg:gap-20">
@@ -212,7 +215,7 @@ export default function ProductDetailPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           >
-            <ImageGallery images={images} />
+            <ImageGallery images={images.map(img => ({ ...img, type: img.type as "image" | "video" | undefined }))} />
           </motion.div>
 
           <motion.div
@@ -240,31 +243,31 @@ export default function ProductDetailPage() {
                           key={i}
                           className="label-badge text-[10px] px-2.5 py-1"
                           style={{
-                            backgroundColor: (l.label as Record<string, unknown>).color as string || "#c9a84c",
+                            backgroundColor: l.label.color || "#c9a84c",
                             color: "#fff",
                           }}
                         >
-                          {(l.label as Record<string, unknown>).name as string}
+                          {l.label.name}
                         </span>
                       ))}
                     </div>
                   )}
                   <h1 className="font-display text-heading-2 md:text-display-3 text-neutral-900 text-balance leading-tight">
-                    {product.name as string}
+                    {product.name}
                   </h1>
                 </div>
                 <button
                   onClick={handleWishlistToggle}
                   className={cn(
                     "p-3 shrink-0 rounded-full border transition-all duration-300",
-                    isInWishlist(matchedVariant?.id as string)
+                    matchedVariant?.id && isInWishlist(matchedVariant.id)
                       ? "border-red-200 bg-red-50 text-red-500 scale-110"
                       : "border-neutral-200 text-neutral-400 hover:border-red-200 hover:text-red-400"
                   )}
                 >
                   <Heart
                     className="w-5 h-5 transition-transform duration-300"
-                    fill={isInWishlist(matchedVariant?.id as string) ? "currentColor" : "none"}
+                    fill={matchedVariant?.id && isInWishlist(matchedVariant.id) ? "currentColor" : "none"}
                   />
                 </button>
               </div>
@@ -548,7 +551,7 @@ export default function ProductDetailPage() {
       </div>
 
       {showSizeGuide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowSizeGuide(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowSizeGuide(false); }}>
+        <div ref={sizeGuideRef} className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowSizeGuide(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowSizeGuide(false); }}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}

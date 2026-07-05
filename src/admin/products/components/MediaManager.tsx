@@ -126,7 +126,7 @@ export function MediaManager({
         onDrop={handleDrop}
       >
         {images.length > 0 ? (
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
             <AnimatePresence>
               {images.map((img, i) => {
                 const isVideo = (img.type as string) === "video" || (img.url as string).match(/\.(mp4|webm|mov|avi)(\?|$)/i);

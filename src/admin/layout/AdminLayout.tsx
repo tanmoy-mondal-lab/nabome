@@ -269,7 +269,7 @@ export default function AdminLayout() {
         </header>
 
         {/* Page content */}
-        <main className="p-6">
+        <main className="p-4 lg:p-6">
           <Outlet />
         </main>
       </div>

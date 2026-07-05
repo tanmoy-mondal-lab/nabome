@@ -70,7 +70,7 @@ export function Header() {
 
   const theme = settings?.theme;
   const themeBranding = theme?.branding as ThemeBranding | undefined;
-  const headerConfig = (theme?.header ?? (settings?.preferences as Record<string, unknown>)?.headerConfig) as ThemeHeaderConfig | undefined;
+  const headerConfig = (theme?.header ?? settings?.preferences?.headerConfig) as ThemeHeaderConfig | undefined;
   const maxNavItems = headerConfig?.maxNavItems ?? 6;
 
   const brandName = settings?.siteName || themeBranding?.brandName || "নবME";
@@ -269,6 +269,12 @@ export function Header() {
                   >
                     <Link
                       to={menu.link || menu.url || "#"}
+                      onClick={() => {
+                        // Close mega menu on click — navigation proceeds normally
+                        if (hasChildren) {
+                          setActiveMegaMenu(null);
+                        }
+                      }}
                       className={cn(
                         "relative flex items-center gap-1.5 px-4 py-2 text-[10px] tracking-[0.2em] uppercase transition-all duration-300 font-medium rounded-lg group/nav",
                         isActive

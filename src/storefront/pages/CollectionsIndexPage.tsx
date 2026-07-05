@@ -63,6 +63,7 @@ export default function CollectionsIndexPage() {
                   <SafeImage
                     src={c.heroImageUrl || c.imageUrl}
                     alt={c.name}
+                    responsive
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-luxe-out"
                   />
                 ) : (

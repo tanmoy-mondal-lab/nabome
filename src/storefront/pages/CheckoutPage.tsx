@@ -83,9 +83,7 @@ export default function CheckoutPage() {
 
   const { data: settingsData } = useSettings();
 
-  const rawPreferences = settingsData?.preferences && typeof settingsData.preferences === 'object'
-    ? (settingsData.preferences as Record<string, unknown>)
-    : {};
+  const rawPreferences = settingsData?.preferences ?? {};
 
   const siteSettings = {
     taxRate: Number(settingsData?.taxRate ?? rawPreferences.taxRate ?? 5),
@@ -94,6 +92,17 @@ export default function CheckoutPage() {
   };
 
   const { loaded: razorpayLoaded, openRazorpay } = useRazorpay();
+
+  // Set dynamic page title based on checkout step
+  useEffect(() => {
+    const stepTitles = {
+      shipping: "Shipping Information",
+      payment: "Payment Method",
+      confirm: "Review Order",
+      success: "Order Complete"
+    };
+    document.title = `${stepTitles[step]} — Checkout — নবME`;
+  }, [step]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -300,7 +309,7 @@ export default function CheckoutPage() {
         });
       }
 
-      const order = orderData.order as Record<string, unknown>;
+      const order = orderData.order as { id?: string; orderId?: string; orderNumber?: string };
       const razorpayOrderId = orderData.razorpayOrderId;
 
       if (paymentMethod === "cod") {
@@ -483,7 +492,7 @@ export default function CheckoutPage() {
       </Helmet>
       <Breadcrumbs items={[{ label: "Checkout" }]} className="mb-6" />
 
-      <div className="grid lg:grid-cols-5 gap-8 lg:gap-12">
+      <div className="grid lg:grid-cols-5 gap-8 md:gap-8 lg:gap-12">
         {/* ── Left Column ── */}
         <div className="lg:col-span-3 space-y-6">
           {/* ─── STEP 1: SHIPPING ─── */}
@@ -501,11 +510,12 @@ export default function CheckoutPage() {
               </span>
               <div className="flex-1 flex items-center justify-between">
                 <h2 className="text-sm font-display text-neutral-900 uppercase tracking-fashion">Shipping Information</h2>
-                {step !== "shipping" && (
-                  <button onClick={() => setStep("shipping")} className="text-xs text-brand-500 hover:underline">
+                  {step !== "shipping" && (
+                  <button onClick={() => setStep("shipping")} className="text-xs text-brand-500 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 rounded" aria-label="Edit shipping address">
                     Edit
                   </button>
                 )}
+
               </div>
             </div>
 
@@ -529,6 +539,8 @@ export default function CheckoutPage() {
                       )}
                       placeholder="your@email.com"
                       type="email"
+                      autoComplete="email"
+                      inputMode="email"
                     />
                     {guestEmailError && <p className="text-xs text-red-500">{guestEmailError}</p>}
                   </div>
@@ -580,8 +592,9 @@ export default function CheckoutPage() {
                       onClick={() => { setShowNewAddressForm(true); setSelectedAddressId(""); }}
                       className={cn(
                         "flex items-center gap-2 w-full p-3 border border-dashed text-sm transition-all duration-300",
-                        showNewAddressForm ? "border-neutral-900 bg-luxe-ivory" : "text-neutral-500 hover:border-neutral-300"
+                        showNewAddressForm ? "border-neutral-900 bg-luxe-ivory" : "text-neutral-500 hover:border-neutral-300 hover:text-neutral-700 hover:bg-neutral-50"
                       )}
+                      aria-label="Add new shipping address"
                     >
                       <Plus className="w-4 h-4" /> Add New Address
                     </button>
@@ -676,7 +689,7 @@ export default function CheckoutPage() {
               <div className="flex-1 flex items-center justify-between">
                 <h2 className="text-sm font-display text-neutral-900 uppercase tracking-fashion">Payment Method</h2>
                 {step !== "shipping" && step !== "payment" && (
-                  <button onClick={() => setStep("payment")} className="text-xs text-brand-500 hover:underline">
+                  <button onClick={() => setStep("payment")} className="text-xs text-brand-500 hover:underline" aria-label="Edit payment method">
                     Edit
                   </button>
                 )}
@@ -726,6 +739,8 @@ export default function CheckoutPage() {
                         className="input-field w-full px-3 py-2.5 text-sm"
                         placeholder="1234 5678 9012 3456"
                         maxLength={16}
+                        inputMode="numeric"
+                        autoComplete="cc-number"
                       />
                     </div>
                     <div>
@@ -736,6 +751,8 @@ export default function CheckoutPage() {
                         className="input-field w-full px-3 py-2.5 text-sm"
                         placeholder="MMYY"
                         maxLength={4}
+                        inputMode="numeric"
+                        autoComplete="cc-exp"
                       />
                     </div>
                     <div>
@@ -747,6 +764,8 @@ export default function CheckoutPage() {
                         className="input-field w-full px-3 py-2.5 text-sm"
                         placeholder="***"
                         maxLength={3}
+                        inputMode="numeric"
+                        autoComplete="cc-csc"
                       />
                     </div>
                     <div className="col-span-2">
@@ -762,7 +781,7 @@ export default function CheckoutPage() {
                 )}
 
                 {paymentMethod === "upi" && (
-                  <div className="p-4 bg-luxe-ivory border">
+                    <div className="p-4 bg-luxe-ivory border">
                     <label className="text-xs text-neutral-500 mb-1 block">UPI ID</label>
                     <div className="flex gap-2">
                       <input
@@ -770,6 +789,7 @@ export default function CheckoutPage() {
                         onChange={(e) => setUpiId(e.target.value)}
                         className="input-field flex-1 px-3 py-2.5 text-sm"
                         placeholder="username@upi"
+                        inputMode="text"
                       />
                       <span className="inline-flex items-center px-3 text-xs text-neutral-500 bg-luxe-ivory">Pay</span>
                     </div>
@@ -951,7 +971,9 @@ export default function CheckoutPage() {
                     disabled={processing || (paymentMethod !== "cod" && !razorpayLoaded)}
                     className="btn-primary px-10 py-3 text-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
-                    {processing ? (
+                    {paymentMethod !== "cod" && !razorpayLoaded ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Loading payment...</>
+                    ) : processing ? (
                       <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
                     ) : (
                       <>Place Order — {formatPrice(grandTotal)}</>

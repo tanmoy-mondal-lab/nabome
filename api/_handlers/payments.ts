@@ -66,7 +66,7 @@ export async function handlePaymentRequest(
 
   switch (action) {
     case "verify":
-      return handleVerify(req, ctx.env);
+      return handleVerify(req, ctx, ctx.env);
     case "failed":
       return handleFailed(req, ctx, ctx.env);
     case "retry":
@@ -80,7 +80,7 @@ export async function handlePaymentRequest(
   }
 }
 
-async function handleVerify(req: Request, env: any): Promise<Response> {
+async function handleVerify(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const body = await req.json();
@@ -99,6 +99,12 @@ async function handleVerify(req: Request, env: any): Promise<Response> {
 
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
+    
+    // Ownership validation: only the order owner can verify payment
+    if (ctx.userId && order.profileId !== ctx.userId) {
+      return notFound("Order not found");
+    }
+    
     if (!order.razorpayOrderId || order.razorpayOrderId !== razorpayOrderId) {
       return badRequest("Payment order does not match this order");
     }
@@ -121,16 +127,16 @@ async function handleVerify(req: Request, env: any): Promise<Response> {
       return badRequest("Order is not awaiting payment");
     }
 
-    const paymentAlreadyUsed = await prisma.order.findFirst({
-      where: {
-        razorpayPaymentId,
-        id: { not: orderId },
-      },
-      select: { id: true },
-    });
-    if (paymentAlreadyUsed) return badRequest("Payment has already been applied to another order");
-
     await prisma.$transaction(async (tx) => {
+      // Check for duplicate payment inside transaction to prevent race condition (R3)
+      const paymentAlreadyUsed = await tx.order.findFirst({
+        where: {
+          razorpayPaymentId,
+          id: { not: orderId },
+        },
+        select: { id: true },
+      });
+      if (paymentAlreadyUsed) throw new Error("Payment has already been applied to another order");
       await tx.order.update({
         where: { id: orderId },
         data: {

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useCallback } from "react";
-import { useConnectivityStore } from "./connectivity-store";
-import { useCartStore } from "./cart-store";
+import { useConnectivityStore } from "../store/connectivity-store";
+import { useCartStore } from "../stores/cart-store";
 
 export function useConnectivityManager() {
   const prevOnlineRef = useRef(true);
@@ -110,10 +110,10 @@ export function useConnectivityManager() {
     isMobile,
     isDesktop,
     emergencyMode,
-    connectionType: useConnectivityStore((s) => s.connectionType),
-    offlineQueueSize: useConnectivityStore((s) => s.offlineQueue.length),
-    notificationsEnabled: useConnectivityStore((s) => s.notificationsEnabled),
-    notificationShown: useConnectivityStore((s) => s.notificationShown),
+    connectionType: useConnectivityStore((s: any) => s.connectionType),
+    offlineQueueSize: useConnectivityStore((s: any) => s.offlineQueue.length),
+    notificationsEnabled: useConnectivityStore((s: any) => s.notificationsEnabled),
+    notificationShown: useConnectivityStore((s: any) => s.notificationShown),
     isRecoverableConnection,
   };
 }

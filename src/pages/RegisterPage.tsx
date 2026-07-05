@@ -92,18 +92,18 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-body text-neutral-700 mb-1">
                   First Name *
                 </label>
-                <input id="firstName" name="firstName" type="text" required value={form.firstName} onChange={handleChange("firstName")} className="input-field" placeholder="John" />
+                <input id="firstName" name="firstName" type="text" required value={form.firstName} onChange={handleChange("firstName")} className="input-field" placeholder="John" autoComplete="given-name" />
               </div>
               <div>
                 <label htmlFor="lastName" className="block text-sm font-body text-neutral-700 mb-1">
                   Last Name
                 </label>
-                <input id="lastName" name="lastName" type="text" value={form.lastName} onChange={handleChange("lastName")} className="input-field" placeholder="Doe" />
+                <input id="lastName" name="lastName" type="text" value={form.lastName} onChange={handleChange("lastName")} className="input-field" placeholder="Doe" autoComplete="family-name" />
               </div>
             </div>
 

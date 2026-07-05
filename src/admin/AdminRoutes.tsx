@@ -78,9 +78,17 @@ export default function AdminRoutes() {
               </div>
               <h2 className="text-xl font-semibold text-neutral-900 mb-2">Admin Error</h2>
               <p className="text-sm text-neutral-500 mb-4">An admin page encountered an error.</p>
-              <a href="/admin" className="text-sm font-medium text-brand-600 hover:text-brand-700">
-                ← Back to Admin Dashboard
-              </a>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 text-sm font-medium text-white bg-neutral-900 rounded-lg hover:bg-neutral-800 transition-colors"
+                >
+                  Try Again
+                </button>
+                <a href="/admin" className="text-sm font-medium text-brand-600 hover:text-brand-700">
+                  ← Back to Dashboard
+                </a>
+              </div>
             </div>
           </div>
         }

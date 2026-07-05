@@ -95,7 +95,6 @@ export async function checkRateLimit(
   }
 
   // No KV available locally — allow request so localhost stays usable.
-  console.warn("[RATE LIMIT] No KV binding available, skipping rate limit check");
   return { allowed: true, remaining: config.maxRequests, resetAt: now + config.windowMs };
 }
 

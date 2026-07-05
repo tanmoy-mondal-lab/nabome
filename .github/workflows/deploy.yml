@@ -39,4 +39,4 @@ jobs:
           projectName: nabome
           directory: dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          wranglerVersion: '3.78.0'
+          wranglerVersion: '4.105.0'

@@ -67,7 +67,7 @@ export function AddressForm({ form, setForm, errors, setErrors, prefix }: Addres
     <div className="grid grid-cols-2 gap-5">
       <div className="col-span-2 sm:col-span-1">
         <label className={labelCls} htmlFor={`${prefix}-fullName`}>Full Name *</label>
-        <input id={`${prefix}-fullName`} value={form.fullName} onChange={(e) => update("fullName", e.target.value)} className={inputCls("fullName")} placeholder="John Doe" {...errorProps("fullName")} />
+        <input id={`${prefix}-fullName`} value={form.fullName} onChange={(e) => update("fullName", e.target.value)} className={inputCls("fullName")} placeholder="John Doe" autoComplete="name" {...errorProps("fullName")} />
         {errors.fullName && <p id={errorId("fullName")} className="text-xs text-red-500 mt-1">{errors.fullName}</p>}
       </div>
       <div className="col-span-2 sm:col-span-1">
@@ -77,7 +77,7 @@ export function AddressForm({ form, setForm, errors, setErrors, prefix }: Addres
       </div>
       <div className="col-span-2">
         <label className={labelCls} htmlFor={`${prefix}-line1`}>Street Address / Line 1 *</label>
-        <input id={`${prefix}-line1`} value={form.line1} onChange={(e) => update("line1", e.target.value)} className={inputCls("line1")} placeholder="123 Main Street" {...errorProps("line1")} />
+        <input id={`${prefix}-line1`} value={form.line1} onChange={(e) => update("line1", e.target.value)} className={inputCls("line1")} placeholder="123 Main Street" autoComplete="address-line1" {...errorProps("line1")} />
         {errors.line1 && <p id={errorId("line1")} className="text-xs text-red-500 mt-1">{errors.line1}</p>}
       </div>
       <div className="col-span-2">
@@ -86,7 +86,7 @@ export function AddressForm({ form, setForm, errors, setErrors, prefix }: Addres
       </div>
       <div>
         <label className={labelCls} htmlFor={`${prefix}-city`}>City *</label>
-        <input id={`${prefix}-city`} value={form.city} onChange={(e) => update("city", e.target.value)} className={inputCls("city")} placeholder="Mumbai" {...errorProps("city")} />
+        <input id={`${prefix}-city`} value={form.city} onChange={(e) => update("city", e.target.value)} className={inputCls("city")} placeholder="Mumbai" autoComplete="address-level2" {...errorProps("city")} />
         {errors.city && <p id={errorId("city")} className="text-xs text-red-500 mt-1">{errors.city}</p>}
       </div>
       <div>
@@ -105,7 +105,7 @@ export function AddressForm({ form, setForm, errors, setErrors, prefix }: Addres
       </div>
       <div>
         <label className={labelCls} htmlFor={`${prefix}-pincode`}>Pincode *</label>
-        <input id={`${prefix}-pincode`} value={form.pincode} onChange={(e) => update("pincode", e.target.value)} className={inputCls("pincode")} placeholder="400001" maxLength={6} {...errorProps("pincode")} />
+        <input id={`${prefix}-pincode`} value={form.pincode} onChange={(e) => update("pincode", e.target.value)} className={inputCls("pincode")} placeholder="400001" maxLength={6} inputMode="numeric" pattern="\d{6}" {...errorProps("pincode")} />
         {errors.pincode && <p id={errorId("pincode")} className="text-xs text-red-500 mt-1">{errors.pincode}</p>}
       </div>
       <div>

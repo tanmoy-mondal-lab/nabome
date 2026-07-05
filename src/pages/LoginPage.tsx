@@ -22,6 +22,7 @@ export default function LoginPage() {
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileError, setTurnstileError] = useState("");
   const [turnstileNonce, setTurnstileNonce] = useState(0);
+  const [rememberMe, setRememberMe] = useState(false);
   const registrationToastShown = useRef(false);
 
   const state = location.state as { from?: { pathname: string }; registered?: boolean } | null;
@@ -38,13 +39,6 @@ export default function LoginPage() {
     }
   }, [state?.registered, toast]);
 
-  useEffect(() => {
-    if (noAccount) {
-      toast("No account found. Redirecting to sign up…", "info");
-      const timer = setTimeout(() => navigate("/auth/register"), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [noAccount, navigate, toast]);
 
   const handleResend = async () => {
     if (!email) return;
@@ -165,7 +159,7 @@ export default function LoginPage() {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2">
-                <input type="checkbox" className="w-4 h-4 border-neutral-300 rounded" />
+                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} className="w-4 h-4 border-neutral-300 rounded" />
                 <span className="text-sm text-neutral-600">Remember me</span>
               </label>
               <Link to="/auth/forgot-password" className="text-sm text-brand-500 hover:text-brand-600">

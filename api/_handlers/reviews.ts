@@ -19,10 +19,15 @@ export async function handleReviewRequest(
 async function handleCreate(ctx: RequestContext, req: Request, env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { productId, orderId, rating, title, body: reviewBody, images } = body;
 
-  if (!productId || !rating) {
+  if (!productId || !rating || typeof productId !== 'string' || typeof rating !== 'number') {
     return badRequest("Product ID and rating are required");
   }
 
@@ -34,15 +39,15 @@ async function handleCreate(ctx: RequestContext, req: Request, env: any): Promis
     const prisma = getPrisma(env);
     // Check if product exists
     const product = await prisma.product.findUnique({
-      where: { id: productId },
+      where: { id: productId as string },
       select: { id: true },
     });
     if (!product) return badRequest("Product not found");
 
     // Check for duplicate review
-    if (orderId) {
+    if (orderId && typeof orderId === 'string') {
       const existing = await prisma.review.findUnique({
-        where: { productId_profileId_orderId: { productId, profileId: ctx.userId, orderId } },
+        where: { productId_profileId_orderId: { productId: productId as string, profileId: ctx.userId, orderId } },
       });
       if (existing) {
         return badRequest("You have already reviewed this product for this order");
@@ -51,13 +56,13 @@ async function handleCreate(ctx: RequestContext, req: Request, env: any): Promis
 
     const review = await prisma.review.create({
       data: {
-        productId,
+        productId: productId as string,
         profileId: ctx.userId,
-        orderId: orderId ?? null,
-        rating,
-        title: title ?? null,
-        body: reviewBody ?? null,
-        images: images ?? [],
+        orderId: orderId as string | null ?? null,
+        rating: rating as number,
+        title: title as string | null ?? null,
+        body: reviewBody as string | null ?? null,
+        images: images as string[] | undefined ?? [],
       },
     });
 

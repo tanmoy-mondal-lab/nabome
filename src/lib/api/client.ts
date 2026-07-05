@@ -153,6 +153,8 @@ async function request<T>(
   // CSRF token from cookie for state-changing methods
   const method = (fetchOptions.method ?? "GET").toUpperCase();
   if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
+    // Ensure CSRF token is initialized before first state-changing request
+    await ensureCsrfToken();
     const csrfCookie = document.cookie
       .split("; ")
       .find((c) => c.startsWith("csrf_token="));
@@ -255,6 +257,19 @@ async function request<T>(
 
   const data = await response.json();
   return data.data ?? data;
+}
+
+// Ensure CSRF token is available by making an initial GET request
+let csrfInitialized = false;
+async function ensureCsrfToken(): Promise<void> {
+  if (csrfInitialized) return;
+  try {
+    await fetch(`${BASE_URL}/health`, { method: "GET" });
+    csrfInitialized = true;
+  } catch (error) {
+    // If health check fails, we'll try again on the next request
+    console.warn("Failed to initialize CSRF token:", error);
+  }
 }
 
 // Combine multiple AbortSignals into one

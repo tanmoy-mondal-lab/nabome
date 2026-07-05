@@ -64,6 +64,8 @@ export async function handleProductRequest(
       return handleBySlugs(req, ctx.env);
     case "search":
       return handleSearch(req, ctx.env);
+    case "autocomplete":
+      return handleAutocomplete(req, ctx.env);
     case "detail":
       return handleDetail(params[0], ctx.env);
     case "variants":
@@ -319,6 +321,54 @@ async function handleSearch(req: Request, env: any): Promise<Response> {
         totalPages: Math.ceil(total / limit),
       },
     });
+  } catch (err) {
+    return serverError(err);
+  }
+}
+
+async function handleAutocomplete(req: Request, env: any): Promise<Response> {
+  const prisma = getPrisma(env);
+  const url = new URL(req.url);
+  const q = url.searchParams.get("q");
+
+  if (!q || q.length < 2) {
+    return success({ suggestions: [] });
+  }
+
+  try {
+    const products = await prisma.product.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { shortDescription: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        basePrice: true,
+        salePrice: true,
+        images: {
+          where: { isPrimary: true },
+          take: 1,
+          orderBy: { sortOrder: "asc" as const },
+        },
+      },
+      orderBy: { createdAt: "desc" as const },
+      take: 8,
+    });
+
+    const suggestions = products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      price: p.salePrice ?? p.basePrice,
+      image: p.images[0]?.url ?? null,
+    }));
+
+    return success({ suggestions });
   } catch (err) {
     return serverError(err);
   }

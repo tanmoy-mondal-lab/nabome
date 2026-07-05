@@ -180,7 +180,7 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
     const body = await req.json();
     const { email, code } = body;
 
-    if (!email || !code) {
+    if (!email || !code || typeof email !== 'string' || typeof code !== 'string') {
       return badRequest("Email and verification code are required");
     }
 
@@ -189,12 +189,60 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
     }
 
     const prisma = getPrisma(ctx.env);
+    const ipAddress = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "unknown";
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Check if this email/code combination is locked out
+    const recentAttempts = await prisma.verificationAttempt.findMany({
+      where: {
+        email: normalizedEmail,
+        code,
+        createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) }, // Last 10 minutes
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Count failed attempts for this code
+    const failedAttempts = recentAttempts.filter(a => !a.success).length;
+    
+    // Check if locked out
+    const lockedAttempt = recentAttempts.find(a => a.lockedUntil && a.lockedUntil > new Date());
+    if (lockedAttempt && lockedAttempt.lockedUntil) {
+      const remainingTime = Math.ceil((lockedAttempt.lockedUntil.getTime() - Date.now()) / 60000);
+      return badRequest(`Too many failed attempts. Try again in ${remainingTime} minutes.`);
+    }
+
+    // Lockout after 5 failed attempts
+    if (failedAttempts >= 5) {
+      const lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+      await prisma.verificationAttempt.create({
+        data: {
+          email: normalizedEmail,
+          code: code as string,
+          ipAddress,
+          success: false,
+          lockedUntil,
+        },
+      });
+      return badRequest("Too many failed attempts. Please request a new verification code.");
+    }
+
     const profile = await prisma.profile.findFirst({
-      where: { email, verificationToken: code, emailVerified: false },
+      where: { email: normalizedEmail, verificationToken: code, emailVerified: false },
       select: { id: true, email: true, verificationTokenExpiresAt: true },
     });
 
     if (!profile) {
+      // Record failed attempt
+      await prisma.verificationAttempt.create({
+        data: {
+          profileId: null,
+          email: normalizedEmail,
+          code: code as string,
+          ipAddress,
+          success: false,
+        },
+      });
       return badRequest("Invalid verification code");
     }
 
@@ -208,6 +256,17 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
         emailVerified: true,
         verificationToken: null,
         verificationTokenExpiresAt: null,
+      },
+    });
+
+    // Record successful attempt
+    await prisma.verificationAttempt.create({
+      data: {
+        profileId: profile.id,
+        email: normalizedEmail,
+        code: code as string,
+        ipAddress,
+        success: true,
       },
     });
 
@@ -400,7 +459,12 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
 // Uses Supabase `setSession` to get fresh tokens, then rotates local session record.
 
 async function handleRefresh(req: Request, ctx: RequestContext): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { refreshToken } = body;
 
   if (!refreshToken || typeof refreshToken !== "string") {
@@ -599,7 +663,12 @@ async function handleMe(req: Request, ctx: RequestContext): Promise<Response> {
 async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const allowedFields = ["firstName", "lastName", "phone", "avatarUrl", "preferences"];
   const updateData: Record<string, unknown> = {};
 
@@ -640,7 +709,12 @@ async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Respon
 async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { newEmail } = body;
 
   if (!newEmail || typeof newEmail !== "string") {
@@ -704,10 +778,15 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
 async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { code } = body;
 
-  if (!code || !/^\d{6}$/.test(code)) {
+  if (!code || typeof code !== 'string' || !/^\d{6}$/.test(code)) {
     return badRequest("Verification code must be a 6-digit number");
   }
 
@@ -779,10 +858,15 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
 // ─── FORGOT PASSWORD (send 6-digit code) ───
 
 async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { email } = body;
 
-  if (!email) return badRequest("Email is required");
+  if (!email || typeof email !== 'string') return badRequest("Email is required");
 
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -821,10 +905,15 @@ async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<
 // ─── VERIFY RESET CODE ───
 
 async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { email, code } = body;
 
-  if (!email || !code) {
+  if (!email || !code || typeof email !== 'string' || typeof code !== 'string') {
     return badRequest("Email and verification code are required");
   }
 
@@ -833,14 +922,61 @@ async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise
   }
 
   const normalizedEmail = email.toLowerCase().trim();
+  const ipAddress = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "unknown";
 
   const prisma = getPrisma(ctx.env);
+
+  // Check if this email/code combination is locked out
+  const recentAttempts = await prisma.verificationAttempt.findMany({
+    where: {
+      email: normalizedEmail,
+      code,
+      createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) }, // Last 10 minutes
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Count failed attempts for this code
+  const failedAttempts = recentAttempts.filter(a => !a.success).length;
+  
+  // Check if locked out
+  const lockedAttempt = recentAttempts.find(a => a.lockedUntil && a.lockedUntil > new Date());
+  if (lockedAttempt && lockedAttempt.lockedUntil) {
+    const remainingTime = Math.ceil((lockedAttempt.lockedUntil.getTime() - Date.now()) / 60000);
+    return badRequest(`Too many failed attempts. Try again in ${remainingTime} minutes.`);
+  }
+
+  // Lockout after 5 failed attempts
+  if (failedAttempts >= 5) {
+    const lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+    await prisma.verificationAttempt.create({
+      data: {
+        email: normalizedEmail,
+        code,
+        ipAddress,
+        success: false,
+        lockedUntil,
+      },
+    });
+    return badRequest("Too many failed attempts. Please request a new verification code.");
+  }
+
   const profile = await prisma.profile.findFirst({
     where: { email: normalizedEmail, resetPasswordToken: code },
     select: { id: true, email: true, resetPasswordTokenExpiresAt: true },
   });
 
   if (!profile) {
+    // Record failed attempt
+    await prisma.verificationAttempt.create({
+      data: {
+        profileId: null,
+        email: normalizedEmail,
+        code,
+        ipAddress,
+        success: false,
+      },
+    });
     return badRequest("Invalid verification code");
   }
 
@@ -848,16 +984,32 @@ async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise
     return badRequest("Verification code has expired. Request a new one.");
   }
 
+  // Record successful attempt
+  await prisma.verificationAttempt.create({
+    data: {
+      profileId: profile.id,
+      email: normalizedEmail,
+      code,
+      ipAddress,
+      success: true,
+    },
+  });
+
   return success({ message: "Code verified successfully" });
 }
 
 // ─── RESET PASSWORD ───
 
 async function handleResetPassword(req: Request, ctx: RequestContext): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { email, code, password } = body;
 
-  if (!email || !code || !password) {
+  if (!email || !code || !password || typeof email !== 'string' || typeof code !== 'string' || typeof password !== 'string') {
     return badRequest("Email, verification code, and new password are required");
   }
 
@@ -872,40 +1024,46 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
   const normalizedEmail = email.toLowerCase().trim();
 
   const prisma = getPrisma(ctx.env);
-  const profile = await prisma.profile.findFirst({
-    where: { email: normalizedEmail, resetPasswordToken: code },
-    select: { id: true, resetPasswordTokenExpiresAt: true },
+  
+  // Fix race condition by wrapping in transaction to prevent token reuse (R6)
+  const profileId = await prisma.$transaction(async (tx) => {
+    const profile = await tx.profile.findFirst({
+      where: { email: normalizedEmail, resetPasswordToken: code },
+      select: { id: true, resetPasswordTokenExpiresAt: true },
+    });
+
+    if (!profile) {
+      throw new Error("Invalid verification code");
+    }
+
+    if (profile.resetPasswordTokenExpiresAt && profile.resetPasswordTokenExpiresAt < new Date()) {
+      throw new Error("Verification code has expired. Request a new one.");
+    }
+
+    // Clear reset token immediately to prevent reuse
+    await tx.profile.update({
+      where: { id: profile.id },
+      data: {
+        resetPasswordToken: null,
+        resetPasswordTokenExpiresAt: null,
+      },
+    });
+
+    return profile.id;
   });
 
-  if (!profile) {
-    return badRequest("Invalid verification code");
-  }
-
-  if (profile.resetPasswordTokenExpiresAt && profile.resetPasswordTokenExpiresAt < new Date()) {
-    return badRequest("Verification code has expired. Request a new one.");
-  }
-
-  // Update password via Supabase admin API
+  // Update password via Supabase admin API (outside transaction due to external API)
   const supabase = getAdminClient(ctx.env);
-  const { error: updateError } = await supabase.auth.admin.updateUserById(profile.id, {
+  const { error: updateError } = await supabase.auth.admin.updateUserById(profileId, {
     password,
   });
 
   if (updateError) return badRequest(updateError.message);
 
-  // Clear reset token and invalidate sessions
-  await prisma.profile.update({
-    where: { id: profile.id },
-    data: {
-      resetPasswordToken: null,
-      resetPasswordTokenExpiresAt: null,
-    },
-  });
-
   try {
-    await supabase.auth.admin.signOut(profile.id);
+    await supabase.auth.admin.signOut(profileId);
     await prisma.authSession.updateMany({
-      where: { profileId: profile.id, isActive: true },
+      where: { profileId, isActive: true },
       data: { isActive: false },
     }).catch(() => {});
   } catch {
@@ -925,10 +1083,15 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
 async function handleChangePassword(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { currentPassword, newPassword } = body;
 
-  if (!currentPassword || !newPassword) {
+  if (!currentPassword || !newPassword || typeof currentPassword !== 'string' || typeof newPassword !== 'string') {
     return badRequest("Current password and new password are required");
   }
 
@@ -950,7 +1113,7 @@ async function handleChangePassword(req: Request, ctx: RequestContext): Promise<
   const anonClient = getAnonClient(ctx.env);
   const { error: verifyError } = await anonClient.auth.signInWithPassword({
     email: user.email,
-    password: currentPassword,
+    password: currentPassword as string,
   });
 
   if (verifyError) {
@@ -959,7 +1122,7 @@ async function handleChangePassword(req: Request, ctx: RequestContext): Promise<
 
   // Update password
   const { error: updateError } = await supabase.auth.admin.updateUserById(ctx.userId, {
-    password: newPassword,
+    password: newPassword as string,
   });
 
   if (updateError) return badRequest(updateError.message);

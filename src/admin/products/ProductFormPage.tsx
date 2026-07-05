@@ -569,9 +569,9 @@ export default function ProductFormPage() {
         onDismissError={() => setSaveError(null)}
       />
 
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* ─── Main Content ─── */}
-        <div className="col-span-2 space-y-4">
+        <div className="col-span-1 lg:col-span-2 space-y-4">
           <Section title="Basic Information" icon={FileText} defaultOpen badge={form.name ? undefined : "Required"}>
             <div className="space-y-4">
               <div>

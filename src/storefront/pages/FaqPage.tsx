@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { Breadcrumbs } from "../components/Breadcrumbs";
@@ -20,6 +20,10 @@ interface FaqResponse {
 
 export default function FaqPage() {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    document.title = "FAQ — নবME";
+  }, []);
 
   const { data: faqData, isLoading, isError, error } = useQuery<FaqResponse>({
     queryKey: ["cms", "faq"],

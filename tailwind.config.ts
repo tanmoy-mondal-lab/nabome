@@ -37,6 +37,10 @@ export default {
           bronze: "#cd7f32",
           platinum: "#e5e4e2",
         },
+        neutral: {
+          400: "#767676",
+          500: "#707070",
+        },
       },
 
       // ─── LUXURY TYPOGRAPHY ───
@@ -44,7 +48,7 @@ export default {
         display: ["Cormorant Garamond", "Georgia", "serif"],
         body: ["Manrope", "Inter", "sans-serif"],
         alt: ["Noto Serif Bengali", "serif"],
-        editorial: ["Playfair Display", "Cormorant Garamond", "serif"],
+        editorial: ["Cormorant Garamond", "Georgia", "serif"],
       },
       fontSize: {
         "2xs": ["0.625rem", { lineHeight: "0.875rem" }],

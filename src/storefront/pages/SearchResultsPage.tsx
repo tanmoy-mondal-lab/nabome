@@ -16,9 +16,9 @@ export default function SearchResultsPage() {
   const currentPage = parseInt(searchParams.get("page") || "1", 10);
   const { data: searchRes, isLoading: loading, error: queryError, refetch } = useSearch(q, currentPage);
 
-  const products = (searchRes as Record<string, unknown>)?.products as Product[] ?? [];
-  const total = ((searchRes as Record<string, unknown>)?.pagination as { total?: number })?.total ?? 0;
-  const totalPages = ((searchRes as Record<string, unknown>)?.pagination as { totalPages?: number })?.totalPages ?? 0;
+  const products = searchRes?.products ?? [];
+  const total = searchRes?.pagination?.total ?? 0;
+  const totalPages = searchRes?.pagination?.totalPages ?? 0;
 
   function goToPage(page: number) {
     const params = new URLSearchParams(searchParams);

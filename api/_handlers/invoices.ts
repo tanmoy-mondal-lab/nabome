@@ -191,7 +191,7 @@ export async function handleInvoiceRequest(
     case "getInvoice":
       return handleGetInvoice(ctx, params[0], ctx.env);
     case "getByOrderNumber":
-      return handleGetByOrderNumber(params[0], ctx.env);
+      return handleGetByOrderNumber(ctx, params[0], ctx.env);
     case "adminGetInvoice":
       return handleAdminGetInvoice(params[0], ctx.env);
     case "adminGenerateInvoice":
@@ -201,11 +201,12 @@ export async function handleInvoiceRequest(
   }
 }
 
-async function handleGetByOrderNumber(orderNumber: string, env: any): Promise<Response> {
+async function handleGetByOrderNumber(ctx: RequestContext, orderNumber: string, env: any): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
   try {
     const prisma = getPrisma(env);
-    const order = await prisma.order.findUnique({
-      where: { orderNumber },
+    const order = await prisma.order.findFirst({
+      where: { orderNumber, profileId: ctx.userId },
       include: {
         items: true,
         shippingAddress: true,

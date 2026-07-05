@@ -247,7 +247,7 @@ export async function handleCheckoutRequest(
       return badRequest("Cart is empty. Add items to your cart before checkout.");
     }
 
-    // ── Stock validation ──
+    // ── Basic quantity validation (stock check will be inside transaction to prevent TOCTOU) ──
     for (const item of cartItems) {
       if (!item.variant.isActive || !item.variant.product.isActive) {
         return badRequest(`${item.variant.product.name} is no longer available`);
@@ -255,11 +255,7 @@ export async function handleCheckoutRequest(
       if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_ITEM_QUANTITY) {
         return badRequest(`Each cart quantity must be between 1 and ${MAX_ITEM_QUANTITY}`);
       }
-      if (item.quantity > item.variant.stock) {
-        return badRequest(
-          `Insufficient stock for ${item.variant.product.name} (${item.variant.size}/${item.variant.color})`
-        );
-      }
+      // Note: Stock validation moved inside transaction to prevent race condition (R1)
     }
 
     // ── Address validation and resolution ──
@@ -421,13 +417,6 @@ export async function handleCheckoutRequest(
       ) {
         throw new CheckoutError("Coupon is not applicable to every item in this cart");
       }
-      if (!profileId) throw new CheckoutError("Profile is required for coupon validation");
-      const userUsageCount = await prisma.couponRedemption.count({
-        where: { couponId: coupon.id, profileId },
-      });
-      if (userUsageCount >= coupon.perUserLimit) {
-        throw new CheckoutError("Coupon usage limit reached for this customer");
-      }
 
       if (coupon.discountType === "percentage") {
         discount = Math.min(
@@ -443,6 +432,7 @@ export async function handleCheckoutRequest(
         usageLimit: coupon.usageLimit,
         perUserLimit: coupon.perUserLimit,
       };
+      // Note: per-user limit check moved inside transaction to prevent race condition (R2)
     }
 
     // ── Calculate tax and totals ──

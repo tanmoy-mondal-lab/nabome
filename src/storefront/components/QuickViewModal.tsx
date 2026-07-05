@@ -11,11 +11,12 @@ import { useAuthStore } from "../../stores/auth-store";
 import { cn } from "../../lib/utils/cn";
 import { SafeImage } from "../../components/SafeImage";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
+import type { Product } from "../../types/product";
 
 interface QuickViewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  product: Record<string, unknown> | null;
+  product: Product | null;
 }
 
 export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps) {
@@ -48,20 +49,20 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
 
   if (!product) return null;
 
-  const name = product.name as string;
-  const slug = product.slug as string;
+  const name = product.name;
+  const slug = product.slug;
   const basePrice = Number(product.basePrice ?? 0);
   const salePrice = product.salePrice ? Number(product.salePrice) : null;
   const price = salePrice && salePrice > 0 ? salePrice : basePrice;
   const compareAtPrice = product.compareAtPrice ? Number(product.compareAtPrice) : null;
-  const images = (product.images as { url: string }[]) ?? [];
-  const variants = (product.variants as Record<string, unknown>[]) ?? [];
-  const shortDescription = product.shortDescription as string;
+  const images = product.images ?? [];
+  const variants = product.variants ?? [];
+  const shortDescription = product.shortDescription;
 
   const colorMap = new Map<string, { hex: string; name: string }>();
   variants.forEach((v) => {
-    const hex = v.colorHex as string;
-    const name = v.color as string || hex;
+    const hex = v.colorHex;
+    const name = v.color || hex || "";
     if (hex && !colorMap.has(hex)) {
       colorMap.set(hex, { hex, name });
     }
@@ -162,7 +163,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                         selectedImage === i ? "border-neutral-900" : "border-transparent hover:border-neutral-300"
                       )}
                     >
-                      <SafeImage src={image.url} alt={`${name} - thumbnail ${i + 1}`} className="w-full h-full object-cover" />
+                      <SafeImage src={image.url} alt={`${name} - thumbnail ${i + 1}`} responsive className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>

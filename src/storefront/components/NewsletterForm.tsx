@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { api } from "../../lib/api/client";
 import { TurnstileWidget } from "../../components/TurnstileWidget";
 import { turnstileEnabled, turnstileSiteKey } from "../../lib/config";
@@ -57,11 +57,14 @@ export function NewsletterForm({ layout = "stacked" }: NewsletterFormProps) {
           placeholder="Enter your email"
           required
           className="flex-1 bg-transparent text-sm py-2 text-white placeholder-neutral-500 focus:outline-none"
+          aria-label="Email address"
+          aria-invalid={status === "error"}
         />
         <button
           type="submit"
           disabled={(turnstileEnabled && !turnstileToken) || status === "loading"}
           className="text-xs uppercase tracking-widest font-medium text-accent-gold hover:text-accent-goldLight transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed px-4 flex items-center gap-2"
+          aria-label={status === "loading" ? "Subscribing to newsletter" : "Subscribe to newsletter"}
         >
           {status === "loading" ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
           {status === "loading" ? "Subscribing..." : "Subscribe"}
@@ -80,8 +83,18 @@ export function NewsletterForm({ layout = "stacked" }: NewsletterFormProps) {
           className={isInline ? "self-start" : ""}
         />
       )}
-      {status === "success" && <p className="text-xs text-green-600">Thank you for subscribing!</p>}
-      {(status === "error" || turnstileError) && <p className="text-xs text-red-500">{turnstileError || "Something went wrong. Try again."}</p>}
+      {status === "success" && (
+        <div className="flex items-center gap-2 text-green-600 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <CheckCircle className="w-4 h-4" />
+          <span className="text-xs font-medium">Thank you for subscribing!</span>
+        </div>
+      )}
+      {(status === "error" || turnstileError) && (
+        <div className="flex items-center gap-2 text-red-500 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <AlertCircle className="w-4 h-4" />
+          <span className="text-xs">{turnstileError || "Something went wrong. Try again."}</span>
+        </div>
+      )}
     </form>
   );
 }

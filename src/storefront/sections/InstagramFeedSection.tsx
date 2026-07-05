@@ -75,6 +75,8 @@ export default function InstagramFeedSection({ section }: InstagramFeedSectionPr
             <SafeImage
               src={img.src}
               alt={img.caption || "Instagram post"}
+              width={400}
+              height={400}
               className="w-full h-full object-cover transition-transform duration-500 md:group-hover:scale-110 group-hover:scale-110"
             />
             {img.caption && (
