@@ -5,19 +5,17 @@ const SW_URL = "/sw.js";
 const SW_SCOPE = "/";
 
 let swRegistration: ServiceWorkerRegistration | null = null;
-let isSupported = "serviceWorker" in navigator;
+let isSupported = typeof window !== "undefined" && "serviceWorker" in navigator;
 let updateAvailable = false;
 
 export function registerServiceWorker(): Promise<void> {
   if (!isSupported) {
-    console.warn("Service Workers not supported in this browser");
     return Promise.resolve();
   }
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const onSuccess = (registration: ServiceWorkerRegistration) => {
       swRegistration = registration;
-      console.log("Service Worker registered successfully:", registration);
       
       // Listen for updates
       registration.addEventListener("updatefound", () => {
@@ -27,7 +25,9 @@ export function registerServiceWorker(): Promise<void> {
           newWorker.addEventListener("statechange", () => {
             if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
               updateAvailable = true;
-              window.dispatchEvent(new CustomEvent("sw:update"));
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("sw:update"));
+              }
             }
           });
         }
@@ -48,8 +48,11 @@ export function registerServiceWorker(): Promise<void> {
     };
 
     const onError = (error: Error) => {
-      console.error("Service Worker registration failed:", error);
       // Don't reject - app should work without service worker
+      // Log error in development only
+      if (import.meta.env.DEV) {
+        console.warn("Service worker registration failed:", error.message);
+      }
       resolve();
     };
 
@@ -94,7 +97,9 @@ export function skipWaiting(): Promise<void> {
     swRegistration!.waiting!.addEventListener("statechange", (e) => {
       if ((e.target as ServiceWorker).state === "activated") {
         swRegistration = null;
-        window.location.reload();
+        if (typeof window !== "undefined") {
+          window.location.reload();
+        }
       }
     });
 
@@ -122,7 +127,6 @@ export function setupConnectivityDetection() {
     
     if (!isNowOnline && isMobile) {
       // Mobile-specific offline handling
-      console.log("Mobile device went offline - caching current state");
       
       // Request background sync for future operations
       if (swRegistration && (swRegistration as any).sync) {
@@ -166,15 +170,16 @@ export function setupConnectivityDetection() {
 
   const handleOnline = () => handleConnectionChange();
   const handleOffline = () => handleConnectionChange();
+  const handleConnectionChangeEvent = () => handleConnectionChange();
 
   window.addEventListener("online", handleOnline);
   window.addEventListener("offline", handleOffline);
-  window.addEventListener("connectionchange", handleConnectionChange);
+  window.addEventListener("connectionchange", handleConnectionChangeEvent);
 
   return () => {
     window.removeEventListener("online", handleOnline);
     window.removeEventListener("offline", handleOffline);
-    window.removeEventListener("connectionchange", handleConnectionChange);
+    window.removeEventListener("connectionchange", handleConnectionChangeEvent);
     
     intervals.forEach(id => clearInterval(id as any));
   };

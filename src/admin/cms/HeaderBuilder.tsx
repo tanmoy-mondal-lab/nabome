@@ -59,7 +59,7 @@ const DEFAULT_HEADER_CONFIG: HeaderConfig = {
   accountIcon: true,
   menuLocation: "left",
   menuStyle: "standard",
-  maxNavItems: 6,
+  maxNavItems: 10,
 };
 
 function SortableItem({
@@ -108,9 +108,11 @@ export default function HeaderBuilder() {
         ...menu,
         items: (menu.items ?? []).map((item) => ({
           ...item,
+          type: item.type || "link",
           id: item.id || crypto.randomUUID(),
           children: item.children?.map((child) => ({
             ...child,
+            type: child.type || "link",
             id: child.id || crypto.randomUUID(),
           })),
           megaMenuColumns: item.megaMenuColumns?.map((col) => ({
@@ -324,7 +326,7 @@ export default function HeaderBuilder() {
     }));
   };
 
-  const typeIcon = (type: string) => {
+  const typeIcon = (type?: string) => {
     switch (type) {
       case "dropdown": return <ChevronDown size={14} />;
       case "mega_menu": return <LayoutIcon size={14} />;
@@ -642,7 +644,7 @@ export default function HeaderBuilder() {
                           item.type === "divider" ? "bg-neutral-100 text-neutral-500" :
                           "bg-neutral-50 text-neutral-600"
                         }`}>
-                          {typeIcon(item.type)} {item.type.replace("_", " ")}
+                          {typeIcon(item.type)} {(item.type ?? "link").replace("_", " ")}
                         </span>
                         <span className="text-sm text-neutral-900 font-medium truncate flex-1">
                           {item.label || <span className="text-neutral-400 italic">Untitled</span>}

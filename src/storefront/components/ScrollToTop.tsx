@@ -6,6 +6,8 @@ export function ScrollToTop() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    
     const onScroll = () => {
       setVisible(window.scrollY > 400);
     };
@@ -14,6 +16,7 @@ export function ScrollToTop() {
   }, []);
 
   function scrollToTop() {
+    if (typeof window === "undefined") return;
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 

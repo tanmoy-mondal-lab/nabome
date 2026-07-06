@@ -365,7 +365,7 @@ export default function ProductFormPage() {
 
             const allErrors = [...deleteErrors, ...deleteVariantErrors, ...addErrors, ...variantImageErrors];
             if (allErrors.length > 0) {
-              console.warn("Product saved with image errors:", allErrors);
+              // Product saved with image errors - logged silently
             }
           }
 

@@ -52,7 +52,6 @@ async function sendViaResend(
 
     if (!res.ok) {
       const msg = `Resend API error HTTP ${status}: ${body}`;
-      console.error(`[EMAIL] ✗ ${msg}`);
       return { success: false, error: msg };
     }
 
@@ -60,7 +59,6 @@ async function sendViaResend(
     return { success: true, messageId: data.id };
   } catch (err) {
     const msg = `Network error: ${(err as Error).message}`;
-    console.error(`[EMAIL] ✗ ${msg}`);
     return { success: false, error: msg };
   }
 }
@@ -86,8 +84,6 @@ export async function sendEmailNotification(
   // ── 1. Validate env ──
   const resendApiKey = cleanSecret(env?.RESEND_API_KEY);
   if (!resendApiKey) {
-    console.error("[EMAIL] ✗ RESEND_API_KEY is not set. Emails will NOT be sent.");
-    console.error("[EMAIL] Check: wrangler pages secret put RESEND_API_KEY --project-name=nabome --env production");
     return;
   }
 
@@ -98,7 +94,6 @@ export async function sendEmailNotification(
   };
   const template = getEmailTemplate(type, templateData);
   if (!template) {
-    console.error(`[EMAIL] ✗ No template for type="${type}". Check email-templates.ts TEMPLATES registry.`);
     return;
   }
 
@@ -111,13 +106,11 @@ export async function sendEmailNotification(
     const raw = cleanSecret(env?.ADMIN_EMAILS);
     recipients = raw.split(",").map((e) => e.trim()).filter(Boolean);
     if (recipients.length === 0) {
-      console.error("[EMAIL] ✗ No admin recipients. Set ADMIN_EMAILS env var.");
       return;
     }
   } else {
     const email = data.email as string | undefined;
     if (!email) {
-      console.error(`[EMAIL] ✗ No recipient email in data.email for type="${type}".`);
       return;
     }
     recipients = [email];
@@ -142,10 +135,7 @@ export async function sendEmailNotification(
   const failed = results.filter((r) => !r.success);
 
   if (failed.length > 0) {
-    console.error(`[EMAIL] ✗ ${type}: ${failed.length}/${results.length} emails FAILED`);
-    for (const f of failed) {
-      console.error(`[EMAIL]   Error: ${f.error}`);
-    }
+    // Silent failure - email send errors
   }
 
   // ── 6. Send admin notifications for customer events ──
@@ -160,7 +150,9 @@ export async function sendEmailNotification(
           .then((result) => ({ adminEmail, result }))
       ));
       for (const { adminEmail, result } of adminResults) {
-        if (!result.success) console.error(`[EMAIL] ✗ Admin ${adminType} to ${adminEmail}: ${result.error}`);
+        if (!result.success) {
+          // Silent failure - admin email error
+        }
       }
     }
   }

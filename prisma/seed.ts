@@ -4,40 +4,40 @@ const prisma = new PrismaClient();
 
 const SEED_ASSETS = {
   logo: {
-    url: "https://res.cloudinary.com/dmzbh87bi/image/upload/v1782668689/branding/1782668685379-logo.png.png",
-    publicId: "branding/1782668685379-logo.png",
+    url: "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=200&h=200&fit=crop&crop=center",
+    publicId: "branding/logo",
   },
   hero: [
     {
-      url: "https://res.cloudinary.com/dmzbh87bi/image/upload/v1782736990/page-builder/1782736988266-ChatGPT_Image_May_28__2026_at_03_03_08_PM.png.png",
-      publicId: "page-builder/1782736988266-ChatGPT_Image_May_28__2026_at_03_03_08_PM.png",
+      url: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=1920&h=1080&fit=crop&crop=center",
+      publicId: "banners/hero-1",
     },
     {
-      url: "https://res.cloudinary.com/dmzbh87bi/image/upload/v1782735463/banners/1782735460149-ChatGPT_Image_May_28__2026_at_03_07_04_PM.png.png",
-      publicId: "banners/1782735460149-ChatGPT_Image_May_28__2026_at_03_07_04_PM.png",
+      url: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920&h=1080&fit=crop&crop=center",
+      publicId: "banners/hero-2",
     },
   ],
   collections: [
     {
-      url: "https://res.cloudinary.com/dmzbh87bi/image/upload/v1782498939/collections/1782498939016-WhatsApp_Image_2026-05-28_at_11.36.43.jpeg.jpg",
-      publicId: "collections/1782498939016-WhatsApp_Image_2026-05-28_at_11.36.43.jpeg",
+      url: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=800&h=1067&fit=crop&crop=center",
+      publicId: "collections/summer-essentials",
     },
     {
-      url: "https://res.cloudinary.com/dmzbh87bi/image/upload/v1782498881/collections/1782498880024-ChatGPT_Image_May_28__2026_at_03_21_59_PM.png.png",
-      publicId: "collections/1782498880024-ChatGPT_Image_May_28__2026_at_03_21_59_PM.png",
+      url: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&h=1067&fit=crop&crop=center",
+      publicId: "collections/heritage-revival",
     },
     {
-      url: "https://res.cloudinary.com/dmzbh87bi/image/upload/v1782498836/collections/1782498835350-ChatGPT_Image_May_28__2026_at_01_39_22_PM.png.png",
-      publicId: "collections/1782498835350-ChatGPT_Image_May_28__2026_at_01_39_22_PM.png",
+      url: "https://images.unsplash.com/photo-1518622358385-8ea7d5792795?w=800&h=1067&fit=crop&crop=center",
+      publicId: "collections/evening-edit",
     },
   ],
   products: [
-    ["https://res.cloudinary.com/dmzbh87bi/image/upload/v1782664024/products/1782664022897-product2.jpeg.jpg", "products/1782664022897-product2.jpeg"],
-    ["https://res.cloudinary.com/dmzbh87bi/image/upload/v1782664007/products/1782664005965-product3.jpeg.jpg", "products/1782664005965-product3.jpeg"],
-    ["https://res.cloudinary.com/dmzbh87bi/image/upload/v1782660731/products/1782660731310-20180306_115642.jpg.jpg", "products/1782660731310-20180306_115642.jpg"],
-    ["https://res.cloudinary.com/dmzbh87bi/image/upload/v1782576818/products/1782576817574-sad-tshirt.jpeg.jpg", "products/1782576817574-sad-tshirt.jpeg"],
-    ["https://res.cloudinary.com/dmzbh87bi/image/upload/v1782488311/products/1782488311334-WhatsApp_Image_2026-05-28_at_11.36.43.jpeg.jpg", "products/1782488311334-WhatsApp_Image_2026-05-28_at_11.36.43.jpeg"],
-    ["https://res.cloudinary.com/dmzbh87bi/image/upload/v1782488135/products/1782488135044-we.png.png", "products/1782488135044-we.png"],
+    ["https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600&h=800&fit=crop&crop=center", "products/white-tshirt"],
+    ["https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&h=800&fit=crop&crop=center", "products/shirt"],
+    ["https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=600&h=800&fit=crop&crop=center", "products/jacket"],
+    ["https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=600&h=800&fit=crop&crop=center", "products/tshirt-graphic"],
+    ["https://images.unsplash.com/photo-1434389677669-e08b4cda3ea7?w=600&h=800&fit=crop&crop=center", "products/dress"],
+    ["https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=600&h=800&fit=crop&crop=center", "products/tshirt-plain"],
   ],
 } as const;
 

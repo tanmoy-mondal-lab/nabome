@@ -54,7 +54,9 @@ export function useAuth() {
       } catch {
         current.clearAuth();
         useCartStore.getState().switchUser();
-        window.location.href = "/auth/login";
+        if (typeof window !== "undefined") {
+          window.location.href = "/auth/login";
+        }
       }
     };
 

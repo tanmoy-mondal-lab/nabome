@@ -72,7 +72,6 @@ export function VariantManager({
         const res = await adminApi.uploadFile(file, "products");
         onPendingImage({ url: res.url, publicId: res.publicId, variantId });
       } catch (err) {
-        console.error("Variant image upload failed:", err);
         const msg = err instanceof Error ? err.message : "Image upload failed";
         toast(`${msg} — try again`, "error");
       } finally {
@@ -96,7 +95,6 @@ export function VariantManager({
           onChange(updated);
         }
       } catch (err) {
-        console.error("Variant video upload failed:", err);
         const msg = err instanceof Error ? err.message : "Video upload failed";
         toast(`${msg} — try again`, "error");
       } finally {

@@ -48,10 +48,10 @@ const DEFAULT_NAV_BY_LOCATION: Record<NavigationMenu["location"], NavigationItem
         {
           id: "men-clothing", title: "Clothing",
           items: [
-            { label: "Shirts", url: "/products?category=men&subcategory=shirts" },
-            { label: "Trousers", url: "/products?category=men&subcategory=trousers" },
-            { label: "Blazers", url: "/products?category=men&subcategory=blazers" },
-            { label: "Kurtas", url: "/products?category=men&subcategory=kurtas" },
+            { label: "Shirts", url: "/categories/men?subcategory=shirts" },
+            { label: "Trousers", url: "/categories/men?subcategory=trousers" },
+            { label: "Blazers", url: "/categories/men?subcategory=blazers" },
+            { label: "Kurtas", url: "/categories/men?subcategory=kurtas" },
           ],
         },
         {
@@ -70,9 +70,9 @@ const DEFAULT_NAV_BY_LOCATION: Record<NavigationMenu["location"], NavigationItem
         {
           id: "women-clothing", title: "Clothing",
           items: [
-            { label: "Dresses", url: "/products?category=women&subcategory=dresses" },
-            { label: "Sarees", url: "/products?category=women&subcategory=sarees" },
-            { label: "Suits", url: "/products?category=women&subcategory=suits" },
+            { label: "Dresses", url: "/categories/women?subcategory=dresses" },
+            { label: "Sarees", url: "/categories/women?subcategory=sarees" },
+            { label: "Suits", url: "/categories/women?subcategory=suits" },
           ],
         },
         {
@@ -85,32 +85,32 @@ const DEFAULT_NAV_BY_LOCATION: Record<NavigationMenu["location"], NavigationItem
         },
       ],
     },
-    { id: "accessories", label: "Accessories", link: "/categories/accessories" },
-    { id: "collections", label: "Collections", link: "/products" },
-    { id: "lookbook", label: "Lookbook", link: "/lookbooks" },
+    { id: "accessories", label: "Accessories", link: "/categories/accessories", type: "link" },
+    { id: "collections", label: "Collections", link: "/collections", type: "link" },
+    { id: "lookbook", label: "Lookbook", link: "/lookbooks", type: "link" },
   ],
   footer: [
-    { id: "privacy", label: "Privacy", link: "/privacy" },
-    { id: "terms", label: "Terms", link: "/terms" },
-    { id: "shipping-returns", label: "Shipping & Returns", link: "/shipping-returns" },
-    { id: "faq", label: "FAQ", link: "/faq" },
+    { id: "privacy", label: "Privacy", link: "/privacy", type: "link" },
+    { id: "terms", label: "Terms", link: "/terms", type: "link" },
+    { id: "shipping-returns", label: "Shipping & Returns", link: "/shipping-returns", type: "link" },
+    { id: "faq", label: "FAQ", link: "/faq", type: "link" },
   ],
   mobile: [
-    { id: "men", label: "Men", link: "/categories/men" },
-    { id: "women", label: "Women", link: "/categories/women" },
-    { id: "accessories", label: "Accessories", link: "/categories/accessories" },
-    { id: "collections", label: "Collections", link: "/products" },
-    { id: "lookbook", label: "Lookbook", link: "/lookbooks" },
-    { id: "faq", label: "FAQ", link: "/faq" },
-    { id: "support", label: "Support", link: "/account/support" },
+    { id: "men", label: "Men", link: "/categories/men", type: "link" },
+    { id: "women", label: "Women", link: "/categories/women", type: "link" },
+    { id: "accessories", label: "Accessories", link: "/categories/accessories", type: "link" },
+    { id: "collections", label: "Collections", link: "/collections", type: "link" },
+    { id: "lookbook", label: "Lookbook", link: "/lookbooks", type: "link" },
+    { id: "faq", label: "FAQ", link: "/faq", type: "link" },
+    { id: "support", label: "Support", link: "/account/support", type: "link" },
   ],
   sidebar: [
-    { id: "men", label: "Men", link: "/categories/men" },
-    { id: "women", label: "Women", link: "/categories/women" },
-    { id: "accessories", label: "Accessories", link: "/categories/accessories" },
-    { id: "collections", label: "Collections", link: "/products" },
-    { id: "lookbook", label: "Lookbook", link: "/lookbooks" },
-    { id: "faq", label: "FAQ", link: "/faq" },
+    { id: "men", label: "Men", link: "/categories/men", type: "link" },
+    { id: "women", label: "Women", link: "/categories/women", type: "link" },
+    { id: "accessories", label: "Accessories", link: "/categories/accessories", type: "link" },
+    { id: "collections", label: "Collections", link: "/collections", type: "link" },
+    { id: "lookbook", label: "Lookbook", link: "/lookbooks", type: "link" },
+    { id: "faq", label: "FAQ", link: "/faq", type: "link" },
   ],
 };
 
@@ -125,9 +125,38 @@ export function useNavigation(location: "header" | "footer" | "mobile" | "sideba
       }
     },
     select: (data) => {
-      if (!data?.menus) return DEFAULT_NAV_BY_LOCATION[location];
+      const defaults = DEFAULT_NAV_BY_LOCATION[location];
+      if (!data?.menus) return defaults;
       const menu = data.menus.find((m) => m.location === location);
-      return menu?.items?.length ? menu.items : DEFAULT_NAV_BY_LOCATION[location];
+      if (!menu?.items?.length) return defaults;
+
+      const cmsItems = menu.items;
+
+      // For header and mobile: ensure category links are always present
+      if (location === "header" || location === "mobile") {
+        const categoryLinks = defaults.filter(
+          (d) => d.link?.startsWith("/categories/") || d.link?.startsWith("/collections") || d.link?.startsWith("/lookbooks")
+        );
+        const hasCategoryLinks = categoryLinks.some((cl) =>
+          cmsItems.some((ci) => ci.link === cl.link || ci.url === cl.link)
+        );
+
+        if (!hasCategoryLinks) {
+          // CMS items don't have category links — prepend defaults
+          const cmsLabels = new Set(cmsItems.map((i) => i.label?.toLowerCase()));
+          const missingDefaults = defaults.filter((d) => !cmsLabels.has(d.label?.toLowerCase()));
+          return [...missingDefaults, ...cmsItems];
+        }
+      }
+
+      return cmsItems.map((item) => ({
+        ...item,
+        type: item.type || "link",
+        children: item.children?.map((child) => ({
+          ...child,
+          type: child.type || "link",
+        })),
+      }));
     },
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 60,

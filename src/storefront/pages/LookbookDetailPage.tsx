@@ -49,7 +49,7 @@ export default function LookbookDetailPage() {
       <div className="container-page py-20 text-center">
         <Helmet><title>Lookbook Not Found — নবME</title><meta name="robots" content="noindex, nofollow" /></Helmet>
         <p className="text-sm text-neutral-500 mb-3">Failed to load lookbook.</p>
-        <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
+        <button onClick={() => { if (typeof window !== 'undefined') window.location.reload(); }} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
       </div>
     );
   }
@@ -108,7 +108,7 @@ export default function LookbookDetailPage() {
             return (
               <motion.div key={item.id as string} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.1 }}>
                 {type === "video" ? (
-                  <video src={item.videoUrl as string} controls autoPlay muted loop className="w-full rounded" />
+                  <video src={(item.videoUrl as string) || (imageUrl as string) || ""} controls autoPlay muted loop className="w-full rounded" />
                 ) : (
                   <SafeImage src={imageUrl || "/placeholder.svg"} alt={caption || "Lookbook image"} responsive className="w-full rounded" />
                 )}
@@ -138,7 +138,7 @@ export default function LookbookDetailPage() {
                   <button
                     onClick={() => {
                       if (!isAuthenticated) {
-                        navigate("/auth/login", { state: { from: window.location.pathname } });
+                        navigate("/auth/login", { state: { from: typeof window !== 'undefined' ? window.location.pathname : '/' } });
                         return;
                       }
                       products.forEach((p) => {

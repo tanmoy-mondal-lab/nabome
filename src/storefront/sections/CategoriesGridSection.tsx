@@ -82,11 +82,15 @@ export default function CategoriesGridSection({ section }: CategoriesGridSection
                   src={cat.imageUrl}
                   alt={cat.name}
                   responsive
+                  premium
                   className="w-full h-full object-cover transition-all duration-700 md:group-hover:scale-[1.03] group-hover:scale-105"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-neutral-200">
-                  <span className="text-neutral-400 text-4xl font-display">{cat.name.charAt(0)}</span>
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900">
+                  <div className="text-center">
+                    <span className="text-neutral-500 text-3xl font-display">{cat.name.charAt(0)}</span>
+                    <p className="text-[9px] tracking-[0.15em] uppercase text-neutral-600 mt-1">নবME</p>
+                  </div>
                 </div>
               )}
               <div className="absolute inset-0 md:bg-gradient-to-t md:from-black/40 md:via-transparent md:to-transparent bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

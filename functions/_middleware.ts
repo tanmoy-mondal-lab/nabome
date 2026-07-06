@@ -58,8 +58,13 @@ function escapeHtml(value: string): string {
 
 function absoluteUrl(value: string, baseUrl: string): string {
   if (!value) return `${baseUrl}/og-image.svg`;
-  if (/^https?:\/\//i.test(value)) return value;
-  return `${baseUrl}${value.startsWith("/") ? value : `/${value}`}`;
+  let clean = value;
+  // Fix double extensions like .jpeg.jpg that break Cloudinary f_auto
+  if (clean.includes("res.cloudinary.com")) {
+    clean = clean.replace(/\.(jpeg|jpg|png|gif|webp|avif|bmp|tiff|tif|svg)\.(jpg|jpeg|png|gif|webp|avif|bmp|tiff|tif|svg)(\?[^]*)?$/i, ".$1$3");
+  }
+  if (/^https?:\/\//i.test(clean)) return clean;
+  return `${baseUrl}${clean.startsWith("/") ? clean : `/${clean}`}`;
 }
 
 function noindexPath(pathname: string): boolean {
@@ -247,7 +252,6 @@ export const onRequest: PagesFunction<Env> = async (context) => {
       headers: responseHeaders,
     });
   } catch (error) {
-    console.error("[SEO] Failed to inject server-side metadata:", error);
     const fallbackHeaders = new Headers(response.headers);
     fallbackHeaders.delete("content-length");
     fallbackHeaders.delete("content-encoding");

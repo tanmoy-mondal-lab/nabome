@@ -18,11 +18,18 @@ interface Collection {
 export default function CollectionsIndexPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["collections"],
-    queryFn: () => api.get<{ collections: Collection[] }>("/collections").then((r) => r.collections ?? []),
+    queryFn: () =>
+      api.get<unknown>("/collections").then((r) => {
+        if (Array.isArray(r)) return r;
+        if (r && typeof r === "object" && "collections" in r && Array.isArray((r as any).collections)) {
+          return (r as any).collections;
+        }
+        return [];
+      }),
     retry: false,
   });
 
-  const collections = data ?? [];
+  const collections: Collection[] = Array.isArray(data) ? data : [];
 
   return (
     <div className="container-page section-padding">
@@ -46,7 +53,7 @@ export default function CollectionsIndexPage() {
       ) : error ? (
         <div className="text-center py-16">
           <p className="text-sm text-neutral-500 mb-4">Failed to load collections.</p>
-          <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
+          <button onClick={() => { if (typeof window !== 'undefined') window.location.reload(); }} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
         </div>
       ) : collections.length === 0 ? (
         <p className="text-neutral-500 font-editorial">No collections available yet.</p>
@@ -64,6 +71,7 @@ export default function CollectionsIndexPage() {
                     src={c.heroImageUrl || c.imageUrl}
                     alt={c.name}
                     responsive
+                    premium
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-luxe-out"
                   />
                 ) : (

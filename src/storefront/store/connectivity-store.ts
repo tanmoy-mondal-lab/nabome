@@ -87,7 +87,7 @@ export const useConnectivityStore = create<ConnectivityState>((set, get) => ({
           offlineQueue: state.offlineQueue.filter((q) => q.id !== item.id)
         }));
       } catch (error) {
-        console.error(`Failed to execute offline action ${item.id}:`, error);
+        // Silent failure - offline action failed
       }
     }
   },

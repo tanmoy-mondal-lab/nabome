@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* interactive-widget: not supported in meta viewport or @viewport CSS — use JS VKB handling */
+
 /* ─── DESIGN TOKENS ─── */
 :root {
   --color-brand: #8b6940;
@@ -13,10 +15,10 @@
   --ease-luxe-out: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-luxe-in: cubic-bezier(0.55, 0, 0.75, 0.25);
 
-  --shadow-subtle: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03);
-  --shadow-card: 0 2px 8px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.03);
-  --shadow-elevated: 0 10px 40px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
-  --shadow-modal: 0 20px 60px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-subtle: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-card: 0 2px 8px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-elevated: 0 10px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-modal: 0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.08);
 }
 
 /* ─── BASE LAYER ─── */
@@ -81,6 +83,13 @@
   select {
     font-size: max(16px, 1rem);
   }
+
+  /* Smooth scrolling for iOS */
+  @supports (-webkit-touch-callout: none) {
+    body {
+      -webkit-text-size-adjust: 100%;
+    }
+  }
 }
 
 /* ─── COMPONENT LAYER ─── */
@@ -123,7 +132,7 @@
     @apply inline-flex items-center justify-center gap-2
            bg-brand-500 text-white
            px-8 py-3 font-body text-sm font-semibold tracking-wider uppercase
-           transition-all duration-300;
+           transition-all duration-300 rounded-sm;
   }
   .btn-primary:hover {
     @apply bg-brand-600;
@@ -141,8 +150,8 @@
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2
            border-2 border-brand-500 text-brand-500
-           px-8 py-3 font-body text-xs font-medium tracking-wider uppercase
-           transition-all duration-300;
+           px-8 py-3 font-body text-sm font-medium tracking-wider uppercase
+           transition-all duration-300 rounded-sm;
   }
   .btn-secondary:hover {
     @apply bg-brand-500 text-white;
@@ -160,7 +169,7 @@
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2
            text-neutral-700 px-4 py-2
-           font-body text-xs tracking-wider uppercase
+           font-body text-sm tracking-wider uppercase
            transition-all duration-200;
   }
   .btn-ghost:hover {
@@ -173,8 +182,8 @@
   .btn-outline {
     @apply inline-flex items-center justify-center gap-2
            border border-neutral-200 text-neutral-700
-           px-6 py-2.5 font-body text-xs tracking-wider uppercase
-           transition-all duration-200;
+           px-6 py-2.5 font-body text-sm tracking-wider uppercase
+           transition-all duration-200 rounded-sm;
   }
   .btn-outline:hover {
     @apply border-neutral-900 text-neutral-900;
@@ -322,26 +331,26 @@
 
 /* ─── DESKTOP PREMIUM OVERRIDES ─── */
 @media (min-width: 768px) {
-  /* Product cards: remove border, shadow, lift on desktop */
+  /* Product cards: elegant card treatment with warm shadow on desktop */
   .premium-card.product-card {
-    @apply border-0 shadow-none bg-transparent;
+    @apply border border-neutral-100/60 shadow-card bg-white/80 backdrop-blur-sm;
   }
   .premium-card.product-card:hover {
-    @apply shadow-none;
+    @apply shadow-elevated border-neutral-200/60;
   }
   .premium-card-lift:hover {
-    @apply translate-y-0 shadow-none;
+    @apply -translate-y-1 shadow-elevated;
   }
 
-  /* Buttons: more spacious, flatter */
+  /* Buttons: more spacious, refined */
   .btn-primary {
-    @apply px-10 py-3.5 tracking-[0.2em];
+    @apply px-10 py-3.5 tracking-[0.2em] rounded-sm;
   }
   .btn-secondary {
-    @apply px-10 py-3.5 tracking-[0.2em];
+    @apply px-10 py-3.5 tracking-[0.2em] rounded-sm;
   }
   .btn-outline {
-    @apply px-8 py-3 tracking-[0.15em] border-neutral-300;
+    @apply px-8 py-3 tracking-[0.15em] border-neutral-300 rounded-sm;
   }
   .btn-outline:hover {
     @apply border-neutral-900;
@@ -521,5 +530,15 @@
     -webkit-transition-duration: 300ms;
     transition-duration: 300ms;
     will-change: transform, opacity;
+  }
+
+  /* ─── MOBILE BOTTOM NAV SAFE PADDING ─── */
+  .pb-bottom-nav {
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 16px);
+  }
+
+  /* ─── MOBILE IMAGE OPTIMIZATION ─── */
+  img[loading="lazy"] {
+    content-visibility: auto;
   }
 }

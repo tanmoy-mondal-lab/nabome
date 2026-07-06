@@ -149,6 +149,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                 <SafeImage
                   src={images[selectedImage]?.url}
                   alt={name}
+                  premium
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -163,7 +164,7 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
                         selectedImage === i ? "border-neutral-900" : "border-transparent hover:border-neutral-300"
                       )}
                     >
-                      <SafeImage src={image.url} alt={`${name} - thumbnail ${i + 1}`} responsive className="w-full h-full object-cover" />
+                      <SafeImage src={image.url} alt={`${name} - thumbnail ${i + 1}`} responsive premium className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>

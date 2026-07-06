@@ -27,7 +27,7 @@ export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBo
 
   function handleAddAll() {
     if (!isAuthenticated) {
-      navigate("/auth/login", { state: { from: window.location.pathname } });
+      navigate("/auth/login", { state: { from: typeof window !== 'undefined' ? window.location.pathname : '/' } });
       return;
     }
     const all = [mainProduct, ...products];

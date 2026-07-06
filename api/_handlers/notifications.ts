@@ -44,7 +44,7 @@ export async function createNotification(
       }
     }
   } catch (err) {
-    console.error("[Notification] Failed to create notification:", err);
+    // Silent failure - notification creation error
   }
 }
 

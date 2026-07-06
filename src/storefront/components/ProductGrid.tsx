@@ -12,7 +12,7 @@ interface ProductGridProps {
 export function ProductGrid({ products, columns = 4, isLoading, view = "grid", onQuickView }: ProductGridProps) {
   if (isLoading) {
     return (
-      <div className={view === "grid" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-10" : "space-y-4"}>
+      <div className={view === "grid" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-8" : "space-y-4"}>
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className={view === "list" ? "flex gap-6 p-4 border border-neutral-100" : "space-y-3"}>
             <div className={`${view === "list" ? "w-32 h-44" : "aspect-[3/4]"} bg-neutral-100 animate-pulse rounded`} />
@@ -51,7 +51,7 @@ export function ProductGrid({ products, columns = 4, isLoading, view = "grid", o
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-10">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-8">
       {products.map((product) => (
         <ProductCard
           key={product.id as string}

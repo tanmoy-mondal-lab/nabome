@@ -39,7 +39,7 @@ export async function buildRobotsResponse(env?: Env): Promise<Response> {
       content = seo.robotsTxt.trim();
     }
   } catch (error) {
-    console.error("[ROBOTS] Falling back to defaults:", error);
+    // Silent failure - falling back to defaults
   }
 
   return new Response(`${content || defaultRobots(siteUrlValue)}\n`, {
@@ -171,7 +171,6 @@ export async function buildSitemapResponse(env?: Env): Promise<Response> {
       },
     });
   } catch (err) {
-    console.error("[SITEMAP] Error:", err);
     return new Response(xml([
       { loc: baseUrl + "/", changefreq: "weekly", priority: "1.0" },
     ]), {

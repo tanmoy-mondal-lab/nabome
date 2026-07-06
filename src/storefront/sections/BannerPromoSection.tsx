@@ -33,6 +33,7 @@ export default function BannerPromoSection({ section }: BannerPromoSectionProps)
           <SafeImage
             src={imageUrl}
             alt={section.title || "Promotional banner"}
+            premium
             className="w-full h-full object-cover"
             loading="lazy"
           />

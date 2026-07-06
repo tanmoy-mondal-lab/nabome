@@ -107,9 +107,10 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
               className="w-full h-full object-cover"
               priority={i === 0}
               responsive={false}
+              premium
             />
           ) : (
-            <div className="w-full h-full bg-neutral-900" />
+            <div className="w-full h-full bg-gradient-to-br from-neutral-950 via-neutral-900 to-neutral-950" />
           )}
         </div>
       ))}

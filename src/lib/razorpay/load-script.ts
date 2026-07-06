@@ -12,7 +12,12 @@ export function loadRazorpayScript(): Promise<void> {
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Razorpay Checkout SDK"));
+    script.onerror = () => {
+      if (import.meta.env.DEV) {
+        console.warn("Failed to load Razorpay Checkout SDK");
+      }
+      reject(new Error("Failed to load Razorpay Checkout SDK"));
+    };
     document.head.appendChild(script);
   });
 }

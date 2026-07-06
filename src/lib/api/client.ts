@@ -38,6 +38,9 @@ function getStoredAuth():
   | { accessToken: string; refreshToken: string; expiresAt: number }
   | null {
   try {
+    if (typeof window === "undefined" || typeof localStorage === "undefined") {
+      return null;
+    }
     const stored = localStorage.getItem("nabome-auth");
     if (stored) {
       const parsed = JSON.parse(stored);
@@ -62,6 +65,9 @@ function setStoredTokens(
   expiresAt: number
 ): void {
   try {
+    if (typeof window === "undefined" || typeof localStorage === "undefined") {
+      return;
+    }
     const stored = localStorage.getItem("nabome-auth");
     let state: Record<string, unknown> = {};
     if (stored) {
@@ -82,6 +88,9 @@ function setStoredTokens(
 
 function clearStoredAuth(): void {
   try {
+    if (typeof window === "undefined" || typeof localStorage === "undefined") {
+      return;
+    }
     localStorage.removeItem("nabome-auth");
   } catch {
     // Storage unavailable
@@ -128,7 +137,7 @@ async function request<T>(
   const { body, params, timeout = DEFAULT_TIMEOUT, ...fetchOptions } = options;
 
   const cleanEndpoint = endpoint.startsWith("/api") ? endpoint : `${BASE_URL}${endpoint}`;
-  const url = new URL(cleanEndpoint, window.location.origin);
+  const url = new URL(cleanEndpoint, typeof window !== "undefined" ? window.location.origin : "http://localhost");
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== "") {
@@ -155,11 +164,13 @@ async function request<T>(
   if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
     // Ensure CSRF token is initialized before first state-changing request
     await ensureCsrfToken();
-    const csrfCookie = document.cookie
-      .split("; ")
-      .find((c) => c.startsWith("csrf_token="));
-    if (csrfCookie) {
-      headers.set("X-CSRF-Token", csrfCookie.split("=")[1]);
+    if (typeof document !== "undefined") {
+      const csrfCookie = document.cookie
+        .split("; ")
+        .find((c) => c.startsWith("csrf_token="));
+      if (csrfCookie) {
+        headers.set("X-CSRF-Token", csrfCookie.split("=")[1]);
+      }
     }
   }
 
@@ -264,11 +275,14 @@ let csrfInitialized = false;
 async function ensureCsrfToken(): Promise<void> {
   if (csrfInitialized) return;
   try {
+    if (typeof window === "undefined") return;
     await fetch(`${BASE_URL}/health`, { method: "GET" });
     csrfInitialized = true;
   } catch (error) {
     // If health check fails, we'll try again on the next request
-    console.warn("Failed to initialize CSRF token:", error);
+    if (import.meta.env.DEV) {
+      console.warn("CSRF token initialization failed:", error);
+    }
   }
 }
 

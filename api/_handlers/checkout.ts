@@ -613,7 +613,7 @@ export async function handleCheckoutRequest(
         orderId: order.id,
       }, ctx.env);
     } catch (emailErr) {
-      console.error("[EMAIL] Failed to send order confirmation:", (emailErr as Error).message);
+      // Silent failure - email send error
     }
 
     logAction(profileId, "order.placed", {
@@ -638,7 +638,7 @@ export async function handleCheckoutRequest(
           where: { id: { in: createdAddressIds } },
         });
       } catch (cleanupErr) {
-        console.error("[CHECKOUT] Failed to clean up orphaned addresses:", cleanupErr);
+        // Silent failure - cleanup error
       }
     }
     if (err instanceof CheckoutError) return badRequest(err.message);

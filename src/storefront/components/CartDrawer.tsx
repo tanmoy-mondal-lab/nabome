@@ -96,7 +96,7 @@ export function CartDrawer() {
                     {items.map((item) => (
                       <div key={item.variantId} className="flex gap-4 py-4 border-b border-neutral-50">
                         <div className="w-20 h-28 shrink-0 bg-luxe-ivory overflow-hidden">
-                          <SafeImage src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                           <SafeImage src={item.image} alt={item.name} premium className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1 min-w-0 flex flex-col">
                           <div className="flex items-start justify-between gap-2">

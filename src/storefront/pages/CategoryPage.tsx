@@ -71,6 +71,7 @@ function SubcategoryCard({ sub, index, categorySlug }: { sub: Subcategory; index
             src={sub.imageUrl}
             alt={sub.name}
             responsive
+            premium
             className="w-full h-full object-cover transition-all duration-700 ease-luxe-out group-hover:scale-[1.04]"
           />
         ) : (
@@ -134,6 +135,7 @@ function MobileProductCard({ product, index }: { product: ProductRecord; index: 
             src={primaryImage}
             alt={name}
             responsive
+            premium
             priority={index < 4}
             className="h-full w-full object-cover transition-transform duration-700 ease-luxe-out group-hover:scale-[1.03]"
           />
@@ -289,6 +291,7 @@ export default function CategoryPage() {
               alt={category?.name || "Category"}
               priority
               responsive
+              premium
               className="w-full h-full object-cover"
             />
           </motion.div>
@@ -597,7 +600,7 @@ export default function CategoryPage() {
                 </div>
                 <p className="text-neutral-500 text-lg mb-2">Failed to load products.</p>
                 <p className="text-neutral-400 text-sm mb-4">Please try again.</p>
-                <button onClick={() => window.location.reload()} className="btn-primary">
+                <button onClick={() => { if (typeof window !== 'undefined') window.location.reload(); }} className="btn-primary">
                   Retry
                 </button>
               </div>

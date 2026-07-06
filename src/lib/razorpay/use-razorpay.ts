@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { loadRazorpayScript } from "./load-script";
 import type { RazorpaySuccessResponse, RazorpayErrorDetails } from "./types";
-import { usablePublicConfig } from "../config";
+import { usablePublicConfig, razorpayKeyId } from "../config";
 
-const razorpayKey = usablePublicConfig(import.meta.env.VITE_RAZORPAY_KEY_ID);
+const razorpayKey = razorpayKeyId;
 
 interface OpenRazorpayParams {
   razorpayOrderId: string;

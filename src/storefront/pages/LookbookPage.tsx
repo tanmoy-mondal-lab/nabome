@@ -37,7 +37,7 @@ export default function LookbookPage() {
       ) : isError ? (
         <div className="text-center py-20">
           <p className="text-sm text-neutral-500 mb-3">Failed to load lookbooks.</p>
-          <button onClick={() => window.location.reload()} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
+          <button onClick={() => { if (typeof window !== 'undefined') window.location.reload(); }} className="text-xs text-brand-500 hover:underline uppercase tracking-widest">Retry</button>
         </div>
       ) : lookbooks.length === 0 ? (
         <p className="text-sm text-neutral-400 text-center py-20">No lookbooks yet. Check back soon.</p>

@@ -71,7 +71,7 @@ export function Header() {
   const theme = settings?.theme;
   const themeBranding = theme?.branding as ThemeBranding | undefined;
   const headerConfig = (theme?.header ?? settings?.preferences?.headerConfig) as ThemeHeaderConfig | undefined;
-  const maxNavItems = headerConfig?.maxNavItems ?? 6;
+  const maxNavItems = headerConfig?.maxNavItems ?? 10;
 
   const brandName = settings?.siteName || themeBranding?.brandName || "নবME";
   const logoUrl = settings?.logoUrl || themeBranding?.logo;
@@ -233,8 +233,8 @@ export function Header() {
         <div className="container-page">
           <div className="flex items-center justify-between md:h-12 h-16">
             {/* Mobile: hamburger + logo */}
-            <div className="flex items-center gap-3 md:hidden min-w-0">
-              <button onClick={toggleMobileMenu} className="p-2.5 -ml-2.5 text-neutral-700 hover:text-brand-500 active:scale-95 active:bg-neutral-100 rounded-lg transition-all duration-200 touch-manipulation" aria-label="Toggle menu">
+            <div className="flex items-center gap-2 md:hidden min-w-0">
+              <button onClick={toggleMobileMenu} className="p-3 -ml-1 text-neutral-700 hover:text-brand-500 active:scale-95 active:bg-neutral-100 rounded-lg transition-all duration-200 touch-manipulation no-tap-highlight" aria-label="Toggle menu">
                 <Menu className="w-5 h-5" />
               </button>
               <Link to="/" className="block">
@@ -307,14 +307,14 @@ export function Header() {
             </nav>
 
             {/* Mobile: search + cart icons */}
-            <div className="flex items-center gap-1 md:hidden">
+            <div className="flex items-center gap-0.5 md:hidden">
               {headerConfig?.searchBar !== false && (
-                <button onClick={openSearch} className="p-2.5 text-neutral-500 hover:text-neutral-900 transition-all duration-300 rounded-lg" aria-label="Search">
+                <button onClick={openSearch} className="p-3 text-neutral-500 hover:text-neutral-900 transition-all duration-300 rounded-lg touch-manipulation no-tap-highlight" aria-label="Search">
                   <Search className="w-5 h-5" />
                 </button>
               )}
               {headerConfig?.cartIcon !== false && (
-                <button onClick={() => openCart()} className="relative p-2.5 text-neutral-500 hover:text-neutral-900 transition-all duration-300 rounded-lg" aria-label="Cart">
+                <button onClick={() => openCart()} className="relative p-3 text-neutral-500 hover:text-neutral-900 transition-all duration-300 rounded-lg touch-manipulation no-tap-highlight" aria-label="Cart">
                   <ShoppingBag className="w-5 h-5" />
                   {itemCount > 0 && (
                     <motion.span

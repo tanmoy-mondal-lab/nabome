@@ -30,6 +30,9 @@ export function loadTurnstileScript(): Promise<void> {
         "error",
         () => {
           turnstileScriptPromise = null;
+          if (import.meta.env.DEV) {
+            console.warn("Failed to load Cloudflare Turnstile");
+          }
           reject(new Error("Failed to load Cloudflare Turnstile"));
         },
         { once: true }
@@ -45,6 +48,9 @@ export function loadTurnstileScript(): Promise<void> {
     script.onload = () => resolve();
     script.onerror = () => {
       turnstileScriptPromise = null;
+      if (import.meta.env.DEV) {
+        console.warn("Failed to load Cloudflare Turnstile");
+      }
       reject(new Error("Failed to load Cloudflare Turnstile"));
     };
     document.head.appendChild(script);

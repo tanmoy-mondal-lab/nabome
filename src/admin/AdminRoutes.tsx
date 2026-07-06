@@ -1,54 +1,64 @@
 import { Suspense, lazy } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Link, useLocation } from "react-router-dom";
 import AdminLayout from "./layout/AdminLayout";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 
-const DashboardPage = lazy(() => import("./dashboard/DashboardPage"));
-const ProductsPage = lazy(() => import("./products/ProductsPage"));
-const ProductFormPage = lazy(() => import("./products/ProductFormPage"));
-const CategoriesPage = lazy(() => import("./categories/CategoriesPage"));
-const CollectionsPage = lazy(() => import("./collections/CollectionsPage"));
-const OrdersPage = lazy(() => import("./orders/OrdersPage"));
-const OrderDetailPage = lazy(() => import("./orders/OrderDetailPage"));
-const ReturnsPage = lazy(() => import("./returns/ReturnsPage"));
-const ReturnDetailPage = lazy(() => import("./returns/ReturnDetailPage"));
+function lazyWithRetry(factory: () => Promise<{ default: React.ComponentType<unknown> }>) {
+  return lazy(() =>
+    factory().catch((err: unknown) => {
+      return new Promise<{ default: React.ComponentType<unknown> }>((resolve) => {
+        setTimeout(() => resolve(factory()), 1000);
+      });
+    })
+  );
+}
 
-const CustomersPage = lazy(() => import("./customers/CustomersPage"));
-const CMSPage = lazy(() => import("./cms/CMSPage"));
-const HomepageBuilder = lazy(() => import("./cms/HomepageBuilder"));
-const FooterBuilder = lazy(() => import("./cms/FooterBuilder"));
-const HeroBuilder = lazy(() => import("./cms/HeroBuilder"));
-const HeaderBuilder = lazy(() => import("./cms/HeaderBuilder"));
-const MediaLibrary = lazy(() => import("./media/MediaLibrary"));
-const SEOPage = lazy(() => import("./seo/SEOPage"));
-const ThemeBuilder = lazy(() => import("./theme/ThemeBuilder"));
-const AnalyticsPage = lazy(() => import("./analytics/AnalyticsPage"));
-const SettingsPage = lazy(() => import("./settings/SettingsPage"));
-const LookbooksPage = lazy(() => import("./lookbooks/LookbooksPage"));
-const LookbookFormPage = lazy(() => import("./lookbooks/LookbookFormPage"));
-const BrandsPage = lazy(() => import("./brands/BrandsPage"));
-const SizeGuidesPage = lazy(() => import("./size-guides/SizeGuidesPage"));
-const LabelsPage = lazy(() => import("./labels/LabelsPage"));
-const InventoryPage = lazy(() => import("./inventory/InventoryPage"));
-const CouponsPage = lazy(() => import("./coupons/CouponsPage"));
-const ReviewsPage = lazy(() => import("./reviews/ReviewsPage"));
-const NewsletterPage = lazy(() => import("./newsletter/NewsletterPage"));
-const ContactsPage = lazy(() => import("./contacts/ContactsPage"));
-const AnnouncementsPage = lazy(() => import("./announcements/AnnouncementsPage"));
-const ImportExportPage = lazy(() => import("./import-export/ImportExportPage"));
-const SearchIndexPage = lazy(() => import("./search/SearchIndexPage"));
-const SocialLinksPage = lazy(() => import("./social/SocialLinksPage"));
-const SupportTicketsPage = lazy(() => import("./support/SupportTicketsPage"));
-const SupportTicketDetailPage = lazy(() => import("./support/SupportTicketDetailPage"));
-const FAQPage = lazy(() => import("./faq/FAQPage"));
-const NotificationsPage = lazy(() => import("./notifications/NotificationsPage"));
-const WebhookEventsPage = lazy(() => import("./webhooks/WebhookEventsPage"));
-const PageTemplatesPage = lazy(() => import("./templates/PageTemplatesPage"));
-const CampaignsPage = lazy(() => import("./campaigns/CampaignsPage"));
-const AbandonedCartsPage = lazy(() => import("./abandoned-carts/AbandonedCartsPage"));
-const AuthActivityPage = lazy(() => import("./auth/AuthActivityPage"));
-const AuditLogPage = lazy(() => import("./audit-log/AuditLogPage"));
-const WishlistsPage = lazy(() => import("./wishlists/WishlistsPage"));
+const DashboardPage = lazyWithRetry(() => import("./dashboard/DashboardPage"));
+const ProductsPage = lazyWithRetry(() => import("./products/ProductsPage"));
+const ProductFormPage = lazyWithRetry(() => import("./products/ProductFormPage"));
+const CategoriesPage = lazyWithRetry(() => import("./categories/CategoriesPage"));
+const CollectionsPage = lazyWithRetry(() => import("./collections/CollectionsPage"));
+const OrdersPage = lazyWithRetry(() => import("./orders/OrdersPage"));
+const OrderDetailPage = lazyWithRetry(() => import("./orders/OrderDetailPage"));
+const ReturnsPage = lazyWithRetry(() => import("./returns/ReturnsPage"));
+const ReturnDetailPage = lazyWithRetry(() => import("./returns/ReturnDetailPage"));
+
+const CustomersPage = lazyWithRetry(() => import("./customers/CustomersPage"));
+const CMSPage = lazyWithRetry(() => import("./cms/CMSPage"));
+const HomepageBuilder = lazyWithRetry(() => import("./cms/HomepageBuilder"));
+const FooterBuilder = lazyWithRetry(() => import("./cms/FooterBuilder"));
+const HeroBuilder = lazyWithRetry(() => import("./cms/HeroBuilder"));
+const HeaderBuilder = lazyWithRetry(() => import("./cms/HeaderBuilder"));
+const MediaLibrary = lazyWithRetry(() => import("./media/MediaLibrary"));
+const SEOPage = lazyWithRetry(() => import("./seo/SEOPage"));
+const ThemeBuilder = lazyWithRetry(() => import("./theme/ThemeBuilder"));
+const AnalyticsPage = lazyWithRetry(() => import("./analytics/AnalyticsPage"));
+const SettingsPage = lazyWithRetry(() => import("./settings/SettingsPage"));
+const LookbooksPage = lazyWithRetry(() => import("./lookbooks/LookbooksPage"));
+const LookbookFormPage = lazyWithRetry(() => import("./lookbooks/LookbookFormPage"));
+const BrandsPage = lazyWithRetry(() => import("./brands/BrandsPage"));
+const SizeGuidesPage = lazyWithRetry(() => import("./size-guides/SizeGuidesPage"));
+const LabelsPage = lazyWithRetry(() => import("./labels/LabelsPage"));
+const InventoryPage = lazyWithRetry(() => import("./inventory/InventoryPage"));
+const CouponsPage = lazyWithRetry(() => import("./coupons/CouponsPage"));
+const ReviewsPage = lazyWithRetry(() => import("./reviews/ReviewsPage"));
+const NewsletterPage = lazyWithRetry(() => import("./newsletter/NewsletterPage"));
+const ContactsPage = lazyWithRetry(() => import("./contacts/ContactsPage"));
+const AnnouncementsPage = lazyWithRetry(() => import("./announcements/AnnouncementsPage"));
+const ImportExportPage = lazyWithRetry(() => import("./import-export/ImportExportPage"));
+const SearchIndexPage = lazyWithRetry(() => import("./search/SearchIndexPage"));
+const SocialLinksPage = lazyWithRetry(() => import("./social/SocialLinksPage"));
+const SupportTicketsPage = lazyWithRetry(() => import("./support/SupportTicketsPage"));
+const SupportTicketDetailPage = lazyWithRetry(() => import("./support/SupportTicketDetailPage"));
+const FAQPage = lazyWithRetry(() => import("./faq/FAQPage"));
+const NotificationsPage = lazyWithRetry(() => import("./notifications/NotificationsPage"));
+const WebhookEventsPage = lazyWithRetry(() => import("./webhooks/WebhookEventsPage"));
+const PageTemplatesPage = lazyWithRetry(() => import("./templates/PageTemplatesPage"));
+const CampaignsPage = lazyWithRetry(() => import("./campaigns/CampaignsPage"));
+const AbandonedCartsPage = lazyWithRetry(() => import("./abandoned-carts/AbandonedCartsPage"));
+const AuthActivityPage = lazyWithRetry(() => import("./auth/AuthActivityPage"));
+const AuditLogPage = lazyWithRetry(() => import("./audit-log/AuditLogPage"));
+const WishlistsPage = lazyWithRetry(() => import("./wishlists/WishlistsPage"));
 
 function AdminFallback() {
   return (
@@ -65,28 +75,34 @@ function AdminFallback() {
 }
 
 export default function AdminRoutes() {
+  const location = useLocation();
   return (
     <Suspense fallback={<AdminFallback />}>
       <ErrorBoundary
+        key={location.pathname}
         fallback={
-          <div className="min-h-screen flex items-center justify-center px-4">
+          <div className="min-h-screen flex items-center justify-center px-4 bg-neutral-50">
             <div className="text-center max-w-md">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
-                <svg className="w-8 h-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-brand-50 flex items-center justify-center">
+                <svg className="w-8 h-8 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
               </div>
               <h2 className="text-xl font-semibold text-neutral-900 mb-2">Admin Error</h2>
-              <p className="text-sm text-neutral-500 mb-4">An admin page encountered an error.</p>
+              <p className="text-sm text-neutral-500 mb-6">An admin page encountered an error.</p>
               <div className="flex items-center justify-center gap-3">
                 <button
-                  onClick={() => window.location.reload()}
-                  className="px-4 py-2 text-sm font-medium text-white bg-neutral-900 rounded-lg hover:bg-neutral-800 transition-colors"
+                  onClick={() => {
+                    if (typeof window !== "undefined") {
+                      window.location.reload();
+                    }
+                  }}
+                  className="px-5 py-2.5 text-sm font-medium text-white bg-brand-500 rounded-sm hover:bg-brand-600 transition-colors"
                 >
                   Try Again
                 </button>
-                <a href="/admin" className="text-sm font-medium text-brand-600 hover:text-brand-700">
-                  ← Back to Dashboard
+                <a href="/admin" className="px-5 py-2.5 text-sm font-medium text-neutral-700 bg-neutral-100 rounded-sm hover:bg-neutral-200 transition-colors">
+                  Back to Dashboard
                 </a>
               </div>
             </div>
@@ -153,7 +169,23 @@ export default function AdminRoutes() {
           <Route path="login-attempts" element={<Navigate to="/admin/auth?tab=attempts" replace />} />
           <Route path="audit-log" element={<AuditLogPage />} />
           <Route path="wishlists" element={<WishlistsPage />} />
-          <Route path="*" element={<Navigate to="/admin" replace />} />
+          <Route path="*" element={
+            <div className="min-h-[60vh] flex items-center justify-center px-4">
+              <div className="text-center max-w-md">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-brand-50 flex items-center justify-center">
+                  <span className="text-2xl font-display text-brand-500">404</span>
+                </div>
+                <h2 className="text-xl font-semibold text-neutral-900 mb-2">Page Not Found</h2>
+                <p className="text-sm text-neutral-500 mb-6">The admin page you're looking for doesn't exist or has been moved.</p>
+                <Link
+                  to="/admin"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-brand-500 text-white rounded-sm text-sm font-medium hover:bg-brand-600 transition-colors"
+                >
+                  Back to Dashboard
+                </Link>
+              </div>
+            </div>
+          } />
         </Route>
       </Routes>
       </ErrorBoundary>

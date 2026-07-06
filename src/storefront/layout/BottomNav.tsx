@@ -33,7 +33,7 @@ export function BottomNav() {
       className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-premium border-t border-neutral-100/80"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="flex items-center justify-around h-[60px] px-2">
+      <div className="flex items-center justify-around h-[60px] px-1">
         {NAV_ITEMS.map(({ href, icon: Icon, label, showCount }) => {
           const isActive = pathname === href || (href !== "/" && pathname.startsWith(href));
           const needsAuth = href === "/account" || href === "/account/wishlist";
@@ -46,19 +46,19 @@ export function BottomNav() {
               aria-current={isActive ? "page" : undefined}
               aria-label={label}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 relative h-full px-4 transition-all duration-300",
+                "flex flex-col items-center justify-center gap-0.5 relative h-full min-w-[48px] px-2 py-1 transition-all duration-300 touch-manipulation no-tap-highlight",
                 isActive ? "text-brand-600" : "text-neutral-400 active:text-neutral-600"
               )}
             >
               <div className="relative">
-                <Icon className={cn("w-[22px] h-[22px] transition-all duration-300", isActive && "stroke-[2.5px]")} />
+                <Icon className={cn("w-5 h-5 transition-all duration-300", isActive && "stroke-[2.5px]")} strokeWidth={isActive ? 2.5 : 1.5} />
                 {showCount && itemCount > 0 && (
-                  <span className="absolute -top-2 -right-3 min-w-[18px] h-[18px] bg-brand-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 shadow-md">
+                  <span className="absolute -top-1.5 -right-2.5 min-w-[16px] h-[16px] bg-brand-600 text-white text-[8px] font-bold rounded-full flex items-center justify-center px-1 shadow-md">
                     {itemCount > 99 ? "99+" : itemCount}
                   </span>
                 )}
               </div>
-              <span className={cn("text-[10px] tracking-[0.08em] font-medium transition-all duration-300", isActive && "font-semibold")}>
+              <span className={cn("text-[9px] tracking-[0.06em] font-medium transition-all duration-300 leading-none", isActive && "font-semibold")}>
                 {label}
               </span>
               {isActive && (

@@ -41,7 +41,6 @@ async function getFromKV(kv: any, key: string): Promise<RateLimitEntry | null> {
     const value = await kv.get(key, { type: "json" });
     return value ? (value as RateLimitEntry) : null;
   } catch (error) {
-    console.error("[RATE LIMIT] KV get error:", error);
     return null;
   }
 }
@@ -52,7 +51,7 @@ async function setKV(kv: any, key: string, value: RateLimitEntry): Promise<void>
       expirationTtl: Math.ceil((value.resetAt - Date.now()) / 1000),
     });
   } catch (error) {
-    console.error("[RATE LIMIT] KV put error:", error);
+    // Silent failure - KV write error
   }
 }
 
@@ -90,7 +89,6 @@ export async function checkRateLimit(
   }
 
   if (isProductionRuntime(env)) {
-    console.error("[RATE LIMIT] RATE_LIMIT_STORE binding unavailable in production, failing closed");
     return { allowed: false, remaining: 0, resetAt: now + Math.min(config.windowMs, 60_000) };
   }
 

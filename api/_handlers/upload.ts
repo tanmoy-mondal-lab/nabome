@@ -66,7 +66,16 @@ export async function handleUploadRequest(
     cloudinaryFormData.append("file", file);
     cloudinaryFormData.append("upload_preset", uploadPreset);
     cloudinaryFormData.append("folder", folder);
-    cloudinaryFormData.append("public_id", `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`);
+
+    // Strip double extensions from filename (e.g., "photo.jpeg.jpg" → "photo.jpeg")
+    const cleanedName = file.name
+      .replace(/\.jpeg\.jpg$/i, ".jpeg")
+      .replace(/\.png\.png$/i, ".png")
+      .replace(/\.jpg\.jpg$/i, ".jpg")
+      .replace(/\.gif\.gif$/i, ".gif")
+      .replace(/\.webp\.webp$/i, ".webp")
+      .replace(/[^a-zA-Z0-9._-]/g, "_");
+    cloudinaryFormData.append("public_id", `${Date.now()}-${cleanedName}`);
 
     const uploadUrl = fileInfo.resourceType === "video"
       ? `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`
@@ -82,7 +91,6 @@ export async function handleUploadRequest(
     if (!uploadResponse.ok) {
       const errorData = await uploadResponse.json().catch(() => ({}));
       const errMsg = errorData.error?.message ?? `Cloudinary upload failed (${uploadResponse.status})`;
-      console.error("Cloudinary upload error:", errMsg, errorData);
       return serverError(new Error(errMsg));
     }
 
@@ -121,7 +129,6 @@ export async function handleUploadRequest(
       altText,
     });
   } catch (err) {
-    console.error("Upload handler error:", err);
     return serverError(err);
   }
 }

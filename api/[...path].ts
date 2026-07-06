@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { authenticate, requireAdmin } from "./_lib/auth-middleware";
-import { notFound, serverError, error } from "./_lib/response";
+import { notFound, serverError, error, success } from "./_lib/response";
 import { checkRateLimit, RATE_LIMIT_CONFIG, rateLimitResponse, getRateLimitKey } from "./_lib/rate-limit";
 import { setCsrfCookie, validateCsrf, csrfError } from "./_lib/csrf";
 import { verifyTurnstileToken } from "./_lib/turnstile";
@@ -175,6 +175,7 @@ route("GET", "/api/products", (req, ctx) => handleProductRequest(req, ctx, [], "
 route("GET", "/api/products/featured", (req, ctx) => handleProductRequest(req, ctx, [], "featured"));
 route("GET", "/api/products/new", (req, ctx) => handleProductRequest(req, ctx, [], "newArrivals"));
 route("GET", "/api/products/search", (req, ctx) => handleProductRequest(req, ctx, [], "search"));
+route("GET", "/api/products/autocomplete", (req, ctx) => handleProductRequest(req, ctx, [], "autocomplete"));
 route("GET", "/api/products/by-slugs", (req, ctx) => handleProductRequest(req, ctx, [], "bySlugs"));
 route("GET", "/api/products/:slug", (req, ctx, p) => handleProductRequest(req, ctx, p, "detail"));
 route("GET", "/api/products/:slug/variants", (req, ctx, p) => handleProductRequest(req, ctx, p, "variants"));
@@ -217,6 +218,9 @@ route("GET", "/api/cms/social-proof", (req, ctx) => handleCMSRequest(req, ctx, [
 route("GET", "/api/lookbooks", (req, ctx) => handleLookbookRequest(req, ctx, [], "list"));
 route("GET", "/api/lookbooks/:slug", (req, ctx, p) => handleLookbookRequest(req, ctx, p, "detail"));
 
+route("GET", "/api/search/trending", (_req, _ctx) =>
+  Promise.resolve(success({ trending: ["Summer Dresses", "Linen Shirts", "Leather Bags", "Sneakers", "Silk Scarves", "Cotton Kurtas", "Handloom Sarees", "Linen Trousers"] }))
+);
 route("GET", "/api/settings", (req, ctx) => handleSettingsRequest(req, ctx, [], "public"));
 route("GET", "/api/homepage", (req, ctx) => handleSettingsRequest(req, ctx, [], "homepage"));
 route("GET", "/api/orders", (req, ctx) => handleOrderRequest(req, ctx, []), { auth: true });
@@ -658,7 +662,6 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
       const responseWithCsrf = method === "GET" ? setCsrfCookie(response, env) : response;
       return withCors(responseWithCsrf, request, path);
     } catch (err) {
-      console.error(`Error handling ${method} ${path}:`, err);
       return withCors(serverError(err), request, path);
     }
   }

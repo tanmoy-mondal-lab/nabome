@@ -38,9 +38,8 @@ export function MediaManager({
         onPendingImage({ url: res.url, publicId: res.publicId });
       })
       .catch((err) => {
-        console.error("Image upload failed:", err);
         const msg = err instanceof Error ? err.message : "Upload failed";
-        toast(`${msg} — try again`, "error");
+        toast(`${msg} - try again`, "error");
       })
       .finally(() => {
         onUploadEnd();
@@ -61,9 +60,8 @@ export function MediaManager({
         ]);
       })
       .catch((err) => {
-        console.error("Video upload failed:", err);
         const msg = err instanceof Error ? err.message : "Video upload failed";
-        toast(`${msg} — try again`, "error");
+        toast(`${msg} - try again`, "error");
       })
       .finally(() => {
         onUploadEnd();

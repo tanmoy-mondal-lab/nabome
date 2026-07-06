@@ -16,7 +16,7 @@ export function StarRating({ rating, max = 5, size = 14, showValue, className }:
         <Star
           key={i}
           size={size}
-          className={cn(i < Math.round(rating) ? "text-amber-400 fill-amber-400" : "text-neutral-200")}
+          className={cn(i < Math.round(rating) ? "text-accent-gold fill-accent-gold" : "text-neutral-200")}
         />
       ))}
       {showValue && <span className="text-xs text-neutral-500 ml-1">({rating.toFixed(1)})</span>}

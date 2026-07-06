@@ -76,6 +76,7 @@ export default function CollectionGridSection({ section }: CollectionGridSection
                   <SafeImage
                     src={image}
                     alt={col.name as string}
+                    premium
                     className="w-full h-full object-cover transition-all duration-700 md:group-hover:scale-[1.03] group-hover:scale-105"
                   />
                 )}

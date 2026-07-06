@@ -1,29 +1,39 @@
 import { useEffect } from "react";
+import { gaId } from "../lib/config";
 
 declare global {
   interface Window {
-    dataLayer: unknown[];
-    gtag: (...args: unknown[]) => void;
+    dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
   }
 }
 
-const GA_ID = import.meta.env.VITE_GA_ID;
-
 export function GoogleAnalytics() {
   useEffect(() => {
-    if (!GA_ID || import.meta.env.DEV) return;
+    if (!gaId || import.meta.env.DEV) return;
 
-    const existing = document.querySelector(`script[src*="googletagmanager.com/gtag/js?id=${GA_ID}"]`);
+    if (typeof window === "undefined") return;
+
+    const existing = document.querySelector(`script[src*="googletagmanager.com/gtag/js?id=${gaId}"]`);
     if (existing) return;
 
     window.dataLayer = window.dataLayer || [];
-    window.gtag = function gtag(...args) { window.dataLayer.push(args); };
+    window.gtag = function gtag(...args) { 
+      if (window.dataLayer) {
+        window.dataLayer.push(args); 
+      }
+    };
     window.gtag("js", new Date());
-    window.gtag("config", GA_ID, { send_page_view: true, anonymize_ip: true });
+    window.gtag("config", gaId, { send_page_view: true, anonymize_ip: true });
 
     const script = document.createElement("script");
     script.async = true;
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+    script.onerror = () => {
+      if (import.meta.env.DEV) {
+        console.warn("Failed to load Google Analytics");
+      }
+    };
     document.head.appendChild(script);
   }, []);
 

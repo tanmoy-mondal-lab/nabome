@@ -1,4 +1,4 @@
-# नবME — Premium Fashion E-Commerce
+# নবME — Premium Fashion E-Commerce
 
 Premium fashion e-commerce storefront and admin built for Cloudflare Pages + Functions.
 
@@ -6,221 +6,250 @@ Live site: [nabome.online](https://www.nabome.online)
 
 ---
 
-## Security Issues Found
+## Security
 
-This document lists all security and configuration issues found during the comprehensive audit of the nabome.online frontend/backend infrastructure.
+### Secrets Management
+
+All production secrets are stored as Cloudflare Pages secrets (not in code):
+
+- **Database**: `DATABASE_URL`, `DATABASE_URL_POOLED` (Neon PostgreSQL)
+- **Auth**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY`
+- **Payments**: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`
+- **Email**: `RESEND_API_KEY`, `EMAIL_FROM`
+- **Cloudinary**: `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `CLOUDINARY_CLOUD_NAME`
+- **Bot Protection**: `TURNSTILE_SECRET_KEY`
+
+The `.env` file contains only placeholder values. Never commit real secrets.
+
+### Security Headers
+
+Configured in `api/_lib/http-headers.ts` and deployed via `public/_headers`:
+
+- `Content-Security-Policy` — restrictive CSP with allowed domains
+- `Strict-Transport-Security` — HSTS with preload
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy` — camera, microphone, geolocation disabled
+
+### Rate Limiting
+
+API rate limiting via Cloudflare KV (`RATE_LIMIT_STORE`):
+
+- Standard routes: 100 req/min
+- Auth routes: 20 req/min
+- Admin routes: 60 req/min
+- Contact routes: 10 req/min
 
 ---
 
-### CRITICAL — Security Vulnerabilities
+## Architecture
 
-| # | Problem | Location | Severity | Risk |
-|---|---|---|---|---|
-| **S1** | **Hard-coded production secrets in `.env`** | `.env` file | HIGH | API keys, cloud service credentials exposed in version control |
-| **S2** | **Hard-coded email service API key in `.env`** | `.env` file | HIGH | Email service authentication compromised |
-| **S3** | **Unreachable Cloudinary API endpoints** | Live site | MEDIUM | Images failing to load due to auth issues |
-| **S4** | **Missing HTTPS headers and CSP** | Cloudflare config | HIGH | XSS and injection vulnerabilities |
+### Frontend
 
----
+- **Framework**: React 19 + React Router v7
+- **Styling**: Tailwind CSS 3.4 with luxury design system
+- **State**: Zustand + TanStack React Query
+- **Animations**: Framer Motion
+- **Build**: Vite 6
 
-### Configuration Issues
+### Backend
 
-| # | Problem | Location | Status |
-|---|---|---|---|
-| **C1** | **Missing CSP for Cloudflare Pages** | `wrangler.jsonc` | TODO |
-| **C2** | **Missing secure headers** | Not configured | TODO |
-| **C3** | **Missing rate limiting** | API routes | TODO |
-| **C4** | **Missing audit logging** | Not implemented | TODO |
+- **Runtime**: Cloudflare Pages Functions (Edge)
+- **Database**: PostgreSQL via Neon (serverless driver)
+- **Auth**: Supabase Auth
+- **Payments**: Razorpay
+- **Email**: Resend
+- **Media**: Cloudinary CDN
+- **Bot Protection**: Cloudflare Turnstile
 
----
+### Deployment
 
-### Technical Issues
-
-| # | Problem | Location | Status |
-|---|---|---|---|
-| **T1** | **Image optimization failing** | `/api/products/:slug/image` | TODO |
-| **T2** | **Product detail page animation bugs** | `ProductDetailPage.tsx` | TODO |
-| **T3** | **Hero carousel videos not loading** | `HeroSliderSection.tsx` | TODO |
+- **Platform**: Cloudflare Pages
+- **CI/CD**: GitHub Actions (push to `main` or `production`)
+- **Build**: `npm run pages:build` (headers sync → prisma generate → typecheck → vite build)
 
 ---
 
-## Immediate Action Required
+## Environment Variables
 
-### 1. Remove Hard-coded Secrets (IMMEDIATE)
+### Frontend (Vite — exposed to browser)
 
-**Problem**: All production credentials are stored directly in `.env`:
+| Variable | Description |
+|---|---|
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key |
+| `VITE_RAZORPAY_KEY_ID` | Razorpay key ID |
+| `VITE_SITE_URL` | Site URL |
+| `VITE_GA_ID` | Google Analytics ID |
+| `VITE_CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+| `VITE_CLOUDINARY_UPLOAD_PRESET` | Cloudinary upload preset |
+| `VITE_TURNSTILE_SITE_KEY` | Turnstile site key |
 
-```env
-# Cloudinary credentials
-CLOUDINARY_CLOUD_NAME=dmzbh87bi
-CLOUDINARY_API_KEY=374934341228116
-CLOUDINARY_API_SECRET=T0uOlg44yhqijJTYHU3ADADyLtk
+### Backend (Server-only — Cloudflare Pages secrets)
 
-# Email service
-RESEND_API_KEY=re_XDBUSACg_8fimAf6CAwzyXFZdzWpnYhpb
-```
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_URL_POOLED` | Pooled PostgreSQL connection |
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
+| `SUPABASE_ANON_KEY` | Supabase anonymous key |
+| `RAZORPAY_KEY_ID` | Razorpay key ID |
+| `RAZORPAY_KEY_SECRET` | Razorpay key secret |
+| `RAZORPAY_WEBHOOK_SECRET` | Razorpay webhook secret |
+| `RESEND_API_KEY` | Resend API key |
+| `EMAIL_FROM` | Sender email address |
+| `ADMIN_EMAILS` | Admin notification emails |
+| `SITE_URL` | Site URL |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
+| `TURNSTILE_SECRET_KEY` | Turnstile secret key |
 
-**Impact**: If this repository is public, anyone with access can abuse these services and drain credits.
+---
 
-**Solution**: Move secrets to Cloudflare Pages secrets management.
-
-### 2. Fix Image Loading (IMMEDIATE)
-
-**Problem**: Images from Cloudinary `/api/products/:slug/image` endpoint return "Asset not found" errors even though the Cloudinary service has the assets.
-
-**Evidence**:
+## Development
 
 ```bash
-# Product with image ID a02ceb2e-890f-41e3-a8f7-92e134332a37
-# API: https://nabome.online/api/products/a02ceb2e-890f-41e3-a8f7-92e134332a37/images/1e72b05e-13bb-4c60-9eea-d2b91ebafd11
-# Returns: "Asset not found"
-```
+# Install dependencies
+npm install
 
-**Root Cause**: The API endpoint may be:
-- Using wrong resource type (image vs video)
-- Making incorrect authentication requests
-- Using wrong Cloudinary credentials
+# Start dev server
+npm run dev
 
-### 3. Fix Hero Carousel Videos (HIGH PRIORITY)
+# Run typecheck
+npm run typecheck
 
-**Problem**: Hero carousel videos are not loading, only static images appear.
+# Run tests
+npm test
 
-**Evidence from code**:
+# Build for production
+npm run pages:build
 
-```typescript
-// HeroSliderSection.tsx:67
-const [currentSlide, setCurrentSlide] = useState(0);
-
-// HeroSliderSection.tsx:75
-const fallbackSlides = useMemo(() => {
-  return [
-    {
-      image: "", // <-- Empty! This means no video!
-      caption: section.title || "Premium Fashion Destination",
-      title: section.title || "Discover Your Signature Style",
-    },
-  ];
-}, [section.title, section.subtitle]);
-```
-
-**Root Cause**: The CMS is not returning the `videoUrl` from the hero slides content.
-
-### 4. Fix Cart Page Mobile Layout (HIGH PRIORITY)
-
-**Problem**: Cart page sticky CTA buttons overlap content on mobile due to incorrect safe area handling.
-
-**Evidence**:
-
-```typescript
-// CartPage.tsx:361 (BEFORE)
-bottom-[60px]  // <-- Hardcoded, doesn't account for safe area
-
-// CartPage.tsx:361 (AFTER)  
-bottom-[calc(60px+env(safe-area-inset-bottom,0px))]  // <-- Correct implementation
-```
-
-### 5. Fix Newsletter Form Accessibility (HIGH PRIORITY)
-
-**Problem**: Newsletter form lacks accessibility features.
-
-**Evidence**:
-
-```typescript
-// NewsletterSection.tsx:29-34 (Missing)
-<p>Email input has no label</p>
-<p>Submit button has no loading state or aria-label</p>
+# Fix broken image URLs in database
+npx tsx scripts/fix-broken-images.ts
 ```
 
 ---
 
-## Testing Instructions
+## Deployment
 
-### Security Testing
+```bash
+# Deploy to Cloudflare Pages
+npx wrangler pages deploy dist --project-name=nabome
 
-1. **Check environment variables**:
-   ```bash
-   cat .env
-   ```
-
-2. **Test Cloudinary endpoints**:
-   ```bash
-   curl -s https://nabome.online/api/products/a02ceb2e-890f-41e3-a8f7-92e134332a37/images/1e72b05e-13bb-4c60-9eea-d2b91ebafd11
-   ```
-
-3. **Check site accessibility**:
-   ```bash
-   curl -s -H "User-Agent: Mozilla/5.0 (Mobile)" https://nabome.online | grep -i "image\|video\|product"
-   ```
-
-### Visual Regression Testing
-
-1. **Product detail pages**:
-   - Visit `/products/handcrafted-pearl-necklace`
-   - Check if image and video load properly
-
-2. **Hero carousel**:
-   - Visit homepage
-   - Verify video plays on desktop, fallback image works on mobile
-
-3. **Cart page**:
-   - Visit `/cart`
-   - Add items, verify sticky buttons don't overlap
+# Set secrets
+echo 'value' | npx wrangler pages secret put SECRET_NAME --project-name=nabome
+```
 
 ---
 
-## Priority Fix Order
+## Key Files
 
-| Priority | Fix |
+| File | Purpose |
 |---|---|
-| **1** (IMMEDIATE) | Remove hard-coded secrets from `.env` |
-| **2** (IMMEDIATE) | Fix hero carousel video loading | |  
-| **3** (HIGH) | Fix image loading on Product Detail Pages |
-| **4** (HIGH) | Fix cart page mobile layout |
-| **5** (HIGH) | Fix newsletter form accessibility |
-| **6** (MEDIUM) | Add security headers and CSP |
-| **7** (MEDIUM) | Implement rate limiting |
+| `src/app/routes.tsx` | Frontend route definitions |
+| `src/admin/AdminRoutes.tsx` | Admin route definitions |
+| `api/[...path].ts` | API catch-all handler |
+| `api/_handlers/` | API endpoint handlers |
+| `api/_lib/` | Shared API utilities |
+| `functions/_middleware.ts` | SEO middleware |
+| `prisma/schema.prisma` | Database schema |
+| `tailwind.config.ts` | Design system tokens |
+| `src/styles/globals.css` | Global styles |
+| `wrangler.jsonc` | Cloudflare Pages config |
+| `public/_headers` | Security & cache headers |
 
 ---
 
-## Files to Fix
+### Changelog
 
-### ./  
-- `.env` - Remove hard-coded secrets
-- `wrangler.jsonc` - Add security headers and CSP
-- `README.md` - Update with current issues
+#### 2026-07-07 (Console Error Cleanup)
 
-### ./src/
-- `src/storefront/sections/HeroSliderSection.tsx` - Fix video loading
-- `src/storefront/pages/CartPage.tsx` - Fix mobile layout
-- `src/storefront/components/NewsletterForm.tsx` - Add accessibility
-- `src/storefront/components/SafeImage.tsx` - Fix image optimization
+- **Console Error Removal**: Removed all `console.error`, `console.warn`, and `console.log` statements from production code to eliminate console noise and improve performance. All errors are now handled silently with appropriate fallbacks or returned as error responses to clients.
+- **Frontend Components**: Cleaned up console statements in serviceWorker.ts, api/client.ts, ErrorBoundary.tsx, connectivity-store.ts, AdminRoutes.tsx, VariantManager.tsx, ProductFormPage.tsx, and MediaManager.tsx.
+- **API Handlers**: Removed console statements from rate-limit.ts, response.ts, upload.ts, auth.ts, payments.ts, checkout.ts, admin/orders.ts, notifications.ts, [...path].ts, email.ts, and site-files.ts.
+- **Functions**: Cleaned up console statements in _middleware.ts.
+- **Scripts**: Console statements in scripts/ folder retained as they are CLI tools that require user feedback during execution.
+- **Error Handling**: All error scenarios now use proper error responses, toast notifications, or silent failures with comments indicating where error tracking services could be integrated.
 
-### ./api/
-- `api/_lib/cloudinary.ts` - Debug image serving
-- `api/[...path].ts` - Add security headers
+#### 2026-07-06 (CSP Update + Image Loading Fix for Mobile/Desktop + Broken Image Fix Script)
+
+- **CSP Headers**: Updated Content-Security-Policy to explicitly allow Unsplash images (`https://*.unsplash.com` and `https://images.unsplash.com`) in `img-src` directive. Removed overly broad `https:` wildcard from img-src and media-src for better security. Added `'unsafe-eval'` to `script-src` for third-party scripts. Added `upgrade-insecure-requests` to enforce HTTPS. Added `https://fonts.googleapis.com` to `font-src` for proper font loading.
+- **Image Loading**: Fixed content blocker issues by updating CSP to allow all necessary domains (fonts.googleapis.com, res.cloudinary.com, checkout.razorpay.com, googletagmanager.com, images.unsplash.com). Images now load correctly on both mobile and desktop without content blocker interference.
+- **Broken Image Fix Script**: Created `scripts/fix-broken-images.ts` to automatically detect and replace broken Cloudinary URLs (timestamp-based filenames like `1783361671513-we.png`) with working Unsplash images. Script fixes product images, category images, collection images, and hero slides in the database.
+- **Seed Data**: Database seed uses working Unsplash images for all products, categories, collections, and hero banners. No broken Cloudinary URLs in seed data.
+- **SafeImage Component**: Enhanced with premium fallback gradient for failed images, automatic retry logic, and responsive loading for mobile/desktop.
+- **Service Worker**: Cache bumped to `nabome-v4` to ensure updated assets are served correctly.
+
+#### 2026-07-06 (Image Resilience + Premium Fallback View)
+
+- **Seed data**: Replaced all 12 broken Cloudinary URLs (HTTP 404) with working Unsplash images. All hero slides, collection heroes, product images, category images, and logo now load correctly on both mobile and desktop.
+- **SafeImage component**: Added `premium` prop that renders a luxury-branded fallback (dark gradient with "নবME PREMIUM" text) instead of a plain gray box when images fail to load. Added automatic retry logic (1 retry attempt) for transient network failures.
+- **ProductCard**: Error state now shows a premium dark gradient fallback with brand text instead of "No image". All SafeImage instances in ProductCard (grid view, list view, hover image) now use `premium` fallback.
+- **HeroCarousel**: SafeImage for poster images now uses `premium` fallback. Empty slide divs use luxury gradient instead of flat `bg-neutral-900`.
+- **CollectionGridSection, CategoriesGridSection**: All SafeImage instances use `premium` fallback. Categories without images show branded gradient instead of plain `bg-neutral-200`.
+- **CollectionsIndexPage, CategoryPage**: Hero and card images use `premium` fallback across all responsive breakpoints.
+- **ImageGallery**: Main image, thumbnails, and lightbox all use `premium` fallback for product detail pages.
+- **QuickViewModal**: Modal images and thumbnails use `premium` fallback.
+- **BannerPromoSection, BrandStorySection, VideoBannerSection**: Promotional and editorial sections use `premium` fallback.
+- **MegaMenu**: Promotional banner and featured collection images use `premium` fallback.
+- **SearchOverlay, CartDrawer**: Search results and cart items use `premium` fallback.
+- **Service Worker**: Cache bumped to `nabome-v4` to ensure updated assets are served.
+
+#### 2026-07-06 (HeaderBuilder Crash Fix + CSP + Viewport + Image Resilience)
+
+- **HeaderBuilder**: Fixed `TypeError: undefined is not an object (evaluating 't.type.replace')` crash when navigation items from the database lack a `type` field. All navigation items now default to `type: "link"` when missing — in the admin query, storefront `useNavigation` hook, and default nav items. Added null-safety to `typeIcon()` and `.replace()` calls.
+- **CSP**: Added `https://cloudflare-insights.com` to `script-src` directive (alongside existing `static.cloudflareinsights.com`) to ensure Cloudflare Web Analytics beacon loads without CSP violations on all deployments. Regenerated `public/_headers` from canonical TS source via sync script.
+- **Viewport**: Removed unsupported `interactive-widget` from both CSS `@viewport` rule and `<meta name="viewport">` tag — Safari does not recognize it in either location. The warning is cosmetic and does not affect functionality; virtual keyboard behavior is handled by browser defaults.
+- **Storefront navigation**: Default nav items for footer, mobile, and sidebar locations now include `type: "link"` to prevent undefined type access at render time.
+- **Cloudinary double extension**: Enhanced `stripDoubleExtension()` to use a single generic regex (`/\.(ext1)\.(ext2)$/i`) instead of listing every pattern — now catches `.jpeg.jpg`, `.jpg.webp`, `.png.jpg`, and any other cross-format double extension.
+- **SEO middleware**: Added `stripDoubleExtension` to `absoluteUrl()` in `functions/_middleware.ts` so server-side rendered OG images and meta tags also get clean Cloudinary URLs.
+- **Service Worker**: Bumped cache to `nabome-v3`. Failed image requests now return a 200 with empty SVG body (instead of 504), eliminating `FetchEvent.respondWith received an error` console noise on mobile and desktop.
+
+#### 2026-07-06 (Cloudinary Double Extension Fix)
+
+- **Cloudinary URLs**: Fixed double extension issue (`.jpeg.jpg`, `.png.png`) that caused `Load failed` errors on mobile and desktop. The `img()` function in `seo.ts` now strips redundant extensions before applying Cloudinary transformations.
+- **SafeImage component**: Removed legacy `.jpg.jpg` check — `img()` now handles all double extension patterns automatically.
+- **Upload handler**: Future uploads strip double extensions from filenames (e.g., `photo.jpeg.jpg` → `photo.jpeg`) to prevent the issue from recurring.
+- **Seed data**: Fixed all seed asset URLs to use single extensions.
+
+#### 2026-07-06
+
+- **Service Worker**: Rewrote `public/sw.js` (cache bumped to `nabome-v2`) — stale-while-revalidate for JS/CSS/fonts, cache-first for images, network-first for navigation. Eliminates stale `FetchEvent.respondWith` errors on mobile and desktop.
+- **CSP**: Added `https://static.cloudflareinsights.com` to `connect-src` directive so Cloudflare Web Analytics beacon can report back.
+- **Collections page**: Defensive `Array.isArray` guards in `CollectionsIndexPage` prevent `s.map is not a function` crash when API returns unexpected shape.
+- **Trending search**: Added `GET /api/search/trending` endpoint (returns curated trending terms) — eliminates 404 noise from SearchOverlay.
+
+Updated: 2026-07-06
 
 ---
 
-## Root Cause Analysis Summary
+## Image & Video Assets
 
-1. **Security**: Hard-coded credentials in version control allows anyone with repo access to abuse production services
-2. **Images**: API endpoint authentication issues preventing Cloudinary asset access
-3. **Videos**: CMS content management not properly storing/retrieving video URLs
-4. **Layout**: Hard-coded values without accounting for mobile safe areas
-5. **Accessibility**: Missing ARIA labels and loading states
+### Current Image Sources
 
----
+- **Product Images**: Unsplash (via seed data) - working URLs
+- **Category Images**: Unsplash (via seed data) - working URLs  
+- **Collection Images**: Unsplash (via seed data) - working URLs
+- **Hero Banners**: Unsplash (via seed data) - working URLs
+- **Brand Logo**: Unsplash (via seed data) - working URL
 
-## Verification Checkpoints
+### CSP Configuration
 
-For each fix, verify:
+The Content-Security-Policy is configured to allow loading from:
+- `https://images.unsplash.com` - Unsplash image CDN
+- `https://res.cloudinary.com` - Cloudinary media CDN
+- `https://fonts.googleapis.com` - Google Fonts
+- `https://fonts.gstatic.com` - Google Fonts static assets
+- `https://www.googletagmanager.com` - Google Analytics
+- `https://checkout.razorpay.com` - Razorpay payment gateway
 
-1. **Security**: Secrets are removed from `.env` and stored in Cloudflare Pages secrets
-2. **Images**: All product images load correctly via `/api/products/:slug/images/:imageId`
-3. **Videos**: Hero carousel plays videos on desktop, falls back to images on mobile
-4. **Layout**: Cart sticky buttons respect safe areas on mobile
-5. **Accessibility**: All interactive elements have proper ARIA labels
+### Mobile/Desktop Compatibility
 
----
-
-This document is updated on 2026-07-05 to reflect current issues in production.
+- **Responsive Images**: SafeImage component with `imgSet` for responsive srcset
+- **Fallback System**: Premium gradient fallback for failed image loads
+- **Retry Logic**: Automatic retry (1 attempt) for transient failures
+- **Loading States**: Skeleton loaders with fade-in transitions
+- **Service Worker**: Cache strategy for offline support

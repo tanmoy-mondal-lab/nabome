@@ -160,7 +160,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
         verificationCode: verificationToken,
       }, ctx.env);
     } catch (emailErr) {
-      console.error("[EMAIL] Failed to send verification:", (emailErr as Error).message);
+      // Silent failure - email send error
     }
 
     return created({
@@ -168,7 +168,6 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       message: "Account created successfully. Please verify your email.",
     });
   } catch (err) {
-    console.error("[REGISTER] Unexpected error:", err);
     return serverError(err);
   }
 }
@@ -276,7 +275,6 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
 
     return success({ message: "Email verified successfully" });
   } catch (err) {
-    console.error("[VERIFY EMAIL] Error:", err);
     return serverError(err);
   }
 }
@@ -322,12 +320,11 @@ async function handleResendVerification(req: Request, ctx: RequestContext): Prom
         verificationCode: verificationToken,
       }, ctx.env);
     } catch (emailErr) {
-      console.error("[EMAIL] Failed to resend verification:", (emailErr as Error).message);
+      // Silent failure - email send error
     }
 
     return success({ message: "If an account exists with this email, a verification code has been sent." });
   } catch (err) {
-    console.error("[RESEND VERIFICATION] Error:", err);
     return serverError(err);
   }
 }
@@ -449,7 +446,6 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
       user: dbProfile,
     });
   } catch (err) {
-    console.error("[LOGIN] Error:", err);
     return serverError(err);
   }
 }
@@ -767,7 +763,7 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
       verificationCode: pendingEmailToken,
     }, ctx.env);
   } catch (emailErr) {
-    console.error("[EMAIL] Failed to send email change code:", (emailErr as Error).message);
+    // Silent failure - email send error
   }
 
   return success({ message: "Verification code sent to your new email address" });
@@ -829,11 +825,9 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
     });
 
     if (supabaseError) {
-      console.error("[EMAIL CHANGE] Supabase update failed:", supabaseError.message);
       return serverError(new Error("Failed to update email. Please try again."));
     }
   } catch (err) {
-    console.error("[EMAIL CHANGE] Supabase error:", err);
     return serverError(new Error("Failed to update email. Please try again."));
   }
 
@@ -896,7 +890,7 @@ async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<
       verificationCode: resetPasswordToken,
     }, ctx.env);
   } catch (mailErr) {
-    console.error("[EMAIL] Failed to send password reset:", (mailErr as Error).message);
+    // Silent failure - email send error
   }
 
   return success({ message: "If an account exists with this email, a verification code has been sent." });

@@ -312,7 +312,7 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
           }, env);
         }
       } catch (emailErr) {
-        console.error("[EMAIL] Failed to send status update:", (emailErr as Error).message);
+        // Silent failure - email send error
       }
     }
 

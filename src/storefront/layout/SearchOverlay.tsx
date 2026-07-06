@@ -188,7 +188,7 @@ export function SearchOverlay() {
                     <Link key={s.id} to={`/products/${s.slug}`} onClick={closeSearch} className="flex items-center gap-3 p-3 hover:bg-neutral-50 rounded-lg transition-colors">
                       {s.image && (
                         <div className="w-12 h-12 bg-neutral-100 rounded overflow-hidden flex-shrink-0">
-                          <SafeImage src={s.image} alt={s.name} className="w-full h-full object-cover" />
+                          <SafeImage src={s.image} alt={s.name} premium className="w-full h-full object-cover" />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
@@ -216,7 +216,7 @@ export function SearchOverlay() {
                     return (
                       <Link key={p.id} to={`/products/${p.slug}`} onClick={closeSearch} className="group md:p-0 p-3 premium-card md:border-0 md:shadow-none">
                         <div className="aspect-[3/4] bg-neutral-50 mb-2 overflow-hidden md:rounded-none rounded">
-                          <SafeImage src={images[0]?.url} alt={p.name} className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-500" />
+                          <SafeImage src={images[0]?.url} alt={p.name} premium className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-500" />
                         </div>
                         <p className="md:text-[13px] md:font-normal text-sm font-medium text-neutral-900 truncate">{p.name}</p>
                         <p className="md:text-[13px] md:text-neutral-500 text-sm text-brand-600">{formatPrice(Number(p.basePrice))}</p>

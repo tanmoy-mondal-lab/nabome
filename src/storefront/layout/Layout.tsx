@@ -42,9 +42,16 @@ export function StorefrontLayout() {
   const { data: settings } = useSettings();
   const isCheckout = pathname === "/checkout";
   const headerRef = useRef<HTMLDivElement>(null);
-  const [headerHeight, setHeaderHeight] = useState(() => typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches ? 112 : 64);
+  const [headerHeight, setHeaderHeight] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.matchMedia("(min-width: 768px)").matches ? 112 : 64;
+    }
+    return 64;
+  });
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    
     const mql = window.matchMedia("(min-width: 768px)");
     function updateHeaderHeight() {
       setHeaderHeight(mql.matches ? 112 : 64);
@@ -66,6 +73,8 @@ export function StorefrontLayout() {
     if (colors.accent) root.setProperty("--color-gold", colors.accent as string);
     if (colors.background) root.setProperty("--color-bg", colors.background as string);
     if (colors.text) root.setProperty("--color-text", colors.text as string);
+    if (colors.surface) root.setProperty("--color-surface", colors.surface as string);
+    if (colors.muted) root.setProperty("--color-muted", colors.muted as string);
     if (typography.displayFont) root.setProperty("--font-display", `"${typography.displayFont}", Georgia, serif`);
     if (typography.bodyFont) root.setProperty("--font-body", `"${typography.bodyFont}", Inter, sans-serif`);
     if (typography.baseSize) root.fontSize = typography.baseSize as string;
@@ -131,11 +140,25 @@ export function StorefrontLayout() {
         <style>{`
           body { background-color: var(--color-bg, #fff); color: var(--color-text, #262626); font-family: var(--font-body); }
           .font-display { font-family: var(--font-display); }
-          .text-brand-500, .hover\\:text-brand-500:hover { color: var(--color-brand); }
+          .text-brand-500, .hover\:text-brand-500:hover { color: var(--color-brand); }
           .bg-brand-500 { background-color: var(--color-brand); }
           .border-brand-500 { border-color: var(--color-brand); }
+          .text-brand-600, .hover\:text-brand-600:hover { color: var(--color-brand); filter: brightness(0.85); }
+          .bg-brand-600 { background-color: var(--color-brand); filter: brightness(0.85); }
+          .text-brand-700 { color: var(--color-brand); filter: brightness(0.7); }
+          .bg-brand-700 { background-color: var(--color-brand); filter: brightness(0.7); }
+          .bg-brand-50 { background-color: var(--color-brand); opacity: 0.1; }
+          .hover\:bg-brand-50:hover { background-color: var(--color-brand); opacity: 0.1; }
+          .hover\:bg-brand-100:hover { background-color: var(--color-brand); opacity: 0.15; }
+          .border-brand-500\/40 { border-color: color-mix(in srgb, var(--color-brand) 40%, transparent); }
+          .ring-brand-500\/40 { --tw-ring-color: color-mix(in srgb, var(--color-brand) 40%, transparent); }
           .text-accent-gold, .text-accent-goldLight { color: var(--color-gold); }
           .bg-accent-gold { background-color: var(--color-gold); }
+          .hover\:bg-accent-gold:hover { background-color: var(--color-gold); }
+          .bg-accent-goldDark { background-color: var(--color-gold); filter: brightness(0.85); }
+          .hover\:bg-accent-goldDark:hover { background-color: var(--color-gold); filter: brightness(0.85); }
+          .border-accent-gold { border-color: var(--color-gold); }
+          .shadow-gold-soft { box-shadow: 0 4px 20px color-mix(in srgb, var(--color-gold, #c9a84c) 15%, transparent); }
         `}</style>
       </Helmet>
       <div ref={headerRef}>

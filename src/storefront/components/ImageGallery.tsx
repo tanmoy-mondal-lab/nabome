@@ -5,8 +5,12 @@ import { cn } from "../../lib/utils/cn";
 import { SafeImage } from "../../components/SafeImage";
 import { img } from "../../lib/seo";
 
-const VIDEO_EXTS = [".mp4", ".webm", ".mov", ".avi"];
-function isVideo(url: string) { return VIDEO_EXTS.some((ext) => url.toLowerCase().includes(ext)) || url.includes("video"); }
+function isVideo(item: ImageItem) {
+  if (item.type === "video") return true;
+  if (item.type === "image") return false;
+  const url = item.url.toLowerCase();
+  return /\.(mp4|webm|mov|avi)(\?|$)/.test(url);
+}
 
 interface ImageItem { url: string; altText?: string; type?: "image" | "video"; }
 
@@ -44,7 +48,7 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!activeImage || isVideo(activeImage.url)) return;
+    if (!activeImage || isVideo(activeImage)) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
     const dy = e.changedTouches[0].clientY - touchStartY.current;
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
@@ -69,7 +73,7 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
               i === activeIndex ? "border-brand-500" : "border-transparent hover:border-neutral-300"
             )}
           >
-            <SafeImage src={image.url} alt={image.altText ?? ""} responsive className="w-full h-full object-cover" />
+            <SafeImage src={image.url} alt={image.altText ?? ""} responsive premium className="w-full h-full object-cover" />
           </button>
         ))}
       </div>
@@ -78,11 +82,11 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
         ref={containerRef}
         className="relative aspect-[3/4] bg-neutral-50 overflow-hidden group"
         style={{ touchAction: 'manipulation' }}
-        onMouseEnter={() => activeImage && !isVideo(activeImage.url) && setZoomed(true)}
+        onMouseEnter={() => activeImage && !isVideo(activeImage) && setZoomed(true)}
         onMouseLeave={() => setZoomed(false)}
-        onMouseMove={activeImage && !isVideo(activeImage.url) ? handleMouseMove : undefined}
+        onMouseMove={activeImage && !isVideo(activeImage) ? handleMouseMove : undefined}
         onClick={() => {
-          if (window.matchMedia("(pointer: coarse)").matches && activeImage && !isVideo(activeImage.url)) {
+          if (window.matchMedia("(pointer: coarse)").matches && activeImage && !isVideo(activeImage)) {
             setZoomed((prev) => !prev);
           }
         }}
@@ -90,8 +94,8 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
         onTouchEnd={handleTouchEnd}
       >
         <AnimatePresence mode="wait">
-          {activeImage && (isVideo(activeImage.url) ? (
-            <video key={activeIndex} src={activeImage.url} controls autoPlay muted loop className="w-full h-full object-cover" />
+          {activeImage && (isVideo(activeImage) ? (
+            <video key={activeIndex} src={activeImage.url} poster={images.find((img) => !isVideo(img))?.url} controls autoPlay muted loop className="w-full h-full object-cover" />
           ) : (
             <motion.div
               key={activeIndex}
@@ -104,6 +108,7 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
                 src={img(activeImage.url, { width: 800 })}
                 alt={activeImage.altText ?? ""}
                 responsive
+                premium
                 className="w-full h-full object-cover"
                 useTransform={false}
               />
@@ -118,7 +123,7 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
           <ChevronRight className="w-4 h-4" />
         </button>
 
-        {activeImage && !isVideo(activeImage.url) && (
+        {activeImage && !isVideo(activeImage) && (
           <button
             onClick={() => setLightboxOpen(true)}
             className="absolute top-3 right-3 w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-white hover:shadow-subtle max-md:hidden"
@@ -188,6 +193,7 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
                 src={img(activeImage?.url ?? "", { width: 1600 })}
                 alt={activeImage?.altText ?? ""}
                 responsive
+                premium
                 className="max-w-[90vw] max-h-[90vh] object-contain"
                 useTransform={false}
               />

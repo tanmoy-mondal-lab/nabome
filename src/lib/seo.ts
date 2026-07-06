@@ -3,6 +3,11 @@ import type { Product, ProductVariant } from "../types/product";
 const SITE_URL = import.meta.env.VITE_SITE_URL || "https://www.nabome.online";
 const SITE_NAME = "নবME — Premium Fashion";
 
+// Validate SITE_URL to prevent console errors
+if (typeof SITE_URL !== "string" || !SITE_URL.startsWith("http")) {
+  console.warn("Invalid SITE_URL, using default");
+}
+
 export function canonical(url: string): string {
   const clean = url.replace(/\/+$/, "");
   if (clean.startsWith("http")) return clean;
@@ -149,21 +154,39 @@ export type ImgOptions = {
   format?: "auto" | "webp" | "avif" | "jpg" | "png";
 };
 
+function stripDoubleExtension(url: string): string {
+  // Fix double extensions like .jpeg.jpg, .png.png, .jpg.webp that break Cloudinary f_auto
+  // Matches any image extension followed by another image extension at the end of the URL
+  return url.replace(/\.(jpeg|jpg|png|gif|webp|avif|bmp|tiff|tif|svg)\.(jpg|jpeg|png|gif|webp|avif|bmp|tiff|tif|svg)(\?[^]*)?$/i,
+    ".$1$3"
+  );
+}
+
 export function img(url: string | undefined | null, options?: ImgOptions): string {
   if (!url) return "/placeholder.svg";
   // Only apply transforms to Cloudinary URLs
   if (!url.includes("res.cloudinary.com")) return url;
 
-  const transforms: string[] = [];
-  if (options?.width) transforms.push(`w_${options.width}`);
-  if (options?.height) transforms.push(`h_${options.height}`);
-  transforms.push(options?.quality ? `q_${options.quality}` : "q_auto");
-  transforms.push(options?.format ? `f_${options.format}` : "f_auto");
+  try {
+    const cleanUrl = stripDoubleExtension(url);
 
-  return url.replace(
-    `/image/upload/`,
-    `/image/upload/${transforms.join(",")}/`
-  );
+    const transforms: string[] = [];
+    if (options?.width) transforms.push(`w_${options.width}`);
+    if (options?.height) transforms.push(`h_${options.height}`);
+    transforms.push(options?.quality ? `q_${options.quality}` : "q_auto");
+    transforms.push(options?.format ? `f_${options.format}` : "f_auto");
+
+    return cleanUrl.replace(
+      `/image/upload/`,
+      `/image/upload/${transforms.join(",")}/`
+    );
+  } catch (error) {
+    // If image processing fails, return original URL
+    if (import.meta.env.DEV) {
+      console.warn("Image processing failed:", error);
+    }
+    return url;
+  }
 }
 
 export function imgSet(
@@ -173,8 +196,15 @@ export function imgSet(
   if (!url || !url.includes("res.cloudinary.com")) {
     return { src: url || "/placeholder.svg" };
   }
-  const srcSet = widths
-    .map((w) => `${img(url, { width: w })} ${w}w`)
-    .join(", ");
-  return { src: img(url, { width: widths[1] }), srcSet };
+  try {
+    const srcSet = widths
+      .map((w) => `${img(url, { width: w })} ${w}w`)
+      .join(", ");
+    return { src: img(url, { width: widths[1] }), srcSet };
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn("Image srcSet generation failed:", error);
+    }
+    return { src: url || "/placeholder.svg" };
+  }
 }

@@ -86,6 +86,7 @@ export default function BrandStorySection({ section }: BrandStorySectionProps) {
               <SafeImage
                 src={imageUrl}
                 alt={headline || "Brand story image"}
+                premium
                 className="w-full h-full object-cover transition-transform duration-700 ease-luxe-out md:group-hover:scale-[1.03] group-hover:scale-105"
               />
             )}

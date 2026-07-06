@@ -180,7 +180,7 @@ async function handleVerify(req: Request, ctx: RequestContext, env: any): Promis
         orderId: order.id,
       }, env);
     } catch (emailErr) {
-      console.error("[EMAIL] Failed to send payment success:", (emailErr as Error).message);
+      // Silent failure - email send error
     }
 
     logAction(null, "payment.verify", {
@@ -253,7 +253,7 @@ async function handleFailed(req: Request, ctx: RequestContext, env: any): Promis
         orderId: order.id,
       }, env);
     } catch (emailErr) {
-      console.error("[EMAIL] Failed to send payment failure:", (emailErr as Error).message);
+      // Silent failure - email send error
     }
 
     logAction(null, "payment.failed", {
@@ -771,20 +771,17 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
   // ── 1. Verify secret is configured ──
   const webhookSecret = cleanSecret(env?.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_WEBHOOK_SECRET);
   if (!webhookSecret) {
-    console.error("[WEBHOOK] Secret not configured");
     return success({ status: "ignored" });
   }
 
   // ── 2. Verify HMAC signature ──
   if (!signature) {
-    console.error("[WEBHOOK] Missing x-razorpay-signature header");
     return success({ status: "invalid_signature" });
   }
 
   const expected = await createHMACSHA256(webhookSecret, rawBody, env);
 
   if (!timingSafeEqualHex(expected, signature)) {
-    console.error("[WEBHOOK] Invalid signature");
     return success({ status: "invalid_signature" });
   }
 
@@ -793,7 +790,6 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
   try {
     event = JSON.parse(rawBody);
   } catch {
-    console.error("[WEBHOOK] Invalid JSON payload");
     return success({ status: "invalid_payload" });
   }
 
@@ -801,7 +797,6 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
   const eventId = getWebhookEventId(event);
 
   if (!eventName) {
-    console.error("[WEBHOOK] Missing event name");
     return success({ status: "invalid_event" });
   }
 
@@ -821,7 +816,6 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
     }
   } catch {
     // Table might not exist yet (before migration) — proceed without dedup
-    console.warn("[WEBHOOK] Could not check dedup table, proceeding");
   }
 
   // ── 5. Create or update WebhookEvent record ──
@@ -857,7 +851,6 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
       });
       webhookEventId = record.id;
     } catch (createErr) {
-      console.error("[WEBHOOK] Failed to create event record:", createErr);
       return success({ status: "logged", error: "Failed to persist event" });
     }
   }
@@ -909,7 +902,6 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
       metadata: { event: eventName, status: "failed", error: errorMessage },
     }, env);
 
-    console.error(`[WEBHOOK] Error processing ${eventName}:`, errorMessage);
     return success({ status: "error", event: eventName, error: errorMessage });
   }
 }
