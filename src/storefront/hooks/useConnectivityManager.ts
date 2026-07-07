@@ -74,7 +74,7 @@ export function useConnectivityManager() {
     };
 
     cartSync();
-  }, [isOnline]);
+  }, [isOnline, addToOfflineQueue]);
 
   useEffect(() => {
     const stabilityTimeout = setTimeout(() => {
@@ -88,7 +88,7 @@ export function useConnectivityManager() {
     }, 5000);
 
     return () => clearTimeout(stabilityTimeout);
-  }, [isOnline, isMobile]);
+  }, [isOnline, isMobile, setEmergencyMode, setNotificationShown]);
 
   useEffect(() => {
     if (emergencyMode) {
@@ -97,7 +97,7 @@ export function useConnectivityManager() {
       }, 60000);
       return () => clearTimeout(timer);
     }
-  }, [emergencyMode]);
+  }, [emergencyMode, setEmergencyMode]);
 
   const isRecoverableConnection = useCallback(() => {
     const { connectionType } = useConnectivityStore.getState();

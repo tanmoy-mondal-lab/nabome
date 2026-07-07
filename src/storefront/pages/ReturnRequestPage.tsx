@@ -66,7 +66,17 @@ export default function ReturnRequestPage() {
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
+    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    const MAX_SIZE = 5 * 1024 * 1024;
     Array.from(files).forEach((file) => {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setSubmitError(`"${file.name}" is not a supported image format. Use JPG, PNG, WebP, or GIF.`);
+        return;
+      }
+      if (file.size > MAX_SIZE) {
+        setSubmitError(`"${file.name}" exceeds the 5MB size limit.`);
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (ev) => {
         const result = ev.target?.result;

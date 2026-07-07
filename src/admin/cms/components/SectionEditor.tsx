@@ -22,7 +22,7 @@ function VideoField({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = useCallback(async (file: File) => {
-    if (file.size > 100 * 1024 * 1024) { setError("File exceeds 100MB limit"); return; }
+    if (file.size > 20 * 1024 * 1024) { setError("File exceeds 20MB limit"); return; }
     setError(""); setUploading(true);
     try {
       const res = await adminApi.uploadFile(file, "page-builder");

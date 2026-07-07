@@ -9,14 +9,14 @@ interface PriceDisplayProps {
 }
 
 export function PriceDisplay({ price, compareAtPrice, size = "md", className }: PriceDisplayProps) {
-  const sizes = { sm: "text-sm", md: "text-base", lg: "text-lg" };
+  const sizes = { sm: "text-sm md:text-sm", md: "text-base md:text-base", lg: "text-lg md:text-lg" };
   const discount = compareAtPrice && compareAtPrice > price
     ? Math.round((1 - price / compareAtPrice) * 100)
     : 0;
 
   return (
     <div className={cn("flex items-center gap-2 flex-wrap", sizes[size], className)}>
-      <span className="font-medium text-neutral-900">{formatPrice(price)}</span>
+      <span className="font-semibold text-neutral-900">{formatPrice(price)}</span>
       {discount > 0 && (
         <>
           <span className="text-neutral-400 line-through text-xs">{formatPrice(compareAtPrice!)}</span>

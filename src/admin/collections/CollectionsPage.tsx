@@ -32,6 +32,7 @@ export default function CollectionsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Collection | null>(null);
   const [form, setForm] = useState({ name: "", slug: "", description: "", isActive: true, isFeatured: false, sortOrder: 0, imageUrl: "", imagePublicId: "", startDate: "", endDate: "", metaTitle: "", metaDesc: "" });
+  const [confirmDelete, setConfirmDelete] = useState<Collection | null>(null);
 
   const { data: collections = [], isLoading: loading, error: queryError } = useQuery<Collection[]>({
     queryKey: ["admin", "collections"],
@@ -146,7 +147,7 @@ export default function CollectionsPage() {
                   <button onClick={() => openEdit(col)} className="bg-white p-1.5 rounded shadow text-neutral-600 hover:text-neutral-900">
                     <Edit3 size={12} />
                   </button>
-                  <button onClick={() => deleteMutation.mutate(col.id)} className="bg-white p-1.5 rounded shadow text-red-500 hover:text-red-600">
+                  <button onClick={() => setConfirmDelete(col)} className="bg-white p-1.5 rounded shadow text-red-500 hover:text-red-600">
                     <Trash2 size={12} />
                   </button>
                 </div>
@@ -246,6 +247,15 @@ export default function CollectionsPage() {
           </div>
         </div>
       </Modal>
+      {confirmDelete && (
+        <Modal open={true} title="Delete Collection" onClose={() => setConfirmDelete(null)}>
+          <p className="text-sm text-neutral-600">Are you sure you want to delete "{confirmDelete.name}"? This action cannot be undone.</p>
+          <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+            <button onClick={() => setConfirmDelete(null)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors">Cancel</button>
+            <button onClick={() => { deleteMutation.mutate(confirmDelete.id); setConfirmDelete(null); }} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">Delete</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

@@ -5,7 +5,9 @@ const SITE_NAME = "নবME — Premium Fashion";
 
 // Validate SITE_URL to prevent console errors
 if (typeof SITE_URL !== "string" || !SITE_URL.startsWith("http")) {
-  console.warn("Invalid SITE_URL, using default");
+  if (import.meta.env.DEV) {
+    console.warn("Invalid SITE_URL, using default");
+  }
 }
 
 export function canonical(url: string): string {
@@ -162,13 +164,25 @@ function stripDoubleExtension(url: string): string {
   );
 }
 
+const CLOUDINARY_CLOUD_NAME = "dmzbh87bi";
+
+function isCloudinaryUrl(url: string): boolean {
+  return url.includes("res.cloudinary.com");
+}
+
+function toCloudinaryFetchUrl(url: string, transforms: string[]): string {
+  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/fetch/${transforms.join(",")}/${encodeURIComponent(url)}`;
+}
+
 export function img(url: string | undefined | null, options?: ImgOptions): string {
   if (!url) return "/placeholder.svg";
-  // Only apply transforms to Cloudinary URLs
-  if (!url.includes("res.cloudinary.com")) return url;
+
+  const isUnsplash = url.includes("images.unsplash.com");
+
+  if (!isCloudinaryUrl(url) && !isUnsplash) return url;
 
   try {
-    const cleanUrl = stripDoubleExtension(url);
+    const cleanUrl = isCloudinaryUrl(url) ? stripDoubleExtension(url) : url;
 
     const transforms: string[] = [];
     if (options?.width) transforms.push(`w_${options.width}`);
@@ -176,12 +190,15 @@ export function img(url: string | undefined | null, options?: ImgOptions): strin
     transforms.push(options?.quality ? `q_${options.quality}` : "q_auto");
     transforms.push(options?.format ? `f_${options.format}` : "f_auto");
 
-    return cleanUrl.replace(
-      `/image/upload/`,
-      `/image/upload/${transforms.join(",")}/`
-    );
+    if (isCloudinaryUrl(url)) {
+      return cleanUrl.replace(
+        `/image/upload/`,
+        `/image/upload/${transforms.join(",")}/`
+      );
+    }
+
+    return toCloudinaryFetchUrl(cleanUrl, transforms);
   } catch (error) {
-    // If image processing fails, return original URL
     if (import.meta.env.DEV) {
       console.warn("Image processing failed:", error);
     }
@@ -193,7 +210,7 @@ export function imgSet(
   url: string | undefined | null,
   widths: number[] = [320, 640, 960, 1280]
 ): { src: string; srcSet: string } | { src: string } {
-  if (!url || !url.includes("res.cloudinary.com")) {
+  if (!url || (!isCloudinaryUrl(url) && !url.includes("images.unsplash.com"))) {
     return { src: url || "/placeholder.svg" };
   }
   try {

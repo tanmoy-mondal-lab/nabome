@@ -132,7 +132,7 @@ export function Footer() {
           {footerConfig?.showContact !== false && <div className="col-span-2 md:col-span-1">
             <h4 className="md:text-[10px] md:tracking-[0.2em] md:text-white/60 md:font-normal text-xs uppercase tracking-[0.15em] text-white font-medium mb-5">Contact</h4>
             <div className="space-y-3 md:text-[13px] md:text-white/40 text-sm text-neutral-400">
-              <p>{settings?.contactEmail || "hello@নবME.com"}</p>
+              <p>{settings?.contactEmail || "hello@nabome.online"}</p>
               <p>{settings?.contactPhone || "+91 1800 123 4567"}</p>
             </div>
           </div>}

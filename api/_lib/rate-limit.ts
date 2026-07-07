@@ -77,10 +77,9 @@ export async function checkRateLimit(
 
     entry.count += 1;
     // Allow a small grace window (10% of max) to account for KV eventual consistency
-    const effectiveMax = config.maxRequests + Math.ceil(config.maxRequests * 0.1);
     const remaining = Math.max(0, config.maxRequests - entry.count);
 
-    if (entry.count > effectiveMax) {
+    if (entry.count > config.maxRequests) {
       return { allowed: false, remaining: 0, resetAt: entry.resetAt };
     }
 

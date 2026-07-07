@@ -117,8 +117,9 @@ export default function MediaLibrary() {
         // uploadFile already creates a mediaAsset record via the backend /upload endpoint,
         // so we don't call createMedia again to avoid duplicate records.
         completed++;
-      } catch {
+      } catch (err) {
         failed++;
+        console.warn("Upload failed:", err);
       }
     }
     setUploading(false);
@@ -248,7 +249,7 @@ export default function MediaLibrary() {
             <p className="text-sm text-neutral-500">
               <span className="font-medium text-neutral-600">Click to browse</span> or drag & drop files here
             </p>
-            <p className="text-xs text-neutral-400 mt-1">Images, Videos, PDF — up to 50MB each</p>
+            <p className="text-xs text-neutral-400 mt-1">Images, Videos, PDF — up to 20MB each</p>
           </div>
         )}
       </div>

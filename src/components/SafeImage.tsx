@@ -32,6 +32,8 @@ export function SafeImage({
   showSkeleton = true,
   premium = false,
   className = "",
+  onLoad: externalOnLoad,
+  onError: externalOnError,
   ...props
 }: SafeImageProps) {
   const [failed, setFailed] = useState(false);
@@ -44,14 +46,20 @@ export function SafeImage({
     setRetryCount(0);
   }, [src]);
 
-  const handleError = useCallback(() => {
+  const handleError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    externalOnError?.(e);
     if (retryCount < MAX_RETRIES) {
       setRetryCount((c) => c + 1);
       setLoaded(false);
     } else {
       setFailed(true);
     }
-  }, [retryCount]);
+  }, [retryCount, externalOnError]);
+
+  const handleLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    externalOnLoad?.(e);
+    setLoaded(true);
+  }, [externalOnLoad]);
 
   const effectiveFallback = premium ? PREMIUM_FALLBACK_GRADIENT : fallback;
 
@@ -71,7 +79,10 @@ export function SafeImage({
 
   const retrySuffix = retryCount > 0 ? `&_retry=${retryCount}` : "";
 
-  if (responsive && src.includes("res.cloudinary.com")) {
+  const isCloudinaryImg = src.includes("res.cloudinary.com");
+  const crossOriginAttr = isCloudinaryImg ? "anonymous" as const : undefined;
+
+  if (responsive && (isCloudinaryImg || src.includes("images.unsplash.com"))) {
     const result = imgSet(src);
     if ("srcSet" in result) {
       return (
@@ -86,8 +97,9 @@ export function SafeImage({
             alt={alt}
             loading={loadingAttr}
             fetchPriority={fetchPriorityAttr}
+            crossOrigin={crossOriginAttr}
             onError={handleError}
-            onLoad={() => setLoaded(true)}
+            onLoad={handleLoad}
             className={className}
             style={{ opacity: loaded ? 1 : 0, transition: "opacity 0.3s ease-in-out" }}
             {...props}
@@ -98,6 +110,8 @@ export function SafeImage({
   }
 
   const finalSrc = useTransform ? img(src, transformWidth ? { width: transformWidth } : {}) : src;
+  const finalIsCloudinary = finalSrc.includes("res.cloudinary.com");
+  const finalCrossOrigin = finalIsCloudinary ? "anonymous" as const : undefined;
 
   return (
     <>
@@ -109,8 +123,9 @@ export function SafeImage({
         alt={alt}
         loading={loadingAttr}
         fetchPriority={fetchPriorityAttr}
+        crossOrigin={finalCrossOrigin}
         onError={handleError}
-        onLoad={() => setLoaded(true)}
+        onLoad={handleLoad}
         className={className}
         style={{ opacity: loaded ? 1 : 0, transition: "opacity 0.3s ease-in-out" }}
         {...props}

@@ -69,6 +69,57 @@ async function main() {
 
   let totalFixed = 0;
 
+  // Debug: Check what URLs exist in the database
+  const sampleImages = await prisma.productImage.findMany({ take: 10 });
+  console.log("🔍 Sample product image URLs:", sampleImages.map(img => img.url));
+  console.log("🔍 Database URL:", process.env.DATABASE_URL?.substring(0, 30) + "...");
+  
+  // Debug: Check products with primary images
+  const productsWithImages = await prisma.product.findMany({
+    select: {
+      id: true,
+      name: true,
+      images: {
+        where: { isPrimary: true },
+        take: 1,
+      },
+    },
+    take: 5,
+  });
+  console.log("🔍 Products with primary images:", productsWithImages.map(p => ({ name: p.name, hasPrimaryImage: p.images.length > 0, imageUrl: p.images[0]?.url })));
+  
+  // Debug: Check if images have isPrimary flag set correctly
+  const allImages = await prisma.productImage.findMany({ take: 20 });
+  const primaryCount = allImages.filter(img => img.isPrimary).length;
+  console.log(`🔍 Total images checked: ${allImages.length}, Primary images: ${primaryCount}`);
+  console.log("🔍 Image sample with flags:", allImages.slice(0, 5).map(img => ({ url: img.url, isPrimary: img.isPrimary })));
+  
+  // Fix: Ensure each product has at least one primary image
+  console.log("🔧 Ensuring each product has a primary image...");
+  const allProducts = await prisma.product.findMany({
+    select: { id: true, name: true },
+  });
+  
+  for (const product of allProducts) {
+    const productImages = await prisma.productImage.findMany({
+      where: { productId: product.id },
+      orderBy: { sortOrder: 'asc' },
+    });
+    
+    if (productImages.length > 0) {
+      const hasPrimary = productImages.some(img => img.isPrimary);
+      if (!hasPrimary) {
+        // Mark the first image as primary
+        await prisma.productImage.update({
+          where: { id: productImages[0].id },
+          data: { isPrimary: true },
+        });
+        console.log(`✅ Set primary image for product: ${product.name}`);
+        totalFixed++;
+      }
+    }
+  }
+
   // Fix Product Images
   const productImages = await prisma.productImage.findMany();
   for (const image of productImages) {

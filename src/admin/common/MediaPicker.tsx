@@ -51,8 +51,10 @@ export function MediaPicker({
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) doUpload(file);
+    const files = Array.from(e.dataTransfer.files ?? []);
+    for (const file of files) {
+      if (file) doUpload(file);
+    }
   }, [doUpload]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {

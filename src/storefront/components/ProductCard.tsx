@@ -121,7 +121,7 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
     <motion.div
       initial={prefersReducedMotion ? undefined : { opacity: 0 }} animate={{ opacity: 1 }}
       viewport={{ once: true }}
-      className="product-card group relative"
+      className="product-card group relative flex flex-col h-full"
     >
       <Link to={`/products/${slug}`} className="block md:aspect-[3/4] aspect-[3/4] bg-luxe-ivory overflow-hidden relative" style={{ touchAction: 'manipulation' }}>
         {!imageLoaded && !imageError && <div className="absolute inset-0 bg-luxe-ivory animate-pulse" />}
@@ -158,17 +158,17 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
 
         {/* Badges — premium editorial style */}
         {discount > 0 && (
-          <span className="absolute top-3 left-3 md:top-4 md:left-4 text-[10px] tracking-[0.15em] uppercase font-medium bg-accent-gold text-white px-3 py-1.5 shadow-gold-soft">
+          <span className="absolute top-2.5 left-2.5 md:top-4 md:left-4 text-[9px] md:text-[10px] tracking-[0.15em] uppercase font-medium bg-accent-gold/95 backdrop-blur-sm text-white px-2.5 py-1 md:px-3 md:py-1.5 shadow-gold-soft z-10">
             {discount}% OFF
           </span>
         )}
         {isNew && !discount && (
-          <span className="absolute top-3 left-3 md:top-4 md:left-4 text-[10px] tracking-[0.15em] uppercase font-medium bg-neutral-900 text-white px-3 py-1.5">
+          <span className="absolute top-2.5 left-2.5 md:top-4 md:left-4 text-[9px] md:text-[10px] tracking-[0.15em] uppercase font-medium bg-neutral-900/95 backdrop-blur-sm text-white px-2.5 py-1 md:px-3 md:py-1.5 z-10">
             New
           </span>
         )}
         {labels.length > 0 && !discount && !isNew && (
-          <span className="absolute top-3 left-3 md:top-4 md:left-4 text-[10px] tracking-[0.15em] uppercase font-medium bg-neutral-900 text-white px-3 py-1.5">
+          <span className="absolute top-2.5 left-2.5 md:top-4 md:left-4 text-[9px] md:text-[10px] tracking-[0.15em] uppercase font-medium bg-neutral-900/95 backdrop-blur-sm text-white px-2.5 py-1 md:px-3 md:py-1.5 z-10">
             {labels[0].label.name}
           </span>
         )}
@@ -199,8 +199,8 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
         </div>
 
         {/* Mobile: wishlist heart only — clean minimal overlay */}
-        <div className="md:hidden absolute top-3 right-3">
-          <button onClick={handleToggleWishlist} className={cn("w-11 h-11 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white hover:shadow-subtle transition-all duration-200", inWishlist ? "text-red-500" : "text-neutral-600")} aria-label="Toggle wishlist">
+        <div className="md:hidden absolute top-2.5 right-2.5 z-20">
+          <button onClick={handleToggleWishlist} className={cn("w-10 h-10 bg-white/95 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg hover:bg-white hover:shadow-xl transition-all duration-200 border border-white/20", inWishlist ? "text-red-500" : "text-neutral-700")} aria-label="Toggle wishlist">
             <AnimatePresence mode="wait">
               {inWishlist ? (
                 prefersReducedMotion ? (
@@ -225,11 +225,13 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
       </Link>
 
       {/* Desktop: clean product info — refined spacing */}
-      <div className="md:pt-4 md:pb-0 pt-3 pb-1 px-3 md:px-0">
+      <div className="md:pt-4 md:pb-0 pt-3.5 pb-2 px-3 md:px-0">
         {/* Desktop: gender label above name */}
         {gender && <p className="hidden md:block text-[10px] tracking-[0.15em] uppercase text-neutral-400 mb-1">{gender}</p>}
-        <Link to={`/products/${slug}`} className="block md:text-sm text-body-sm md:font-medium font-medium text-neutral-900 hover:text-brand-600 transition-colors truncate md:tracking-wide">{name}</Link>
-        <PriceDisplay price={price} compareAtPrice={compareAtPrice} size="sm" className="mt-1" />
+        {/* Mobile: gender label above name */}
+        {gender && <p className="md:hidden text-[9px] tracking-[0.12em] uppercase text-neutral-500 mb-1">{gender}</p>}
+        <Link to={`/products/${slug}`} className="block md:text-sm text-sm md:font-medium font-semibold text-neutral-900 hover:text-brand-600 transition-colors line-clamp-2 md:line-clamp-1 md:tracking-wide leading-snug">{name}</Link>
+        <PriceDisplay price={price} compareAtPrice={compareAtPrice} size="sm" className="mt-1.5" />
 
         {/* Desktop: color swatches below name */}
         {colorEntries.length > 1 && (
@@ -269,28 +271,28 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
       </div>
 
       {/* Mobile: premium add to cart button */}
-      <div className="md:hidden px-3 pb-4 pt-2">
+      <div className="md:hidden px-3 pb-4 pt-2.5">
         <button
           onClick={handleAddToCart}
           disabled={!defaultVariant}
           className={cn(
-            "w-full py-3 text-caption uppercase tracking-wider font-medium flex items-center justify-center gap-2 transition-all duration-300 ease-luxe-out rounded-sm",
+            "w-full py-3 text-[11px] uppercase tracking-[0.18em] font-semibold flex items-center justify-center gap-2 transition-all duration-300 ease-luxe-out rounded-sm shadow-md hover:shadow-lg",
             justAdded === defaultVariant?.id
               ? "bg-green-600 text-white opacity-100 translate-y-0"
-              : "bg-neutral-900 text-white hover:bg-accent-gold",
+              : "bg-neutral-900 text-white hover:bg-neutral-800",
             !defaultVariant && "hidden"
           )}
         >
           {justAdded === defaultVariant?.id ? (
             <>
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               Added
             </>
           ) : (
             <>
-              <ShoppingBag className="w-3.5 h-3.5" /> Add to Cart
+              <ShoppingBag className="w-4 h-4" /> Add to Cart
             </>
           )}
         </button>

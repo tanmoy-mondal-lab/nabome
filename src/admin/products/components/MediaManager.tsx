@@ -72,8 +72,10 @@ export function MediaManager({
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) addImage(file);
+    const files = Array.from(e.dataTransfer.files ?? []);
+    for (const file of files) {
+      if (file && file.type.startsWith("image/")) addImage(file);
+    }
   }
 
   function setPrimary(idx: number) {

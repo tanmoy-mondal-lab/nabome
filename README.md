@@ -165,6 +165,20 @@ echo 'value' | npx wrangler pages secret put SECRET_NAME --project-name=nabome
 
 ### Changelog
 
+#### 2026-07-07 (CSP RUM Fix + Unsplash ORB Fix + Cloudinary Fetch Proxy)
+
+- **CSP connect-src**: Added `https://cloudflareinsights.com` (without dash) to `connect-src` directive. The Cloudflare RUM beacon at `/cdn-cgi/rum` connects to `cloudflareinsights.com` (no dash), which was missing from the CSP — this caused `ERR_BLOCKED_BY_ORB` console errors on all pages. The domain is distinct from the already-allowed `cloudflare-insights.com` (with dash).
+- **Unsplash ORB fix**: Modified `img()` in `src/lib/seo.ts` to proxy Unsplash images through Cloudinary fetch. Unsplash URLs (`images.unsplash.com`) now go through `res.cloudinary.com/dmzbh87bi/image/fetch/...` which fixes `ERR_BLOCKED_BY_ORB` browser errors, adds automatic format optimization (`f_auto`, `q_auto`), and caches images on Cloudinary CDN.
+- **SafeImage `crossOrigin`**: Added `crossOrigin="anonymous"` attribute to `<img>` elements for Cloudinary-served images (both upload and fetch URLs) to improve CORS behavior and prevent opaque response blocking.
+- **SafeImage responsive Unsplash**: Extended responsive srcSet generation (`imgSet()`) to support Unsplash images proxied through Cloudinary fetch, enabling responsive image loading for all image sources.
+- **Image sources**: Updated README Image & Video Assets section to reflect Cloudinary fetch proxy for all images.
+
+#### 2026-07-07 (SafeImage onLoad/onError Fix + Email Fix)
+
+- **SafeImage Component**: Fixed critical bug where `{...props}` spread on the `<img>` element overrode internal `onLoad`/`onError` handlers when parent components passed these callbacks (e.g., ProductCard, CartDrawer). The `onLoad`/`onError` props are now destructured from the component signature, and external callbacks are composed with internal retry/loading logic. Previously, the skeleton loader would never hide and retry logic would be bypassed when external handlers were provided.
+- **Footer Email**: Fixed non-ASCII email domain `hello@নবME.com` → `hello@nabome.online`. The Bangla-script domain in the contact email is not supported by most mail servers and could cause deliverability issues.
+- **seo.ts**: Wrapped `console.warn("Invalid SITE_URL, using default")` in `import.meta.env.DEV` guard to prevent console noise in production.
+
 #### 2026-07-07 (Console Error Cleanup)
 
 - **Console Error Removal**: Removed all `console.error`, `console.warn`, and `console.log` statements from production code to eliminate console noise and improve performance. All errors are now handled silently with appropriate fallbacks or returned as error responses to clients.
@@ -222,7 +236,7 @@ echo 'value' | npx wrangler pages secret put SECRET_NAME --project-name=nabome
 - **Collections page**: Defensive `Array.isArray` guards in `CollectionsIndexPage` prevent `s.map is not a function` crash when API returns unexpected shape.
 - **Trending search**: Added `GET /api/search/trending` endpoint (returns curated trending terms) — eliminates 404 noise from SearchOverlay.
 
-Updated: 2026-07-06
+Updated: 2026-07-07
 
 ---
 
@@ -230,21 +244,23 @@ Updated: 2026-07-06
 
 ### Current Image Sources
 
-- **Product Images**: Unsplash (via seed data) - working URLs
-- **Category Images**: Unsplash (via seed data) - working URLs  
-- **Collection Images**: Unsplash (via seed data) - working URLs
-- **Hero Banners**: Unsplash (via seed data) - working URLs
-- **Brand Logo**: Unsplash (via seed data) - working URL
+- **Product Images**: Cloudinary fetch proxy (Unspash-originated seed data proxied through Cloudinary)
+- **Category Images**: Cloudinary fetch proxy (Unspash-originated seed data proxied through Cloudinary)
+- **Collection Images**: Cloudinary fetch proxy (Unspash-originated seed data proxied through Cloudinary)
+- **Hero Banners**: Cloudinary fetch proxy (Unspash-originated seed data proxied through Cloudinary)
+- **Brand Logo**: Cloudinary fetch proxy (Unspash-originated seed data proxied through Cloudinary)
+- **Admin Uploads**: Cloudinary upload API (production images uploaded via admin panel)
 
 ### CSP Configuration
 
 The Content-Security-Policy is configured to allow loading from:
-- `https://images.unsplash.com` - Unsplash image CDN
-- `https://res.cloudinary.com` - Cloudinary media CDN
+- `https://res.cloudinary.com` - Cloudinary media CDN (primary, serves all images via upload + fetch)
+- `https://images.unsplash.com` - Unspash image CDN (fallback CSP allow, proxied through Cloudinary)
 - `https://fonts.googleapis.com` - Google Fonts
 - `https://fonts.gstatic.com` - Google Fonts static assets
 - `https://www.googletagmanager.com` - Google Analytics
 - `https://checkout.razorpay.com` - Razorpay payment gateway
+- `https://cloudflareinsights.com` - Cloudflare RUM beacon (connect-src)
 
 ### Mobile/Desktop Compatibility
 

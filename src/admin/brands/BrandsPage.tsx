@@ -31,6 +31,7 @@ export default function BrandsPage() {
   const [showModal, setShowModal] = useState(false);
   const [edit, setEdit] = useState<Brand | null>(null);
   const [form, setForm] = useState(defaultForm);
+  const [confirmDelete, setConfirmDelete] = useState<Brand | null>(null);
 
   const { data: brands = [], isLoading: loading, error: queryError } = useQuery<Brand[]>({
     queryKey: ["admin", "brands"],
@@ -104,8 +105,10 @@ export default function BrandsPage() {
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search brands..." className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
       </div>
 
-      {filtered.length === 0 && !loading ? <EmptyState title="No brands found" description="Add your first brand to get started." action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 text-sm rounded-lg transition-colors">Add Brand</button>} />
-        : <DataTable columns={[
+      {filtered.length === 0 && !loading ? (
+        <EmptyState title="No brands found" description="Add your first brand to get started." action={<button onClick={openCreate} className="bg-neutral-900 text-white px-4 py-2 text-sm rounded-lg transition-colors">Add Brand</button>} />
+      ) : (
+        <DataTable columns={[
           { key: "name", label: "Name", sortable: true },
           { key: "slug", label: "Slug" },
           { key: "description", label: "Description" },
@@ -114,8 +117,18 @@ export default function BrandsPage() {
           { key: "_count", label: "Products", render: (item) => <span className="text-xs bg-neutral-100 px-2 py-1 rounded">{((item as Brand)._count?.products ?? 0)}</span> },
           { key: "isActive", label: "Status", render: (item) => { const b = item as Brand; return <span className={`text-xs px-2 py-1 rounded ${b.isActive ? "bg-green-100 text-green-700" : "bg-neutral-100 text-neutral-500"}`}>{b.isActive ? "Active" : "Archived"}</span>; } },
         ]} data={filtered.map((b) => ({ ...b, _count: b._count ?? { products: 0 } }))} isLoading={loading} onRowClick={(row) => openEdit(row as Brand)} actions={(row) => <><button onClick={(e) => { e.stopPropagation(); openEdit(row as Brand); }} className="p-1.5 text-neutral-400 hover:text-neutral-600"><Edit3 className="w-4 h-4" /></button>
-          <button onClick={(e) => { e.stopPropagation(); deleteMutation.mutate((row as Brand).id); }} className="p-1.5 text-neutral-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
-        </>} />}
+          <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(row as Brand); }} className="p-1.5 text-neutral-400 hover:text-red-500"><Trash2 className="w-4 h-4" /></button>
+        </>} />
+      )}
+      {confirmDelete && (
+        <Modal open={true} title="Delete Brand" onClose={() => setConfirmDelete(null)}>
+          <p className="text-sm text-neutral-600">Are you sure you want to delete "{confirmDelete.name}"? This action cannot be undone.</p>
+          <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+            <button onClick={() => setConfirmDelete(null)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors">Cancel</button>
+            <button onClick={() => { deleteMutation.mutate(confirmDelete.id); setConfirmDelete(null); }} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">Delete</button>
+          </div>
+        </Modal>
+      )}
 
       <Modal open={showModal} title={edit ? "Edit Brand" : "Create Brand"} onClose={() => setShowModal(false)}>
         <div className="space-y-4">

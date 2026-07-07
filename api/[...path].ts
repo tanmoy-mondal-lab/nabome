@@ -289,6 +289,7 @@ route("POST", "/api/admin/products/import", (req, ctx) => handleAdminImportExpor
 route("GET", "/api/admin/products/:id", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "detail"), { auth: true, admin: true });
 route("PUT", "/api/admin/products/:id", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "update"), { auth: true, admin: true });
 route("DELETE", "/api/admin/products/:id", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "delete"), { auth: true, admin: true });
+route("GET", "/api/admin/products/:id/variants", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "getVariants"), { auth: true, admin: true });
 route("PUT", "/api/admin/products/:id/variants", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "variants"), { auth: true, admin: true });
 route("POST", "/api/admin/products/:id/images", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "addImage"), { auth: true, admin: true });
 route("DELETE", "/api/admin/products/:id/images/:imageId", (req, ctx, p) => handleAdminProductRequest(req, ctx, p, "deleteImage"), { auth: true, admin: true });
@@ -638,8 +639,8 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
     }
     const normalizedPath = path.replace(/\/[a-f0-9-]{20,}/gi, "/:id").replace(/\/\d+/g, "/:id");
     const rateKey = getRateLimitKey(
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-        ?? request.headers.get("cf-connecting-ip")
+      request.headers.get("cf-connecting-ip")
+        ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
         ?? "unknown",
       normalizedPath,
       context.userId,
@@ -666,5 +667,5 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
     }
   }
 
-  return withCors(notFound(`Route not found: ${method} ${path}`), request, path);
+  return withCors(notFound("Not found"), request, path);
 }

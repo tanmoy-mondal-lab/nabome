@@ -22,7 +22,7 @@ export function OfflineIndicator({ className }: OfflineIndicatorProps) {
     } else if (isOnline || isMobile) {
       setShow(false);
     }
-  }, [isOnline, isMobile, notificationShown]);
+  }, [isOnline, isMobile, notificationShown, show]);
 
   if (isOnline || (isMobile && !emergencyMode) || (!show)) {
     return null;

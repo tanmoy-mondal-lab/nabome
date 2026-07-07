@@ -38,6 +38,7 @@ export async function handleAdminProductRequest(
     case "delete": return handleDelete(params[0], req, ctx);
     case "duplicate": return handleDuplicate(params[0], req, ctx);
     case "restore": return handleRestore(params[0], req, ctx);
+    case "getVariants": return handleGetVariants(params[0], ctx.env);
     case "variants": return handleUpdateVariants(params[0], req, ctx.env);
     case "addImage": return handleAddImage(params[0], req, ctx.env);
     case "deleteImage": return handleDeleteImage(params[0], params[1], ctx.env);
@@ -110,7 +111,8 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   const prisma = getPrisma(ctx.env);
   const bodyData = body as Record<string, unknown>;
   const { description, shortDescription, categoryId, subcategoryId, collectionId, brandId, sizeGuideId, currency, scheduledPublishAt, scheduledArchiveAt, metaTitle, metaDesc } = bodyData;
-  const name = bodyData.name as string;
+  let name = bodyData.name as string | undefined;
+  if (typeof name === "string") name = name.trim();
   const basePriceNum = Number(bodyData.basePrice);
   const salePriceNum = bodyData.salePrice != null ? Number(bodyData.salePrice) : null;
   const compareAtPriceNum = bodyData.compareAtPrice != null ? Number(bodyData.compareAtPrice) : null;
@@ -129,9 +131,13 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   if (!name || basePriceNum <= 0 || isNaN(basePriceNum)) {
     return badRequest("Name and base price are required");
   }
+  if (name.length > 300) {
+    return badRequest("Name must be 300 characters or less");
+  }
 
   // Generate unique slug
   let slug = slugify(name);
+  if (!slug) slug = `product-${Date.now().toString(36)}`;
   const existing = await prisma.product.findUnique({ where: { slug } });
   if (existing) {
     slug = `${slug}-${Date.now().toString(36)}`;
@@ -230,6 +236,7 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
       "categoryId", "subcategoryId", "collectionId", "brandId", "sizeGuideId",
       "sizeChartUrl", "sizeChartPublicId", "material", "careInstructions", "metaTitle", "metaDesc",
       "scheduledPublishAt", "scheduledArchiveAt",
+      "description", "shortDescription",
     ];
 
     for (const field of updatableFields) {
@@ -238,15 +245,22 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
       }
     }
 
-    if (body.slug && body.slug !== existing.slug) {
-      let slug = slugify(body.slug as string);
+    if (body.name !== undefined) {
+      const trimmed = typeof body.name === "string" ? body.name.trim() : "";
+      if (!trimmed) return badRequest("Product name is required");
+      if (trimmed.length > 300) return badRequest("Name must be 300 characters or less");
+      data.name = trimmed;
+    }
+    if (body.name !== undefined && body.name !== existing.name) {
+      let slug = slugify(typeof body.name === "string" ? body.name.trim() : "");
+      if (!slug) slug = `product-${Date.now().toString(36)}`;
       const slugExists = await prisma.product.findFirst({
         where: { slug, id: { not: productId } },
       });
       if (slugExists) slug = `${slug}-${Date.now().toString(36)}`;
       data.slug = slug;
-    } else if (body.name && body.name !== existing.name) {
-      let slug = slugify(body.name as string);
+    } else if (body.slug && body.slug !== existing.slug) {
+      let slug = slugify(body.slug as string);
       const slugExists = await prisma.product.findFirst({
         where: { slug, id: { not: productId } },
       });
@@ -309,6 +323,23 @@ async function handleDelete(productId: string, req: Request, ctx: RequestContext
   }
 }
 
+async function handleGetVariants(productId: string, env: any): Promise<Response> {
+  try {
+    const prisma = getPrisma(env);
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      select: {
+        variants: {
+          include: { images: { orderBy: { sortOrder: "asc" as const } } },
+          orderBy: { createdAt: "asc" as const },
+        },
+      },
+    });
+    if (!product) return notFound("Product not found");
+    return success({ variants: product.variants });
+  } catch (err) { return serverError(err); }
+}
+
 async function handleUpdateVariants(productId: string, req: Request, env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
@@ -366,7 +397,7 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
       const removedImageIds = removedImages.filter((img) => img.type !== "video").map((img) => img.publicId).filter(Boolean) as string[];
       const removedVideoIdsFromImages = removedImages.filter((img) => img.type === "video").map((img) => img.publicId).filter(Boolean) as string[];
       if (removedImageIds.length > 0) {
-        await destroyCloudinaryAssets(removedImageIds);
+        await destroyCloudinaryAssets(removedImageIds, env);
       }
       if (removedVideoIdsFromImages.length > 0) {
         await destroyCloudinaryAssets(removedVideoIdsFromImages, env, "video");
@@ -720,7 +751,7 @@ async function handlePermanentDelete(productId: string, req: Request, ctx: Reque
     const imageIds = images.filter((i) => i.type !== "video").map((i) => i.publicId).filter(Boolean) as string[];
     const videoIds = images.filter((i) => i.type === "video").map((i) => i.publicId).filter(Boolean) as string[];
     if (imageIds.length > 0) {
-      await destroyCloudinaryAssets(imageIds);
+      await destroyCloudinaryAssets(imageIds, ctx.env);
     }
     if (videoIds.length > 0) {
       await destroyCloudinaryAssets(videoIds, ctx.env, "video");
@@ -767,7 +798,7 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Pro
     const imageIds = images.filter((i) => i.type !== "video").map((i) => i.publicId).filter(Boolean) as string[];
     const videoIds = images.filter((i) => i.type === "video").map((i) => i.publicId).filter(Boolean) as string[];
     if (imageIds.length > 0) {
-      await destroyCloudinaryAssets(imageIds);
+      await destroyCloudinaryAssets(imageIds, ctx.env);
     }
     if (videoIds.length > 0) {
       await destroyCloudinaryAssets(videoIds, ctx.env, "video");
