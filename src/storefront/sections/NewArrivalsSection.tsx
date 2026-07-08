@@ -71,7 +71,9 @@ export default function NewArrivalsSection({ section }: NewArrivalsSectionProps)
             <span>&rarr;</span>
           </Link>
         </motion.div>
-        <ProductGrid products={products} columns={4} />
+        <div className="md:text-inherit [&_.text-neutral-900]:text-white md:[&_.text-neutral-900]:text-neutral-900 [&_.text-neutral-500]:text-neutral-400 md:[&_.text-neutral-500]:text-neutral-500 [&_.text-neutral-400]:text-neutral-500 md:[&_.text-neutral-400]:text-neutral-400">
+          <ProductGrid products={products} columns={4} />
+        </div>
         <div className="mt-8 text-center md:hidden">
           <Link
             to="/products?sort=newest"

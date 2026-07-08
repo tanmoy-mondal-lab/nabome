@@ -33,9 +33,6 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           if (id.includes("node_modules")) {
-            if (id.includes("react") || id.includes("react-dom") || id.includes("react-router")) {
-              return "vendor-react";
-            }
             if (id.includes("zustand") || id.includes("@tanstack/react-query")) {
               return "vendor-state";
             }
@@ -45,7 +42,7 @@ export default defineConfig({
             if (id.includes("zod")) {
               return "vendor-validation";
             }
-            return "vendor";
+            return "vendor-core";
           }
         },
         chunkFileNames: "assets/[name]-[hash].js",

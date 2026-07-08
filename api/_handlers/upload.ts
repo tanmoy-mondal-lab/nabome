@@ -6,38 +6,34 @@ import { getPrisma } from "../_lib/prisma";
 import { destroyCloudinaryAsset } from "../_lib/cloudinary";
 import type { CloudinaryResourceType } from "../_lib/cloudinary";
 
-const ALLOWED_TYPES: Record<string, { type: "image" | "video" | "document"; resourceType: CloudinaryResourceType; magicBytes: number[] }> = {
-  "image/jpeg": { type: "image", resourceType: "image", magicBytes: [0xFF, 0xD8, 0xFF] },
-  "image/png": { type: "image", resourceType: "image", magicBytes: [0x89, 0x50, 0x4E, 0x47] },
-  "image/webp": { type: "image", resourceType: "image", magicBytes: [0x52, 0x49, 0x46, 0x46] },
-  "image/avif": { type: "image", resourceType: "image", magicBytes: [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70] },
-  "image/gif": { type: "image", resourceType: "image", magicBytes: [0x47, 0x49, 0x46, 0x38] },
-  "image/bmp": { type: "image", resourceType: "image", magicBytes: [0x42, 0x4D] },
-  "image/tiff": { type: "image", resourceType: "image", magicBytes: [0x49, 0x49, 0x2A, 0x00] },
-  "video/mp4": { type: "video", resourceType: "video", magicBytes: [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70] },
-  "video/webm": { type: "video", resourceType: "video", magicBytes: [0x1A, 0x45, 0xDF, 0xA3] },
-  "video/quicktime": { type: "video", resourceType: "video", magicBytes: [0x00, 0x00, 0x00, 0x14, 0x66, 0x74, 0x79, 0x70] },
-  "video/x-msvideo": { type: "video", resourceType: "video", magicBytes: [0x52, 0x49, 0x46, 0x46] },
-  "video/x-matroska": { type: "video", resourceType: "video", magicBytes: [0x1A, 0x45, 0xDF, 0xA3] },
-  "application/pdf": { type: "document", resourceType: "raw", magicBytes: [0x25, 0x50, 0x44, 0x46] },
+const FTYP_MARKER = [0x66, 0x74, 0x79, 0x70]; // "ftyp" at bytes 4-7
+
+const ALLOWED_TYPES: Record<string, { type: "image" | "video" | "document"; resourceType: CloudinaryResourceType; validate: (bytes: Uint8Array) => boolean }> = {
+  "image/jpeg": { type: "image", resourceType: "image", validate: (b) => b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF },
+  "image/png": { type: "image", resourceType: "image", validate: (b) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47 },
+  "image/webp": { type: "image", resourceType: "image", validate: (b) => b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50 },
+  "image/avif": { type: "image", resourceType: "image", validate: (b) => b[4] === FTYP_MARKER[0] && b[5] === FTYP_MARKER[1] && b[6] === FTYP_MARKER[2] && b[7] === FTYP_MARKER[3] },
+  "image/gif": { type: "image", resourceType: "image", validate: (b) => b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38 },
+  "image/bmp": { type: "image", resourceType: "image", validate: (b) => b[0] === 0x42 && b[1] === 0x4D },
+  "image/tiff": { type: "image", resourceType: "image", validate: (b) => (b[0] === 0x49 && b[1] === 0x49 && b[2] === 0x2A && b[3] === 0x00) || (b[0] === 0x4D && b[1] === 0x4D && b[2] === 0x00 && b[3] === 0x2A) },
+  "video/mp4": { type: "video", resourceType: "video", validate: (b) => b[4] === FTYP_MARKER[0] && b[5] === FTYP_MARKER[1] && b[6] === FTYP_MARKER[2] && b[7] === FTYP_MARKER[3] },
+  "video/webm": { type: "video", resourceType: "video", validate: (b) => b[0] === 0x1A && b[1] === 0x45 && b[2] === 0xDF && b[3] === 0xA3 },
+  "video/quicktime": { type: "video", resourceType: "video", validate: (b) => b[4] === FTYP_MARKER[0] && b[5] === FTYP_MARKER[1] && b[6] === FTYP_MARKER[2] && b[7] === FTYP_MARKER[3] },
+  "video/x-msvideo": { type: "video", resourceType: "video", validate: (b) => b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 },
+  "video/x-matroska": { type: "video", resourceType: "video", validate: (b) => b[0] === 0x1A && b[1] === 0x45 && b[2] === 0xDF && b[3] === 0xA3 },
+  "application/pdf": { type: "document", resourceType: "raw", validate: (b) => b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46 },
 };
 
-const MAX_SIZE = 5 * 1024 * 1024;
+const MAX_SIZE = 20 * 1024 * 1024;
 
 /**
  * Validates file content using magic bytes (file signature)
  * This prevents file type spoofing attacks
  */
-async function validateMagicBytes(file: File, expectedMagicBytes: number[]): Promise<boolean> {
-  const buffer = await file.slice(0, Math.max(8, expectedMagicBytes.length)).arrayBuffer();
+async function validateFileContent(file: File, validate: (bytes: Uint8Array) => boolean): Promise<boolean> {
+  const buffer = await file.slice(0, 12).arrayBuffer();
   const bytes = new Uint8Array(buffer);
-  
-  for (let i = 0; i < expectedMagicBytes.length; i++) {
-    if (bytes[i] !== expectedMagicBytes[i]) {
-      return false;
-    }
-  }
-  return true;
+  return validate(bytes);
 }
 
 /**
@@ -115,8 +111,8 @@ async function doUpload(req: Request, ctx: RequestContext, folderPrefix: string)
     }
 
     // Validate file content using magic bytes to prevent type spoofing
-    const isValidMagicBytes = await validateMagicBytes(file, fileInfo.magicBytes);
-    if (!isValidMagicBytes) {
+    const isValidContent = await validateFileContent(file, fileInfo.validate);
+    if (!isValidContent) {
       return badRequest(`File content does not match declared type. Possible file type spoofing detected.`);
     }
 

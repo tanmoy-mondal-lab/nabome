@@ -386,22 +386,7 @@ export default function ProductDetailPage() {
           </motion.div>
         </div>
 
-        {/* Mobile Sticky CTA Bar */}
-        <div className="md:hidden fixed bottom-[calc(60px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-30 bg-white border-t border-neutral-100 p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-neutral-900 truncate">{product.name as string}</p>
-              <p className="text-lg font-semibold text-brand-600">{formatPrice(variantPrice)}</p>
-            </div>
-            <button
-              onClick={handleAddToCart}
-              disabled={!selectedSize || !selectedColor}
-              className="bg-neutral-900 text-white px-8 py-3 text-sm uppercase tracking-wider font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Add to Cart
-            </button>
-          </div>
-        </div>
+
 
         <div className="mt-20 lg:mt-28">
           <div className="border-b border-neutral-200">
