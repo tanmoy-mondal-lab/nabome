@@ -89,8 +89,8 @@ describe('emailSchema', () => {
 });
 
 describe('passwordSchema', () => {
-  it('should accept valid password', () => {
-    expect(passwordSchema.safeParse('password123').success).toBe(true);
+  it('should accept valid password with all requirements', () => {
+    expect(passwordSchema.safeParse('Password123!').success).toBe(true);
   });
 
   it('should reject short password', () => {
@@ -99,6 +99,34 @@ describe('passwordSchema', () => {
 
   it('should reject long password', () => {
     expect(passwordSchema.safeParse('x'.repeat(129)).success).toBe(false);
+  });
+
+  it('should reject password without lowercase letter', () => {
+    expect(passwordSchema.safeParse('PASSWORD123!').success).toBe(false);
+  });
+
+  it('should reject password without uppercase letter', () => {
+    expect(passwordSchema.safeParse('password123!').success).toBe(false);
+  });
+
+  it('should reject password without number', () => {
+    expect(passwordSchema.safeParse('Password!').success).toBe(false);
+  });
+
+  it('should reject password without special character', () => {
+    expect(passwordSchema.safeParse('Password123').success).toBe(false);
+  });
+
+  it('should reject password with only lowercase', () => {
+    expect(passwordSchema.safeParse('password').success).toBe(false);
+  });
+
+  it('should accept password with various special characters', () => {
+    expect(passwordSchema.safeParse('Password123!').success).toBe(true);
+    expect(passwordSchema.safeParse('Password123@').success).toBe(true);
+    expect(passwordSchema.safeParse('Password123#').success).toBe(true);
+    expect(passwordSchema.safeParse('Password123$').success).toBe(true);
+    expect(passwordSchema.safeParse('Password123%').success).toBe(true);
   });
 });
 
@@ -153,7 +181,7 @@ describe('authRegisterSchema', () => {
   it('should accept valid registration', () => {
     const result = authRegisterSchema.safeParse({
       email: 'test@example.com',
-      password: 'password123',
+      password: 'Password123!',
       firstName: 'John',
     });
     expect(result.success).toBe(true);
@@ -162,7 +190,7 @@ describe('authRegisterSchema', () => {
   it('should reject invalid email', () => {
     const result = authRegisterSchema.safeParse({
       email: 'bad',
-      password: 'password123',
+      password: 'Password123!',
       firstName: 'John',
     });
     expect(result.success).toBe(false);
@@ -171,7 +199,7 @@ describe('authRegisterSchema', () => {
   it('should accept optional fields', () => {
     const result = authRegisterSchema.safeParse({
       email: 'test@example.com',
-      password: 'password123',
+      password: 'Password123!',
       firstName: 'John',
       lastName: 'Doe',
       phone: '9876543210',

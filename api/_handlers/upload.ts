@@ -6,32 +6,84 @@ import { getPrisma } from "../_lib/prisma";
 import { destroyCloudinaryAsset } from "../_lib/cloudinary";
 import type { CloudinaryResourceType } from "../_lib/cloudinary";
 
-const ALLOWED_TYPES: Record<string, { type: "image" | "video" | "document"; resourceType: CloudinaryResourceType }> = {
-  "image/jpeg": { type: "image", resourceType: "image" },
-  "image/png": { type: "image", resourceType: "image" },
-  "image/webp": { type: "image", resourceType: "image" },
-  "image/avif": { type: "image", resourceType: "image" },
-  "image/gif": { type: "image", resourceType: "image" },
-  "image/bmp": { type: "image", resourceType: "image" },
-  "image/tiff": { type: "image", resourceType: "image" },
-  "video/mp4": { type: "video", resourceType: "video" },
-  "video/webm": { type: "video", resourceType: "video" },
-  "video/quicktime": { type: "video", resourceType: "video" },
-  "video/x-msvideo": { type: "video", resourceType: "video" },
-  "video/x-matroska": { type: "video", resourceType: "video" },
-  "application/pdf": { type: "document", resourceType: "raw" },
+const ALLOWED_TYPES: Record<string, { type: "image" | "video" | "document"; resourceType: CloudinaryResourceType; magicBytes: number[] }> = {
+  "image/jpeg": { type: "image", resourceType: "image", magicBytes: [0xFF, 0xD8, 0xFF] },
+  "image/png": { type: "image", resourceType: "image", magicBytes: [0x89, 0x50, 0x4E, 0x47] },
+  "image/webp": { type: "image", resourceType: "image", magicBytes: [0x52, 0x49, 0x46, 0x46] },
+  "image/avif": { type: "image", resourceType: "image", magicBytes: [0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70] },
+  "image/gif": { type: "image", resourceType: "image", magicBytes: [0x47, 0x49, 0x46, 0x38] },
+  "image/bmp": { type: "image", resourceType: "image", magicBytes: [0x42, 0x4D] },
+  "image/tiff": { type: "image", resourceType: "image", magicBytes: [0x49, 0x49, 0x2A, 0x00] },
+  "video/mp4": { type: "video", resourceType: "video", magicBytes: [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70] },
+  "video/webm": { type: "video", resourceType: "video", magicBytes: [0x1A, 0x45, 0xDF, 0xA3] },
+  "video/quicktime": { type: "video", resourceType: "video", magicBytes: [0x00, 0x00, 0x00, 0x14, 0x66, 0x74, 0x79, 0x70] },
+  "video/x-msvideo": { type: "video", resourceType: "video", magicBytes: [0x52, 0x49, 0x46, 0x46] },
+  "video/x-matroska": { type: "video", resourceType: "video", magicBytes: [0x1A, 0x45, 0xDF, 0xA3] },
+  "application/pdf": { type: "document", resourceType: "raw", magicBytes: [0x25, 0x50, 0x44, 0x46] },
 };
 
-const MAX_SIZE = 20 * 1024 * 1024;
+const MAX_SIZE = 5 * 1024 * 1024;
 
-export async function handleUploadRequest(
-  req: Request,
-  ctx: RequestContext
-): Promise<Response> {
+/**
+ * Validates file content using magic bytes (file signature)
+ * This prevents file type spoofing attacks
+ */
+async function validateMagicBytes(file: File, expectedMagicBytes: number[]): Promise<boolean> {
+  const buffer = await file.slice(0, Math.max(8, expectedMagicBytes.length)).arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  
+  for (let i = 0; i < expectedMagicBytes.length; i++) {
+    if (bytes[i] !== expectedMagicBytes[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Enhanced filename sanitization to prevent path traversal and injection attacks
+ */
+function sanitizeFilename(filename: string): string {
+  // Remove path traversal attempts
+  let cleaned = filename.replace(/\.\./g, "").replace(/[\/\\]/g, "_");
+  
+  // Remove double extensions
+  cleaned = cleaned
+    .replace(/\.jpeg\.jpg$/i, ".jpeg")
+    .replace(/\.png\.png$/i, ".png")
+    .replace(/\.jpg\.jpg$/i, ".jpg")
+    .replace(/\.gif\.gif$/i, ".gif")
+    .replace(/\.webp\.webp$/i, ".webp")
+    .replace(/\.mp4\.mp4$/i, ".mp4")
+    .replace(/\.pdf\.pdf$/i, ".pdf");
+  
+  // Remove special characters and control characters
+  cleaned = cleaned.replace(/[^\w\-_.]/g, "_");
+  
+  // Limit filename length
+  const maxLength = 100;
+  if (cleaned.length > maxLength) {
+    const ext = cleaned.substring(cleaned.lastIndexOf("."));
+    const nameWithoutExt = cleaned.substring(0, cleaned.lastIndexOf("."));
+    cleaned = nameWithoutExt.substring(0, maxLength - ext.length) + ext;
+  }
+  
+  return cleaned;
+}
+
+export async function handleCustomerUploadRequest(req: Request, ctx: RequestContext): Promise<Response> {
+  if (!ctx.userId) return unauthorized();
+  return doUpload(req, ctx, "customer");
+}
+
+export async function handleUploadRequest(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
   const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
+  return doUpload(req, ctx, "admin");
+}
 
+async function doUpload(req: Request, ctx: RequestContext, folderPrefix: string): Promise<Response> {
   const cloudName = cleanSecret(ctx.env?.CLOUDINARY_CLOUD_NAME);
   const uploadPreset = cleanSecret(ctx.env?.CLOUDINARY_UPLOAD_PRESET);
 
@@ -62,19 +114,19 @@ export async function handleUploadRequest(
       return badRequest(`File too large. Maximum size is ${MAX_SIZE / 1024 / 1024}MB`);
     }
 
+    // Validate file content using magic bytes to prevent type spoofing
+    const isValidMagicBytes = await validateMagicBytes(file, fileInfo.magicBytes);
+    if (!isValidMagicBytes) {
+      return badRequest(`File content does not match declared type. Possible file type spoofing detected.`);
+    }
+
     const cloudinaryFormData = new FormData();
     cloudinaryFormData.append("file", file);
     cloudinaryFormData.append("upload_preset", uploadPreset);
     cloudinaryFormData.append("folder", folder);
 
-    // Strip double extensions from filename (e.g., "photo.jpeg.jpg" → "photo.jpeg")
-    const cleanedName = file.name
-      .replace(/\.jpeg\.jpg$/i, ".jpeg")
-      .replace(/\.png\.png$/i, ".png")
-      .replace(/\.jpg\.jpg$/i, ".jpg")
-      .replace(/\.gif\.gif$/i, ".gif")
-      .replace(/\.webp\.webp$/i, ".webp")
-      .replace(/[^a-zA-Z0-9._-]/g, "_");
+    // Use enhanced filename sanitization
+    const cleanedName = sanitizeFilename(file.name);
     cloudinaryFormData.append("public_id", `${Date.now()}-${cleanedName}`);
 
     const uploadUrl = fileInfo.resourceType === "video"

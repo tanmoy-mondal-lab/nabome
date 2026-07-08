@@ -1,6 +1,7 @@
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, error, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
+import { ErrorCode } from "../_lib/types";
 
 export async function handleAddressRequest(
   req: Request,
@@ -20,7 +21,7 @@ export async function handleAddressRequest(
     case "DELETE":
       return handleDelete(ctx.userId, params[0], ctx.env);
     default:
-      return error("Method not allowed", 405);
+      return error(ErrorCode.INVALID_INPUT, "Method not allowed", 405);
   }
 }
 

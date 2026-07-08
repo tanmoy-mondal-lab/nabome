@@ -4,6 +4,7 @@ import type { RequestContext } from "../_lib/types";
 import { createClient } from "@supabase/supabase-js";
 import type { Env } from "../_lib/env";
 import { cleanSecret } from "../_lib/secrets";
+import { ErrorCode } from "../_lib/types";
 
 function getAdminClient(env?: Env) {
   const url = cleanSecret(env?.SUPABASE_URL) || cleanSecret(env?.VITE_SUPABASE_URL);
@@ -35,7 +36,7 @@ export async function handleDashboardRequest(
     case "profile":
       if (req.method === "GET") return handleGetProfile(ctx, ctx.env);
       if (req.method === "PUT") return handleUpdateProfile(ctx, req, ctx.env);
-      return error("Method not allowed", 405);
+      return error(ErrorCode.INVALID_INPUT, "Method not allowed", 405);
     case "changePassword":
       return handleChangePassword(ctx, req, ctx.env);
     case "orderStats":

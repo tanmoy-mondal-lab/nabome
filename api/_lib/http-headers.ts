@@ -122,3 +122,16 @@ export function renderStaticHeadersFile(): string {
 
   return `${lines.join("\n").replace(/\n$/, "")}\n`;
 }
+
+export function getCompressionHeaders(request: Request): Record<string, string> {
+  const acceptEncoding = request.headers.get("accept-encoding") || "";
+  const headers: Record<string, string> = {};
+  
+  if (acceptEncoding.includes("br")) {
+    headers["Content-Encoding"] = "br";
+  } else if (acceptEncoding.includes("gzip")) {
+    headers["Content-Encoding"] = "gzip";
+  }
+  
+  return headers;
+}

@@ -152,6 +152,7 @@ export default function ProductListingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
+  const [priceRange, setPriceRange] = useState({ min: searchParams.get("minPrice") || "", max: searchParams.get("maxPrice") || "" });
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -213,10 +214,11 @@ export default function ProductListingPage() {
   const color = searchParams.get("color") || "";
   const material = searchParams.get("material") || "";
   const q = searchParams.get("q") || "";
+  const brand = searchParams.get("brand") || "";
 
   const params: Record<string, string | number | undefined> = {
     page, limit: 12, sort, category, subcategory, collection, gender,
-    size, color, material, q: q || undefined,
+    size, color, material, brand, q: q || undefined,
   };
   if (minPrice) params.minPrice = minPrice;
   if (maxPrice) params.maxPrice = maxPrice;
@@ -246,8 +248,33 @@ export default function ProductListingPage() {
     staleTime: 1000 * 60 * 10,
   });
 
+  const { data: brandsData } = useQuery({
+    queryKey: ["brands"],
+    queryFn: () => api.get<{ brands: { id: string; name: string; slug: string }[] }>("/api/brands"),
+    staleTime: 1000 * 60 * 10,
+  });
+
   const categories = categoriesData?.categories ?? [];
   const collections = collectionsData?.collections ?? [];
+  const brands = brandsData?.brands ?? [];
+  const commonSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
+  const commonColors = [
+    { hex: "#000000", name: "Black" },
+    { hex: "#FFFFFF", name: "White" },
+    { hex: "#808080", name: "Grey" },
+    { hex: "#8B4513", name: "Brown" },
+    { hex: "#0000FF", name: "Blue" },
+    { hex: "#FF0000", name: "Red" },
+    { hex: "#008000", name: "Green" },
+    { hex: "#FFC0CB", name: "Pink" },
+    { hex: "#FFA500", name: "Orange" },
+    { hex: "#800080", name: "Purple" },
+    { hex: "#FFD700", name: "Gold" },
+    { hex: "#C0C0C0", name: "Silver" },
+    { hex: "#FFFF00", name: "Yellow" },
+    { hex: "#00FFFF", name: "Teal" },
+    { hex: "#000080", name: "Navy" },
+  ];
 
   function updateParam(key: string, value: string) {
     const next = new URLSearchParams(searchParams);
@@ -263,6 +290,16 @@ export default function ProductListingPage() {
       if (value) next.set(key, value);
       else next.delete(key);
     }
+    next.set("page", "1");
+    setSearchParams(next);
+  }
+
+  function applyPriceRange() {
+    const next = new URLSearchParams(searchParams);
+    if (priceRange.min) next.set("minPrice", priceRange.min);
+    else next.delete("minPrice");
+    if (priceRange.max) next.set("maxPrice", priceRange.max);
+    else next.delete("maxPrice");
     next.set("page", "1");
     setSearchParams(next);
   }
@@ -358,6 +395,30 @@ export default function ProductListingPage() {
               {collection} <X size={11} />
             </button>
           )}
+          {size && (
+            <button onClick={() => updateParam("size", "")}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0">
+              Size: {size} <X size={11} />
+            </button>
+          )}
+          {color && (
+            <button onClick={() => updateParam("color", "")}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0">
+              Color: {color} <X size={11} />
+            </button>
+          )}
+          {brand && (
+            <button onClick={() => updateParam("brand", "")}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0">
+              Brand: {brand} <X size={11} />
+            </button>
+          )}
+          {minPrice && (
+            <button onClick={() => updateParams(["minPrice", ""], ["maxPrice", ""])}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0">
+              {minPrice}{maxPrice ? ` — ₹${maxPrice}` : "+"} <X size={11} />
+            </button>
+          )}
           {q && (
             <button onClick={() => updateParam("q", "")}
               className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0">
@@ -411,6 +472,52 @@ export default function ProductListingPage() {
                     </select>
                   </div>
                 )}
+                {brands && brands.length > 0 && (
+                  <div>
+                    <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Brand</label>
+                    <select value={searchParams.get("brand") || ""} onChange={(e) => updateParam("brand", e.target.value)}
+                      className="select-field text-sm">
+                      <option value="">All</option>
+                      {brands.map((b: { id: string; name: string; slug: string }) => <option key={b.id} value={b.slug}>{b.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {commonSizes.length > 0 && (
+                  <div>
+                    <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Size</label>
+                    <select value={size} onChange={(e) => updateParam("size", e.target.value)}
+                      className="select-field text-sm">
+                      <option value="">All</option>
+                      {commonSizes.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                )}
+                {commonColors.length > 0 && (
+                  <div>
+                    <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Color</label>
+                    <select value={color} onChange={(e) => updateParam("color", e.target.value)}
+                      className="select-field text-sm">
+                      <option value="">All</option>
+                      {commonColors.map((c) => <option key={c.hex} value={c.name}>{c.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Price Range</label>
+                  <div className="flex items-center gap-2">
+                    <input type="number" placeholder="Min" value={priceRange.min}
+                      onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
+                      className="select-field text-sm w-full" min="0" />
+                    <span className="text-neutral-300">—</span>
+                    <input type="number" placeholder="Max" value={priceRange.max}
+                      onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
+                      className="select-field text-sm w-full" min="0" />
+                  </div>
+                  <button onClick={applyPriceRange}
+                    className="mt-2 w-full py-1.5 text-[10px] uppercase tracking-wider bg-neutral-100 hover:bg-neutral-200 transition-colors rounded">
+                    Apply
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -479,6 +586,52 @@ export default function ProductListingPage() {
                         </select>
                       </div>
                     )}
+                    {brands && brands.length > 0 && (
+                      <div>
+                        <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Brand</label>
+                        <select value={searchParams.get("brand") || ""} onChange={(e) => updateParam("brand", e.target.value)}
+                          className="select-field text-sm">
+                          <option value="">All</option>
+                          {brands.map((b: { id: string; name: string; slug: string }) => <option key={b.id} value={b.slug}>{b.name}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {commonSizes.length > 0 && (
+                      <div>
+                        <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Size</label>
+                        <select value={size} onChange={(e) => updateParam("size", e.target.value)}
+                          className="select-field text-sm">
+                          <option value="">All</option>
+                          {commonSizes.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {commonColors.length > 0 && (
+                      <div>
+                        <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Color</label>
+                        <select value={color} onChange={(e) => updateParam("color", e.target.value)}
+                          className="select-field text-sm">
+                          <option value="">All</option>
+                          {commonColors.map((c) => <option key={c.hex} value={c.name}>{c.name}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Price Range</label>
+                      <div className="flex items-center gap-2">
+                        <input type="number" placeholder="Min" value={priceRange.min}
+                          onChange={(e) => setPriceRange(prev => ({ ...prev, min: e.target.value }))}
+                          className="select-field text-sm w-full" min="0" />
+                        <span className="text-neutral-300">—</span>
+                        <input type="number" placeholder="Max" value={priceRange.max}
+                          onChange={(e) => setPriceRange(prev => ({ ...prev, max: e.target.value }))}
+                          className="select-field text-sm w-full" min="0" />
+                      </div>
+                      <button onClick={applyPriceRange}
+                        className="mt-2 w-full py-1.5 text-[10px] uppercase tracking-wider bg-neutral-100 hover:bg-neutral-200 transition-colors rounded">
+                        Apply
+                      </button>
+                    </div>
                   </div>
                   <div className="px-5 py-4 border-t border-neutral-100">
                     <button onClick={() => setShowFilters(false)}

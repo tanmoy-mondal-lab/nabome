@@ -6,6 +6,7 @@ import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
 import { cleanSecret } from "../_lib/secrets";
 import type { Env } from "../_lib/env";
+import { authenticate } from "../_lib/auth-middleware";
 
 const VALID_PAYMENT_METHODS = ["cod", "card", "upi", "netbanking", "wallet", "razorpay"] as const;
 const DEFAULT_SHIPPING_COST = 99;
@@ -92,6 +93,13 @@ export async function handleCheckoutRequest(
     return unauthorized("Authentication is required for customer checkout");
   }
 
+  // Require email verification for authenticated checkout
+  if (!isGuest && ctx.userId) {
+    const authResult = await authenticate(req, { required: true, requireEmailVerified: true }, ctx.env);
+    if (authResult instanceof Response) return authResult;
+    ctx = { ...ctx, ...authResult.ctx };
+  }
+
   if (isGuest && (!email || typeof email !== "string" || !email.trim())) {
     return badRequest("Email is required");
   }
@@ -160,21 +168,54 @@ export async function handleCheckoutRequest(
       }
 
       const variantIds = Array.from(requestedQuantities.keys());
+      // Fetch variants with selective fields
       const variants = await prisma.productVariant.findMany({
         where: {
           id: { in: variantIds },
           isActive: true,
           product: { isActive: true },
         },
-        include: {
-          product: true,
-          images: { take: 1, where: { isPrimary: true } },
+        select: {
+          id: true,
+          productId: true,
+          sku: true,
+          size: true,
+          color: true,
+          stock: true,
+          isActive: true,
+          priceAdjustment: true,
         },
       });
+
+      // Fetch products separately to avoid deep nesting
+      const productIds = [...new Set(variants.map(v => v.productId))];
+      const products = await prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: {
+          id: true,
+          name: true,
+          basePrice: true,
+          gender: true,
+          isActive: true,
+        },
+      });
+
+      // Fetch images separately
+      const images = await prisma.productImage.findMany({
+        where: { productId: { in: productIds }, isPrimary: true },
+        select: { productId: true, url: true },
+      });
+
       const variantMap = new Map(variants.map((v) => [v.id, v]));
+      const productMap = new Map(products.map(p => [p.id, p]));
+      const imageMap = new Map(images.map(img => [img.productId, img.url]));
+
       cartItems = Array.from(requestedQuantities.entries()).map(([variantId, quantity]) => {
         const variant = variantMap.get(variantId);
         if (!variant) throw new CheckoutError("A cart item is unavailable");
+        const product = productMap.get(variant.productId);
+        if (!product) throw new CheckoutError("Product not found");
+        const imageUrl = imageMap.get(variant.productId) || "";
         return {
           variantId: variant.id,
           quantity,
@@ -188,13 +229,13 @@ export async function handleCheckoutRequest(
             isActive: variant.isActive,
             priceAdjustment: Number(variant.priceAdjustment),
             product: {
-              id: variant.product.id,
-              name: variant.product.name,
-              basePrice: Number(variant.product.basePrice),
-              gender: variant.product.gender,
-              isActive: variant.product.isActive,
+              id: product.id,
+              name: product.name,
+              basePrice: Number(product.basePrice),
+              gender: product.gender,
+              isActive: product.isActive,
             },
-            images: variant.images as { url: string }[],
+            images: [{ url: imageUrl }],
           },
         };
       });
@@ -208,38 +249,71 @@ export async function handleCheckoutRequest(
           items: {
             include: {
               variant: {
-                include: {
-                  product: true,
-                  images: { take: 1, where: { isPrimary: true } },
-                },
-              },
-            },
-          },
+                select: {
+                  id: true,
+                  productId: true,
+                  sku: true,
+                  size: true,
+                  color: true,
+                  stock: true,
+                  isActive: true,
+                  priceAdjustment: true,
+                }
+              }
+            }
+          }
         },
       });
       if (cart && cart.items.length > 0) {
-        cartItems = cart.items.map((item) => ({
-          variantId: item.variantId,
-          quantity: item.quantity,
-          variant: {
-            id: item.variant.id,
-            productId: item.variant.productId,
-            sku: item.variant.sku,
-            size: item.variant.size,
-            color: item.variant.color,
-            stock: item.variant.stock,
-            isActive: item.variant.isActive,
-            priceAdjustment: Number(item.variant.priceAdjustment),
-            product: {
-              id: item.variant.product.id,
-              name: item.variant.product.name,
-              basePrice: Number(item.variant.product.basePrice),
-              gender: item.variant.product.gender,
-              isActive: item.variant.product.isActive,
+        const variantIds = cart.items.map(item => item.variantId!);
+        const productIds = [...new Set(cart.items.map(item => item.variant.productId))];
+
+        const [products, images] = await Promise.all([
+          prisma.product.findMany({
+            where: { id: { in: productIds } },
+            select: {
+              id: true,
+              name: true,
+              basePrice: true,
+              gender: true,
+              isActive: true,
             },
-            images: item.variant.images as { url: string }[],
-          },
-        }));
+          }),
+          prisma.productImage.findMany({
+            where: { productId: { in: productIds }, isPrimary: true },
+            select: { productId: true, url: true },
+          }),
+        ]);
+
+        const productMap = new Map(products.map(p => [p.id, p]));
+        const imageMap = new Map(images.map(img => [img.productId, img.url]));
+
+        cartItems = cart.items.map((item) => {
+          const product = productMap.get(item.variant.productId);
+          const imageUrl = imageMap.get(item.variant.productId) || "";
+          return {
+            variantId: item.variantId,
+            quantity: item.quantity,
+            variant: {
+              id: item.variant.id,
+              productId: item.variant.productId,
+              sku: item.variant.sku,
+              size: item.variant.size,
+              color: item.variant.color,
+              stock: item.variant.stock,
+              isActive: item.variant.isActive,
+              priceAdjustment: Number(item.variant.priceAdjustment),
+              product: {
+                id: product?.id || "",
+                name: product?.name || "",
+                basePrice: Number(product?.basePrice || 0),
+                gender: product?.gender || "unisex",
+                isActive: product?.isActive || false,
+              },
+              images: [{ url: imageUrl }],
+            },
+          };
+        });
       }
     }
 

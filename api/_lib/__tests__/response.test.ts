@@ -10,6 +10,7 @@ import {
   conflict,
   serverError,
 } from '../response';
+import { ErrorCode } from '../types';
 
 async function parseBody(res: Response) {
   return res.json();
@@ -54,7 +55,7 @@ describe('response helpers', () => {
 
   describe('error', () => {
     it('should return 400 by default', async () => {
-      const res = error('Bad input');
+      const res = error(ErrorCode.VALIDATION_ERROR, 'Bad input');
       expect(res.status).toBe(400);
       const body = await parseBody(res);
       expect(body.success).toBe(false);
@@ -63,18 +64,18 @@ describe('response helpers', () => {
     });
 
     it('should accept custom status', async () => {
-      const res = error('Custom', 422);
+      const res = error(ErrorCode.INVALID_INPUT, 'Custom', 422);
       expect(res.status).toBe(422);
     });
 
     it('should include details when provided', async () => {
-      const res = error('Invalid', 400, { field: 'email' });
+      const res = error(ErrorCode.VALIDATION_ERROR, 'Invalid', 400, { field: 'email' });
       const body = await parseBody(res);
       expect(body.details).toEqual({ field: 'email' });
     });
 
     it('should not include details when not provided', async () => {
-      const res = error('Invalid');
+      const res = error(ErrorCode.VALIDATION_ERROR, 'Invalid');
       const body = await parseBody(res);
       expect(body.details).toBeUndefined();
     });

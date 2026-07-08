@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Star, ThumbsUp, Camera, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, AlertCircle } from "lucide-react";
+import { Star, ThumbsUp, Camera, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../../lib/api/client";
 import { StarRating } from "./StarRating";
 import { useAuthStore } from "../../stores/auth-store";
@@ -18,23 +18,31 @@ export function Reviews({ productId, slug }: ReviewsProps) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ rating: 5, title: "", body: "" });
   const [page, setPage] = useState(1);
+  const [allReviews, setAllReviews] = useState<Array<{ id: string; rating: number; title?: string; body?: string; createdAt: string; verified?: boolean; verifiedPurchase?: boolean; profile?: { firstName?: string }; images?: string[] }>>([]);
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["reviews", slug, page],
     queryFn: () => api.get<{ reviews: { id: string; rating: number; title?: string; body?: string; createdAt: string; verified?: boolean; verifiedPurchase?: boolean; profile?: { firstName?: string }; images?: string[] }[]; stats: { total: number; averageRating: number; distribution: Record<string, number> }; pagination: { totalPages: number } }>(
-      `/api/products/${slug}/reviews`, { params: { page } }
+      `/api/products/${slug}/reviews`, { params: { page, limit: 3 } }
     ),
   });
 
   const submitMutation = useMutation({
     mutationFn: (body: { productId: string; rating: number; title: string; body: string }) =>
       api.post("/api/reviews", body),
-    onSuccess: () => { setShowForm(false); setForm({ rating: 5, title: "", body: "" }); refetch(); },
+    onSuccess: () => { setShowForm(false); setForm({ rating: 5, title: "", body: "" }); setAllReviews([]); setPage(1); refetch(); },
   });
 
-  const reviews = data?.reviews ?? [];
+  const reviews = page === 1 ? (data?.reviews ?? []) : [...allReviews, ...(data?.reviews ?? [])];
   const stats = data?.stats ?? { total: 0, averageRating: 0, distribution: {} };
   const totalPages = data?.pagination?.totalPages ?? 1;
+
+  function handleLoadMore() {
+    if (data?.reviews) {
+      setAllReviews(prev => [...prev, ...(data?.reviews ?? [])]);
+    }
+    setPage(p => p + 1);
+  }
 
   const distTotal = Object.values(stats.distribution || {}).reduce((a, b) => a + b, 0) || 1;
 
@@ -152,22 +160,15 @@ export function Reviews({ productId, slug }: ReviewsProps) {
             );
           })}
         </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-4 pt-4">
+        {page < totalPages && (
+          <div className="flex justify-center pt-6">
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="flex items-center gap-1 text-sm text-neutral-600 hover:text-neutral-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              onClick={handleLoadMore}
+              disabled={isFetching}
+              className="flex items-center gap-2 px-8 py-3 border border-neutral-200 text-xs uppercase tracking-widest hover:bg-neutral-900 hover:text-white transition-colors disabled:opacity-50"
             >
-              <ChevronLeft className="w-4 h-4" /> Previous
-            </button>
-            <span className="text-sm text-neutral-500">Page {page} of {totalPages}</span>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="flex items-center gap-1 text-sm text-neutral-600 hover:text-neutral-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              Next <ChevronRight className="w-4 h-4" />
+              {isFetching ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+              {isFetching ? "Loading..." : `Load More Reviews (${stats.total - reviews.length} remaining)`}
             </button>
           </div>
         )}

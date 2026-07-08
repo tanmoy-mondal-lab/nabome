@@ -341,13 +341,48 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
     const userAgent = req.headers.get("user-agent");
 
+    // Check IP block status (block after 5 failed attempts for 15 minutes)
+    const recentFailedAttempts = await prisma.loginAttempt.findMany({
+      where: {
+        ipAddress: clientIp,
+        success: false,
+        createdAt: { gte: new Date(Date.now() - 15 * 60 * 1000) }, // Last 15 minutes
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (recentFailedAttempts.length >= 5) {
+      // Check if IP is in whitelist
+      const ipWhitelist = process.env.IP_WHITELIST?.split(",") || [];
+      if (!ipWhitelist.includes(clientIp)) {
+        return unauthorized("Too many failed login attempts. Please try again in 15 minutes.");
+      }
+    }
+
     // Check if account exists in Prisma first
     const existingProfile = await prisma.profile.findUnique({
       where: { email },
       select: { id: true, emailVerified: true },
     });
 
-    if (!existingProfile) return unauthorized("Invalid email or password");
+    if (!existingProfile) {
+      // Record failed attempt for non-existent account
+      try {
+        await prisma.loginAttempt.create({
+          data: {
+            profileId: null,
+            email,
+            ipAddress: clientIp,
+            userAgent: userAgent ?? null,
+            success: false,
+            failReason: "invalid_credentials",
+          },
+        });
+      } catch {
+        // Non-critical
+      }
+      return unauthorized("Invalid email or password");
+    }
 
     const supabase = getAnonClient(ctx.env);
 

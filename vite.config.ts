@@ -31,15 +31,28 @@ export default defineConfig({
     assetsInlineLimit: 4096,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
-          state: ["zustand", "@tanstack/react-query"],
-          ui: ["framer-motion", "lucide-react"],
+        manualChunks: (id) => {
+          if (id.includes("node_modules")) {
+            if (id.includes("react") || id.includes("react-dom") || id.includes("react-router")) {
+              return "vendor-react";
+            }
+            if (id.includes("zustand") || id.includes("@tanstack/react-query")) {
+              return "vendor-state";
+            }
+            if (id.includes("framer-motion") || id.includes("lucide")) {
+              return "vendor-ui";
+            }
+            if (id.includes("zod")) {
+              return "vendor-validation";
+            }
+            return "vendor";
+          }
         },
         chunkFileNames: "assets/[name]-[hash].js",
         entryFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash][extname]",
       },
     },
+    chunkSizeWarningLimit: 1000,
   },
 });

@@ -2,6 +2,7 @@ import type { Env } from "./_lib/env";
 import { hasUsableSecret, cleanSecret } from "./_lib/secrets";
 import { getPrisma } from "./_lib/prisma";
 import { createClient } from "@supabase/supabase-js";
+import { healthMonitor } from "./_lib/health-monitor";
 
 interface ProbeResult {
   configured: boolean;
@@ -214,6 +215,10 @@ export async function GET(req: Request, opts?: { env?: Env }): Promise<Response>
     body.status = overallReady ? "ok" : "degraded";
     body.checks = checks;
   }
+
+  // Add health monitor metrics
+  const metrics = healthMonitor.getMetrics();
+  body.metrics = metrics;
 
   const shouldFailClosed = includeChecks && (env?.CF_PAGES === "1" || env?.CF_PAGES === "true");
 

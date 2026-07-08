@@ -13,7 +13,7 @@ export async function handleCartRequest(
   const isGuestAction = action === "sync" || action === "merge";
   
   if (!isGuestAction) {
-    const authResult = await authenticate(req, { required: true }, ctx.env);
+    const authResult = await authenticate(req, { required: true, requireEmailVerified: true }, ctx.env);
     if (authResult instanceof Response) return authResult;
     ctx = { ...ctx, ...authResult.ctx };
   }
@@ -45,22 +45,15 @@ async function handleGetCart(ctx: RequestContext): Promise<Response> {
         items: {
           include: {
             variant: {
-              include: {
-                product: {
-                  select: {
-                    id: true,
-                    name: true,
-                    slug: true,
-                    basePrice: true,
-                    salePrice: true,
-                    compareAtPrice: true,
-                    images: {
-                      where: { isPrimary: true },
-                      take: 1,
-                      select: { url: true }
-                    }
-                  }
-                }
+              select: {
+                id: true,
+                productId: true,
+                sku: true,
+                size: true,
+                color: true,
+                colorHex: true,
+                stock: true,
+                priceAdjustment: true,
               }
             }
           }
@@ -72,26 +65,56 @@ async function handleGetCart(ctx: RequestContext): Promise<Response> {
       return success({ items: [], couponCode: null, discount: 0, discountType: null });
     }
 
-    const items = cart.items.map(item => ({
-      id: item.id,
-      productId: item.variant.product.id,
-      variantId: item.variantId,
-      name: item.variant.product.name,
-      slug: item.variant.product.slug,
-      sku: item.variant.sku,
-      size: item.variant.size,
-      color: item.variant.color,
-      colorHex: item.variant.colorHex || "",
-      image: item.variant.product.images[0]?.url || "",
-      price: Number(item.variant.product.salePrice || item.variant.product.basePrice) + Number(item.variant.priceAdjustment),
-      compareAtPrice: item.variant.product.compareAtPrice ? Number(item.variant.product.compareAtPrice) : null,
-      quantity: item.quantity,
-      maxQuantity: item.variant.stock
-    }));
+    // Fetch product data and images in separate queries to avoid deep nesting
+    const productIds = [...new Set(cart.items.map(item => item.variant.productId))];
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        basePrice: true,
+        salePrice: true,
+        compareAtPrice: true,
+      }
+    });
+
+    const productMap = new Map(products.map(p => [p.id, p]));
+
+    const imageUrls = await prisma.productImage.findMany({
+      where: {
+        productId: { in: productIds },
+        isPrimary: true
+      },
+      select: { productId: true, url: true }
+    });
+
+    const imageMap = new Map(imageUrls.map(img => [img.productId, img.url]));
+
+    const items = cart.items.map(item => {
+      const product = productMap.get(item.variant.productId);
+      const image = imageMap.get(item.variant.productId) || "";
+      return {
+        id: item.id,
+        productId: item.variant.productId,
+        variantId: item.variantId,
+        name: product?.name || "",
+        slug: product?.slug || "",
+        sku: item.variant.sku,
+        size: item.variant.size,
+        color: item.variant.color,
+        colorHex: item.variant.colorHex || "",
+        image,
+        price: Number(product?.salePrice || product?.basePrice || 0) + Number(item.variant.priceAdjustment),
+        compareAtPrice: product?.compareAtPrice ? Number(product.compareAtPrice) : null,
+        quantity: item.quantity,
+        maxQuantity: item.variant.stock
+      };
+    });
 
     return success({
       items,
-      couponCode: null, // Coupon codes are stored separately in checkout
+      couponCode: null,
       discount: 0,
       discountType: null
     });

@@ -119,7 +119,7 @@ export default function MediaLibrary() {
         completed++;
       } catch (err) {
         failed++;
-        console.warn("Upload failed:", err);
+        if (import.meta.env.DEV) console.warn("Upload failed:", err);
       }
     }
     setUploading(false);

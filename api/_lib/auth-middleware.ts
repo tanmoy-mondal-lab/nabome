@@ -36,13 +36,15 @@ export interface AuthOptions {
   rateLimitPrefix?: string;
   /** Validate CSRF token */
   csrf?: boolean;
+  /** Require email verification */
+  requireEmailVerified?: boolean;
 }
 
 const DEFAULT_OPTIONS: AuthOptions = {
   required: true,
   role: undefined,
   rateLimit: false,
-  csrf: false,
+  csrf: true, // Enable CSRF by default for authenticated requests
 };
 
 interface ActiveSessionResult {
@@ -57,6 +59,7 @@ async function resolveActiveSession(
   const prisma = getPrisma(env);
   const tokenHash = await hashToken(token);
   const now = new Date();
+  const idleTimeout = 2 * 60 * 60 * 1000; // 2 hours idle timeout
 
   const session = await prisma.authSession.findFirst({
     where: {
@@ -70,6 +73,8 @@ async function resolveActiveSession(
       ],
     },
     select: {
+      id: true,
+      lastActiveAt: true,
       profile: {
         select: {
           role: true,
@@ -81,6 +86,23 @@ async function resolveActiveSession(
   if (!session) {
     return null;
   }
+
+  // Check idle timeout (2 hours of inactivity)
+  const timeSinceLastActive = now.getTime() - session.lastActiveAt.getTime();
+  if (timeSinceLastActive > idleTimeout) {
+    // Revoke session due to inactivity
+    await prisma.authSession.update({
+      where: { id: session.id },
+      data: { isActive: false, revokedAt: now },
+    });
+    return null;
+  }
+
+  // Update last active timestamp
+  await prisma.authSession.update({
+    where: { id: session.id },
+    data: { lastActiveAt: now },
+  });
 
   return {
     role: session.profile?.role ?? "customer",
@@ -147,7 +169,19 @@ export async function authenticate(
         userRole: session.role,
       };
 
-      // 4. Role check
+      // 4. Email verification check
+      if (opts.requireEmailVerified) {
+        const prisma = getPrisma(env);
+        const profile = await prisma.profile.findUnique({
+          where: { id: user.id },
+          select: { emailVerified: true },
+        });
+        if (!profile || !profile.emailVerified) {
+          return unauthorized("Please verify your email address before performing this action");
+        }
+      }
+
+      // 5. Role check
       if (opts.role && ctx.userRole !== opts.role) {
         return forbidden(`Requires ${opts.role} role`);
       }

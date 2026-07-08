@@ -31,18 +31,7 @@ const PAYMENT_METHODS = [
   { value: "cod", label: "Cash on Delivery", description: "Pay when your order arrives", icon: Package },
 ] as const;
 
-const NET_BANKING_BANKS = [
-  "State Bank of India", "HDFC Bank", "ICICI Bank", "Axis Bank",
-  "Kotak Mahindra Bank", "Yes Bank", "Bank of Baroda", "Punjab National Bank",
-  "Canara Bank", "Union Bank of India", "IDBI Bank", "Federal Bank",
-];
 
-interface CardFormState {
-  number: string;
-  expiry: string;
-  cvv: string;
-  name: string;
-}
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -62,9 +51,6 @@ export default function CheckoutPage() {
   const [billingErrors, setBillingErrors] = useState<Partial<Record<keyof ShippingFormState, string>>>({});
 
   const [paymentMethod, setPaymentMethod] = useState("cod");
-  const [cardForm, setCardForm] = useState<CardFormState>({ number: "", expiry: "", cvv: "", name: "" });
-  const [upiId, setUpiId] = useState("");
-  const [selectedBank, setSelectedBank] = useState("");
 
   const [orderNotes, setOrderNotes] = useState("");
   const [giftMessage, setGiftMessage] = useState("");
@@ -162,35 +148,7 @@ export default function CheckoutPage() {
   function handleContinueToReview() {
     // Validate payment method selection before proceeding
     if (paymentMethod === "card" || paymentMethod === "upi" || paymentMethod === "netbanking") {
-      if (paymentMethod === "card") {
-        if (cardForm.number.replace(/\D/g, "").length < 13) {
-          setApiError("Please enter a valid card number");
-          return;
-        }
-        if (cardForm.expiry.length < 4) {
-          setApiError("Please enter a valid expiry date (MMYY)");
-          return;
-        }
-        if (cardForm.cvv.length < 3) {
-          setApiError("Please enter a valid CVV");
-          return;
-        }
-        if (!cardForm.name.trim()) {
-          setApiError("Please enter the name on card");
-          return;
-        }
-      }
-      if (paymentMethod === "upi") {
-        const upiPattern = /^[\w.-]+@[\w]+$/;
-        if (!upiId.trim() || !upiPattern.test(upiId.trim())) {
-          setApiError("Please enter a valid UPI ID (e.g., username@upi)");
-          return;
-        }
-      }
-      if (paymentMethod === "netbanking" && !selectedBank) {
-        setApiError("Please select your bank");
-        return;
-      }
+      // Payment details will be collected by Razorpay's secure checkout
     }
     setApiError("");
     setStep("confirm");
@@ -729,89 +687,17 @@ export default function CheckoutPage() {
                   })}
                 </div>
 
-                {paymentMethod === "card" && (
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-luxe-ivory border">
-                    <div className="col-span-2">
-                      <label className="text-xs text-neutral-500 mb-1 block">Card Number</label>
-                      <input
-                        value={cardForm.number}
-                        onChange={(e) => setCardForm({ ...cardForm, number: e.target.value.replace(/\D/g, "").slice(0, 16) })}
-                        className="input-field w-full px-3 py-2.5 text-sm"
-                        placeholder="1234 5678 9012 3456"
-                        maxLength={16}
-                        inputMode="numeric"
-                        autoComplete="cc-number"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-neutral-500 mb-1 block">Expiry</label>
-                      <input
-                        value={cardForm.expiry}
-                        onChange={(e) => setCardForm({ ...cardForm, expiry: e.target.value.replace(/\D/g, "").slice(0, 4) })}
-                        className="input-field w-full px-3 py-2.5 text-sm"
-                        placeholder="MMYY"
-                        maxLength={4}
-                        inputMode="numeric"
-                        autoComplete="cc-exp"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs text-neutral-500 mb-1 block">CVV</label>
-                      <input
-                        type="password"
-                        value={cardForm.cvv}
-                        onChange={(e) => setCardForm({ ...cardForm, cvv: e.target.value.replace(/\D/g, "").slice(0, 3) })}
-                        className="input-field w-full px-3 py-2.5 text-sm"
-                        placeholder="***"
-                        maxLength={3}
-                        inputMode="numeric"
-                        autoComplete="cc-csc"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="text-xs text-neutral-500 mb-1 block">Name on Card</label>
-                      <input
-                        value={cardForm.name}
-                        onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })}
-                        className="input-field w-full px-3 py-2.5 text-sm"
-                        placeholder="John Doe"
-                      />
-                    </div>
+                <div className="p-4 bg-luxe-ivory border">
+                  <div className="flex items-center gap-3 mb-2">
+                    <Lock className="w-4 h-4 text-accent-gold shrink-0" />
+                    <p className="text-sm text-neutral-700">
+                      Your payment details will be collected securely by <strong>Razorpay</strong> when you place your order.
+                    </p>
                   </div>
-                )}
-
-                {paymentMethod === "upi" && (
-                    <div className="p-4 bg-luxe-ivory border">
-                    <label className="text-xs text-neutral-500 mb-1 block">UPI ID</label>
-                    <div className="flex gap-2">
-                      <input
-                        value={upiId}
-                        onChange={(e) => setUpiId(e.target.value)}
-                        className="input-field flex-1 px-3 py-2.5 text-sm"
-                        placeholder="username@upi"
-                        inputMode="text"
-                      />
-                      <span className="inline-flex items-center px-3 text-xs text-neutral-500 bg-luxe-ivory">Pay</span>
-                    </div>
-                    <p className="text-xs text-neutral-400 mt-2">You will receive a payment request on your UPI app.</p>
-                  </div>
-                )}
-
-                {paymentMethod === "netbanking" && (
-                  <div className="p-4 bg-luxe-ivory border">
-                    <label className="text-xs text-neutral-500 mb-1 block">Select your bank</label>
-                    <select
-                      value={selectedBank}
-                      onChange={(e) => setSelectedBank(e.target.value)}
-                      className="select-field w-full px-3 py-2.5 text-sm"
-                    >
-                      <option value="">Choose a bank</option>
-                      {NET_BANKING_BANKS.map((b) => (
-                        <option key={b} value={b}>{b}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                  <p className="text-xs text-neutral-500 ml-7">
+                    Your card information is encrypted and never touches our servers.
+                  </p>
+                </div>
 
                 <div className="flex items-center justify-between pt-2">
                   <button

@@ -7,6 +7,7 @@ import { PhoneInput } from "../../components/PhoneInput";
 import { Helmet } from "react-helmet-async";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 
 interface Address {
   id: string;
@@ -54,6 +55,7 @@ export default function AddressesPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["customer", "addresses"],
@@ -187,7 +189,7 @@ export default function AddressesPage() {
                       <Pencil className="w-3 h-3" /> Edit
                     </button>
                     <button
-                      onClick={() => { if (window.confirm("Delete this address?")) deleteMutation.mutate(addr.id); }}
+                      onClick={() => setDeleteConfirmId(addr.id)}
                       className="btn-outline flex items-center gap-1"
                     >
                       <Trash2 className="w-3 h-3" /> Delete
@@ -273,6 +275,16 @@ export default function AddressesPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={!!deleteConfirmId}
+        onClose={() => setDeleteConfirmId(null)}
+        onConfirm={() => { if (deleteConfirmId) deleteMutation.mutate(deleteConfirmId); }}
+        title="Delete Address"
+        message="Are you sure you want to delete this address? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+      />
     </div>
   );
 }

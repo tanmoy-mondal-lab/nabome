@@ -10,6 +10,7 @@ import {
   PackageSearch, RotateCcw, Tag, MessageSquare, Mail,
   MessageCircle, Link2, Download, Activity, FileJson,
   Target, Receipt, ShoppingBag, ClipboardList, Heart,
+  Award, Share2, Gift, Zap, Flag,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -41,6 +42,9 @@ const NAV_ITEMS = [
   { label: "Lookbooks", icon: BookOpen, href: "/admin/lookbooks" },
   { label: "Media Library", icon: Image, href: "/admin/media" },
   { label: "Coupons", icon: Tag, href: "/admin/coupons" },
+  { label: "Loyalty", icon: Award, href: "/admin/loyalty" },
+  { label: "Referrals", icon: Share2, href: "/admin/referrals" },
+  { label: "Gift Cards", icon: Gift, href: "/admin/gift-cards" },
   { label: "Announcements", icon: Megaphone, href: "/admin/announcements" },
   { label: "Reviews", icon: MessageSquare, href: "/admin/reviews" },
   { label: "SEO", icon: Search, href: "/admin/seo" },
@@ -76,6 +80,8 @@ const NAV_ITEMS = [
     ],
   },
   { label: "Wishlists", icon: Heart, href: "/admin/wishlists" },
+  { label: "Subscriptions", icon: Zap, href: "/admin/subscriptions" },
+  { label: "Feature Flags", icon: Flag, href: "/admin/feature-flags" },
   { label: "Analytics", icon: BarChart4, href: "/admin/analytics" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];

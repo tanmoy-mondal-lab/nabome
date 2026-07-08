@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { motion, AnimatePresence } from "framer-motion";
-import { Heart, ShoppingBag, Shield, Truck, RotateCcw, Star, X, ChevronDown } from "lucide-react";
+import { motion } from "framer-motion";
+import { Heart, ShoppingBag, Shield, Truck, RotateCcw, Star, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { api } from "../../lib/api/client";
@@ -17,6 +17,7 @@ import { Breadcrumbs } from "../components/Breadcrumbs";
 import { ProductRecommendations } from "../components/ProductRecommendations";
 import { ProductCard } from "../components/ProductCard";
 import { Reviews } from "../components/Reviews";
+import { SocialShare } from "../components/SocialShare";
 import { FrequentlyBoughtTogether } from "../components/FrequentlyBoughtTogether";
 import { RecentlyViewed } from "../components/RecentlyViewed";
 import type { Product } from "../../types/product";
@@ -54,7 +55,6 @@ export default function ProductDetailPage() {
   const [activeTab, setActiveTab] = useState<"description" | "features" | "specs">("description");
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const sizeGuideRef = useFocusTrap<HTMLDivElement>(showSizeGuide, () => setShowSizeGuide(false));
-  const [showMoreSections, setShowMoreSections] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
   const justAdded = useCartStore((s) => s.justAdded);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -330,6 +330,13 @@ export default function ProductDetailPage() {
               </div>
             )}
 
+            <SocialShare
+              url={canonical(`/products/${slug}`)}
+              title={`${product.name} — নবME`}
+              description={product.description?.slice(0, 200)}
+              image={images[0]?.url}
+            />
+
             <div className="flex items-center gap-4">
               <QuantitySelector value={quantity} onChange={setQuantity} max={(matchedVariant?.stock as number) || 99} />
               <button
@@ -517,38 +524,16 @@ export default function ProductDetailPage() {
         </div>
       </section>
 
-      {/* Collapsible: lower-priority sections */}
-      <div className="border-t border-neutral-100">
-        <button
-          onClick={() => setShowMoreSections(!showMoreSections)}
-          className="w-full flex items-center justify-center gap-2 py-6 text-[11px] tracking-[0.2em] uppercase text-neutral-500 hover:text-neutral-900 transition-colors"
-        >
-          {showMoreSections ? "Show Less" : "Show More"}
-          <ChevronDown className={cn("w-4 h-4 transition-transform duration-300", showMoreSections && "rotate-180")} />
-        </button>
-        <AnimatePresence>
-          {showMoreSections && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="overflow-hidden"
-            >
-              <section className="py-8 md:py-12">
-                <div className="container-page">
-                  <Reviews productId={product.id as string} slug={slug!} />
-                </div>
-              </section>
-              <section className="py-8 md:py-12 bg-luxe-ivory">
-                <div className="container-page">
-                  <RecentlyViewed />
-                </div>
-              </section>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+      <section className="border-t border-neutral-100 py-16 md:py-24">
+        <div className="container-page">
+          <Reviews productId={product.id as string} slug={slug!} />
+        </div>
+      </section>
+      <section className="py-16 md:py-24 bg-luxe-ivory">
+        <div className="container-page">
+          <RecentlyViewed />
+        </div>
+      </section>
 
       {showSizeGuide && (
         <div ref={sizeGuideRef} className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setShowSizeGuide(false)} onKeyDown={(e) => { if (e.key === 'Escape') setShowSizeGuide(false); }}>

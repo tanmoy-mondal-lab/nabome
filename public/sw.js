@@ -1,10 +1,14 @@
-const CACHE = "nabome-v4";
+const CACHE = "nabome-v5";
 const STATIC_ASSETS = [
   "/",
   "/products",
   "/lookbooks",
   "/cart",
   "/auth/login",
+  "/site.webmanifest",
+  "/favicon.svg",
+  "/icon-192.png",
+  "/icon-512.png",
 ];
 const EMPTY_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3Crect fill='transparent' width='1' height='1'/%3E%3C/svg%3E";
 
@@ -28,13 +32,10 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Only handle GET requests
   if (request.method !== "GET") return;
 
-  // Skip cross-origin requests entirely — let browser handle CSP and fetching
   if (url.origin !== self.location.origin) return;
 
-  // API requests: network-first, no cache fallback (avoid stale 503 responses)
   if (url.pathname.startsWith("/api/")) {
     event.respondWith(
       fetch(request).catch(() => {
@@ -47,11 +48,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets (JS, CSS, fonts, images): stale-while-revalidate
   if (
     request.destination === "style" ||
     request.destination === "script" ||
-    request.destination === "font"
+    request.destination === "font" ||
+    url.pathname.endsWith(".webmanifest")
   ) {
     event.respondWith(
       caches.open(CACHE).then(async (cache) => {
@@ -64,14 +65,12 @@ self.addEventListener("fetch", (event) => {
             return response;
           })
           .catch(() => cached);
-
         return cached || fetchPromise;
       })
     );
     return;
   }
 
-  // Images: cache-first with network fallback (return transparent pixel on failure)
   if (request.destination === "image") {
     event.respondWith(
       caches.open(CACHE).then(async (cache) => {
@@ -93,7 +92,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigation: network-first with cache fallback
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
@@ -111,7 +109,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Everything else: network-first
   event.respondWith(
     fetch(request).catch(() => caches.match(request))
   );

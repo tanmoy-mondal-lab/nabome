@@ -35,7 +35,7 @@ export default function WishlistsPage() {
     queryFn: async () => {
       const params: Record<string, string | number | undefined> = { page, limit: 25 };
       if (search) params.search = search;
-      return adminApi.getWishlists(params) as Promise<WishlistsResponse>;
+      return adminApi.getWishlists(params) as unknown as Promise<WishlistsResponse>;
     },
   });
 

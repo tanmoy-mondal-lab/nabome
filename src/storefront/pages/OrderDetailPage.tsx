@@ -10,6 +10,7 @@ import { DashboardSidebar } from "../components/DashboardSidebar";
 import { Helmet } from "react-helmet-async";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { SafeImage } from "../../components/SafeImage";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
 
 interface Order {
   id: string;
@@ -23,6 +24,9 @@ interface Order {
   tax: number;
   discount: number;
   total: number;
+  trackingNumber?: string;
+  carrier?: string;
+  trackingUrl?: string;
   items: Array<{
     id: string;
     name: string;
@@ -87,6 +91,7 @@ export default function OrderDetailPage() {
 
   const qClient = useQueryClient();
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const cancelMutation = useMutation({
     mutationFn: () => customerApi.cancelOrder(id!),
@@ -291,7 +296,7 @@ export default function OrderDetailPage() {
           <div className="flex flex-wrap gap-3">
             {(order.status === "pending" || order.status === "confirmed") && (
               <button
-                onClick={() => { if (window.confirm("Are you sure you want to cancel this order?")) cancelMutation.mutate(); }}
+                onClick={() => setShowCancelConfirm(true)}
                 disabled={cancelMutation.isPending}
                 className="btn-outline flex items-center gap-2"
               >
@@ -306,15 +311,13 @@ export default function OrderDetailPage() {
                 <RotateCcw className="w-3 h-3" /> Return / Exchange
               </Link>
             )}
-            {(order.status === "shipped" || order.status === "processing") && (
-              <a
-                href={`https://www.google.com/search?q=track+${order.orderNumber}`}
-                target="_blank"
-                rel="noopener noreferrer"
+            {(order.status === "shipped" || order.status === "processing" || order.status === "out_for_delivery") && (
+              <Link
+                to={`/account/orders/${order.id}/tracking`}
                 className="btn-ghost flex items-center gap-2"
               >
                 <Truck className="w-3 h-3" /> Track Package
-              </a>
+              </Link>
             )}
             <Link
               to={`/api/orders/${order.id}/invoice`}
@@ -326,6 +329,16 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        onConfirm={() => cancelMutation.mutate()}
+        title="Cancel Order"
+        message="Are you sure you want to cancel this order? This action cannot be undone."
+        confirmLabel="Yes, Cancel"
+        variant="danger"
+      />
     </div>
   );
 }

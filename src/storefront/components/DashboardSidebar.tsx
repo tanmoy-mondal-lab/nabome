@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "../../lib/utils/cn";
-import { LayoutDashboard, ShoppingBag, Heart, MapPin, Bell, Settings, LogOut, HelpCircle, Menu, X } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Heart, MapPin, Bell, Settings, LogOut, HelpCircle, Menu, X, Gift, Award, Share2, Zap } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
 const navItems = [
@@ -12,6 +12,10 @@ const navItems = [
   { icon: Bell, label: "Notifications", path: "/account/notifications" },
   { icon: Settings, label: "Settings", path: "/account/settings" },
   { icon: HelpCircle, label: "Support", path: "/account/support" },
+  { icon: Award, label: "Loyalty", path: "/account/loyalty" },
+  { icon: Share2, label: "Referral", path: "/account/referral" },
+  { icon: Gift, label: "Gift Cards", path: "/account/gift-cards" },
+  { icon: Zap, label: "Subscriptions", path: "/account/subscriptions" },
 ];
 
 export function DashboardSidebar() {

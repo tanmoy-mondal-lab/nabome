@@ -12,6 +12,12 @@ import { setCsrfCookie, validateCsrf, csrfError } from "./_lib/csrf";
 import { verifyTurnstileToken } from "./_lib/turnstile";
 import { cacheControlHeaders, corsHeaders, SECURITY_HEADERS } from "./_lib/http-headers";
 import type { RequestContext } from "./_lib/types";
+import { ErrorCode } from "./_lib/types";
+
+// ─── Request ID Generation ───
+function generateRequestId(): string {
+  return crypto.randomUUID();
+}
 
 function withCors(response: Response, request: Request, path?: string): Response {
   const headers = {
@@ -96,7 +102,7 @@ import { handleCMSRequest } from "./_handlers/cms";
 import { handleLookbookRequest } from "./_handlers/lookbooks";
 import { handleContactRequest } from "./_handlers/contact";
 import { handleSettingsRequest } from "./_handlers/settings";
-import { handleUploadRequest } from "./_handlers/upload";
+import { handleUploadRequest, handleCustomerUploadRequest } from "./_handlers/upload";
 import { handleDashboardRequest } from "./_handlers/admin/dashboard";
 import { handleAdminProductRequest } from "./_handlers/admin/products";
 import { handleAdminCategoryRequest } from "./_handlers/admin/categories";
@@ -132,6 +138,12 @@ import { handlePaymentRequest, handleAdminWebhookRequest } from "./_handlers/pay
 import { handleNotificationRequest } from "./_handlers/notifications";
 import { handleSupportRequest } from "./_handlers/support";
 import { handleInvoiceRequest } from "./_handlers/invoices";
+import { handleLoyaltyRequest } from "./_handlers/loyalty";
+import { handleReferralRequest } from "./_handlers/referral";
+import { handleGiftCardRequest } from "./_handlers/gift-cards";
+import { handleSubscriptionRequest } from "./_handlers/subscriptions";
+import { handleCurrencyRequest } from "./_handlers/currencies";
+import { handleAdminFeatureFlagRequest } from "./_handlers/admin/feature-flags";
 import { handleDashboardRequest as handleCustomerDashboardRequest } from "./_handlers/dashboard";
 import { handleAdminCampaignRequest } from "./_handlers/admin/campaigns";
 import { handleAdminCouponRedemptionRequest } from "./_handlers/admin/coupon-redemptions";
@@ -144,11 +156,66 @@ import { handleAdminSessionRequest } from "./_handlers/admin/sessions";
 import { handleAdminLoginAttemptRequest } from "./_handlers/admin/login-attempts";
 import { buildSitemapResponse } from "./_lib/site-files";
 import { GET as handleHealth } from "./health";
+import { generateOpenAPISpec } from "./_lib/openapi";
+import { logger } from "./_lib/logger";
+import { healthMonitor } from "./_lib/health-monitor";
+import { queryMonitor } from "./_lib/query-monitor";
+
+// ─── OpenAPI Docs Handler ───
+async function handleOpenApiDocs(req: Request, ctx: RequestContext): Promise<Response> {
+  const spec = generateOpenAPISpec();
+  const url = new URL(req.url);
+  const format = url.searchParams.get("format") || "json";
+  
+  if (format === "yaml") {
+    // Simple YAML conversion (for production, use a proper YAML library)
+    const yaml = `openapi: ${spec.openapi}
+info:
+  title: ${spec.info.title}
+  version: ${spec.info.version}
+  description: ${spec.info.description}
+servers:
+${spec.servers.map(s => `  - url: ${s.url}\n    description: ${s.description}`).join('\n')}
+tags:
+${spec.tags.map(t => `  - name: ${t.name}\n    description: ${t.description}`).join('\n')}
+paths: ${Object.keys(spec.paths).length} endpoints documented`;
+    
+    return new Response(yaml, {
+      headers: {
+        "Content-Type": "text/yaml",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  }
+  
+  return new Response(JSON.stringify(spec, null, 2), {
+    headers: {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    },
+  });
+}
 
 // ─── Route registration ───
 
 // Health check
 route("GET", "/api/health", (req, ctx) => handleHealth(req, { env: ctx.env }));
+
+// OpenAPI documentation
+route("GET", "/api/docs", (req, ctx) => handleOpenApiDocs(req, ctx));
+
+// Metrics endpoint (admin-only)
+route("GET", "/api/metrics", async (_req, ctx) => {
+  const { requireAdmin } = await import("./_lib/auth-middleware");
+  const adminGuard = requireAdmin(ctx);
+  if (adminGuard) return adminGuard;
+  const { success } = await import("./_lib/response");
+  return success({
+    health: healthMonitor.getMetrics(),
+    query: queryMonitor.getStats(),
+    uptime: Date.now() - (healthMonitor as any).startTime,
+  });
+}, { auth: true, admin: true });
 
 // Sitemap
 route("GET", "/sitemap.xml", (_req, ctx) => buildSitemapResponse(ctx.env));
@@ -255,6 +322,7 @@ route("POST", "/api/contact", (req, ctx) => handleContactRequest(req, ctx, [], "
 route("POST", "/api/newsletter", (req, ctx) => handleContactRequest(req, ctx, [], "newsletter"));
 
 route("POST", "/api/upload", handleUploadRequest, { auth: true, admin: true });
+route("POST", "/api/upload/customer", handleCustomerUploadRequest, { auth: true });
 
 // Returns
 route("POST", "/api/returns", (req, ctx) => handleReturnRequest(req, ctx, [], "create"), { auth: true });
@@ -494,6 +562,43 @@ route("GET", "/api/support/:id", (req, ctx, p) => handleSupportRequest(req, ctx,
 route("POST", "/api/support/:id/reply", (req, ctx, p) => handleSupportRequest(req, ctx, p, "ticketReply"), { auth: true });
 route("GET", "/api/faq", (req, ctx) => handleSupportRequest(req, ctx, [], "faq"));
 
+// Loyalty
+route("GET", "/api/loyalty/points", (req, ctx) => handleLoyaltyRequest(req, ctx, [], "points"), { auth: true });
+route("GET", "/api/loyalty/transactions", (req, ctx) => handleLoyaltyRequest(req, ctx, [], "transactions"), { auth: true });
+route("POST", "/api/loyalty/redeem", (req, ctx) => handleLoyaltyRequest(req, ctx, [], "redeem"), { auth: true });
+route("GET", "/api/admin/loyalty", (req, ctx) => handleLoyaltyRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
+route("POST", "/api/admin/loyalty/adjust", (req, ctx) => handleLoyaltyRequest(req, ctx, [], "adminAdjust"), { auth: true, admin: true });
+
+// Referral
+route("GET", "/api/referral/my-code", (req, ctx) => handleReferralRequest(req, ctx, [], "myCode"), { auth: true });
+route("POST", "/api/referral/claim", (req, ctx) => handleReferralRequest(req, ctx, [], "claim"));
+route("GET", "/api/referral/my-referrals", (req, ctx) => handleReferralRequest(req, ctx, [], "myReferrals"), { auth: true });
+route("POST", "/api/referral/generate-code", (req, ctx) => handleReferralRequest(req, ctx, [], "generateCode"), { auth: true });
+route("GET", "/api/admin/referrals", (req, ctx) => handleReferralRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
+
+// Gift Cards
+route("POST", "/api/gift-cards/validate", (req, ctx) => handleGiftCardRequest(req, ctx, [], "validate"));
+route("POST", "/api/gift-cards/redeem", (req, ctx) => handleGiftCardRequest(req, ctx, [], "redeem"), { auth: true });
+route("GET", "/api/gift-cards/my-cards", (req, ctx) => handleGiftCardRequest(req, ctx, [], "myCards"), { auth: true });
+route("POST", "/api/gift-cards/purchase", (req, ctx) => handleGiftCardRequest(req, ctx, [], "purchase"), { auth: true });
+route("GET", "/api/admin/gift-cards", (req, ctx) => handleGiftCardRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
+route("POST", "/api/admin/gift-cards", (req, ctx) => handleGiftCardRequest(req, ctx, [], "adminCreate"), { auth: true, admin: true });
+
+// Subscriptions
+route("GET", "/api/subscriptions/plans", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "plans"));
+route("GET", "/api/subscriptions/my", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "mySubscription"), { auth: true });
+route("POST", "/api/subscriptions/create", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "create"), { auth: true });
+route("POST", "/api/subscriptions/cancel", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "cancel"), { auth: true });
+route("GET", "/api/subscriptions/invoices", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "invoices"), { auth: true });
+route("GET", "/api/admin/subscriptions/plans", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "adminPlans"), { auth: true, admin: true });
+route("POST", "/api/admin/subscriptions/plans", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "adminCreatePlan"), { auth: true, admin: true });
+
+// Currencies
+route("GET", "/api/currencies", (req, ctx) => handleCurrencyRequest(req, ctx, [], "list"));
+route("POST", "/api/currencies/convert", (req, ctx) => handleCurrencyRequest(req, ctx, [], "convert"));
+route("GET", "/api/admin/currencies", (req, ctx) => handleCurrencyRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
+route("PUT", "/api/admin/currencies/:code", (req, ctx, p) => handleCurrencyRequest(req, ctx, p, "adminUpdate"), { auth: true, admin: true });
+
 // --- ADMIN ROUTES ---
 
 // Admin Notifications
@@ -554,6 +659,10 @@ route("DELETE", "/api/admin/sessions/:id", (req, ctx, p) => handleAdminSessionRe
 // ─── Login Attempts ───
 route("GET", "/api/admin/login-attempts", (req, ctx) => handleAdminLoginAttemptRequest(req, ctx, [], "list"), { auth: true, admin: true });
 
+// ─── Feature Flags ───
+route("GET", "/api/admin/feature-flags", (req, ctx) => handleAdminFeatureFlagRequest(req, ctx, [], "list"), { auth: true, admin: true });
+route("POST", "/api/admin/feature-flags", (req, ctx) => handleAdminFeatureFlagRequest(req, ctx, [], "toggle"), { auth: true, admin: true });
+
 // ─── Router ───
 
 // Cloudflare Pages Functions format
@@ -584,14 +693,30 @@ export async function OPTIONS(request: Request, opts?: { env?: any }): Promise<R
 async function handleRequest(method: string, request: Request, env?: any): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname;
+  const startTime = Date.now();
+  
+  // Generate request ID for tracing
+  const requestId = generateRequestId();
+
+  // API versioning support - strip /v1/ prefix if present
+  const versionedPath = path.replace(/^\/api\/v1\//, "/api/");
+  
+  // Add API version header
+  const apiVersion = path.startsWith("/api/v1/") ? "v1" : "v1";
+
+  // Log incoming request
+  logger.logRequest(requestId, method, versionedPath);
 
   // Body size limit (check early to reject oversized payloads fast)
   const contentLength = request.headers.get("content-length");
   if (contentLength && ["POST", "PUT", "PATCH"].includes(method)) {
-    const isUpload = path === "/api/upload" || path.startsWith("/api/admin/media");
+    const isUpload = versionedPath === "/api/upload" || versionedPath.startsWith("/api/admin/media");
     const maxBytes = isUpload ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
     if (parseInt(contentLength) > maxBytes) {
-      return withCors(error(`Request body too large. Max: ${isUpload ? "20MB" : "5MB"}`, 413), request, path);
+      const response = withCors(error(ErrorCode.INVALID_INPUT, `Request body too large. Max: ${isUpload ? "20MB" : "5MB"}`, 413, undefined, requestId), request, versionedPath);
+      healthMonitor.recordRequest(Date.now() - startTime, true);
+      logger.logResponse(requestId, method, versionedPath, 413, Date.now() - startTime);
+      return response;
     }
   }
 
@@ -599,7 +724,7 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
   for (const r of routes) {
     if (r.method !== method) continue;
 
-    const match = path.match(r.pattern);
+    const match = versionedPath.match(r.pattern);
     if (!match) continue;
 
     const params = match.slice(1);
@@ -608,36 +733,47 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
     // Auth routes and upload endpoint are exempt (auth routes use their own mechanisms)
     // Admin routes are NOT exempt — CSRF provides defense-in-depth alongside JWT
     if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
-      const isPublicWebhook = path === "/api/payments/webhook";
-      const isUpload = path === "/api/upload";
-      if (!isPublicWebhook && !isAuthPath(path) && !isUpload && !validateCsrf(request)) {
-        return withCors(csrfError(), request, path);
+      const isPublicWebhook = versionedPath === "/api/payments/webhook";
+      const isUpload = versionedPath === "/api/upload";
+      if (!isPublicWebhook && !isAuthPath(versionedPath) && !isUpload && !validateCsrf(request)) {
+        const response = withCors(csrfError(), request, versionedPath);
+        healthMonitor.recordRequest(Date.now() - startTime, true);
+        logger.logResponse(requestId, method, versionedPath, 403, Date.now() - startTime);
+        return response;
       }
     }
 
     // Authenticate if required
-    let context: RequestContext = { env };
+    let context: RequestContext = { env, requestId };
     if (r.auth || r.admin) {
       const authResult = await authenticate(request, {}, env);
-      if (authResult instanceof Response) return withCors(authResult, request, path);
-      context = { ...authResult.ctx, env };
+      if (authResult instanceof Response) {
+        healthMonitor.recordRequest(Date.now() - startTime, true);
+        logger.logResponse(requestId, method, versionedPath, 401, Date.now() - startTime);
+        return withCors(authResult, request, versionedPath);
+      }
+      context = { ...authResult.ctx, env, requestId };
     }
 
     // Check admin role
     if (r.admin) {
       const forbidden = requireAdmin(context);
-      if (forbidden) return withCors(forbidden, request, path);
+      if (forbidden) {
+        healthMonitor.recordRequest(Date.now() - startTime, true);
+        logger.logResponse(requestId, method, versionedPath, 403, Date.now() - startTime, context.userId);
+        return withCors(forbidden, request, versionedPath);
+      }
     }
 
     // Rate limiting — applied AFTER route match and auth, so we can use userId
     // and don't waste rate limit budget on 404s or OPTIONS preflights
     let rateConfig = RATE_LIMIT_CONFIG.standard;
-    if (isAuthPath(path)) {
-      rateConfig = path.includes("/contact") ? RATE_LIMIT_CONFIG.contact : RATE_LIMIT_CONFIG.auth;
-    } else if (path.includes("/api/admin/")) {
+    if (isAuthPath(versionedPath)) {
+      rateConfig = versionedPath.includes("/contact") ? RATE_LIMIT_CONFIG.contact : RATE_LIMIT_CONFIG.auth;
+    } else if (versionedPath.includes("/api/admin/")) {
       rateConfig = RATE_LIMIT_CONFIG.admin;
     }
-    const normalizedPath = path.replace(/\/[a-f0-9-]{20,}/gi, "/:id").replace(/\/\d+/g, "/:id");
+    const normalizedPath = versionedPath.replace(/\/[a-f0-9-]{20,}/gi, "/:id").replace(/\/\d+/g, "/:id");
     const rateKey = getRateLimitKey(
       request.headers.get("cf-connecting-ip")
         ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
@@ -647,25 +783,47 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
     );
     const rateResult = await checkRateLimit(rateKey, rateConfig, env);
     if (!rateResult.allowed) {
-      return withCors(rateLimitResponse(rateConfig.message || "Too many requests", rateResult.resetAt), request, path);
+      const response = withCors(rateLimitResponse(rateConfig.message || "Too many requests", rateResult.resetAt), request, versionedPath);
+      healthMonitor.recordRequest(Date.now() - startTime, true);
+      logger.logResponse(requestId, method, versionedPath, 429, Date.now() - startTime, context.userId);
+      return response;
     }
 
-    if (requiresTurnstile(path)) {
+    if (requiresTurnstile(versionedPath)) {
       const turnstileResult = await verifyTurnstileToken(request, context);
       if (turnstileResult) {
-        return withCors(turnstileResult, request, path);
+        healthMonitor.recordRequest(Date.now() - startTime, true);
+        logger.logResponse(requestId, method, versionedPath, 400, Date.now() - startTime, context.userId);
+        return withCors(turnstileResult, request, versionedPath);
       }
     }
 
     try {
       const response = await r.handler(request, context, params);
+      const duration = Date.now() - startTime;
+      
       // Set CSRF cookie on GET responses for SPA to read
       const responseWithCsrf = method === "GET" ? setCsrfCookie(response, env) : response;
-      return withCors(responseWithCsrf, request, path);
+      
+      // Add request ID and API version headers to response
+      responseWithCsrf.headers.set("X-Request-ID", requestId);
+      responseWithCsrf.headers.set("X-API-Version", apiVersion);
+      
+      // Record metrics and log response
+      healthMonitor.recordRequest(duration, response.status >= 400);
+      logger.logResponse(requestId, method, versionedPath, response.status, duration, context.userId);
+      
+      return withCors(responseWithCsrf, request, versionedPath);
     } catch (err) {
-      return withCors(serverError(err), request, path);
+      const duration = Date.now() - startTime;
+      healthMonitor.recordRequest(duration, true);
+      logger.logResponse(requestId, method, versionedPath, 500, duration, context.userId);
+      return withCors(serverError(err, requestId), request, versionedPath);
     }
   }
 
-  return withCors(notFound("Not found"), request, path);
+  const duration = Date.now() - startTime;
+  healthMonitor.recordRequest(duration, true);
+  logger.logResponse(requestId, method, versionedPath, 404, duration);
+  return withCors(notFound("Not found", requestId), request, versionedPath);
 }

@@ -187,8 +187,10 @@ export function img(url: string | undefined | null, options?: ImgOptions): strin
     const transforms: string[] = [];
     if (options?.width) transforms.push(`w_${options.width}`);
     if (options?.height) transforms.push(`h_${options.height}`);
-    transforms.push(options?.quality ? `q_${options.quality}` : "q_auto");
+    transforms.push(options?.quality ? `q_${options.quality}` : "q_auto:best");
     transforms.push(options?.format ? `f_${options.format}` : "f_auto");
+    transforms.push("dpr_2.0");
+    transforms.push("c_limit");
 
     if (isCloudinaryUrl(url)) {
       return cleanUrl.replace(
@@ -208,16 +210,16 @@ export function img(url: string | undefined | null, options?: ImgOptions): strin
 
 export function imgSet(
   url: string | undefined | null,
-  widths: number[] = [320, 640, 960, 1280]
+  widths: number[] = [320, 640, 960, 1280, 1920]
 ): { src: string; srcSet: string } | { src: string } {
   if (!url || (!isCloudinaryUrl(url) && !url.includes("images.unsplash.com"))) {
     return { src: url || "/placeholder.svg" };
   }
   try {
     const srcSet = widths
-      .map((w) => `${img(url, { width: w })} ${w}w`)
+      .map((w) => `${img(url, { width: w, format: "webp" })} ${w}w`)
       .join(", ");
-    return { src: img(url, { width: widths[1] }), srcSet };
+    return { src: img(url, { width: widths[1], format: "webp" }), srcSet };
   } catch (error) {
     if (import.meta.env.DEV) {
       console.warn("Image srcSet generation failed:", error);

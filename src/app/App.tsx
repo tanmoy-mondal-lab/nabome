@@ -5,7 +5,10 @@ import { Toaster } from "../components/ui/Toast";
 import { GoogleAnalytics } from "../components/GoogleAnalytics";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { AuthLoader } from "../components/AuthLoader";
+import { CookieConsent } from "../components/CookieConsent";
+import { PwaInstallPrompt } from "../components/PwaInstallPrompt";
 import { STOREFRONT_ROUTES, AUTH_ROUTES, ADMIN_ROUTES } from "./routes";
+import "../lib/i18n";
 
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
 
@@ -48,6 +51,8 @@ export function App() {
         </Suspense>
         <AuthLoader />
         <GoogleAnalytics />
+        <CookieConsent />
+        <PwaInstallPrompt />
       </BrowserRouter>
     </QueryClientProvider>
   );

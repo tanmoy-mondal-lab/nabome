@@ -16,8 +16,26 @@ const DEFAULT_SITE_URL = "https://www.nabome.online";
 const DEFAULT_SITE_NAME = "নবME";
 const DEFAULT_DESCRIPTION = "Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design.";
 const CACHE_TTL_MS = 60_000;
+const MAX_CACHE_SIZE = 500;
 const ASSET_EXTENSIONS = /\.(?:avif|css|gif|ico|jpe?g|js|json|map|png|svg|txt|webmanifest|webp|woff2?)$/i;
 const cachedSeo = new Map<string, { expiresAt: number; payload: SeoPayload }>();
+
+function pruneCache(): void {
+  if (cachedSeo.size <= MAX_CACHE_SIZE) return;
+  const now = Date.now();
+  for (const [key, entry] of cachedSeo) {
+    if (entry.expiresAt <= now) {
+      cachedSeo.delete(key);
+    }
+  }
+  if (cachedSeo.size > MAX_CACHE_SIZE) {
+    const entries = [...cachedSeo.entries()].sort((a, b) => a[1].expiresAt - b[1].expiresAt);
+    const toDelete = entries.slice(0, cachedSeo.size - MAX_CACHE_SIZE);
+    for (const [key] of toDelete) {
+      cachedSeo.delete(key);
+    }
+  }
+}
 
 function isHtmlRequest(request: Request): boolean {
   const url = new URL(request.url);
@@ -231,6 +249,7 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
   }
 
   cachedSeo.set(cacheKey, { expiresAt: Date.now() + CACHE_TTL_MS, payload });
+  pruneCache();
   return payload;
 }
 

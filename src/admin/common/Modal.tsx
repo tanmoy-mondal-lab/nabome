@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useId } from "react";
+import { type ReactNode, useEffect, useId, useRef } from "react";
 import { X } from "lucide-react";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 
@@ -12,13 +12,15 @@ interface ModalProps {
 
 export function Modal({ open, onClose, title, children, size = "md" }: ModalProps) {
   const titleId = useId();
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const modalRef = useFocusTrap<HTMLDivElement>(open, onClose);
 
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
       const handleEscape = (e: KeyboardEvent) => {
-        if (e.key === "Escape") onClose();
+        if (e.key === "Escape") onCloseRef.current();
       };
       document.addEventListener("keydown", handleEscape);
       return () => {
@@ -29,7 +31,7 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
       document.body.style.overflow = "";
     }
     return () => { document.body.style.overflow = ""; };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

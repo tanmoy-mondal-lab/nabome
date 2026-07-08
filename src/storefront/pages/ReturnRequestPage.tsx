@@ -63,29 +63,23 @@ export default function ReturnRequestPage() {
     onError: () => setSubmitError("Failed to submit return request. Please try again."),
   });
 
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  const [isUploading, setIsUploading] = useState(false);
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files) return;
-    const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    const MAX_SIZE = 5 * 1024 * 1024;
-    Array.from(files).forEach((file) => {
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        setSubmitError(`"${file.name}" is not a supported image format. Use JPG, PNG, WebP, or GIF.`);
-        return;
+    setIsUploading(true);
+    setSubmitError(null);
+    try {
+      for (const file of Array.from(files)) {
+        const url = await customerApi.uploadImage(file, "returns");
+        setEvidenceImages((prev) => [...prev, url]);
       }
-      if (file.size > MAX_SIZE) {
-        setSubmitError(`"${file.name}" exceeds the 5MB size limit.`);
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const result = ev.target?.result;
-        if (typeof result === "string") {
-          setEvidenceImages((prev) => [...prev, result]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    } catch {
+      setSubmitError("Failed to upload image. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   function removeImage(index: number) {
@@ -260,9 +254,13 @@ export default function ReturnRequestPage() {
                   </div>
                 ))}
                 <label className="aspect-square border-2 border-dashed border-neutral-300 rounded flex flex-col items-center justify-center cursor-pointer hover:border-neutral-900 transition-colors bg-neutral-50">
-                  <Upload className="w-5 h-5 text-neutral-400" />
-                  <span className="text-[10px] text-neutral-400 mt-1 tracking-fashion">Upload</span>
-                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
+                  {isUploading ? (
+                    <div className="w-5 h-5 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Upload className="w-5 h-5 text-neutral-400" />
+                  )}
+                  <span className="text-[10px] text-neutral-400 mt-1 tracking-fashion">{isUploading ? "Uploading..." : "Upload"}</span>
+                  <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} disabled={isUploading} />
                 </label>
               </div>
             </div>

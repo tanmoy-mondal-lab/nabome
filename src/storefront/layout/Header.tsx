@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Heart, ShoppingBag, User, Menu, ChevronDown, Bell } from "lucide-react";
+import { LanguageSwitcher } from "../../components/LanguageSwitcher";
+import { CurrencySelector } from "../../components/CurrencySelector";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 import { useAuthStore } from "../../stores/auth-store";
@@ -197,6 +199,8 @@ export function Header() {
                   <User className="w-4 h-4" />
                 </Link>
               )}
+              <LanguageSwitcher />
+              <CurrencySelector />
               {isAdmin && (
                 <Link to="/admin" className="px-3 py-1.5 ml-1 text-[9px] uppercase tracking-[0.2em] text-neutral-400 hover:text-neutral-900 hover:bg-neutral-50 transition-all duration-300 rounded-xl font-medium border border-neutral-200">
                   Admin

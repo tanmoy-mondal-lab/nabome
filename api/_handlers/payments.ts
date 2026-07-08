@@ -1,10 +1,11 @@
 import { getPrisma } from "../_lib/prisma";
-import { success, badRequest, notFound, error, serverError } from "../_lib/response";
+import { success, badRequest, notFound, error, serverError, unauthorized } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
 import { cleanSecret } from "../_lib/secrets";
 import { requireAdmin } from "../_lib/auth-middleware";
+import { ErrorCode } from "../_lib/types";
 
 async function createHMACSHA256(secret: string, data: string, env: any): Promise<string> {
   const enc = new TextEncoder();
@@ -61,7 +62,7 @@ export async function handlePaymentRequest(
   action?: string
 ): Promise<Response> {
   if (req.method !== "POST") {
-    return error("Method not allowed", 405);
+    return error(ErrorCode.INVALID_INPUT, "Method not allowed", 405);
   }
 
   switch (action) {
@@ -763,26 +764,38 @@ const EVENT_HANDLERS: Record<string, (event: WebhookEventPayload, ctx: { env: an
 // WEBHOOK ENTRY POINT
 // ─────────────────────────────────────────────────────────────
 
+const WEBHOOK_MAX_BODY_SIZE = 256_000;
+
 async function handleWebhook(req: Request, env: any): Promise<Response> {
   const prisma = getPrisma(env);
+
+  const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
+  if (contentLength > WEBHOOK_MAX_BODY_SIZE) {
+    return badRequest("Webhook payload too large");
+  }
+
   const rawBody = await req.text();
+  if (rawBody.length > WEBHOOK_MAX_BODY_SIZE) {
+    return badRequest("Webhook payload too large");
+  }
+
   const signature = req.headers.get("x-razorpay-signature");
 
   // ── 1. Verify secret is configured ──
   const webhookSecret = cleanSecret(env?.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_WEBHOOK_SECRET);
   if (!webhookSecret) {
-    return success({ status: "ignored" });
+    return serverError(new Error("Razorpay webhook secret not configured"));
   }
 
   // ── 2. Verify HMAC signature ──
   if (!signature) {
-    return success({ status: "invalid_signature" });
+    return unauthorized("Missing Razorpay webhook signature");
   }
 
   const expected = await createHMACSHA256(webhookSecret, rawBody, env);
 
   if (!timingSafeEqualHex(expected, signature)) {
-    return success({ status: "invalid_signature" });
+    return unauthorized("Invalid Razorpay webhook signature");
   }
 
   // ── 3. Parse event ──
@@ -790,14 +803,14 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
   try {
     event = JSON.parse(rawBody);
   } catch {
-    return success({ status: "invalid_payload" });
+    return badRequest("Invalid webhook payload");
   }
 
   const eventName = event.event;
   const eventId = getWebhookEventId(event);
 
   if (!eventName) {
-    return success({ status: "invalid_event" });
+    return badRequest("Invalid webhook event");
   }
 
   // ── 4. Dedup — check if we already processed this event ──
@@ -814,8 +827,12 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
         return success({ status: "duplicate_ignored", existingStatus: existing.status, retryCount: existing.retryCount });
       }
     }
-  } catch {
-    // Table might not exist yet (before migration) — proceed without dedup
+  } catch (dedupErr) {
+    logAction(null, "payment.webhook_dedup_error", {
+      entity: "payment_webhook",
+      entityId: eventId || "unknown",
+      metadata: { error: (dedupErr as Error).message },
+    }, env);
   }
 
   // ── 5. Create or update WebhookEvent record ──
@@ -851,7 +868,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
       });
       webhookEventId = record.id;
     } catch (createErr) {
-      return success({ status: "logged", error: "Failed to persist event" });
+      return serverError(new Error("Failed to persist webhook event"));
     }
   }
 
@@ -902,7 +919,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
       metadata: { event: eventName, status: "failed", error: errorMessage },
     }, env);
 
-    return success({ status: "error", event: eventName, error: errorMessage });
+    return serverError(new Error(`Webhook handler failed: ${errorMessage}`));
   }
 }
 

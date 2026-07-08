@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { formatPrice } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 
@@ -8,7 +9,7 @@ interface PriceDisplayProps {
   className?: string;
 }
 
-export function PriceDisplay({ price, compareAtPrice, size = "md", className }: PriceDisplayProps) {
+export const PriceDisplay = memo(function PriceDisplay({ price, compareAtPrice, size = "md", className }: PriceDisplayProps) {
   const sizes = { sm: "text-sm md:text-sm", md: "text-base md:text-base", lg: "text-lg md:text-lg" };
   const discount = compareAtPrice && compareAtPrice > price
     ? Math.round((1 - price / compareAtPrice) * 100)
@@ -25,4 +26,4 @@ export function PriceDisplay({ price, compareAtPrice, size = "md", className }: 
       )}
     </div>
   );
-}
+});

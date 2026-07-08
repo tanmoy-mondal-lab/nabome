@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Star } from "lucide-react";
 import { cn } from "../../lib/utils/cn";
 
@@ -9,7 +10,7 @@ interface StarRatingProps {
   className?: string;
 }
 
-export function StarRating({ rating, max = 5, size = 14, showValue, className }: StarRatingProps) {
+export const StarRating = memo(function StarRating({ rating, max = 5, size = 14, showValue, className }: StarRatingProps) {
   return (
     <div className={cn("flex items-center gap-1", className)}>
       {Array.from({ length: max }).map((_, i) => (
@@ -22,4 +23,4 @@ export function StarRating({ rating, max = 5, size = 14, showValue, className }:
       {showValue && <span className="text-xs text-neutral-500 ml-1">({rating.toFixed(1)})</span>}
     </div>
   );
-}
+});
