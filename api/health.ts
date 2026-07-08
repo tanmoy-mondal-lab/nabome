@@ -58,37 +58,12 @@ async function probeDatabase(env?: Env): Promise<ProbeResult> {
     return readyState(false, false, "DATABASE_URL or DATABASE_URL_POOLED is missing");
   }
 
-  // Try Hyperdrive first, then direct pooled connection
-  const errors: string[] = [];
-
-  if (env?.HYPERDRIVE) {
-    try {
-      await withTimeout(getPrisma(env).$queryRaw`SELECT 1`, 5000, "Hyperdrive");
-      return readyState(true, true);
-    } catch (error) {
-      errors.push(`Hyperdrive: ${error instanceof Error ? error.message : "Unknown"}`);
-    }
-  }
-
-  // Try direct connection without Hyperdrive
   try {
-    const { PrismaClient } = await import("@prisma/client");
-    const { PrismaNeon } = await import("@prisma/adapter-neon");
-    const directUrl = cleanSecret(env?.DATABASE_URL_POOLED) || cleanSecret(env?.DATABASE_URL);
-    if (!directUrl) {
-      errors.push("Direct: No DATABASE_URL available");
-      return readyState(true, false, errors.join(" | "));
-    }
-    const directAdapter = new PrismaNeon({ connectionString: directUrl });
-    const directPrisma = new PrismaClient({ adapter: directAdapter });
-    await withTimeout(directPrisma.$queryRaw`SELECT 1`, 5000, "Direct");
-    await directPrisma.$disconnect();
+    await withTimeout(getPrisma(env).$queryRaw`SELECT 1`, 5000, "Database");
     return readyState(true, true);
   } catch (error) {
-    errors.push(`Direct: ${error instanceof Error ? error.message : "Unknown"}`);
+    return readyState(true, false, error instanceof Error ? error.message : "Database probe failed");
   }
-
-  return readyState(true, false, errors.join(" | "));
 }
 
 async function probeSupabase(env?: Env): Promise<ProbeResult> {
@@ -212,7 +187,7 @@ async function probeMedia(env?: Env): Promise<ProbeResult> {
 export async function GET(req: Request, opts?: { env?: Env }): Promise<Response> {
   const env = opts?.env;
   const url = new URL(req.url);
-  const includeChecks = url.searchParams.get("checks") === "1" || url.searchParams.get("checks") === "2";
+  const includeChecks = url.searchParams.get("checks") === "1" && runtimeAllowsChecks(url, env);
 
   const body: Record<string, unknown> = {
     status: "ok",
@@ -239,24 +214,6 @@ export async function GET(req: Request, opts?: { env?: Env }): Promise<Response>
     const overallReady = Object.values(checks).every((check) => check.status === "ok");
     body.status = overallReady ? "ok" : "degraded";
     body.checks = checks;
-  }
-
-  // Debug mode: test model queries (triggered by &debug=1)
-  if (url.searchParams.get("debug") === "1") {
-    try {
-      const prisma = getPrisma(env);
-      const settingsTest = await prisma.siteSetting.findFirst();
-      body.settingsTest = settingsTest ? "found" : "not found";
-    } catch (err) {
-      body.settingsTestError = err instanceof Error ? err.message : String(err);
-    }
-    try {
-      const prisma = getPrisma(env);
-      const productsTest = await prisma.product.count();
-      body.productsTest = `${productsTest} products`;
-    } catch (err) {
-      body.productsTestError = err instanceof Error ? err.message : String(err);
-    }
   }
 
   // Add health monitor metrics
