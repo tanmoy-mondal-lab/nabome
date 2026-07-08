@@ -4,6 +4,15 @@
   "pages_build_output_dir": "dist",
   "compatibility_date": "2026-06-30",
   "compatibility_flags": ["nodejs_compat"],
+  "placement": {
+    "mode": "smart"
+  },
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "4782535a8c2045bdaa0c5d7b4c62ae94"
+    }
+  ],
   "kv_namespaces": [
     {
       "binding": "RATE_LIMIT_STORE",

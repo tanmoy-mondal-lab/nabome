@@ -6,6 +6,7 @@ import { logAction, extractRequestMeta } from "../_lib/audit";
 import { cleanSecret } from "../_lib/secrets";
 import { requireAdmin } from "../_lib/auth-middleware";
 import { ErrorCode } from "../_lib/types";
+import { validateBody, paymentVerifySchema, paymentFailedSchema, paymentRetrySchema, refundSchema } from "../_lib/validate";
 
 async function createHMACSHA256(secret: string, data: string, env: any): Promise<string> {
   const enc = new TextEncoder();
@@ -83,15 +84,11 @@ export async function handlePaymentRequest(
 
 async function handleVerify(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
-    const prisma = getPrisma(env);
-    const body = await req.json();
-    const { razorpayPaymentId, razorpayOrderId, razorpaySignature, orderId } = body;
+    const parsed = await validateBody(req, paymentVerifySchema);
+    if ("response" in parsed) return parsed.response;
+    const { razorpayPaymentId, razorpayOrderId, razorpaySignature, orderId } = parsed.data;
 
-    if (!razorpayPaymentId || !razorpayOrderId || !razorpaySignature || !orderId) {
-      return badRequest(
-        "Missing required fields: razorpayPaymentId, razorpayOrderId, razorpaySignature, orderId"
-      );
-    }
+    const prisma = getPrisma(env);
 
     const keySecret = cleanSecret(env?.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET);
     if (!keySecret) {
@@ -199,11 +196,11 @@ async function handleVerify(req: Request, ctx: RequestContext, env: any): Promis
 
 async function handleFailed(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
-    const prisma = getPrisma(env);
-    const body = await req.json();
-    const { orderId, razorpayOrderId, errorCode, errorDescription } = body;
+    const parsed = await validateBody(req, paymentFailedSchema);
+    if ("response" in parsed) return parsed.response;
+    const { orderId, razorpayOrderId, errorCode, errorDescription } = parsed.data;
 
-    if (!orderId || !razorpayOrderId) return badRequest("orderId and razorpayOrderId are required");
+    const prisma = getPrisma(env);
 
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
@@ -272,11 +269,11 @@ async function handleFailed(req: Request, ctx: RequestContext, env: any): Promis
 
 async function handleRetry(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
-    const prisma = getPrisma(env);
-    const body = await req.json();
-    const { orderId } = body;
+    const parsed = await validateBody(req, paymentRetrySchema);
+    if ("response" in parsed) return parsed.response;
+    const { orderId } = parsed.data;
 
-    if (!orderId) return badRequest("orderId is required");
+    const prisma = getPrisma(env);
 
     const order = await prisma.order.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
@@ -311,11 +308,11 @@ async function handleRefund(req: Request, ctx: RequestContext, env: any): Promis
   const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
   try {
-    const prisma = getPrisma(env);
-    const body = await req.json();
-    const { orderId, amount, returnRequestId } = body;
+    const parsed = await validateBody(req, refundSchema);
+    if ("response" in parsed) return parsed.response;
+    const { orderId, amount, returnRequestId } = parsed.data;
 
-    if (!orderId) return badRequest("orderId is required");
+    const prisma = getPrisma(env);
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },

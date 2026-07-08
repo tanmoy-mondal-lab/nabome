@@ -17,6 +17,7 @@ vi.mock("../prisma", () => ({
   getPrisma: vi.fn(() => ({
     authSession: {
       findFirst: mockFindFirst,
+      update: vi.fn().mockResolvedValue({}),
     },
   })),
 }));
@@ -41,6 +42,8 @@ describe("auth middleware session enforcement", () => {
 
   it("allows a request when the local session is active", async () => {
     mockFindFirst.mockResolvedValue({
+      id: "session-1",
+      lastActiveAt: new Date(),
       profile: { role: "admin" },
     });
 
@@ -85,7 +88,7 @@ describe("auth middleware session enforcement", () => {
       const tokenMatches = (where.OR as Array<{ accessToken: string }>).some(
         (entry) => entry.accessToken === "legacy-token"
       );
-      return tokenMatches ? { profile: { role: "customer" } } : null;
+      return tokenMatches ? { id: "session-2", lastActiveAt: new Date(), profile: { role: "customer" } } : null;
     });
 
     const request = new Request("http://localhost/api/orders", {

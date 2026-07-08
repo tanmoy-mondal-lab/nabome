@@ -28,7 +28,11 @@ export async function handleDataExportRequest(
       return unauthorized("User not authenticated");
     }
 
-    // Fetch all user-related data
+    const url = new URL(req.url);
+    const page = Math.max(1, parseInt(url.searchParams.get("page") || "1", 10));
+    const limit = Math.min(1000, Math.max(1, parseInt(url.searchParams.get("limit") || "1000", 10)));
+    const skip = (page - 1) * limit;
+
     const profile = await prisma.profile.findUnique({
       where: { id: profileId },
       select: {
@@ -50,150 +54,161 @@ export async function handleDataExportRequest(
       return badRequest("User not found");
     }
 
-    const addresses = await prisma.address.findMany({
-      where: { profileId },
-      select: {
-        id: true,
-        label: true,
-        fullName: true,
-        phone: true,
-        line1: true,
-        line2: true,
-        city: true,
-        district: true,
-        state: true,
-        pincode: true,
-        country: true,
-        isDefault: true,
-        addressType: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    const orders = await prisma.order.findMany({
-      where: { profileId },
-      select: {
-        id: true,
-        orderNumber: true,
-        email: true,
-        status: true,
-        subtotal: true,
-        shippingCost: true,
-        tax: true,
-        discount: true,
-        total: true,
-        currency: true,
-        paymentMethod: true,
-        paymentStatus: true,
-        shippedAt: true,
-        deliveredAt: true,
-        cancelledAt: true,
-        cancellationReason: true,
-        refundedAt: true,
-        createdAt: true,
-        updatedAt: true,
-        items: {
-          select: {
-            id: true,
-            productName: true,
-            variantLabel: true,
-            sku: true,
-            quantity: true,
-            unitPrice: true,
-            totalPrice: true,
-            isReturned: true,
-            returnQuantity: true,
-          },
+    const [addresses, orders, wishlistItems, reviews, supportTickets, returnRequests] = await Promise.all([
+      prisma.address.findMany({
+        where: { profileId },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          label: true,
+          fullName: true,
+          phone: true,
+          line1: true,
+          line2: true,
+          city: true,
+          district: true,
+          state: true,
+          pincode: true,
+          country: true,
+          isDefault: true,
+          addressType: true,
+          createdAt: true,
+          updatedAt: true,
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const wishlistItems = await prisma.wishlistItem.findMany({
-      where: { profileId },
-      select: {
-        id: true,
-        variantId: true,
-        createdAt: true,
-        variant: {
-          select: {
-            product: {
-              select: {
-                name: true,
-                slug: true,
-              },
+      }),
+      prisma.order.findMany({
+        where: { profileId },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          orderNumber: true,
+          email: true,
+          status: true,
+          subtotal: true,
+          shippingCost: true,
+          tax: true,
+          discount: true,
+          total: true,
+          currency: true,
+          paymentMethod: true,
+          paymentStatus: true,
+          shippedAt: true,
+          deliveredAt: true,
+          cancelledAt: true,
+          cancellationReason: true,
+          refundedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          items: {
+            select: {
+              id: true,
+              productName: true,
+              variantLabel: true,
+              sku: true,
+              quantity: true,
+              unitPrice: true,
+              totalPrice: true,
+              isReturned: true,
+              returnQuantity: true,
             },
-            size: true,
-            color: true,
-            priceAdjustment: true,
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const reviews = await prisma.review.findMany({
-      where: { profileId },
-      select: {
-        id: true,
-        rating: true,
-        title: true,
-        body: true,
-        isApproved: true,
-        createdAt: true,
-        updatedAt: true,
-        product: {
-          select: {
-            name: true,
-            slug: true,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.wishlistItem.findMany({
+        where: { profileId },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          variantId: true,
+          createdAt: true,
+          variant: {
+            select: {
+              product: {
+                select: {
+                  name: true,
+                  slug: true,
+                },
+              },
+              size: true,
+              color: true,
+              priceAdjustment: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const supportTickets = await prisma.supportTicket.findMany({
-      where: { profileId },
-      select: {
-        id: true,
-        subject: true,
-        status: true,
-        priority: true,
-        createdAt: true,
-        updatedAt: true,
-        replies: {
-          select: {
-            id: true,
-            message: true,
-            isStaff: true,
-            createdAt: true,
-          },
-          orderBy: { createdAt: "asc" },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-
-    const returnRequests = await prisma.returnRequest.findMany({
-      where: { profileId },
-      select: {
-        id: true,
-        reason: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        order: {
-          select: {
-            orderNumber: true,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.review.findMany({
+        where: { profileId },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          rating: true,
+          title: true,
+          body: true,
+          isApproved: true,
+          createdAt: true,
+          updatedAt: true,
+          product: {
+            select: {
+              name: true,
+              slug: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.supportTicket.findMany({
+        where: { profileId },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          subject: true,
+          status: true,
+          priority: true,
+          createdAt: true,
+          updatedAt: true,
+          replies: {
+            select: {
+              id: true,
+              message: true,
+              isStaff: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: "asc" },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.returnRequest.findMany({
+        where: { profileId },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          reason: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          order: {
+            select: {
+              orderNumber: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
 
     const loginAttempts = await prisma.loginAttempt.findMany({
       where: { profileId },
+      skip,
+      take: limit,
       select: {
         id: true,
         email: true,
@@ -204,11 +219,12 @@ export async function handleDataExportRequest(
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
-      take: 50, // Limit to last 50 attempts
     });
 
     const userActionLogs = await prisma.userActionLog.findMany({
       where: { profileId },
+      skip,
+      take: limit,
       select: {
         id: true,
         action: true,
@@ -220,11 +236,12 @@ export async function handleDataExportRequest(
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
-      take: 100, // Limit to last 100 actions
     });
 
     const notifications = await prisma.notification.findMany({
       where: { profileId },
+      skip,
+      take: limit,
       select: {
         id: true,
         type: true,
@@ -234,10 +251,8 @@ export async function handleDataExportRequest(
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
-      take: 100,
     });
 
-    // Compile export data
     const exportData = {
       exportDate: new Date().toISOString(),
       profile,
@@ -252,7 +267,6 @@ export async function handleDataExportRequest(
       notifications,
     };
 
-    // Log the export for audit trail
     await prisma.userActionLog.create({
       data: {
         profileId,
@@ -262,6 +276,8 @@ export async function handleDataExportRequest(
         metadata: {
           exportDate: exportData.exportDate,
           dataTypes: Object.keys(exportData).filter((k) => k !== "exportDate"),
+          page,
+          limit,
         },
         ipAddress: req.headers.get("CF-Connecting-IP") || null,
         userAgent: req.headers.get("User-Agent") || null,
@@ -270,6 +286,7 @@ export async function handleDataExportRequest(
 
     return success({
       data: exportData,
+      pagination: { page, limit, skip },
       filename: `nabome-data-export-${profileId}-${Date.now()}.json`,
     });
   } catch (err) {

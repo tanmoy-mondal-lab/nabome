@@ -517,6 +517,16 @@ export async function handleCheckoutRequest(
     const total = Math.max(0, Math.round((subtotal + shippingCost + tax - discount) * 100) / 100);
     const orderNumber = generateOrderNumber();
 
+    // ── Create Razorpay order BEFORE the DB transaction ──
+    let razorpayOrderId: string | null = null;
+    if (paymentMethod !== "cod") {
+      try {
+        razorpayOrderId = await createRazorpayOrder(total, "INR", orderNumber, ctx.env);
+      } catch (razorpayError) {
+        throw new CheckoutError(`Payment initialization failed: ${(razorpayError as Error).message}`);
+      }
+    }
+
     // ── Create order in transaction ──
     const order = await prisma.$transaction(async (tx) => {
       // First, reserve stock
@@ -537,17 +547,6 @@ export async function handleCheckoutRequest(
           throw new CheckoutError(
             `Insufficient stock for ${item.variant.product.name} (${item.variant.size}/${item.variant.color})`
           );
-        }
-      }
-
-      // Create Razorpay order inside transaction to ensure atomicity
-      let razorpayOrderId: string | null = null;
-      if (paymentMethod !== "cod") {
-        try {
-          razorpayOrderId = await createRazorpayOrder(total, "INR", orderNumber, ctx.env);
-        } catch (razorpayError) {
-          // If Razorpay fails, rollback the entire transaction (stock will be released)
-          throw new CheckoutError(`Payment initialization failed: ${(razorpayError as Error).message}`);
         }
       }
 

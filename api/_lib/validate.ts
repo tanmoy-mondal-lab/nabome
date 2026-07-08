@@ -190,3 +190,59 @@ export const searchSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
+
+export const paymentVerifySchema = z.object({
+  razorpayPaymentId: z.string().min(1, "Payment ID is required"),
+  razorpayOrderId: z.string().min(1, "Razorpay order ID is required"),
+  razorpaySignature: z.string().min(1, "Signature is required"),
+  orderId: z.string().min(1, "Order ID is required"),
+});
+
+export const paymentFailedSchema = z.object({
+  orderId: z.string().min(1, "Order ID is required"),
+  razorpayOrderId: z.string().min(1, "Razorpay order ID is required"),
+  errorCode: z.string().optional(),
+  errorDescription: z.string().optional(),
+});
+
+export const paymentRetrySchema = z.object({
+  orderId: z.string().min(1, "Order ID is required"),
+});
+
+export const refundSchema = z.object({
+  orderId: z.string().min(1, "Order ID is required"),
+  amount: z.number().positive().optional(),
+  returnRequestId: z.string().optional(),
+});
+
+export const cartSyncSchema = z.object({
+  items: z.array(z.object({
+    variantId: z.string().min(1),
+    quantity: z.number().int().min(1).max(20),
+  })),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export const verifyResetCodeSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  code: z.string().regex(/^\d{6}$/, "Code must be a 6-digit number"),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  code: z.string().regex(/^\d{6}$/, "Code must be a 6-digit number"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(8, "New password must be at least 8 characters"),
+});
+
+export const verifyEmailSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  code: z.string().regex(/^\d{6}$/, "Code must be a 6-digit number"),
+});

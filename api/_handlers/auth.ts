@@ -9,13 +9,14 @@ import {
   success, badRequest, unauthorized, serverError, created, conflict,
 } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
-import { validateBody, authRegisterSchema, authLoginSchema } from "../_lib/validate";
+import { validateBody, authRegisterSchema, authLoginSchema, forgotPasswordSchema, verifyResetCodeSchema, resetPasswordSchema, changePasswordSchema, verifyEmailSchema } from "../_lib/validate";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
 import type { Env } from "../_lib/env";
 import { cleanSecret } from "../_lib/secrets";
 import { hashToken } from "../_lib/token-hash";
 import { getEnv } from "../_lib/env";
+import { verifyTurnstileToken } from "../_lib/turnstile";
 
 function generateVerificationCode(): string {
   const buf = new Uint8Array(4);
@@ -176,16 +177,12 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
 
 async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Response> {
   try {
-    const body = await req.json();
-    const { email, code } = body;
+    const parsed = await validateBody(req, verifyEmailSchema);
+    if ("response" in parsed) return parsed.response;
+    const { email, code } = parsed.data;
 
-    if (!email || !code || typeof email !== 'string' || typeof code !== 'string') {
-      return badRequest("Email and verification code are required");
-    }
-
-    if (!/^\d{6}$/.test(code)) {
-      return badRequest("Verification code must be a 6-digit number");
-    }
+    const turnstileCheck = await verifyTurnstileToken(req, ctx);
+    if (turnstileCheck) return turnstileCheck;
 
     const prisma = getPrisma(ctx.env);
     const ipAddress = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "unknown";
@@ -887,15 +884,12 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
 // ─── FORGOT PASSWORD (send 6-digit code) ───
 
 async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<Response> {
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return badRequest("Invalid JSON body");
-  }
-  const { email } = body;
+  const parsed = await validateBody(req, forgotPasswordSchema);
+  if ("response" in parsed) return parsed.response;
+  const { email } = parsed.data;
 
-  if (!email || typeof email !== 'string') return badRequest("Email is required");
+  const turnstileCheck = await verifyTurnstileToken(req, ctx);
+  if (turnstileCheck) return turnstileCheck;
 
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -934,21 +928,12 @@ async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<
 // ─── VERIFY RESET CODE ───
 
 async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise<Response> {
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return badRequest("Invalid JSON body");
-  }
-  const { email, code } = body;
+  const parsed = await validateBody(req, verifyResetCodeSchema);
+  if ("response" in parsed) return parsed.response;
+  const { email, code } = parsed.data;
 
-  if (!email || !code || typeof email !== 'string' || typeof code !== 'string') {
-    return badRequest("Email and verification code are required");
-  }
-
-  if (!/^\d{6}$/.test(code)) {
-    return badRequest("Verification code must be a 6-digit number");
-  }
+  const turnstileCheck = await verifyTurnstileToken(req, ctx);
+  if (turnstileCheck) return turnstileCheck;
 
   const normalizedEmail = email.toLowerCase().trim();
   const ipAddress = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "unknown";
@@ -1030,25 +1015,12 @@ async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise
 // ─── RESET PASSWORD ───
 
 async function handleResetPassword(req: Request, ctx: RequestContext): Promise<Response> {
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return badRequest("Invalid JSON body");
-  }
-  const { email, code, password } = body;
+  const parsed = await validateBody(req, resetPasswordSchema);
+  if ("response" in parsed) return parsed.response;
+  const { email, code, password } = parsed.data;
 
-  if (!email || !code || !password || typeof email !== 'string' || typeof code !== 'string' || typeof password !== 'string') {
-    return badRequest("Email, verification code, and new password are required");
-  }
-
-  if (!/^\d{6}$/.test(code)) {
-    return badRequest("Verification code must be a 6-digit number");
-  }
-
-  if (password.length < 8) {
-    return badRequest("Password must be at least 8 characters");
-  }
+  const turnstileCheck = await verifyTurnstileToken(req, ctx);
+  if (turnstileCheck) return turnstileCheck;
 
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -1112,21 +1084,9 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
 async function handleChangePassword(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return badRequest("Invalid JSON body");
-  }
-  const { currentPassword, newPassword } = body;
-
-  if (!currentPassword || !newPassword || typeof currentPassword !== 'string' || typeof newPassword !== 'string') {
-    return badRequest("Current password and new password are required");
-  }
-
-  if (newPassword.length < 8) {
-    return badRequest("New password must be at least 8 characters");
-  }
+  const parsed = await validateBody(req, changePasswordSchema);
+  if ("response" in parsed) return parsed.response;
+  const { currentPassword, newPassword } = parsed.data;
 
   if (currentPassword === newPassword) {
     return badRequest("New password must be different from current password");

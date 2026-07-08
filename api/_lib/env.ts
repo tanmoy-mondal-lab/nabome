@@ -24,6 +24,7 @@ export interface Env {
   CF_PAGES?: string;
   RATE_LIMIT_STORE?: { get: (key: string) => Promise<string | null>; put: (key: string, value: string, opts?: { expirationTtl?: number }) => Promise<void> };
   FEATURE_FLAGS_KV?: { get: (key: string) => Promise<string | null>; put: (key: string, value: string) => Promise<void> };
+  HYPERDRIVE?: { connectionString: string };
 }
 
 export function getEnv(): Env {

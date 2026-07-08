@@ -750,14 +750,16 @@ model WishlistItem {
 // ─────────────────────────────────────────────────────────────
 
 model Cart {
-  id        String   @id @default(uuid()) @db.Uuid
-  profileId String   @unique @map("profile_id") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id        String    @id @default(uuid()) @db.Uuid
+  profileId String    @unique @map("profile_id") @db.Uuid
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
   profile Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
   items   CartItem[]
 
+  @@index([expiresAt])
   @@map("carts")
 }
 
@@ -820,6 +822,8 @@ model Order {
   shippingAddress Address? @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: SetNull)
   billingAddress  Address? @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
 
+  referrals         Referral[]
+  giftCards         GiftCard[]
   items            OrderItem[]
   statusHistory    OrderStatusHistory[]
   couponRedemption CouponRedemption?
@@ -834,15 +838,14 @@ model Order {
   @@index([status, createdAt])
   @@index([paymentStatus, createdAt])
   @@index([profileId, status])
-  referrals  Referral[]
-  giftCards  GiftCard[]
-
   @@index([createdAt])
   @@index([shippingAddressId])
   @@index([billingAddressId])
   @@index([profileId, createdAt])
   @@index([profileId, status, createdAt])
   @@index([status, paymentStatus])
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
   @@map("orders")
 }
 
@@ -931,6 +934,7 @@ model CouponRedemption {
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Restrict)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Restrict)
 
+  @@unique([couponId, profileId, orderId])
   @@index([couponId])
   @@index([profileId])
   @@index([couponId, profileId])

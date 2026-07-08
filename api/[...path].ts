@@ -40,6 +40,8 @@ function requiresTurnstile(path: string): boolean {
   return path === "/api/auth/login" ||
     path === "/api/auth/register" ||
     path === "/api/auth/forgot-password" ||
+    path === "/api/auth/reset-password" ||
+    path === "/api/auth/verify-reset-code" ||
     path === "/api/auth/change-password" ||
     path === "/api/auth/change-email" ||
     path === "/api/auth/verify-email" ||
@@ -212,7 +214,7 @@ route("GET", "/api/metrics", async (_req, ctx) => {
   const { success } = await import("./_lib/response");
   return success({
     health: healthMonitor.getMetrics(),
-    query: queryMonitor.getStats(),
+    query: queryMonitor.getQueryStats(),
     uptime: Date.now() - (healthMonitor as any).startTime,
   });
 }, { auth: true, admin: true });

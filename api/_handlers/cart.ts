@@ -39,6 +39,15 @@ async function handleGetCart(ctx: RequestContext): Promise<Response> {
 
   try {
     const prisma = getPrisma(ctx.env);
+
+    // Clean up expired cart
+    await prisma.cart.deleteMany({
+      where: {
+        profileId: ctx.userId,
+        expiresAt: { lt: new Date() },
+      },
+    });
+
     const cart = await prisma.cart.findUnique({
       where: { profileId: ctx.userId },
       include: {
@@ -151,7 +160,10 @@ async function handleSyncCart(req: Request, ctx: RequestContext): Promise<Respon
 
     if (!cart) {
       cart = await prisma.cart.create({
-        data: { profileId: ctx.userId }
+        data: { 
+          profileId: ctx.userId,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        }
       });
     }
 
@@ -174,7 +186,10 @@ async function handleSyncCart(req: Request, ctx: RequestContext): Promise<Respon
 
       await tx.cart.update({
         where: { id: cart.id },
-        data: { updatedAt: new Date() }
+        data: { 
+          updatedAt: new Date(),
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        },
       });
     });
 
@@ -214,6 +229,7 @@ async function handleMergeCart(req: Request, ctx: RequestContext): Promise<Respo
     const activeCart = cart ?? await prisma.cart.create({
         data: { 
           profileId: ctx.userId,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days,
           items: items.length > 0 ? {
             create: items.map(item => ({
               variantId: item.variantId,

@@ -225,28 +225,27 @@ async function handleChangePassword(ctx: RequestContext, req: Request, env: any)
 async function handleOrderStats(ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const [orders, aggregation] = await Promise.all([
-      prisma.order.findMany({
-        where: { profileId: ctx.userId },
-        select: { status: true, total: true },
-      }),
+    const [totalOrders, aggregation, pendingCount, deliveredCount] = await Promise.all([
+      prisma.order.count({ where: { profileId: ctx.userId } }),
       prisma.order.aggregate({
         where: { profileId: ctx.userId },
-        _count: true,
         _sum: { total: true },
+      }),
+      prisma.order.count({
+        where: { profileId: ctx.userId, status: { in: ["pending", "confirmed", "processing"] } },
+      }),
+      prisma.order.count({
+        where: { profileId: ctx.userId, status: "delivered" },
       }),
     ]);
 
-    const totalOrders = aggregation._count;
     const totalSpent = Number(aggregation._sum.total ?? 0);
-    const pendingOrders = orders.filter((o) => o.status === "pending" || o.status === "confirmed" || o.status === "processing").length;
-    const deliveredOrders = orders.filter((o) => o.status === "delivered").length;
 
     return success({
       totalOrders,
       totalSpent,
-      pendingOrders,
-      deliveredOrders,
+      pendingOrders: pendingCount,
+      deliveredOrders: deliveredCount,
     });
   } catch (err) {
     return serverError(err);
