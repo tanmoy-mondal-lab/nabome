@@ -15,7 +15,7 @@ interface SeoPayload {
 const DEFAULT_SITE_URL = "https://www.nabome.online";
 const DEFAULT_SITE_NAME = "নবME";
 const DEFAULT_DESCRIPTION = "Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design.";
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 10_000;
 const MAX_CACHE_SIZE = 500;
 const ASSET_EXTENSIONS = /\.(?:avif|css|gif|ico|jpe?g|js|json|map|png|svg|txt|webmanifest|webp|woff2?)$/i;
 const cachedSeo = new Map<string, { expiresAt: number; payload: SeoPayload }>();

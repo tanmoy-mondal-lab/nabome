@@ -386,7 +386,11 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
 
     const videoIdsToClean = [...new Set([...replacementVideoIds, ...removedVideoIds])];
     if (videoIdsToClean.length > 0) {
-      await destroyCloudinaryAssets(videoIdsToClean, env, "video");
+      const results = await Promise.allSettled(videoIdsToClean.map((id) => destroyCloudinaryAsset(id, env, "video")));
+      const failures = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value));
+      if (failures.length > 0) {
+        console.error(`[Admin] Failed to destroy ${failures.length}/${videoIdsToClean.length} replaced/removed variant videos for product ${productId}`);
+      }
     }
 
     if (removedVariantIds.length > 0) {
@@ -397,10 +401,18 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
       const removedImageIds = removedImages.filter((img) => img.type !== "video").map((img) => img.publicId).filter(Boolean) as string[];
       const removedVideoIdsFromImages = removedImages.filter((img) => img.type === "video").map((img) => img.publicId).filter(Boolean) as string[];
       if (removedImageIds.length > 0) {
-        await destroyCloudinaryAssets(removedImageIds, env);
+        const results = await Promise.allSettled(removedImageIds.map((id) => destroyCloudinaryAsset(id, env)));
+        const failures = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value));
+        if (failures.length > 0) {
+          console.error(`[Admin] Failed to destroy ${failures.length}/${removedImageIds.length} variant images for product ${productId}`);
+        }
       }
       if (removedVideoIdsFromImages.length > 0) {
-        await destroyCloudinaryAssets(removedVideoIdsFromImages, env, "video");
+        const results = await Promise.allSettled(removedVideoIdsFromImages.map((id) => destroyCloudinaryAsset(id, env, "video")));
+        const failures = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value));
+        if (failures.length > 0) {
+          console.error(`[Admin] Failed to destroy ${failures.length}/${removedVideoIdsFromImages.length} variant video images for product ${productId}`);
+        }
       }
 
       await prisma.productImage.deleteMany({
@@ -515,7 +527,10 @@ async function handleDeleteImage(productId: string, imageId: string, env: any): 
     if (!image) return success({ message: "Image already removed" });
     if (image.publicId) {
       const resourceType = image.type === "video" ? "video" : "image";
-      await destroyCloudinaryAsset(image.publicId, env, resourceType);
+      const destroyed = await destroyCloudinaryAsset(image.publicId, env, resourceType);
+      if (!destroyed) {
+        console.error(`[Admin] Failed to destroy Cloudinary asset for image ${imageId}: ${image.publicId}`);
+      }
     }
     await prisma.productImage.delete({ where: { id: imageId } });
     return success({ message: "Image deleted" });
@@ -751,15 +766,27 @@ async function handlePermanentDelete(productId: string, req: Request, ctx: Reque
     const imageIds = images.filter((i) => i.type !== "video").map((i) => i.publicId).filter(Boolean) as string[];
     const videoIds = images.filter((i) => i.type === "video").map((i) => i.publicId).filter(Boolean) as string[];
     if (imageIds.length > 0) {
-      await destroyCloudinaryAssets(imageIds, ctx.env);
+      const results = await Promise.allSettled(imageIds.map((id) => destroyCloudinaryAsset(id, ctx.env)));
+      const failures = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value));
+      if (failures.length > 0) {
+        console.error(`[Admin] Failed to destroy ${failures.length}/${imageIds.length} image assets for product ${productId}`);
+      }
     }
     if (videoIds.length > 0) {
-      await destroyCloudinaryAssets(videoIds, ctx.env, "video");
+      const results = await Promise.allSettled(videoIds.map((id) => destroyCloudinaryAsset(id, ctx.env, "video")));
+      const failures = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value));
+      if (failures.length > 0) {
+        console.error(`[Admin] Failed to destroy ${failures.length}/${videoIds.length} video assets for product ${productId}`);
+      }
     }
     const variants = await prisma.productVariant.findMany({ where: { productId }, select: { videoPublicId: true } });
     const variantVideoIds = variants.map((v) => v.videoPublicId).filter(Boolean) as string[];
     if (variantVideoIds.length > 0) {
-      await destroyCloudinaryAssets(variantVideoIds, ctx.env, "video");
+      const results = await Promise.allSettled(variantVideoIds.map((id) => destroyCloudinaryAsset(id, ctx.env, "video")));
+      const failures = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value));
+      if (failures.length > 0) {
+        console.error(`[Admin] Failed to destroy ${failures.length}/${variantVideoIds.length} variant video assets for product ${productId}`);
+      }
     }
 
     // Delete from DB (cascades handle variants, images, tags, labels, etc.)

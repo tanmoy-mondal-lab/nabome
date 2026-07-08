@@ -95,13 +95,13 @@ export function cacheControlHeaders(path: string): Record<string, string> {
     path.includes("/orders") ||
     path.includes("/cart")
   ) {
-    return { "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate" };
+    return { "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate", "CDN-Cache-Control": "no-store", "Surrogate-Control": "no-store" };
   }
-  if (path.includes("/api/products") || path.includes("/api/categories") || path.includes("/api/collections")) {
-    return { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" };
+  if (path.includes("/api/products") || path.includes("/api/categories") || path.includes("/api/collections") || path.includes("/api/brands")) {
+    return { "Cache-Control": "public, max-age=60, stale-while-revalidate=300", "CDN-Cache-Control": "public, max-age=60, stale-while-revalidate=300" };
   }
   if (path.includes("/api/cms") || path.includes("/api/settings")) {
-    return { "Cache-Control": "public, max-age=300, stale-while-revalidate=600" };
+    return { "Cache-Control": "public, max-age=300, stale-while-revalidate=600", "CDN-Cache-Control": "public, max-age=300, stale-while-revalidate=600" };
   }
   return { "Cache-Control": "no-cache" };
 }

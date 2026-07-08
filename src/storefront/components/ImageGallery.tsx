@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
 import { cn } from "../../lib/utils/cn";
@@ -27,6 +27,15 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxOpen(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lightboxOpen]);
 
   const activeImage = images[activeIndex] ?? images[0];
 
@@ -88,6 +97,7 @@ export function ImageGallery({ images, className }: ImageGalleryProps) {
         onClick={() => {
           if (window.matchMedia("(pointer: coarse)").matches && activeImage && !isVideo(activeImage)) {
             setZoomed((prev) => !prev);
+            setZoomPos({ x: 50, y: 50 });
           }
         }}
         onTouchStart={handleTouchStart}

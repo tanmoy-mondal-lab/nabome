@@ -1,10 +1,13 @@
-import { badRequest, unauthorized, serverError, success } from "../_lib/response";
+import { badRequest, unauthorized, serverError, success, rateLimitExceeded } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { cleanSecret } from "../_lib/secrets";
 import { requireAdmin } from "../_lib/auth-middleware";
 import { getPrisma } from "../_lib/prisma";
 import { destroyCloudinaryAsset } from "../_lib/cloudinary";
 import type { CloudinaryResourceType } from "../_lib/cloudinary";
+import { checkRateLimit, getRateLimitKey } from "../_lib/rate-limit";
+
+const UPLOAD_RATE_LIMIT = { maxRequests: 20, windowMs: 60_000 };
 
 const FTYP_MARKER = [0x66, 0x74, 0x79, 0x70]; // "ftyp" at bytes 4-7
 
@@ -67,8 +70,17 @@ function sanitizeFilename(filename: string): string {
   return cleaned;
 }
 
+async function checkUploadRateLimit(req: Request, ctx: RequestContext): Promise<Response | null> {
+  const key = getRateLimitKey(req, ctx, `upload:${ctx.userId ?? "anonymous"}`);
+  const result = await checkRateLimit(key, UPLOAD_RATE_LIMIT, ctx.env);
+  if (!result.allowed) return rateLimitExceeded("Upload rate limit exceeded. Please try again later.");
+  return null;
+}
+
 export async function handleCustomerUploadRequest(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
+  const rl = await checkUploadRateLimit(req, ctx);
+  if (rl) return rl;
   return doUpload(req, ctx, "customer");
 }
 
@@ -76,6 +88,8 @@ export async function handleUploadRequest(req: Request, ctx: RequestContext): Pr
   if (!ctx.userId) return unauthorized();
   const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
+  const rl = await checkUploadRateLimit(req, ctx);
+  if (rl) return rl;
   return doUpload(req, ctx, "admin");
 }
 
@@ -94,7 +108,8 @@ async function doUpload(req: Request, ctx: RequestContext, folderPrefix: string)
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const folder = (formData.get("folder") as string) || "general";
+    const rawFolder = (formData.get("folder") as string) || "general";
+    const folder = rawFolder.replace(/\.\./g, "").replace(/[\/\\]/g, "_").replace(/[^\w\-_]/g, "_").replace(/^_+|_+$/g, "").slice(0, 100) || "general";
     const altText = (formData.get("altText") as string) || file?.name || "";
 
     if (!file) {
@@ -159,7 +174,10 @@ async function doUpload(req: Request, ctx: RequestContext, folderPrefix: string)
         },
       });
     } catch (databaseError) {
-      await destroyCloudinaryAsset(result.public_id, ctx.env, fileInfo.resourceType).catch(() => undefined);
+      const destroyed = await destroyCloudinaryAsset(result.public_id, ctx.env, fileInfo.resourceType);
+      if (!destroyed) {
+        console.error(`[Upload] DB insert failed AND Cloudinary cleanup also failed for ${result.public_id}. Asset may be orphaned.`);
+      }
       throw databaseError;
     }
 

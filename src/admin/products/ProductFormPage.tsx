@@ -97,9 +97,9 @@ export default function ProductFormPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [altTextInput, setAltTextInput] = useState<string | null>(null);
-  const [pendingImage, setPendingImage] = useState<{
+  const [pendingImages, setPendingImages] = useState<Array<{
     url: string; publicId: string; variantId?: string;
-  } | null>(null);
+  }>>([]);
   const [initialized, setInitialized] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [validationErrors, setValidationErrors] = useState<FormErrors>({});
@@ -187,62 +187,70 @@ export default function ProductFormPage() {
     [subcategories.data, form.categoryId]
   );
 
-  /* ─── Alt text handlers ─── */
+  /* ─── Alt text handlers (queue-based: process one at a time) ─── */
   const confirmAltText = useCallback(() => {
-    if (!pendingImage) return;
-    const imgData = { url: pendingImage.url, publicId: pendingImage.publicId, altText: altTextInput ?? "", isPrimary: false, sortOrder: 0 };
+    setPendingImages((prev) => {
+      if (prev.length === 0) return prev;
+      const [current] = prev;
+      const imgData = { url: current.url, publicId: current.publicId, altText: altTextInput ?? "", isPrimary: false, sortOrder: 0 };
 
-    if (pendingImage.variantId) {
-      const vIdx = variants.findIndex((v) => v.id === pendingImage.variantId);
-      if (vIdx >= 0) {
-        const updated = [...variants];
-        const vImages = [...(updated[vIdx].images ?? [])];
-        imgData.isPrimary = vImages.length === 0;
-        imgData.sortOrder = vImages.length;
-        vImages.push(imgData);
-        updated[vIdx] = { ...updated[vIdx], images: vImages };
-        setVariants(updated);
+      if (current.variantId) {
+        setVariants((prevVariants) => {
+          const vIdx = prevVariants.findIndex((v) => v.id === current.variantId);
+          if (vIdx < 0) return prevVariants;
+          const updated = [...prevVariants];
+          const vImages = [...(updated[vIdx].images ?? [])];
+          imgData.isPrimary = vImages.length === 0;
+          imgData.sortOrder = vImages.length;
+          vImages.push(imgData);
+          updated[vIdx] = { ...updated[vIdx], images: vImages };
+          return updated;
+        });
+      } else {
+        setImages((prevImages) => {
+          imgData.isPrimary = prevImages.length === 0;
+          imgData.sortOrder = prevImages.length;
+          return [...prevImages, imgData];
+        });
       }
-    } else {
-      setImages((prev) => {
-        imgData.isPrimary = prev.length === 0;
-        imgData.sortOrder = prev.length;
-        return [...prev, imgData];
-      });
-    }
-    setPendingImage(null);
-    setAltTextInput(null);
-  }, [pendingImage, altTextInput, variants]);
+      setAltTextInput(null);
+      return prev.slice(1);
+    });
+  }, [altTextInput]);
 
   const skipAltText = useCallback(() => {
-    if (!pendingImage) return;
-    const imgData = { url: pendingImage.url, publicId: pendingImage.publicId, altText: "", isPrimary: false, sortOrder: 0 };
+    setPendingImages((prev) => {
+      if (prev.length === 0) return prev;
+      const [current] = prev;
+      const imgData = { url: current.url, publicId: current.publicId, altText: "", isPrimary: false, sortOrder: 0 };
 
-    if (pendingImage.variantId) {
-      const vIdx = variants.findIndex((v) => v.id === pendingImage.variantId);
-      if (vIdx >= 0) {
-        const updated = [...variants];
-        const vImages = [...(updated[vIdx].images ?? [])];
-        imgData.isPrimary = vImages.length === 0;
-        imgData.sortOrder = vImages.length;
-        vImages.push(imgData);
-        updated[vIdx] = { ...updated[vIdx], images: vImages };
-        setVariants(updated);
+      if (current.variantId) {
+        setVariants((prevVariants) => {
+          const vIdx = prevVariants.findIndex((v) => v.id === current.variantId);
+          if (vIdx < 0) return prevVariants;
+          const updated = [...prevVariants];
+          const vImages = [...(updated[vIdx].images ?? [])];
+          imgData.isPrimary = vImages.length === 0;
+          imgData.sortOrder = vImages.length;
+          vImages.push(imgData);
+          updated[vIdx] = { ...updated[vIdx], images: vImages };
+          return updated;
+        });
+      } else {
+        setImages((prevImages) => {
+          imgData.isPrimary = prevImages.length === 0;
+          imgData.sortOrder = prevImages.length;
+          return [...prevImages, imgData];
+        });
       }
-    } else {
-      setImages((prev) => {
-        imgData.isPrimary = prev.length === 0;
-        imgData.sortOrder = prev.length;
-        return [...prev, imgData];
-      });
-    }
-    setPendingImage(null);
-    setAltTextInput(null);
-  }, [pendingImage, variants]);
+      setAltTextInput(null);
+      return prev.slice(1);
+    });
+  }, []);
 
   /* ─── Save handler ─── */
   const handleSaveWithRetry = useCallback(
-    async (retryCount = 0, batchOp = false) => {
+    async () => {
       const errors = validateProductForm(form);
       setValidationErrors(errors);
       if (Object.keys(errors).length > 0) {
@@ -253,7 +261,6 @@ export default function ProductFormPage() {
       setSaving(true);
       setSaveError(null);
       
-      // Rate limit detection and retry logic
       let lastError: unknown = null;
       const maxRetries = 3;
       const baseDelay = 1000;
@@ -284,7 +291,15 @@ export default function ProductFormPage() {
           }
           const productId = isEdit ? id! : (res as Record<string, { id: string }>).product?.id ?? (res as Record<string, string>).id;
 
+          const allImageErrors: string[] = [];
+
           if (productId) {
+            // Build temp-id → variant mapping for reliable image assignment
+            const variantTempIdMap = new Map<string, number>();
+            variants.forEach((v, i) => {
+              variantTempIdMap.set(v.id, i);
+            });
+
             let savedVariants: Record<string, unknown>[] = [];
             if (variants.length > 0) {
               const variantRes = await adminApi.updateProductVariants(
@@ -299,50 +314,70 @@ export default function ProductFormPage() {
               savedVariants = (variantRes as Record<string, unknown>)?.variants as Record<string, unknown>[] ?? [];
             }
 
-            const variantImageErrors: string[] = [];
+            // Map server-returned variants by their temp ID position, then update state with real IDs
+            if (savedVariants.length > 0) {
+              const updatedVariants = variants.map((v, i) => {
+                const saved = savedVariants[i];
+                if (!saved) return v;
+                return { ...v, id: saved.id as string };
+              });
+              setVariants(updatedVariants);
+            }
+
+            // Parallel variant image adds using Promise.allSettled
+            const variantImagePromises: Promise<void>[] = [];
             for (let i = 0; i < variants.length; i++) {
               const v = variants[i];
-              const variantId = savedVariants[i]?.id as string | undefined;
-              if (!variantId) continue;
+              const savedId = savedVariants[i]?.id as string | undefined;
+              if (!savedId) continue;
               const variantImages = v.images ?? [];
               for (const img of variantImages) {
                 if (!img.id) {
-                  try {
-                    await adminApi.addProductImage(productId, {
-                      url: img.url, publicId: img.publicId,
-                      altText: img.altText ?? "", isPrimary: img.isPrimary ?? false,
-                      sortOrder: img.sortOrder ?? 0,
-                      variantId,
-                      type: img.type ?? "image",
-                    });
-                  } catch (imgErr) {
-                    variantImageErrors.push(`Variant image: ${imgErr instanceof Error ? imgErr.message : String(imgErr)}`);
-                  }
+                  const promise = adminApi.addProductImage(productId, {
+                    url: img.url, publicId: img.publicId,
+                    altText: img.altText ?? "", isPrimary: img.isPrimary ?? false,
+                    sortOrder: img.sortOrder ?? 0,
+                    variantId: savedId,
+                    type: img.type ?? "image",
+                  }).then(() => {}, (imgErr) => {
+                    allImageErrors.push(`Variant image: ${imgErr instanceof Error ? imgErr.message : String(imgErr)}`);
+                  });
+                  variantImagePromises.push(promise);
                 }
               }
             }
+            await Promise.allSettled(variantImagePromises);
 
+            // Delete removed product-level images
             const currentImageIds = new Set(images.filter((img) => img.id).map((img) => img.id!));
             const deletedImageIds = [...initialImageIdsRef.current].filter((imgId) => !currentImageIds.has(imgId));
             const deleteResults = deletedImageIds.length > 0
               ? await Promise.allSettled(deletedImageIds.map((imgId) => adminApi.deleteProductImage(productId, imgId)))
               : [];
-            const deleteErrors = deleteResults
-              .map((r, i) => r.status === "rejected" ? `Delete image ${deletedImageIds[i]}: ${r.reason}` : null)
-              .filter(Boolean) as string[];
+            for (let i = 0; i < deleteResults.length; i++) {
+              const r = deleteResults[i];
+              if (r.status === "rejected") {
+                allImageErrors.push(`Delete image ${deletedImageIds[i]}: ${r.reason}`);
+              }
+            }
 
+            // Delete removed variant-level images
             const deletedVariantImageIds = variants.flatMap((variant) => {
-              const currentImageIds = new Set((variant.images ?? []).filter((img) => img.id).map((img) => img.id!));
-              const initialImageIds = initialVariantImageIdsRef.current.get(variant.id) ?? new Set<string>();
-              return [...initialImageIds].filter((imgId) => !currentImageIds.has(imgId));
+              const currentIds = new Set((variant.images ?? []).filter((img) => img.id).map((img) => img.id!));
+              const initialIds = initialVariantImageIdsRef.current.get(variant.id) ?? new Set<string>();
+              return [...initialIds].filter((imgId) => !currentIds.has(imgId));
             });
             const deleteVariantResults = deletedVariantImageIds.length > 0
               ? await Promise.allSettled(deletedVariantImageIds.map((imgId) => adminApi.deleteProductImage(productId, imgId)))
               : [];
-            const deleteVariantErrors = deleteVariantResults
-              .map((r, i) => r.status === "rejected" ? `Delete variant image ${deletedVariantImageIds[i]}: ${r.reason}` : null)
-              .filter(Boolean) as string[];
+            for (let i = 0; i < deleteVariantResults.length; i++) {
+              const r = deleteVariantResults[i];
+              if (r.status === "rejected") {
+                allImageErrors.push(`Delete variant image ${deletedVariantImageIds[i]}: ${r.reason}`);
+              }
+            }
 
+            // Add new product-level images in parallel
             const newImages = images.filter((img) => !img.id);
             const hasExistingPrimary = images.some((img) => img.id && img.isPrimary);
             const addResults = newImages.length > 0
@@ -359,26 +394,41 @@ export default function ProductFormPage() {
                   )
                 )
               : [];
-            const addErrors = addResults
-              .map((r, i) => r.status === "rejected" ? `Add image ${i + 1}: ${r.reason}` : null)
-              .filter(Boolean) as string[];
-
-            const allErrors = [...deleteErrors, ...deleteVariantErrors, ...addErrors, ...variantImageErrors];
-            if (allErrors.length > 0) {
-              // Product saved with image errors - logged silently
+            for (let i = 0; i < addResults.length; i++) {
+              const r = addResults[i];
+              if (r.status === "rejected") {
+                allImageErrors.push(`Add image ${i + 1}: ${r.reason}`);
+              }
             }
+
+            // Update initial refs to reflect saved state
+            initialImageIdsRef.current = new Set(
+              images.filter((img) => !img.id || img.id.startsWith("new-")).map((_, i) => {
+                const addR = addResults[i];
+                return addR?.status === "fulfilled" ? "saved" : null;
+              }).filter(Boolean) as string[]
+            );
+
+            // Surface image errors to the user
+            if (allImageErrors.length > 0) {
+              setSaveError(`Product saved but ${allImageErrors.length} image operation(s) failed. Please review and retry.`);
+              toast(`Product saved with ${allImageErrors.length} image error(s)`, "error");
+            }
+
+            queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+            queryClient.invalidateQueries({ queryKey: ["admin", "product", id] });
+            queryClient.invalidateQueries({ queryKey: ["products"] });
+            queryClient.invalidateQueries({ queryKey: ["categories"] });
+            queryClient.invalidateQueries({ queryKey: ["product", id] });
+
+            resetDirty();
+
+            if (allImageErrors.length === 0) {
+              toast(isEdit ? "Product updated" : "Product created", "success");
+              navigate("/admin/products");
+            }
+            return;
           }
-
-          queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-          queryClient.invalidateQueries({ queryKey: ["admin", "product", id] });
-          queryClient.invalidateQueries({ queryKey: ["products"] });
-          queryClient.invalidateQueries({ queryKey: ["categories"] });
-          queryClient.invalidateQueries({ queryKey: ["product", id] });
-
-          resetDirty();
-          toast(isEdit ? "Product updated" : "Product created", "success");
-          navigate("/admin/products");
-          return;
         } catch (err) {
           lastError = err;
           const msg = err instanceof Error ? err.message : String(err);
@@ -399,12 +449,14 @@ export default function ProductFormPage() {
         }
       }
       
-      const errMsg = lastError instanceof Error ? lastError.message : String(lastError);
-      setSaveError(`Failed to save product: ${errMsg}`);
-      toast("Failed to save product", "error");
+      if (lastError) {
+        const errMsg = lastError instanceof Error ? lastError.message : String(lastError);
+        setSaveError(`Failed to save product: ${errMsg}`);
+        toast("Failed to save product", "error");
+      }
       setSaving(false);
     },
-    [form, id, isEdit, variants, images, selectedLabels, queryClient, navigate, toast, resetDirty]
+    [form, id, isEdit, variants, images, selectedLabels, queryClient, navigate, toast, resetDirty, saveError]
   );
 
   handleSaveRef.current = () => handleSaveWithRetry();
@@ -665,7 +717,11 @@ export default function ProductFormPage() {
             uploadingMedia={uploadingMedia}
             onUploadStart={() => setUploadingMedia(true)}
             onUploadEnd={() => setUploadingMedia(false)}
-            onPendingImage={setPendingImage}
+            onPendingImage={(data) => {
+              if (data) {
+                setPendingImages((prev) => [...prev, { url: data.url, publicId: data.publicId, variantId: data.variantId }]);
+              }
+            }}
           />
 
           <MediaManager
@@ -677,7 +733,7 @@ export default function ProductFormPage() {
             productName={form.name}
             onPendingImage={(data) => {
               if (data) {
-                setPendingImage({ url: data.url, publicId: data.publicId, variantId: data.variantId });
+                setPendingImages((prev) => [...prev, { url: data.url, publicId: data.publicId, variantId: data.variantId }]);
                 setAltTextInput("");
               }
             }}
@@ -825,9 +881,9 @@ export default function ProductFormPage() {
         </div>
       </div>
 
-      {/* Alt Text Modal */}
+      {/* Alt Text Modal — queue-based, processes one pending image at a time */}
       <AnimatePresence>
-        {pendingImage && (
+        {pendingImages.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -840,7 +896,9 @@ export default function ProductFormPage() {
               exit={{ scale: 0.95, opacity: 0 }}
               className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl"
             >
-              <h3 className="font-medium text-sm text-neutral-900 mb-1">Image Alt Text</h3>
+              <h3 className="font-medium text-sm text-neutral-900 mb-1">
+                Image Alt Text ({pendingImages.length} pending)
+              </h3>
               <p className="text-xs text-neutral-500 mb-4">Optional — describe this image for accessibility and SEO.</p>
               <input
                 value={altTextInput ?? ""}

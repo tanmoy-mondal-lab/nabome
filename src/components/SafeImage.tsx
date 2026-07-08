@@ -63,7 +63,19 @@ export function SafeImage({
 
   const effectiveFallback = premium ? PREMIUM_FALLBACK_GRADIENT : fallback;
 
-  if (!src || failed) {
+  if (failed) {
+    return (
+      <img
+        src={effectiveFallback}
+        alt={alt}
+        className={className}
+        {...props}
+      />
+    );
+  }
+
+  if (!src) {
+    externalOnError?.(new Event("error") as unknown as React.SyntheticEvent<HTMLImageElement, Event>);
     return (
       <img
         src={effectiveFallback}

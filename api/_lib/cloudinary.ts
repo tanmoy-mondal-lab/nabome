@@ -86,7 +86,10 @@ export async function destroyCloudinaryAsset(
   const cloudName = cleanSecret(env?.CLOUDINARY_CLOUD_NAME);
   const apiKey = cleanSecret(env?.CLOUDINARY_API_KEY);
   const apiSecret = cleanSecret(env?.CLOUDINARY_API_SECRET);
-  if (!cloudName || !apiKey || !apiSecret) return false;
+  if (!cloudName || !apiKey || !apiSecret) {
+    console.error(`[Cloudinary] Missing credentials for destroy: ${publicId}`);
+    return false;
+  }
 
   const timestamp = Math.round(Date.now() / 1000);
   const signStr = `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
@@ -99,12 +102,23 @@ export async function destroyCloudinaryAsset(
   });
 
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/destroy`, {
-      method: "POST", body,
+      method: "POST", body, signal: controller.signal,
     });
+    clearTimeout(timeout);
+    if (!res.ok) {
+      console.error(`[Cloudinary] Destroy failed for ${publicId}: HTTP ${res.status}`);
+      return false;
+    }
     const json = await res.json() as { result: string };
+    if (json.result !== "ok") {
+      console.error(`[Cloudinary] Destroy returned non-ok for ${publicId}: ${json.result}`);
+    }
     return json.result === "ok";
-  } catch {
+  } catch (err) {
+    console.error(`[Cloudinary] Destroy error for ${publicId}:`, err);
     return false;
   }
 }

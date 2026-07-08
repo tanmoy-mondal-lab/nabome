@@ -27,10 +27,12 @@ export async function handleAdminMediaRequest(
   }
 }
 
+const MAX_PAGE_LIMIT = 200;
+
 async function handleList(req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
-  const page = parseInt(url.searchParams.get("page") ?? "1");
-  const limit = parseInt(url.searchParams.get("limit") ?? "50");
+  const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
+  const limit = Math.min(MAX_PAGE_LIMIT, Math.max(1, parseInt(url.searchParams.get("limit") ?? "50")));
   const type = url.searchParams.get("type");
   const folder = url.searchParams.get("folder");
   const search = url.searchParams.get("search");
@@ -85,6 +87,11 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
   const { url, publicId, altText, width, height, fileSize, mimeType, type, tags, folder } = body;
 
   if (!url) return badRequest("URL is required");
+  try {
+    new URL(url as string);
+  } catch {
+    return badRequest("Invalid URL format");
+  }
 
   try {
     const prisma = getPrisma(env);
@@ -113,7 +120,12 @@ async function handleDelete(assetId: string, env: any): Promise<Response> {
     const prisma = getPrisma(env);
     const asset = await prisma.mediaAsset.findUnique({ where: { id: assetId } });
     if (!asset) return notFound("Asset not found");
-    if (asset.publicId) await destroyCloudinaryAsset(asset.publicId, env);
+    if (asset.publicId) {
+      const destroyed = await destroyCloudinaryAsset(asset.publicId, env);
+      if (!destroyed) {
+        console.error(`[Media] Failed to destroy Cloudinary asset: ${asset.publicId} (${assetId})`);
+      }
+    }
     await prisma.mediaAsset.delete({ where: { id: assetId } });
     return success({ message: "Asset deleted" });
   } catch (err) {

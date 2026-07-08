@@ -7,7 +7,7 @@ export function useProduct(slug: string | undefined) {
     queryKey: ["product", slug],
     queryFn: ({ signal }) => api.get<ProductDetailResponse>(`/products/${slug}`, { signal }),
     enabled: !!slug,
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 30,
     retry: 2,
   });
 }
@@ -26,7 +26,7 @@ export function useProductListing(params: Record<string, string>) {
   return useQuery({
     queryKey: ["products", params],
     queryFn: ({ signal }) => api.get<ProductListResponse>("/products", { params: { ...params, limit: 50 }, signal }),
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 30,
     retry: 2,
   });
 }
