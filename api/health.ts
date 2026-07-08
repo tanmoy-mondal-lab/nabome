@@ -241,6 +241,24 @@ export async function GET(req: Request, opts?: { env?: Env }): Promise<Response>
     body.checks = checks;
   }
 
+  // Debug mode: test model queries (triggered by &debug=1)
+  if (url.searchParams.get("debug") === "1") {
+    try {
+      const prisma = getPrisma(env);
+      const settingsTest = await prisma.siteSetting.findFirst();
+      body.settingsTest = settingsTest ? "found" : "not found";
+    } catch (err) {
+      body.settingsTestError = err instanceof Error ? err.message : String(err);
+    }
+    try {
+      const prisma = getPrisma(env);
+      const productsTest = await prisma.product.count();
+      body.productsTest = `${productsTest} products`;
+    } catch (err) {
+      body.productsTestError = err instanceof Error ? err.message : String(err);
+    }
+  }
+
   // Add health monitor metrics
   const metrics = healthMonitor.getMetrics();
   body.metrics = metrics;
