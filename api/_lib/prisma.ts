@@ -15,8 +15,9 @@ function getDatabaseUrl(env?: Env): string {
   // Use provided env, or fall back to process.env for local development
   const effectiveEnv = env || getEnv();
   // Prefer Hyperdrive connection string when available (Cloudflare Pages with Hyperdrive binding)
-  const url = effectiveEnv.HYPERDRIVE?.connectionString ||
-    cleanSecret(effectiveEnv.DATABASE_URL_POOLED) ||
+  // Hyperdrive disabled temporarily — causing 530 errors on Prisma model queries.
+  // Using direct pooled connection instead.
+  const url = cleanSecret(effectiveEnv.DATABASE_URL_POOLED) ||
     cleanSecret(effectiveEnv.DATABASE_URL);
   if (!url) {
     throw new Error("[PRISMA] DATABASE_URL is not set. Check Cloudflare Pages secrets or .env file.");
