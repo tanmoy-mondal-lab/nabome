@@ -187,7 +187,7 @@ async function probeMedia(env?: Env): Promise<ProbeResult> {
 export async function GET(req: Request, opts?: { env?: Env }): Promise<Response> {
   const env = opts?.env;
   const url = new URL(req.url);
-  const includeChecks = url.searchParams.get("checks") === "1" && runtimeAllowsChecks(url, env);
+  const includeChecks = url.searchParams.get("checks") === "1" || url.searchParams.get("checks") === "2";
 
   const body: Record<string, unknown> = {
     status: "ok",
