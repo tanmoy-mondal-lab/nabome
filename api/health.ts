@@ -58,12 +58,37 @@ async function probeDatabase(env?: Env): Promise<ProbeResult> {
     return readyState(false, false, "DATABASE_URL or DATABASE_URL_POOLED is missing");
   }
 
+  // Try Hyperdrive first, then direct pooled connection
+  const errors: string[] = [];
+
+  if (env?.HYPERDRIVE) {
+    try {
+      await withTimeout(getPrisma(env).$queryRaw`SELECT 1`, 5000, "Hyperdrive");
+      return readyState(true, true);
+    } catch (error) {
+      errors.push(`Hyperdrive: ${error instanceof Error ? error.message : "Unknown"}`);
+    }
+  }
+
+  // Try direct connection without Hyperdrive
   try {
-    await withTimeout(getPrisma(env).$queryRaw`SELECT 1`, 3000, "Database");
+    const { PrismaClient } = await import("@prisma/client");
+    const { PrismaNeon } = await import("@prisma/adapter-neon");
+    const directUrl = cleanSecret(env?.DATABASE_URL_POOLED) || cleanSecret(env?.DATABASE_URL);
+    if (!directUrl) {
+      errors.push("Direct: No DATABASE_URL available");
+      return readyState(true, false, errors.join(" | "));
+    }
+    const directAdapter = new PrismaNeon({ connectionString: directUrl });
+    const directPrisma = new PrismaClient({ adapter: directAdapter });
+    await withTimeout(directPrisma.$queryRaw`SELECT 1`, 5000, "Direct");
+    await directPrisma.$disconnect();
     return readyState(true, true);
   } catch (error) {
-    return readyState(true, false, error instanceof Error ? error.message : "Database probe failed");
+    errors.push(`Direct: ${error instanceof Error ? error.message : "Unknown"}`);
   }
+
+  return readyState(true, false, errors.join(" | "));
 }
 
 async function probeSupabase(env?: Env): Promise<ProbeResult> {
