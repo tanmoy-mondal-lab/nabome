@@ -91,7 +91,7 @@ export function MobileNav() {
                     <ShoppingBag className="w-6 h-6 text-white/70 mb-2" />
                     <span className="text-xs text-white/80">Shop</span>
                   </Link>
-                  <Link to="/collections" onClick={closeMobileMenu} className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-200" aria-label="View wishlist">
+                  <Link to="/wishlist" onClick={closeMobileMenu} className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-200" aria-label="View wishlist">
                     <Heart className="w-6 h-6 text-white/70 mb-2" />
                     <span className="text-xs text-white/80">Wishlist</span>
                   </Link>

@@ -3,7 +3,8 @@ import { success, badRequest, notFound, serverError, created } from "../../_lib/
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth-middleware";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
-import { destroyCloudinaryAsset, destroyCloudinaryAssetIfReplaced, destroyCloudinaryAssets } from "../../_lib/cloudinary";
+import { deleteMedia, deleteEntityMedia } from "../../_lib/media-service";
+import type { EntityType } from "../../../src/lib/media/media.types";
 import { slugify } from "../../_lib/utils";
 import { toNull } from "../../_lib/sanitize";
 
@@ -271,8 +272,18 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
     if (body.isActive && !existing.publishedAt) {
       data.publishedAt = new Date();
     }
-    if (body.sizeChartPublicId !== undefined) {
-      data.sizeChartPublicId = await destroyCloudinaryAssetIfReplaced(existing.sizeChartPublicId, body.sizeChartPublicId, ctx.env);
+    // Handle size chart media replacement using MediaService
+    if (body.sizeChartPublicId !== undefined && existing.sizeChartPublicId !== body.sizeChartPublicId) {
+      if (existing.sizeChartPublicId) {
+        // Find the media asset record for the old size chart
+        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+          where: { publicId: existing.sizeChartPublicId, entityType: "products", entityId: productId },
+        });
+        if (oldMediaAsset && ctx.env) {
+          await deleteMedia(oldMediaAsset.id, ctx.env);
+        }
+      }
+      data.sizeChartPublicId = body.sizeChartPublicId;
     }
 
     const product = await prisma.product.update({
@@ -384,12 +395,19 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
       .map((id) => existingVideoById.get(id))
       .filter(Boolean) as string[];
 
+    // Clean up old videos using MediaService
     const videoIdsToClean = [...new Set([...replacementVideoIds, ...removedVideoIds])];
     if (videoIdsToClean.length > 0) {
-      const results = await Promise.allSettled(videoIdsToClean.map((id) => destroyCloudinaryAsset(id, env, "video")));
-      const failures = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value));
+      const mediaAssets = await prisma.mediaAsset.findMany({
+        where: { publicId: { in: videoIdsToClean }, entityType: "products" },
+        select: { id: true },
+      });
+      const results = await Promise.allSettled(
+        mediaAssets.map((asset) => deleteMedia(asset.id, env))
+      );
+      const failures = results.filter((r) => r.status === "rejected");
       if (failures.length > 0) {
-        console.error(`[Admin] Failed to destroy ${failures.length}/${videoIdsToClean.length} replaced/removed variant videos for product ${productId}`);
+        console.error(`[Admin] Failed to destroy ${failures.length}/${mediaAssets.length} replaced/removed variant videos for product ${productId}`);
       }
     }
 
@@ -400,18 +418,20 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
       });
       const removedImageIds = removedImages.filter((img) => img.type !== "video").map((img) => img.publicId).filter(Boolean) as string[];
       const removedVideoIdsFromImages = removedImages.filter((img) => img.type === "video").map((img) => img.publicId).filter(Boolean) as string[];
-      if (removedImageIds.length > 0) {
-        const results = await Promise.allSettled(removedImageIds.map((id) => destroyCloudinaryAsset(id, env)));
-        const failures = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value));
+      
+      // Clean up using MediaService
+      const allRemovedIds = [...removedImageIds, ...removedVideoIdsFromImages];
+      if (allRemovedIds.length > 0) {
+        const mediaAssets = await prisma.mediaAsset.findMany({
+          where: { publicId: { in: allRemovedIds }, entityType: "products" },
+          select: { id: true },
+        });
+        const results = await Promise.allSettled(
+          mediaAssets.map((asset) => deleteMedia(asset.id, env))
+        );
+        const failures = results.filter((r) => r.status === "rejected");
         if (failures.length > 0) {
-          console.error(`[Admin] Failed to destroy ${failures.length}/${removedImageIds.length} variant images for product ${productId}`);
-        }
-      }
-      if (removedVideoIdsFromImages.length > 0) {
-        const results = await Promise.allSettled(removedVideoIdsFromImages.map((id) => destroyCloudinaryAsset(id, env, "video")));
-        const failures = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value));
-        if (failures.length > 0) {
-          console.error(`[Admin] Failed to destroy ${failures.length}/${removedVideoIdsFromImages.length} variant video images for product ${productId}`);
+          console.error(`[Admin] Failed to destroy ${failures.length}/${mediaAssets.length} variant images for product ${productId}`);
         }
       }
 
@@ -526,10 +546,13 @@ async function handleDeleteImage(productId: string, imageId: string, env: any): 
     const image = await prisma.productImage.findFirst({ where: { id: imageId, productId } });
     if (!image) return success({ message: "Image already removed" });
     if (image.publicId) {
-      const resourceType = image.type === "video" ? "video" : "image";
-      const destroyed = await destroyCloudinaryAsset(image.publicId, env, resourceType);
-      if (!destroyed) {
-        console.error(`[Admin] Failed to destroy Cloudinary asset for image ${imageId}: ${image.publicId}`);
+      // Find and delete using MediaService
+      const mediaAsset = await prisma.mediaAsset.findFirst({
+        where: { publicId: image.publicId, entityType: "products" },
+        select: { id: true },
+      });
+      if (mediaAsset) {
+        await deleteMedia(mediaAsset.id, env);
       }
     }
     await prisma.productImage.delete({ where: { id: imageId } });
@@ -753,7 +776,7 @@ async function handlePermanentDelete(productId: string, req: Request, ctx: Reque
     const prisma = getPrisma(ctx.env);
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      select: { id: true, name: true, isActive: true, _count: { select: { orderItems: true } } },
+      select: { id: true, name: true, slug: true, isActive: true, _count: { select: { orderItems: true } } },
     });
     if (!product) return notFound("Product not found");
 
@@ -761,32 +784,9 @@ async function handlePermanentDelete(productId: string, req: Request, ctx: Reque
       return badRequest(`Cannot permanently delete "${product.name}" — it has ${product._count.orderItems} order(s). Remove it from orders first or contact support.`);
     }
 
-    // Gather all Cloudinary public IDs (images + variant videos)
-    const images = await prisma.productImage.findMany({ where: { productId }, select: { publicId: true, type: true } });
-    const imageIds = images.filter((i) => i.type !== "video").map((i) => i.publicId).filter(Boolean) as string[];
-    const videoIds = images.filter((i) => i.type === "video").map((i) => i.publicId).filter(Boolean) as string[];
-    if (imageIds.length > 0) {
-      const results = await Promise.allSettled(imageIds.map((id) => destroyCloudinaryAsset(id, ctx.env)));
-      const failures = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value));
-      if (failures.length > 0) {
-        console.error(`[Admin] Failed to destroy ${failures.length}/${imageIds.length} image assets for product ${productId}`);
-      }
-    }
-    if (videoIds.length > 0) {
-      const results = await Promise.allSettled(videoIds.map((id) => destroyCloudinaryAsset(id, ctx.env, "video")));
-      const failures = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value));
-      if (failures.length > 0) {
-        console.error(`[Admin] Failed to destroy ${failures.length}/${videoIds.length} video assets for product ${productId}`);
-      }
-    }
-    const variants = await prisma.productVariant.findMany({ where: { productId }, select: { videoPublicId: true } });
-    const variantVideoIds = variants.map((v) => v.videoPublicId).filter(Boolean) as string[];
-    if (variantVideoIds.length > 0) {
-      const results = await Promise.allSettled(variantVideoIds.map((id) => destroyCloudinaryAsset(id, ctx.env, "video")));
-      const failures = results.filter((r) => r.status === "rejected" || (r.status === "fulfilled" && !r.value));
-      if (failures.length > 0) {
-        console.error(`[Admin] Failed to destroy ${failures.length}/${variantVideoIds.length} variant video assets for product ${productId}`);
-      }
+    // Delete all media for this product using MediaService
+    if (ctx.env) {
+      await deleteEntityMedia("products", productId, product.slug, ctx.env);
     }
 
     // Delete from DB (cascades handle variants, images, tags, labels, etc.)
@@ -820,20 +820,15 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Pro
       return badRequest(`${orderItemCount} product(s) have existing orders and cannot be permanently deleted. Remove them from orders first.`);
     }
 
-    // Gather all Cloudinary public IDs (images + variant videos)
-    const images = await prisma.productImage.findMany({ where: { productId: { in: ids } }, select: { publicId: true, type: true } });
-    const imageIds = images.filter((i) => i.type !== "video").map((i) => i.publicId).filter(Boolean) as string[];
-    const videoIds = images.filter((i) => i.type === "video").map((i) => i.publicId).filter(Boolean) as string[];
-    if (imageIds.length > 0) {
-      await destroyCloudinaryAssets(imageIds, ctx.env);
-    }
-    if (videoIds.length > 0) {
-      await destroyCloudinaryAssets(videoIds, ctx.env, "video");
-    }
-    const variants = await prisma.productVariant.findMany({ where: { productId: { in: ids } }, select: { videoPublicId: true } });
-    const variantVideoIds = variants.map((v) => v.videoPublicId).filter(Boolean) as string[];
-    if (variantVideoIds.length > 0) {
-      await destroyCloudinaryAssets(variantVideoIds, ctx.env, "video");
+    // Delete all media for these products using MediaService
+    if (ctx.env) {
+      const products = await prisma.product.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, slug: true },
+      });
+      for (const product of products) {
+        await deleteEntityMedia("products", product.id, product.slug, ctx.env);
+      }
     }
 
     const result = await prisma.product.deleteMany({ where: { id: { in: ids } } });

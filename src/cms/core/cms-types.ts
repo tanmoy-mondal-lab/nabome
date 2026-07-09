@@ -414,23 +414,27 @@ export interface PromotionalMenuContent {
 
 export interface MediaAsset {
   id: string;
-  filename: string;
-  originalFilename: string;
-  mimeType: string;
-  fileSize: number;
+  assetId: string;
+  entityType: string;
+  entityId: string;
   url: string;
-  thumbnailUrl: string;
+  secureUrl?: string;
+  publicId?: string;
+  resourceType?: string;
+  originalFilename?: string;
+  displayName?: string;
+  mimeType: string;
+  fileSize?: number;
   altText: string;
-  caption: string;
-  description: string;
   folder: string;
   tags: string[];
-  width: number;
-  height: number;
-  duration: number;
-  usageCount: number;
+  width: number | null;
+  height: number | null;
+  sortOrder: number;
+  isPrimary: boolean;
+  type: string;
+  format?: string;
   createdAt: string;
-  uploadedBy: string;
 }
 
 export interface MediaFolder {

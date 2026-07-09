@@ -4,7 +4,7 @@ import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth-middleware";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
-import { destroyCloudinaryAsset, destroyCloudinaryDiff } from "../../_lib/cloudinary";
+import { deleteMedia } from "../../_lib/media-service";
 import { toNull } from "../../_lib/sanitize";
 
 const VALID_LOCATIONS = ["header", "footer", "mobile", "sidebar"] as const;
@@ -14,8 +14,46 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 async function cleanupSectionMedia(existingContent: unknown, nextContent: unknown, env: any): Promise<unknown> {
-  await destroyCloudinaryDiff(existingContent, nextContent, env);
+  // Extract public IDs from existing content and delete using MediaService
+  const existingPublicIds = extractPublicIds(existingContent);
+  const nextPublicIds = extractPublicIds(nextContent);
+  const toDelete = existingPublicIds.filter(id => !nextPublicIds.includes(id));
+  
+  if (toDelete.length > 0) {
+    const prisma = getPrisma(env);
+    const mediaAssets = await prisma.mediaAsset.findMany({
+      where: { publicId: { in: toDelete }, entityType: "cms" },
+      select: { id: true },
+    });
+    await Promise.allSettled(
+      mediaAssets.map(asset => deleteMedia(asset.id, env))
+    );
+  }
   return nextContent;
+}
+
+function extractPublicIds(content: unknown): string[] {
+  const ids: string[] = [];
+  
+  function traverse(obj: unknown): void {
+    if (!obj || typeof obj !== 'object') return;
+    
+    if (Array.isArray(obj)) {
+      obj.forEach(traverse);
+      return;
+    }
+    
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      if (key.toLowerCase().includes('publicid') && typeof value === 'string') {
+        ids.push(value);
+      } else {
+        traverse(value);
+      }
+    }
+  }
+  
+  traverse(content);
+  return ids;
 }
 
 export async function handleAdminCMSRequest(
@@ -186,7 +224,13 @@ async function handleDeletePage(pageId: string, req: Request, ctx: RequestContex
     const page = await prisma.staticPage.findUnique({ where: { id: pageId } });
     if (!page) return notFound("Page not found");
     if (page.ogImage) {
-      await destroyCloudinaryAsset(page.ogImage, env);
+      const mediaAsset = await prisma.mediaAsset.findFirst({
+        where: { publicId: page.ogImage, entityType: "cms", entityId: pageId },
+        select: { id: true },
+      });
+      if (mediaAsset) {
+        await deleteMedia(mediaAsset.id, env);
+      }
     }
     await cleanupSectionMedia(page.content, {}, env);
     await prisma.staticPage.delete({ where: { id: pageId } });
@@ -292,7 +336,13 @@ async function handleDeleteHomeSection(sectionId: string, req: Request, ctx: Req
     const cleaned = await cleanupSectionMedia(section.content, {}, env);
     const sectionContent = asRecord(cleaned);
     if (sectionContent?.imagePublicId) {
-      await destroyCloudinaryAsset(String(sectionContent.imagePublicId), env);
+      const mediaAsset = await prisma.mediaAsset.findFirst({
+        where: { publicId: String(sectionContent.imagePublicId), entityType: "cms", entityId: sectionId },
+        select: { id: true },
+      });
+      if (mediaAsset) {
+        await deleteMedia(mediaAsset.id, env);
+      }
     }
     await prisma.homepageSection.delete({ where: { id: sectionId } });
     await logAction(ctx.userId, "admin.cms.homepage.delete", {

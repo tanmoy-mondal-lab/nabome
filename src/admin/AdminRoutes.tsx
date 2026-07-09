@@ -30,6 +30,7 @@ const FooterBuilder = lazyWithRetry(() => import("./cms/FooterBuilder"));
 const HeroBuilder = lazyWithRetry(() => import("./cms/HeroBuilder"));
 const HeaderBuilder = lazyWithRetry(() => import("./cms/HeaderBuilder"));
 const MediaLibrary = lazyWithRetry(() => import("./media/MediaLibrary"));
+const MediaHealth = lazyWithRetry(() => import("./media/MediaHealth"));
 const SEOPage = lazyWithRetry(() => import("./seo/SEOPage"));
 const ThemeBuilder = lazyWithRetry(() => import("./theme/ThemeBuilder"));
 const AnalyticsPage = lazyWithRetry(() => import("./analytics/AnalyticsPage"));
@@ -148,6 +149,7 @@ export default function AdminRoutes() {
           <Route path="cms/header-builder" element={<HeaderBuilder />} />
 
           <Route path="media" element={<MediaLibrary />} />
+          <Route path="media/health" element={<MediaHealth />} />
           <Route path="seo" element={<SEOPage />} />
           <Route path="theme/builder" element={<ThemeBuilder />} />
           <Route path="analytics" element={<AnalyticsPage />} />

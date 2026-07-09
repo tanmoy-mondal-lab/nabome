@@ -2,7 +2,8 @@ import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth-middleware";
-import { destroyCloudinaryAsset } from "../../_lib/cloudinary";
+import { deleteMedia } from "../../_lib/media-service";
+import type { EntityType } from "../../../src/lib/media/media.types";
 
 export async function handleAdminMediaRequest(
   req: Request,
@@ -34,15 +35,21 @@ async function handleList(req: Request, env: any): Promise<Response> {
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
   const limit = Math.min(MAX_PAGE_LIMIT, Math.max(1, parseInt(url.searchParams.get("limit") ?? "50")));
   const type = url.searchParams.get("type");
+  const entityType = url.searchParams.get("entityType");
+  const entityId = url.searchParams.get("entityId");
   const folder = url.searchParams.get("folder");
   const search = url.searchParams.get("search");
 
   const where: Record<string, unknown> = {};
   if (type) where.type = type;
-  if (folder) where.folder = folder;
+  if (entityType) where.entityType = entityType;
+  if (entityId) where.entityId = entityId;
+  if (folder) where.folder = { contains: folder };
   if (search) {
     where.OR = [
       { altText: { contains: search, mode: "insensitive" } },
+      { displayName: { contains: search, mode: "insensitive" } },
+      { originalFilename: { contains: search, mode: "insensitive" } },
       { folder: { contains: search, mode: "insensitive" } },
     ];
   }
@@ -61,16 +68,21 @@ async function handleList(req: Request, env: any): Promise<Response> {
       prisma.mediaAsset.count({ where: where as never }),
     ]);
 
-    // Get folder list
     const folders = await prisma.mediaAsset.groupBy({
-      by: ["folder"],
+      by: ["entityType"],
       _count: true,
     });
 
     return success({
-      assets,
-      folders: folders.filter((f) => f.folder).map((f) => ({ name: f.folder, count: f._count })),
-      pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) },
+      success: true,
+      message: "Media assets retrieved successfully",
+      data: {
+        assets,
+        folders: folders
+          .filter((f) => f.entityType)
+          .map((f) => ({ name: f.entityType, count: f._count })),
+        pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) },
+      },
     });
   } catch (err) {
     return serverError(err);
@@ -84,7 +96,11 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
   } catch {
     return badRequest("Invalid JSON body");
   }
-  const { url, publicId, altText, width, height, fileSize, mimeType, type, tags, folder } = body;
+  const {
+    url, publicId, altText, width, height, fileSize, mimeType,
+    type, tags, folder, assetId, entityType, entityId,
+    secureUrl, resourceType, originalFilename, displayName, sortOrder, isPrimary,
+  } = body;
 
   if (!url) return badRequest("URL is required");
   try {
@@ -97,19 +113,32 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
     const prisma = getPrisma(env);
     const asset = await prisma.mediaAsset.create({
       data: {
+        assetId: assetId ?? crypto.randomUUID(),
+        entityType: entityType ?? "cms",
+        entityId: entityId ?? crypto.randomUUID(),
         url,
+        secureUrl: secureUrl ?? url,
         publicId: publicId ?? null,
-        altText: altText ?? null,
+        resourceType: resourceType ?? "image",
+        folder: folder ?? null,
+        mimeType: mimeType ?? null,
         width: width ?? null,
         height: height ?? null,
         fileSize: fileSize ?? null,
-        mimeType: mimeType ?? null,
-        type: type ?? "image",
+        originalFilename: originalFilename ?? null,
+        displayName: displayName ?? altText ?? null,
+        altText: altText ?? null,
+        mediaType: type ?? "image",
+        sortOrder: sortOrder ?? 0,
+        isPrimary: isPrimary ?? false,
         tags: tags ?? [],
-        folder: folder ?? null,
       },
     });
-    return created(asset);
+    return created({
+      success: true,
+      message: "Media asset created successfully",
+      media: asset,
+    });
   } catch (err) {
     return serverError(err);
   }
@@ -117,17 +146,12 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
 
 async function handleDelete(assetId: string, env: any): Promise<Response> {
   try {
-    const prisma = getPrisma(env);
-    const asset = await prisma.mediaAsset.findUnique({ where: { id: assetId } });
-    if (!asset) return notFound("Asset not found");
-    if (asset.publicId) {
-      const destroyed = await destroyCloudinaryAsset(asset.publicId, env);
-      if (!destroyed) {
-        console.error(`[Media] Failed to destroy Cloudinary asset: ${asset.publicId} (${assetId})`);
-      }
-    }
-    await prisma.mediaAsset.delete({ where: { id: assetId } });
-    return success({ message: "Asset deleted" });
+    await deleteMedia(assetId, env);
+    return success({
+      success: true,
+      message: "Media asset deleted successfully",
+      data: { assetId },
+    });
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Asset not found");
     return serverError(err);
@@ -141,20 +165,27 @@ async function handleUpdate(assetId: string, req: Request, env: any): Promise<Re
   } catch {
     return badRequest("Invalid JSON body");
   }
-  const { altText, folder, tags } = body;
+  const { altText, displayName, folder, tags, sortOrder, isPrimary } = body;
 
   try {
     const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
     if (altText !== undefined) data.altText = altText;
+    if (displayName !== undefined) data.displayName = displayName;
     if (folder !== undefined) data.folder = folder;
     if (tags !== undefined) data.tags = tags;
+    if (sortOrder !== undefined) data.sortOrder = sortOrder;
+    if (isPrimary !== undefined) data.isPrimary = isPrimary;
 
     const asset = await prisma.mediaAsset.update({
       where: { id: assetId },
       data: data as never,
     });
-    return success(asset);
+    return success({
+      success: true,
+      message: "Media asset updated successfully",
+      media: asset,
+    });
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Asset not found");
     return serverError(err);

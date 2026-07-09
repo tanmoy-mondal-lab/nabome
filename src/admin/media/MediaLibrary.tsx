@@ -12,15 +12,25 @@ import {
 
 interface Asset {
   id: string;
+  assetId: string;
   url: string;
+  secureUrl?: string;
+  publicId?: string;
   type: string;
+  resourceType?: string;
   mimeType: string;
   altText: string;
+  displayName?: string;
+  entityType: string;
+  entityId: string;
+  originalFilename?: string;
   tags: string[];
   folder: string;
   width: number | null;
   height: number | null;
   fileSize: number | null;
+  sortOrder: number;
+  isPrimary: boolean;
   format: string;
   createdAt: string;
 }
@@ -50,37 +60,35 @@ export default function MediaLibrary() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
-  const [selectedFolder, setSelectedFolder] = useState("all");
+  const [selectedEntityType, setSelectedEntityType] = useState("all");
   const [uploading, setUploading] = useState(false);
-  const [uploadQueue, setUploadQueue] = useState<{ file: File; folder: string }[]>([]);
+  const [uploadQueue, setUploadQueue] = useState<{ file: File; entityType: string }[]>([]);
   const [preview, setPreview] = useState<Asset | null>(null);
-  const [uploadFolder, setUploadFolder] = useState("general");
+  const [uploadEntityType, setUploadEntityType] = useState("cms");
   const [dragOver, setDragOver] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [showNewFolderInput, setShowNewFolderInput] = useState(false);
   const [editAsset, setEditAsset] = useState<Asset | null>(null);
-  const [editForm, setEditForm] = useState({ altText: "", folder: "" });
+  const [editForm, setEditForm] = useState({ altText: "", displayName: "", sortOrder: 0, isPrimary: false });
   const [deleteConfirmAsset, setDeleteConfirmAsset] = useState<Asset | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
   const { data: mediaData, isLoading: loading, error: mediaError } = useQuery({
-    queryKey: ["admin", "media", search, selectedFolder],
+    queryKey: ["admin", "media", search, selectedEntityType],
     queryFn: async () => {
       const params: Record<string, string | number | undefined> = {};
       if (search) params.search = search;
-      if (selectedFolder !== "all") params.folder = selectedFolder;
+      if (selectedEntityType !== "all") params.entityType = selectedEntityType;
       const res = await adminApi.getMedia(params);
       return {
         assets: (res.assets as Asset[]) ?? [],
-        folders: (res.folders as { name: string; count: number }[]) ?? [],
+        entityTypes: (res.folders as { name: string; count: number }[]) ?? [],
       };
     },
   });
 
   const assets = mediaData?.assets ?? [];
-  const folders = mediaData?.folders ?? [];
+  const entityTypes = mediaData?.entityTypes ?? [];
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteMedia(id),
@@ -94,7 +102,7 @@ export default function MediaLibrary() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { altText: string; folder: string } }) =>
+    mutationFn: ({ id, data }: { id: string; data: { altText?: string; displayName?: string; sortOrder?: number; isPrimary?: boolean } }) =>
       adminApi.updateMedia(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
@@ -106,16 +114,15 @@ export default function MediaLibrary() {
     },
   });
 
-  const doUpload = async (files: { file: File; folder: string }[]) => {
+  const doUpload = async (files: { file: File; entityType: string }[]) => {
     setUploading(true);
     let completed = 0;
     let failed = 0;
     for (const item of files) {
       try {
-        const res = await adminApi.uploadFile(item.file, item.folder, item.file.name);
-        const assetType = getAssetType(res.mimeType || item.file.type);
-        // uploadFile already creates a mediaAsset record via the backend /upload endpoint,
-        // so we don't call createMedia again to avoid duplicate records.
+        const slug = `upload-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+        const entityId = crypto.randomUUID();
+        await adminApi.uploadFile(item.file, item.entityType, slug, entityId, item.file.name);
         completed++;
       } catch (err) {
         failed++;
@@ -140,7 +147,7 @@ export default function MediaLibrary() {
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) return;
-    const queue = files.map((file) => ({ file, folder: uploadFolder }));
+    const queue = files.map((file) => ({ file, entityType: uploadEntityType }));
     setUploadQueue(queue);
     setUploadModalOpen(true);
     if (fileRef.current) fileRef.current.value = "";
@@ -151,7 +158,7 @@ export default function MediaLibrary() {
     setDragOver(false);
     const files = Array.from(e.dataTransfer.files);
     if (files.length === 0) return;
-    const queue = files.map((file) => ({ file, folder: uploadFolder }));
+    const queue = files.map((file) => ({ file, entityType: uploadEntityType }));
     setUploadQueue(queue);
     setUploadModalOpen(true);
   };
@@ -182,28 +189,27 @@ export default function MediaLibrary() {
     navigator.clipboard.writeText(url);
   };
 
-  const addNewFolder = () => {
-    const name = newFolderName.trim().toLowerCase().replace(/\s+/g, "-");
-    if (!name) return;
-    setSelectedFolder(name);
-    setUploadFolder(name);
-    setNewFolderName("");
-    setShowNewFolderInput(false);
-  };
-
   const openUploadModal = () => {
-    setUploadFolder(uploadFolder);
     fileRef.current?.click();
   };
 
   const openEdit = (asset: Asset) => {
     setEditAsset(asset);
-    setEditForm({ altText: asset.altText, folder: asset.folder || "general" });
+    setEditForm({
+      altText: asset.altText,
+      displayName: asset.displayName || "",
+      sortOrder: asset.sortOrder || 0,
+      isPrimary: asset.isPrimary || false,
+    });
   };
 
   const saveEdit = () => {
     if (!editAsset) return;
-    updateMutation.mutate({ id: editAsset.id, data: { altText: editForm.altText, folder: editForm.folder } });
+    const data: Record<string, unknown> = { altText: editForm.altText };
+    if (editForm.displayName) data.displayName = editForm.displayName;
+    data.sortOrder = editForm.sortOrder;
+    data.isPrimary = editForm.isPrimary;
+    updateMutation.mutate({ id: editAsset.id, data: data as { altText?: string; displayName?: string; sortOrder?: number; isPrimary?: boolean } });
   };
 
   const confirmUpload = () => {
@@ -254,39 +260,25 @@ export default function MediaLibrary() {
         )}
       </div>
 
-      {/* Folder nav */}
+      {/* Entity type nav */}
       <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
-        <button key="all" onClick={() => setSelectedFolder("all")}
+        <button key="all" onClick={() => setSelectedEntityType("all")}
           className={`shrink-0 px-3 py-1.5 text-xs rounded-full border font-medium transition-colors ${
-            selectedFolder === "all" ? "bg-neutral-900 text-white border-neutral-900" : "bg-white text-neutral-500 border-neutral-200 hover:border-neutral-300"
+            selectedEntityType === "all" ? "bg-neutral-900 text-white border-neutral-900" : "bg-white text-neutral-500 border-neutral-200 hover:border-neutral-300"
           }`}>
           All
         </button>
-        {folders.map((f) => (
-          <button key={f.name} onClick={() => setSelectedFolder(f.name)}
+        {entityTypes.map((f) => (
+          <button key={f.name} onClick={() => setSelectedEntityType(f.name)}
             className={`shrink-0 px-3 py-1.5 text-xs rounded-full border font-medium transition-colors ${
-              selectedFolder === f.name ? "bg-neutral-900 text-white border-neutral-900" : "bg-white text-neutral-500 border-neutral-200 hover:border-neutral-300"
+              selectedEntityType === f.name ? "bg-neutral-900 text-white border-neutral-900" : "bg-white text-neutral-500 border-neutral-200 hover:border-neutral-300"
             }`}>
             {f.name} ({f.count})
           </button>
         ))}
-        {showNewFolderInput ? (
-          <div className="flex items-center gap-1 shrink-0">
-            <input value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder="Folder name" className="w-28 px-2 py-1.5 text-xs border border-neutral-200 rounded focus:outline-none"
-              onKeyDown={(e) => e.key === "Enter" && addNewFolder()} autoFocus />
-            <button onClick={addNewFolder} className="p-1 text-green-600"><Check size={14} /></button>
-            <button onClick={() => { setShowNewFolderInput(false); setNewFolderName(""); }} className="p-1 text-neutral-400"><X size={14} /></button>
-          </div>
-        ) : (
-          <button onClick={() => setShowNewFolderInput(true)}
-            className="shrink-0 px-3 py-1.5 text-xs rounded-full border border-dashed border-neutral-300 text-neutral-400 hover:text-neutral-600 hover:border-neutral-400 font-medium">
-            <Plus size={14} className="inline mr-1" />New Folder
-          </button>
-        )}
       </div>
 
-      {/* Search + Upload folder selector */}
+      {/* Search + Upload entity type selector */}
       <div className="flex items-center gap-3 mb-4">
         <div className="relative flex-1 max-w-sm">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
@@ -296,10 +288,10 @@ export default function MediaLibrary() {
         </div>
         <div className="flex items-center gap-2 text-xs text-neutral-500">
           <Folder size={14} />
-          <select value={uploadFolder} onChange={(e) => setUploadFolder(e.target.value)}
+          <select value={uploadEntityType} onChange={(e) => setUploadEntityType(e.target.value)}
             className="border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none">
-            <option value="general">Upload to: general</option>
-            {folders.map((f) => (
+            <option value="cms">Upload to: cms</option>
+            {entityTypes.filter((f) => f.name !== "cms").map((f) => (
               <option key={f.name} value={f.name}>{f.name}</option>
             ))}
           </select>
@@ -345,9 +337,9 @@ export default function MediaLibrary() {
                     </div>
                   )}
                 </div>
-                {asset.folder && (
+                {asset.entityType && (
                   <div className="absolute top-1 left-1 bg-black/50 text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1">
-                    <Folder size={8} />{asset.folder}
+                    <Folder size={8} />{asset.entityType}
                   </div>
                 )}
                 <div className="px-2 py-1.5">
@@ -388,13 +380,13 @@ export default function MediaLibrary() {
           ))}
         </div>
         <div className="flex items-center gap-2 mt-4">
-          <label className="text-xs text-neutral-500">Folder:</label>
-          <select value={uploadFolder} onChange={(e) => {
-            setUploadFolder(e.target.value);
-            setUploadQueue((prev) => prev.map((q) => ({ ...q, folder: e.target.value })));
+          <label className="text-xs text-neutral-500">Entity Type:</label>
+          <select value={uploadEntityType} onChange={(e) => {
+            setUploadEntityType(e.target.value);
+            setUploadQueue((prev) => prev.map((q) => ({ ...q, entityType: e.target.value })));
           }} className="flex-1 px-2 py-1.5 text-sm border border-neutral-200 rounded focus:outline-none">
-            <option value="general">general</option>
-            {folders.filter((f) => f.name !== "general").map((f) => (
+            <option value="cms">cms</option>
+            {entityTypes.filter((f) => f.name !== "cms").map((f) => (
               <option key={f.name} value={f.name}>{f.name}</option>
             ))}
           </select>
@@ -435,12 +427,13 @@ export default function MediaLibrary() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-              <p><span className="text-neutral-400">Name:</span> <span className="text-neutral-900">{preview.altText || "—"}</span></p>
+              <p><span className="text-neutral-400">Name:</span> <span className="text-neutral-900">{preview.displayName || preview.altText || "—"}</span></p>
               <p><span className="text-neutral-400">Type:</span> <span className="capitalize">{preview.type}</span></p>
               <p><span className="text-neutral-400">Dimensions:</span> {preview.width && preview.height ? `${preview.width}×${preview.height}` : "—"}</p>
               <p><span className="text-neutral-400">Size:</span> {formatSize(preview.fileSize)}</p>
               <p><span className="text-neutral-400">Format:</span> {preview.format || "—"}</p>
-              <p><span className="text-neutral-400">Folder:</span> {preview.folder || "—"}</p>
+              <p><span className="text-neutral-400">Entity:</span> {preview.entityType || "—"}</p>
+              <p><span className="text-neutral-400">Asset ID:</span> <span className="text-xs font-mono">{preview.assetId || "—"}</span></p>
               {preview.tags?.length > 0 && (
                 <p className="col-span-2"><span className="text-neutral-400">Tags:</span> {preview.tags.join(", ")}</p>
               )}
@@ -468,19 +461,24 @@ export default function MediaLibrary() {
         {editAsset && (
           <div className="space-y-4">
             <div>
-              <label className="block text-xs text-neutral-500 mb-1">Alt Text / Name</label>
+              <label className="block text-xs text-neutral-500 mb-1">Alt Text</label>
               <input value={editForm.altText} onChange={(e) => setEditForm({ ...editForm, altText: e.target.value })}
                 className={inputClass} />
             </div>
             <div>
-              <label className="block text-xs text-neutral-500 mb-1">Folder</label>
-              <select value={editForm.folder} onChange={(e) => setEditForm({ ...editForm, folder: e.target.value })}
-                className={inputClass}>
-                <option value="general">general</option>
-                {folders.filter((f) => f.name !== "general").map((f) => (
-                  <option key={f.name} value={f.name}>{f.name}</option>
-                ))}
-              </select>
+              <label className="block text-xs text-neutral-500 mb-1">Display Name</label>
+              <input value={editForm.displayName} onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+                className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-xs text-neutral-500 mb-1">Sort Order</label>
+              <input type="number" value={editForm.sortOrder} onChange={(e) => setEditForm({ ...editForm, sortOrder: parseInt(e.target.value) || 0 })}
+                className={inputClass} />
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="isPrimary" checked={editForm.isPrimary}
+                onChange={(e) => setEditForm({ ...editForm, isPrimary: e.target.checked })} />
+              <label htmlFor="isPrimary" className="text-xs text-neutral-500">Primary asset</label>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setEditAsset(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>

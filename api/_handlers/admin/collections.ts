@@ -4,7 +4,7 @@ import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../_lib/utils";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { requireAdmin } from "../../_lib/auth-middleware";
-import { destroyCloudinaryAssetIfReplaced } from "../../_lib/cloudinary";
+import { deleteMedia, deleteEntityMedia } from "../../_lib/media-service";
 import { toNull } from "../../_lib/sanitize";
 
 export async function handleAdminCollectionRequest(
@@ -99,8 +99,18 @@ async function handleUpdate(collectionId: string, req: Request, ctx: RequestCont
     }
     if (body.startDate !== undefined) data.startDate = body.startDate ? new Date(body.startDate) : null;
     if (body.endDate !== undefined) data.endDate = body.endDate ? new Date(body.endDate) : null;
-    if (body.heroImagePublicId !== undefined) {
-      data.heroImagePublicId = await destroyCloudinaryAssetIfReplaced(existing.heroImagePublicId, body.heroImagePublicId, env);
+    // Handle hero image media replacement using MediaService
+    if (body.heroImagePublicId !== undefined && existing.heroImagePublicId !== body.heroImagePublicId) {
+      if (existing.heroImagePublicId) {
+        // Find the media asset record for the old hero image
+        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+          where: { publicId: existing.heroImagePublicId, entityType: "collections", entityId: collectionId },
+        });
+        if (oldMediaAsset) {
+          await deleteMedia(oldMediaAsset.id, env);
+        }
+      }
+      data.heroImagePublicId = body.heroImagePublicId;
     }
 
     if (body.name && body.name !== existing.name) {

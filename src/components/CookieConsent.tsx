@@ -55,7 +55,7 @@ export function CookieConsent() {
         }),
       });
     } catch (error) {
-      console.error("Failed to log consent:", error);
+      // Silently fail - consent logging not critical
     }
   };
 

@@ -1,4 +1,4 @@
-const CACHE = "nabome-v5";
+const CACHE = "nabome-v6";
 const STATIC_ASSETS = [
   "/",
   "/products",

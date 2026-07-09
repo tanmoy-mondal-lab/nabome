@@ -4,7 +4,7 @@ import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../_lib/utils";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { requireAdmin } from "../../_lib/auth-middleware";
-import { destroyCloudinaryAsset, destroyCloudinaryAssetIfReplaced } from "../../_lib/cloudinary";
+import { deleteMedia, deleteEntityMedia } from "../../_lib/media-service";
 import { toNull } from "../../_lib/sanitize";
 
 export async function handleAdminCategoryRequest(
@@ -106,8 +106,18 @@ async function handleUpdate(categoryId: string, req: Request, ctx: RequestContex
       if (body[field] !== undefined) data[field] = field === "imageUrl" ? toNull(body[field]) : body[field];
     }
     if (body.parentId !== undefined) data.parentId = body.parentId || null;
-    if (body.imagePublicId !== undefined) {
-      data.imagePublicId = await destroyCloudinaryAssetIfReplaced(existing.imagePublicId, body.imagePublicId, env);
+    // Handle image media replacement using MediaService
+    if (body.imagePublicId !== undefined && existing.imagePublicId !== body.imagePublicId) {
+      if (existing.imagePublicId) {
+        // Find the media asset record for the old image
+        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+          where: { publicId: existing.imagePublicId, entityType: "categories", entityId: categoryId },
+        });
+        if (oldMediaAsset) {
+          await deleteMedia(oldMediaAsset.id, env);
+        }
+      }
+      data.imagePublicId = body.imagePublicId;
     }
 
     if (body.name && body.name !== existing.name) {
@@ -153,8 +163,15 @@ async function handleDelete(categoryId: string, req: Request, ctx: RequestContex
       return badRequest(`Cannot delete category: ${subCount} subcategories are assigned to it. Remove them first.`);
     }
 
+    // Delete all media for this category using MediaService
     if (category.imagePublicId) {
-      await destroyCloudinaryAsset(category.imagePublicId, env);
+      const mediaAsset = await prisma.mediaAsset.findFirst({
+        where: { publicId: category.imagePublicId, entityType: "categories", entityId: categoryId },
+        select: { id: true },
+      });
+      if (mediaAsset) {
+        await deleteMedia(mediaAsset.id, env);
+      }
     }
 
     await prisma.category.delete({ where: { id: categoryId } });

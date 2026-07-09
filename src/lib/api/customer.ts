@@ -104,7 +104,10 @@ export const customerApi = {
   uploadImage: async (file: File, folder = "returns"): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("folder", folder);
+    formData.append("entityType", folder);
+    formData.append("slug", `upload-${Date.now().toString(36)}`);
+    formData.append("entityId", crypto.randomUUID());
+    formData.append("altText", file.name);
     const res = await fetch("/api/upload/customer", { method: "POST", body: formData });
     if (!res.ok) throw new Error("Upload failed");
     const json = await res.json();

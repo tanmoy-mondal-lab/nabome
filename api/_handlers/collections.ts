@@ -70,6 +70,7 @@ async function handleDetail(slug: string, env: any): Promise<Response> {
         images: {
           where: { isPrimary: true },
           take: 1,
+          orderBy: { sortOrder: "asc" },
         },
         variants: {
           where: { isActive: true },

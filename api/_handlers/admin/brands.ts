@@ -4,7 +4,7 @@ import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth-middleware";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
-import { destroyCloudinaryAssetIfReplaced } from "../../_lib/cloudinary";
+import { deleteMedia, deleteEntityMedia } from "../../_lib/media-service";
 import { toNull } from "../../_lib/sanitize";
 
 export async function handleAdminBrandRequest(
@@ -91,8 +91,18 @@ async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: 
     const fields = ["name", "description", "logoUrl", "websiteUrl", "sortOrder", "isActive"];
     for (const f of fields) { if (body[f] !== undefined) data[f] = body[f]; }
     if (body.logoUrl !== undefined) data.logoUrl = toNull(body.logoUrl);
-    if (body.logoPublicId !== undefined) {
-      data.logoPublicId = await destroyCloudinaryAssetIfReplaced(existing.logoPublicId, body.logoPublicId, env);
+    // Handle logo media replacement using MediaService
+    if (body.logoPublicId !== undefined && existing.logoPublicId !== body.logoPublicId) {
+      if (existing.logoPublicId) {
+        // Find the media asset record for the old logo
+        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+          where: { publicId: existing.logoPublicId, entityType: "brands", entityId: id },
+        });
+        if (oldMediaAsset) {
+          await deleteMedia(oldMediaAsset.id, env);
+        }
+      }
+      data.logoPublicId = body.logoPublicId;
     }
     if (body.name) {
       const newSlug = slugify(body.name);

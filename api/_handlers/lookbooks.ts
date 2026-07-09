@@ -51,7 +51,7 @@ async function handleDetail(slug: string, env: any): Promise<Response> {
                 gender: true,
                 isNew: true,
                 shortDescription: true,
-                images: { take: 1, where: { isPrimary: true } },
+                images: { take: 1, where: { isPrimary: true }, orderBy: { sortOrder: "asc" } },
                 variants: {
                   where: { isActive: true },
                   take: 1,

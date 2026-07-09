@@ -3,7 +3,7 @@ import { success, badRequest, notFound, serverError, created } from "../../_lib/
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth-middleware";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
-import { destroyCloudinaryAssetIfReplaced, destroyCloudinaryDiff } from "../../_lib/cloudinary";
+import { deleteMedia } from "../../_lib/media-service";
 import { toNull } from "../../_lib/sanitize";
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -11,13 +11,65 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 async function cleanupThemeMedia(existingTheme: unknown, nextTheme: unknown, env: any): Promise<unknown> {
-  await destroyCloudinaryDiff(existingTheme, nextTheme, env);
+  // Extract public IDs from existing theme and delete using MediaService
+  const existingPublicIds = extractPublicIds(existingTheme);
+  const nextPublicIds = extractPublicIds(nextTheme);
+  const toDelete = existingPublicIds.filter(id => !nextPublicIds.includes(id));
+  
+  if (toDelete.length > 0) {
+    const prisma = getPrisma(env);
+    const mediaAssets = await prisma.mediaAsset.findMany({
+      where: { publicId: { in: toDelete }, entityType: "settings" },
+      select: { id: true },
+    });
+    await Promise.allSettled(
+      mediaAssets.map(asset => deleteMedia(asset.id, env))
+    );
+  }
   return nextTheme;
 }
 
 async function cleanupSeoMedia(existingSeo: unknown, nextSeo: unknown, env: any): Promise<unknown> {
-  await destroyCloudinaryDiff(existingSeo, nextSeo, env);
+  // Extract public IDs from existing SEO and delete using MediaService
+  const existingPublicIds = extractPublicIds(existingSeo);
+  const nextPublicIds = extractPublicIds(nextSeo);
+  const toDelete = existingPublicIds.filter(id => !nextPublicIds.includes(id));
+  
+  if (toDelete.length > 0) {
+    const prisma = getPrisma(env);
+    const mediaAssets = await prisma.mediaAsset.findMany({
+      where: { publicId: { in: toDelete }, entityType: "settings" },
+      select: { id: true },
+    });
+    await Promise.allSettled(
+      mediaAssets.map(asset => deleteMedia(asset.id, env))
+    );
+  }
   return nextSeo;
+}
+
+function extractPublicIds(content: unknown): string[] {
+  const ids: string[] = [];
+  
+  function traverse(obj: unknown): void {
+    if (!obj || typeof obj !== 'object') return;
+    
+    if (Array.isArray(obj)) {
+      obj.forEach(traverse);
+      return;
+    }
+    
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      if (key.toLowerCase().includes('publicid') && typeof value === 'string') {
+        ids.push(value);
+      } else {
+        traverse(value);
+      }
+    }
+  }
+  
+  traverse(content);
+  return ids;
 }
 
 export async function handleAdminSettingsRequest(
@@ -89,16 +141,46 @@ async function handleUpdate(req: Request, ctx: RequestContext, env: any): Promis
     }
 
     if (body.logoUrl !== undefined) data.logoUrl = toNull(body.logoUrl);
-    if (body.logoPublicId !== undefined) {
-      data.logoPublicId = await destroyCloudinaryAssetIfReplaced(existing?.logoPublicId, body.logoPublicId, env);
+    // Handle logo media replacement using MediaService
+    if (body.logoPublicId !== undefined && existing?.logoPublicId !== body.logoPublicId) {
+      if (existing?.logoPublicId) {
+        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+          where: { publicId: existing.logoPublicId, entityType: "settings" },
+          select: { id: true },
+        });
+        if (oldMediaAsset) {
+          await deleteMedia(oldMediaAsset.id, env);
+        }
+      }
+      data.logoPublicId = body.logoPublicId;
     }
     if (body.faviconUrl !== undefined) data.faviconUrl = toNull(body.faviconUrl);
-    if (body.faviconPublicId !== undefined) {
-      data.faviconPublicId = await destroyCloudinaryAssetIfReplaced(existing?.faviconPublicId, body.faviconPublicId, env);
+    // Handle favicon media replacement using MediaService
+    if (body.faviconPublicId !== undefined && existing?.faviconPublicId !== body.faviconPublicId) {
+      if (existing?.faviconPublicId) {
+        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+          where: { publicId: existing.faviconPublicId, entityType: "settings" },
+          select: { id: true },
+        });
+        if (oldMediaAsset) {
+          await deleteMedia(oldMediaAsset.id, env);
+        }
+      }
+      data.faviconPublicId = body.faviconPublicId;
     }
     if (body.ogImageUrl !== undefined) data.ogImageUrl = toNull(body.ogImageUrl);
-    if (body.ogImagePublicId !== undefined) {
-      data.ogImagePublicId = await destroyCloudinaryAssetIfReplaced(existing?.ogImagePublicId, body.ogImagePublicId, env);
+    // Handle OG image media replacement using MediaService
+    if (body.ogImagePublicId !== undefined && existing?.ogImagePublicId !== body.ogImagePublicId) {
+      if (existing?.ogImagePublicId) {
+        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+          where: { publicId: existing.ogImagePublicId, entityType: "settings" },
+          select: { id: true },
+        });
+        if (oldMediaAsset) {
+          await deleteMedia(oldMediaAsset.id, env);
+        }
+      }
+      data.ogImagePublicId = body.ogImagePublicId;
     }
     if (body.seo !== undefined) {
       data.seo = await cleanupSeoMedia(existing?.seo, body.seo, env);

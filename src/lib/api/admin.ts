@@ -131,9 +131,9 @@ export const adminApi = {
   // Media
   getMedia: (params?: Record<string, string | number | undefined>) =>
     api.get<{ assets: unknown[]; folders: unknown[]; pagination: unknown }>("/admin/media", { params }),
-  createMedia: (data: { url: string; publicId?: string; type?: string; altText?: string; folder?: string; tags?: string[]; width?: number | null; height?: number | null; fileSize?: number | null; mimeType?: string }) =>
+  createMedia: (data: { url: string; publicId?: string; type?: string; altText?: string; entityType?: string; entityId?: string; assetId?: string; secureUrl?: string; resourceType?: string; originalFilename?: string; displayName?: string; sortOrder?: number; isPrimary?: boolean; folder?: string; tags?: string[]; width?: number | null; height?: number | null; fileSize?: number | null; mimeType?: string }) =>
     api.post<Record<string, unknown>>("/admin/media", data),
-  updateMedia: (id: string, data: { altText?: string; folder?: string }) =>
+  updateMedia: (id: string, data: { altText?: string; displayName?: string; folder?: string; tags?: string[]; sortOrder?: number; isPrimary?: boolean }) =>
     api.put<Record<string, unknown>>(`/admin/media/${id}`, data),
   deleteMedia: (id: string) => api.delete<{ message: string }>(`/admin/media/${id}`),
 
@@ -278,12 +278,14 @@ export const adminApi = {
     api.put<{ deleted: number }>("/admin/products/bulk/permanent-delete", { ids }),
 
   // Upload
-  uploadFile: (file: File, folder?: string, altText?: string) => {
+  uploadFile: (file: File, entityType?: string, slug?: string, entityId?: string, altText?: string) => {
     const formData = new FormData();
     formData.append("file", file);
-    if (folder) formData.append("folder", folder);
+    if (entityType) formData.append("entityType", entityType);
+    if (slug) formData.append("slug", slug);
+    if (entityId) formData.append("entityId", entityId);
     if (altText) formData.append("altText", altText);
-    return api.post<{ url: string; publicId: string; width: number; height: number; format: string; bytes: number; type: string; mimeType: string; folder: string }>("/upload", formData);
+    return api.post<{ id: string; assetId: string; url: string; publicId: string; folder: string; width: number | null; height: number | null; format: string; bytes: number; mimeType: string; resourceType: string }>("/upload", formData);
   },
 
   // Enhanced Orders

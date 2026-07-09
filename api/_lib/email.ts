@@ -80,11 +80,12 @@ export async function sendEmailNotification(
   type: EmailType,
   data: Record<string, unknown>,
   env?: { RESEND_API_KEY?: string; EMAIL_FROM?: string; ADMIN_EMAILS?: string; SITE_URL?: string; VITE_SITE_URL?: string }
-): Promise<void> {
+): Promise<{ success: boolean; error?: string }> {
   // ── 1. Validate env ──
   const resendApiKey = cleanSecret(env?.RESEND_API_KEY);
   if (!resendApiKey) {
-    return;
+    console.error(`[EMAIL] RESEND_API_KEY not configured for email type: ${type}`);
+    return { success: false, error: "Email service not configured" };
   }
 
   // ── 2. Build template ──
@@ -94,7 +95,8 @@ export async function sendEmailNotification(
   };
   const template = getEmailTemplate(type, templateData);
   if (!template) {
-    return;
+    console.error(`[EMAIL] No template found for email type: ${type}`);
+    return { success: false, error: "Email template not found" };
   }
 
   // ── 3. Resolve recipients ──
@@ -106,12 +108,14 @@ export async function sendEmailNotification(
     const raw = cleanSecret(env?.ADMIN_EMAILS);
     recipients = raw.split(",").map((e) => e.trim()).filter(Boolean);
     if (recipients.length === 0) {
-      return;
+      console.error(`[EMAIL] No admin emails configured for type: ${type}`);
+      return { success: false, error: "No admin recipients configured" };
     }
   } else {
     const email = data.email as string | undefined;
     if (!email) {
-      return;
+      console.error(`[EMAIL] No email address provided for type: ${type}`);
+      return { success: false, error: "No email address provided" };
     }
     recipients = [email];
   }
@@ -135,7 +139,8 @@ export async function sendEmailNotification(
   const failed = results.filter((r) => !r.success);
 
   if (failed.length > 0) {
-    // Silent failure - email send errors
+    console.error(`[EMAIL] Failed to send ${failed.length} email(s) for type: ${type}`, failed);
+    return { success: false, error: `Failed to send ${failed.length} email(s)` };
   }
 
   // ── 6. Send admin notifications for customer events ──
@@ -151,11 +156,13 @@ export async function sendEmailNotification(
       ));
       for (const { adminEmail, result } of adminResults) {
         if (!result.success) {
-          // Silent failure - admin email error
+          console.error(`[EMAIL] Failed to send admin notification to ${adminEmail}:`, result.error);
         }
       }
     }
   }
+
+  return { success: true };
 }
 
 /**

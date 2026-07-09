@@ -4,7 +4,7 @@ import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth-middleware";
 import { toNull } from "../../_lib/sanitize";
-import { destroyCloudinaryAssetIfReplaced } from "../../_lib/cloudinary";
+import { deleteMedia } from "../../_lib/media-service";
 
 export async function handleAdminSubcategoryRequest(
   req: Request, ctx: RequestContext, params: string[], action: string
@@ -61,8 +61,17 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
     const fields = ["name", "categoryId", "description", "imageUrl", "sortOrder", "isActive"];
     for (const f of fields) { if (body[f] !== undefined) data[f] = f === "categoryId" ? toNull(body[f]) : body[f]; }
     if (body.imageUrl !== undefined) data.imageUrl = toNull(body.imageUrl);
-    if (body.imagePublicId !== undefined) {
-      data.imagePublicId = await destroyCloudinaryAssetIfReplaced(existing.imagePublicId, body.imagePublicId, env);
+    // Handle image media replacement using MediaService
+    if (body.imagePublicId !== undefined && existing.imagePublicId !== body.imagePublicId) {
+      if (existing.imagePublicId) {
+        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+          where: { publicId: existing.imagePublicId, entityType: "categories", entityId: id },
+        });
+        if (oldMediaAsset) {
+          await deleteMedia(oldMediaAsset.id, env);
+        }
+      }
+      data.imagePublicId = body.imagePublicId;
     }
     if (body.name) {
       const newSlug = slugify(body.name);

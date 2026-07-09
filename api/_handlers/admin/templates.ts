@@ -3,7 +3,7 @@ import { success, badRequest, notFound, serverError, created } from "../../_lib/
 import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth-middleware";
-import { destroyCloudinaryAssetIfReplaced, destroyCloudinaryAsset } from "../../_lib/cloudinary";
+import { deleteMedia } from "../../_lib/media-service";
 import { toNull } from "../../_lib/sanitize";
 
 export async function handleAdminTemplateRequest(
@@ -98,8 +98,17 @@ async function handleUpdate(templateId: string, req: Request, env: any): Promise
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = field === "thumbnail" ? toNull(body[field]) : body[field];
     }
-    if (body.thumbnailPublicId !== undefined) {
-      data.thumbnailPublicId = await destroyCloudinaryAssetIfReplaced(existing.thumbnailPublicId, body.thumbnailPublicId, env);
+    // Handle thumbnail media replacement using MediaService
+    if (body.thumbnailPublicId !== undefined && existing.thumbnailPublicId !== body.thumbnailPublicId) {
+      if (existing.thumbnailPublicId) {
+        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+          where: { publicId: existing.thumbnailPublicId, entityType: "cms", entityId: templateId },
+        });
+        if (oldMediaAsset) {
+          await deleteMedia(oldMediaAsset.id, env);
+        }
+      }
+      data.thumbnailPublicId = body.thumbnailPublicId;
     }
     if (body.name) data.slug = slugify(body.name);
 
@@ -119,7 +128,13 @@ async function handleDelete(templateId: string, env: any): Promise<Response> {
     const template = await prisma.pageTemplate.findUnique({ where: { id: templateId } });
     if (!template) return notFound("Template not found");
     if (template.thumbnailPublicId) {
-      await destroyCloudinaryAsset(template.thumbnailPublicId, env);
+      const mediaAsset = await prisma.mediaAsset.findFirst({
+        where: { publicId: template.thumbnailPublicId, entityType: "cms", entityId: templateId },
+        select: { id: true },
+      });
+      if (mediaAsset) {
+        await deleteMedia(mediaAsset.id, env);
+      }
     }
     await prisma.pageTemplate.delete({ where: { id: templateId } });
     return success({ message: "Template deleted" });

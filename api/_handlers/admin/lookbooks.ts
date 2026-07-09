@@ -4,7 +4,7 @@ import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth-middleware";
 import { toNull } from "../../_lib/sanitize";
-import { destroyCloudinaryAsset, destroyCloudinaryAssetIfReplaced, destroyCloudinaryAssets } from "../../_lib/cloudinary";
+import { deleteMedia, deleteEntityMedia } from "../../_lib/media-service";
 
 export async function handleAdminLookbookRequest(
   req: Request,
@@ -157,8 +157,17 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
     for (const field of fields) {
       if (body[field] !== undefined) data[field] = field === "coverImageUrl" ? toNull(body[field]) : body[field];
     }
-    if (body.coverImagePublicId !== undefined) {
-      data.coverImagePublicId = await destroyCloudinaryAssetIfReplaced(existing.coverImagePublicId, body.coverImagePublicId, env);
+    // Handle cover image media replacement using MediaService
+    if (body.coverImagePublicId !== undefined && existing.coverImagePublicId !== body.coverImagePublicId) {
+      if (existing.coverImagePublicId) {
+        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+          where: { publicId: existing.coverImagePublicId, entityType: "lookbooks", entityId: lookbookId },
+        });
+        if (oldMediaAsset) {
+          await deleteMedia(oldMediaAsset.id, env);
+        }
+      }
+      data.coverImagePublicId = body.coverImagePublicId;
     }
     if (body.name) data.slug = slugify(body.name);
     if (body.season !== undefined) data.season = body.season;
@@ -191,7 +200,17 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
       const removedPublicIds = existing.items
         .map((item) => item.imagePublicId)
         .filter((publicId): publicId is string => Boolean(publicId) && !incomingPublicIds.has(publicId));
-      await destroyCloudinaryAssets(removedPublicIds, env);
+      
+      // Delete removed media using MediaService
+      if (removedPublicIds.length > 0) {
+        const mediaAssets = await prisma.mediaAsset.findMany({
+          where: { publicId: { in: removedPublicIds }, entityType: "lookbooks" },
+          select: { id: true },
+        });
+        await Promise.allSettled(
+          mediaAssets.map(asset => deleteMedia(asset.id, env))
+        );
+      }
     }
     return success(lookbook);
   } catch (err) {
@@ -207,9 +226,8 @@ async function handleDelete(lookbookId: string, env: any): Promise<Response> {
       include: { items: { select: { imagePublicId: true } } },
     });
     if (!lookbook) return notFound("Lookbook not found");
-    const itemPublicIds = lookbook.items.map((item) => item.imagePublicId).filter(Boolean) as string[];
-    const coverPublicIds = [lookbook.coverImagePublicId].filter(Boolean) as string[];
-    await destroyCloudinaryAssets([...coverPublicIds, ...itemPublicIds], env);
+    // Delete all media for this lookbook using MediaService
+    await deleteEntityMedia("lookbooks", lookbookId, lookbook.slug, env);
     await prisma.lookbook.delete({ where: { id: lookbookId } });
     return success({ message: "Lookbook deleted" });
   } catch (err) {
@@ -255,8 +273,17 @@ async function handleUpdateItem(lookbookId: string, itemId: string, req: Request
       if (body[field] !== undefined) data[field] = field === "productId" ? toNull(body[field]) : body[field];
     }
     if (body.imageUrl !== undefined) data.imageUrl = toNull(body.imageUrl);
-    if (body.imagePublicId !== undefined) {
-      data.imagePublicId = await destroyCloudinaryAssetIfReplaced(existing.imagePublicId, body.imagePublicId, env);
+    // Handle image media replacement using MediaService
+    if (body.imagePublicId !== undefined && existing.imagePublicId !== body.imagePublicId) {
+      if (existing.imagePublicId) {
+        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+          where: { publicId: existing.imagePublicId, entityType: "lookbooks", entityId: itemId },
+        });
+        if (oldMediaAsset) {
+          await deleteMedia(oldMediaAsset.id, env);
+        }
+      }
+      data.imagePublicId = body.imagePublicId;
     }
     if (body.hotspotX !== undefined) data.hotspotX = parseFloat(String(body.hotspotX));
     if (body.hotspotY !== undefined) data.hotspotY = parseFloat(String(body.hotspotY));
@@ -280,7 +307,13 @@ async function handleRemoveItem(lookbookId: string, itemId: string, env: any): P
     });
     if (!item || item.lookbookId !== lookbookId) return notFound("Item not found");
     if (item.imagePublicId) {
-      await destroyCloudinaryAsset(item.imagePublicId, env);
+      const mediaAsset = await prisma.mediaAsset.findFirst({
+        where: { publicId: item.imagePublicId, entityType: "lookbooks", entityId: itemId },
+        select: { id: true },
+      });
+      if (mediaAsset) {
+        await deleteMedia(mediaAsset.id, env);
+      }
     }
     await prisma.lookbookItem.delete({
       where: { id: itemId },

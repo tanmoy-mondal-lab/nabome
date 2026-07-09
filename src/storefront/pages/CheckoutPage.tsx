@@ -136,9 +136,8 @@ export default function CheckoutPage() {
       }
       setGuestEmailError("");
     }
-    if (!isAuthenticated || showNewAddressForm) {
-      if (!validateAddress(shipping, setShippingErrors)) return;
-    }
+    // Always validate shipping address, whether saved or new
+    if (!validateAddress(shipping, setShippingErrors)) return;
     if (!billingSameAsShipping) {
       if (!validateAddress(billing, setBillingErrors)) return;
     }
@@ -449,6 +448,65 @@ export default function CheckoutPage() {
         <meta property="og:description" content="Complete your purchase on নবME." />
       </Helmet>
       <Breadcrumbs items={[{ label: "Checkout" }]} className="mb-6" />
+
+      {/* Checkout Progress Indicator */}
+      {(step as string) !== "success" && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between max-w-2xl mx-auto">
+            {[
+              { key: "shipping", label: "Shipping" },
+              { key: "payment", label: "Payment" },
+              { key: "confirm", label: "Review" },
+            ].map((s, index) => {
+              const isCurrent = step === s.key;
+              const isCompleted = (step === "payment" || step === "confirm") && index === 0 ||
+                                 step === "confirm" && index === 1;
+              const isPending = !isCurrent && !isCompleted;
+            
+              return (
+                <div key={s.key} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center flex-1">
+                    <div
+                      className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300",
+                        isCurrent
+                          ? "bg-accent-gold text-white shadow-lg"
+                          : isCompleted
+                          ? "bg-brand-500 text-white"
+                          : "bg-luxe-ivory text-neutral-400"
+                      )}
+                    >
+                      {isCompleted ? <CheckCircle className="w-5 h-5" /> : index + 1}
+                    </div>
+                    <span
+                      className={cn(
+                        "text-xs mt-2 font-medium transition-colors duration-300",
+                        isCurrent
+                          ? "text-neutral-900"
+                          : isCompleted
+                          ? "text-brand-500"
+                          : "text-neutral-400"
+                      )}
+                    >
+                      {s.label}
+                    </span>
+                  </div>
+                  {index < 2 && (
+                    <div
+                      className={cn(
+                        "flex-1 h-0.5 mx-2 transition-colors duration-300",
+                        isCompleted || (isCurrent && index > 0)
+                          ? "bg-brand-500"
+                          : "bg-luxe-ivory"
+                      )}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-5 gap-8 md:gap-8 lg:gap-12">
         {/* ── Left Column ── */}

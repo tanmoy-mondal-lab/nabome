@@ -5,13 +5,13 @@ vi.mock("../../_lib/prisma", () => ({
   getPrisma: vi.fn(),
 }));
 
-vi.mock("../../_lib/cloudinary", () => ({
-  destroyCloudinaryAsset: vi.fn().mockResolvedValue(true),
-  destroyCloudinaryAssets: vi.fn().mockResolvedValue(undefined),
+vi.mock("../../../src/lib/media/cloudinary.service", () => ({
+  deleteAsset: vi.fn().mockResolvedValue(true),
+  deleteEntityAssets: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { getPrisma } from "../../_lib/prisma";
-import { destroyCloudinaryAssets } from "../../_lib/cloudinary";
+import { deleteEntityAssets } from "../../../src/lib/media/cloudinary.service";
 import { handleAdminProductRequest } from "../admin/products";
 
 const mockPrisma = createMockPrisma();
@@ -75,12 +75,12 @@ describe("admin products handler", () => {
     expect(mockPrisma.productImage.deleteMany).toHaveBeenCalledWith({
       where: { productId: "prod-1", variantId: { in: ["variant-2"] } },
     });
-    expect(destroyCloudinaryAssets).toHaveBeenCalledWith(
+    expect(deleteEntityAssets).toHaveBeenCalledWith(
       expect.arrayContaining(["old-video", "removed-video"]),
       {},
       "video"
     );
-    expect(destroyCloudinaryAssets).toHaveBeenCalledWith(["removed-image"], {});
+    expect(deleteEntityAssets).toHaveBeenCalledWith(["removed-image"], {});
     expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
   });
 });

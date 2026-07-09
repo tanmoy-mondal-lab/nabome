@@ -107,7 +107,7 @@ async function handleSubcategoryDetail(slug: string, env: any): Promise<Response
           where: { isActive: true },
           include: {
             variants: { where: { isActive: true } },
-            images: { where: { isPrimary: true } },
+            images: { where: { isPrimary: true }, orderBy: { sortOrder: "asc" } },
             brand: { select: { id: true, name: true, slug: true } },
           },
           orderBy: { sortOrder: "asc" },

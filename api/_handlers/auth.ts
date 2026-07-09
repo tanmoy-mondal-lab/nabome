@@ -154,19 +154,21 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
     });
 
     // Send verification email with 6-digit code
-    try {
-      await sendEmailNotification("email_verification", {
-        email,
-        firstName,
-        verificationCode: verificationToken,
-      }, ctx.env);
-    } catch (emailErr) {
-      // Silent failure - email send error
+    const emailResult = await sendEmailNotification("email_verification", {
+      email,
+      firstName,
+      verificationCode: verificationToken,
+    }, ctx.env);
+    
+    if (!emailResult.success) {
+      console.error("[AUTH] Failed to send verification email:", emailResult.error);
+      // Still allow registration but warn user about email issue
     }
 
     return created({
       user: { id: authData.user.id, email, firstName },
-      message: "Account created successfully. Please verify your email.",
+      message: "Account created successfully. Please verify your email." + (emailResult.success ? "" : " Note: There may be a delay in receiving the verification email."),
+      emailSent: emailResult.success,
     });
   } catch (err) {
     return serverError(err);
@@ -310,17 +312,20 @@ async function handleResendVerification(req: Request, ctx: RequestContext): Prom
       data: { verificationToken, verificationTokenExpiresAt },
     });
 
-    try {
-      await sendEmailNotification("email_verification", {
-        email,
-        firstName: profile.firstName,
-        verificationCode: verificationToken,
-      }, ctx.env);
-    } catch (emailErr) {
-      // Silent failure - email send error
+    const emailResult = await sendEmailNotification("email_verification", {
+      email,
+      firstName: profile.firstName,
+      verificationCode: verificationToken,
+    }, ctx.env);
+    
+    if (!emailResult.success) {
+      console.error("[AUTH] Failed to resend verification email:", emailResult.error);
     }
 
-    return success({ message: "If an account exists with this email, a verification code has been sent." });
+    return success({ 
+      message: "If an account exists with this email, a verification code has been sent." + (emailResult.success ? "" : " Note: There may be a delay in receiving the verification email."),
+      emailSent: emailResult.success,
+    });
   } catch (err) {
     return serverError(err);
   }
@@ -788,17 +793,20 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
     select: { firstName: true, email: true },
   });
 
-  try {
-      await sendEmailNotification("email_change", {
-      email: normalizedEmail,
-      firstName: profile?.firstName || "there",
-      verificationCode: pendingEmailToken,
-    }, ctx.env);
-  } catch (emailErr) {
-    // Silent failure - email send error
+  const emailResult = await sendEmailNotification("email_change", {
+    email: normalizedEmail,
+    firstName: profile?.firstName || "there",
+    verificationCode: pendingEmailToken,
+  }, ctx.env);
+  
+  if (!emailResult.success) {
+    console.error("[AUTH] Failed to send email change verification:", emailResult.error);
   }
 
-  return success({ message: "Verification code sent to your new email address" });
+  return success({ 
+    message: "Verification code sent to your new email address" + (emailResult.success ? "" : " Note: There may be a delay in receiving the verification email."),
+    emailSent: emailResult.success,
+  });
 }
 
 // ─── VERIFY EMAIL CHANGE ───
@@ -912,17 +920,20 @@ async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<
     data: { resetPasswordToken, resetPasswordTokenExpiresAt },
   });
 
-  try {
-    await sendEmailNotification("password_reset", {
-      email: normalizedEmail,
-      firstName: profile.firstName,
-      verificationCode: resetPasswordToken,
-    }, ctx.env);
-  } catch (mailErr) {
-    // Silent failure - email send error
+  const emailResult = await sendEmailNotification("password_reset", {
+    email: normalizedEmail,
+    firstName: profile.firstName,
+    verificationCode: resetPasswordToken,
+  }, ctx.env);
+  
+  if (!emailResult.success) {
+    console.error("[AUTH] Failed to send password reset email:", emailResult.error);
   }
 
-  return success({ message: "If an account exists with this email, a verification code has been sent." });
+  return success({ 
+    message: "If an account exists with this email, a verification code has been sent." + (emailResult.success ? "" : " Note: There may be a delay in receiving the verification email."),
+    emailSent: emailResult.success,
+  });
 }
 
 // ─── VERIFY RESET CODE ───

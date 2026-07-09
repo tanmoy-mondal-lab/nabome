@@ -10,7 +10,7 @@ declare global {
 
 export function GoogleAnalytics() {
   useEffect(() => {
-    if (!gaId || import.meta.env.DEV) return;
+    if (!gaId || gaId.length === 0 || import.meta.env.DEV) return;
 
     if (typeof window === "undefined") return;
 
@@ -18,9 +18,9 @@ export function GoogleAnalytics() {
     if (existing) return;
 
     window.dataLayer = window.dataLayer || [];
-    window.gtag = function gtag(...args) { 
+    window.gtag = function gtag(...args) {
       if (window.dataLayer) {
-        window.dataLayer.push(args); 
+        window.dataLayer.push(args);
       }
     };
     window.gtag("js", new Date());
@@ -30,9 +30,7 @@ export function GoogleAnalytics() {
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
     script.onerror = () => {
-      if (import.meta.env.DEV) {
-        console.warn("Failed to load Google Analytics");
-      }
+      // Silently fail - analytics not critical
     };
     document.head.appendChild(script);
   }, []);

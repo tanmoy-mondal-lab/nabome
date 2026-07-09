@@ -19,7 +19,28 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Error logged silently - integrate with error tracking service in production
+    // Log error details for debugging
+    const errorDetails = {
+      message: error.message,
+      stack: error.stack,
+      componentStack: info.componentStack,
+      timestamp: new Date().toISOString(),
+      userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
+      url: typeof window !== 'undefined' ? window.location.href : 'unknown',
+    };
+
+    // In production, send to error tracking service
+    if (import.meta.env.PROD && typeof window !== 'undefined') {
+      // TODO: Integrate with error tracking service (Sentry, LogRocket, etc.)
+      // For now, store in sessionStorage for debugging
+      try {
+        const errors = JSON.parse(sessionStorage.getItem('error-log') || '[]');
+        errors.push(errorDetails);
+        sessionStorage.setItem('error-log', JSON.stringify(errors.slice(-10))); // Keep last 10 errors
+      } catch {
+        // SessionStorage unavailable
+      }
+    }
   }
 
   handleReset = () => {

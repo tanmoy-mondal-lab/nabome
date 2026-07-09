@@ -4,7 +4,7 @@ import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../_lib/utils";
 import { requireAdmin } from "../../_lib/auth-middleware";
 import { toNull } from "../../_lib/sanitize";
-import { destroyCloudinaryAsset, destroyCloudinaryAssetIfReplaced } from "../../_lib/cloudinary";
+import { deleteMedia } from "../../_lib/media-service";
 
 export async function handleAdminSizeGuideRequest(
   req: Request,
@@ -71,8 +71,17 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
     const data: Record<string, unknown> = {};
     for (const f of fields) { if (body[f] !== undefined) data[f] = f === "categoryId" ? toNull(body[f]) : body[f]; }
     if (body.imageUrl !== undefined) data.imageUrl = toNull(body.imageUrl);
-    if (body.imagePublicId !== undefined) {
-      data.imagePublicId = await destroyCloudinaryAssetIfReplaced(existing.imagePublicId, body.imagePublicId, env);
+    // Handle image media replacement using MediaService
+    if (body.imagePublicId !== undefined && existing.imagePublicId !== body.imagePublicId) {
+      if (existing.imagePublicId) {
+        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+          where: { publicId: existing.imagePublicId, entityType: "products", entityId: id },
+        });
+        if (oldMediaAsset) {
+          await deleteMedia(oldMediaAsset.id, env);
+        }
+      }
+      data.imagePublicId = body.imagePublicId;
     }
     if (body.name) {
       const newSlug = slugify(body.name);
@@ -92,7 +101,13 @@ async function handleDelete(id: string, env: any): Promise<Response> {
     const guide = await prisma.sizeGuide.findUnique({ where: { id } });
     if (!guide) return notFound("Size guide not found");
     if (guide.imagePublicId) {
-      await destroyCloudinaryAsset(guide.imagePublicId, env);
+      const mediaAsset = await prisma.mediaAsset.findFirst({
+        where: { publicId: guide.imagePublicId, entityType: "products", entityId: id },
+        select: { id: true },
+      });
+      if (mediaAsset) {
+        await deleteMedia(mediaAsset.id, env);
+      }
     }
     await prisma.sizeGuide.delete({ where: { id } });
     return success({ message: "Size guide deleted" });

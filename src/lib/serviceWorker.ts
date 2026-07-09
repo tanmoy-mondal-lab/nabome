@@ -58,7 +58,7 @@ export function registerServiceWorker(): Promise<void> {
 
     const timeoutId = setTimeout(() => {
       onError(new Error("Service worker registration timeout"));
-    }, 5000);
+    }, 10000);
 
     const loadSW = () => {
       navigator.serviceWorker
