@@ -26,7 +26,7 @@ let lastIndexed: string | null = null;
 export async function handleAdminSearchIndexRequest(
   req: Request,
   ctx: RequestContext,
-  params: string[],
+  _params: string[],
   action: string
 ): Promise<Response> {
   const adminGuard = requireAdmin(ctx);
@@ -44,7 +44,7 @@ export async function handleAdminSearchIndexRequest(
   }
 }
 
-async function handleStatus(env: any): Promise<Response> {
+async function handleStatus(_env: any): Promise<Response> {
   return success({
     indexed: memoryIndex.length > 0,
     count: memoryIndex.length,

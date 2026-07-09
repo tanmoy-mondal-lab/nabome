@@ -7,9 +7,9 @@ import { EmptyState } from "../common/EmptyState";
 import { MediaPicker } from "../common/MediaPicker";
 import {
   Edit3, Trash2, Plus, Menu, ChevronDown, ChevronRight, GripVertical, Image,
-  PlusCircle, X, Settings, Eye, EyeOff, Search, ShoppingBag,
+  PlusCircle, X, Settings, Eye, Search, ShoppingBag,
   Heart, User, Bell, Layout as LayoutIcon, ArrowLeft, ArrowLeftRight,
-  Smartphone, Globe, Monitor,
+  Monitor,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -30,8 +30,7 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { type NavigationMenu, type NavigationItem, type MegaMenuColumn, type PromotionalMenuContent } from "../../cms/core/cms-types";
+import { type NavigationMenu, type NavigationItem, type MegaMenuColumn } from "../../cms/core/cms-types";
 import { useToast } from "../../components/ui/Toast";
 
 interface HeaderConfig {

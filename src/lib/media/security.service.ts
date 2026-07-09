@@ -7,10 +7,9 @@
  */
 
 import type { EntityType } from "./media.types";
-import { isValidFolder, normalizeFolder } from "./folder.service";
+import { normalizeFolder } from "./folder.service";
 import { isValidAssetId } from "./asset-id.service";
 import { sanitizeFilename } from "./media.utils";
-import { MediaError } from "./media.errors";
 
 /**
  * Authorization levels for media operations
@@ -76,7 +75,7 @@ export interface SecurityCheckResult {
 export function authorizeMediaOperation(
   operation: MediaAuthorizationLevel,
   userContext: MediaUserContext,
-  entityType?: EntityType,
+  _entityType?: EntityType,
   entityId?: string
 ): AuthorizationResult {
   // Admin users have full access

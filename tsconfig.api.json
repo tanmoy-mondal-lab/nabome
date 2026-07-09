@@ -4,17 +4,25 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "isolatedModules": true,
-    "noEmit": true,
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "allowJs": true,
     "forceConsistentCasingInFileNames": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "composite": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationDir": ".tsbuild/types",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["api", "src/lib/constants.ts", "src/lib/utils/format.ts"]
+  "include": ["api"],
+  "references": [
+    { "path": "./tsconfig.app.json" }
+  ]
 }

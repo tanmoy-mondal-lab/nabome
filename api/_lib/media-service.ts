@@ -1,10 +1,10 @@
 import type { Env } from "./env";
 import type { EntityType } from "../../src/lib/media/media.types";
 import { generateAssetId } from "../../src/lib/media/asset-id.service";
-import { getAssetFolder, getEntityFolder, extractEntityFolder } from "../../src/lib/media/folder.service";
+import { getAssetFolder, getEntityFolder } from "../../src/lib/media/folder.service";
 import { cleanSecret } from "./secrets";
 import { getPrisma } from "./prisma";
-import { uploadAsset, deleteAsset } from "../../src/lib/media/cloudinary.service";
+import { deleteAsset } from "../../src/lib/media/cloudinary.service";
 import type { CloudinaryConfig } from "../../src/lib/media/media.types";
 import {
   createMediaAsset,
@@ -12,14 +12,11 @@ import {
   deleteMediaAsset as lifecycleDeleteMediaAsset,
   deleteEntityMediaAssets as lifecycleDeleteEntityMediaAssets,
   migrateEntitySlug as lifecycleMigrateEntitySlug,
-  cleanupOrphanedMedia,
-  verifyMediaConsistency,
 } from "../../src/lib/media/lifecycle.service";
 import { validateFile, validateFileContent, throwIfInvalid, getFileTypeConfig } from "../../src/lib/media/validation.service";
 
 // Re-export validation functions for use by upload handler
 export { validateFile, validateFileContent };
-import { sanitizeFilename } from "../../src/lib/media/media.utils";
 
 function envToCloudinaryConfig(env: Env): CloudinaryConfig {
   return {
@@ -66,47 +63,6 @@ export interface ReplaceOptions {
   oldAssetId: string;
   altText?: string;
   displayName?: string;
-}
-
-async function generateSignature(params: Record<string, string>, apiSecret: string): Promise<string> {
-  const sortedKeys = Object.keys(params).sort();
-  const signStr = sortedKeys.map((key) => `${key}=${params[key]}`).join("&") + apiSecret;
-  const enc = new TextEncoder();
-  const buf = await crypto.subtle.digest("SHA-1", enc.encode(signStr));
-  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function uploadToCloudinary(
-  file: File,
-  folder: string,
-  publicId: string,
-  resourceType: CloudinaryResourceType,
-  env: Env
-): Promise<{
-  public_id: string;
-  secure_url: string;
-  format: string;
-  width: number | null;
-  height: number | null;
-  bytes: number;
-}> {
-  const config = envToCloudinaryConfig(env);
-  const result = await uploadAsset(
-    file,
-    folder,
-    publicId,
-    resourceType,
-    config
-  );
-  
-  return {
-    public_id: result.publicId,
-    secure_url: result.secureUrl,
-    format: result.format,
-    width: result.width,
-    height: result.height,
-    bytes: result.bytes,
-  };
 }
 
 export async function uploadMedia(options: UploadOptions, env: Env): Promise<MediaResult> {

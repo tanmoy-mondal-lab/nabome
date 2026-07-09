@@ -5,7 +5,6 @@
 // ─────────────────────────────────────────────────────────────
 
 import { useOfflineStatus } from "../hooks/useOfflineStatus";
-import { cn } from "../lib/utils/cn";
 
 export function OfflineBanner() {
   const isOffline = useOfflineStatus();

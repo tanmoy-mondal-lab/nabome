@@ -7,7 +7,6 @@ import { DashboardSidebar } from "../components/DashboardSidebar";
 import { PhoneInput } from "../../components/PhoneInput";
 import { PasswordInput } from "../../components/PasswordInput";
 import { Helmet } from "react-helmet-async";
-import { Breadcrumbs } from "../components/Breadcrumbs";
 
 const OTP_LENGTH = 6;
 

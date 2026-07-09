@@ -1,6 +1,5 @@
 import { Edit3, Trash2, Copy, Eye, EyeOff, Package } from "lucide-react";
 import { SafeImage } from "../../../components/SafeImage";
-import { StatusBadge } from "../../common/StatusBadge";
 import { formatPrice } from "../../../lib/utils/format";
 import { cn } from "../../../lib/utils/cn";
 

@@ -10,7 +10,7 @@
  * - Reset (full reset, reseed, Cloudinary cleanup, DB cleanup)
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   uploadMedia,
   replaceMedia,
@@ -26,10 +26,8 @@ import {
 import {
   validateFile,
   validateFileContent,
-  validateImageFile,
   validateVideoFile,
   validateDocumentFile,
-  validateFiles,
   validateImageDimensions,
   validateUploadCount,
   validateEntityMediaCount,
@@ -57,9 +55,6 @@ import {
   MediaAuthorizationLevel,
 } from '../security.service';
 import {
-  createMediaAsset,
-  replaceMediaAsset,
-  deleteMediaAsset,
   deleteEntityMediaAssets,
   migrateEntitySlug,
   cleanupOrphanedMedia,

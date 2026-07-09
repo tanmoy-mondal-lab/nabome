@@ -14,7 +14,7 @@
 
 import type { PrismaClient } from "@prisma/client";
 import type { CloudinaryConfig } from "./media.types";
-import { createMediaIntegrityService, type IntegrityScanResult, type MediaHealthResult } from "./integrity.service";
+import { createMediaIntegrityService, type MediaHealthResult } from "./integrity.service";
 
 /**
  * Schedule configuration
@@ -86,8 +86,6 @@ export interface ScheduledScanResult {
  * Media Integrity Scheduler class
  */
 export class MediaIntegrityScheduler {
-  private prisma: PrismaClient;
-  private config: CloudinaryConfig;
   private scheduleConfig: ScheduleConfig;
   private integrityService: ReturnType<typeof createMediaIntegrityService>;
   private timer: NodeJS.Timeout | null = null;
@@ -99,13 +97,9 @@ export class MediaIntegrityScheduler {
     config: CloudinaryConfig,
     scheduleConfig: Partial<ScheduleConfig> = {}
   ) {
-    this.prisma = prisma;
-    this.config = config;
     this.integrityService = createMediaIntegrityService(prisma, config);
     
-    // Determine environment and use appropriate default
-    const environment = process.env.NODE_ENV || "development";
-    const defaultConfig = DEFAULT_SCHEDULES[environment] || DEFAULT_SCHEDULES.development;
+    const defaultConfig = DEFAULT_SCHEDULES[process.env.NODE_ENV || "development"] || DEFAULT_SCHEDULES.development;
     
     this.scheduleConfig = {
       ...defaultConfig,
@@ -354,8 +348,6 @@ export function initializeSchedulerFromEnv(
   prisma: PrismaClient,
   config: CloudinaryConfig
 ): MediaIntegrityScheduler {
-  const environment = process.env.NODE_ENV || "development";
-  
   const scheduleConfig: Partial<ScheduleConfig> = {
     enabled: process.env.MEDIA_INTEGRITY_ENABLED === "true",
     intervalMinutes: parseInt(process.env.MEDIA_INTEGRITY_INTERVAL_MINUTES || "1440"),

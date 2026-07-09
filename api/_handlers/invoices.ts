@@ -1,5 +1,5 @@
 import { getPrisma } from "../_lib/prisma";
-import { success, badRequest, notFound, unauthorized, serverError } from "../_lib/response";
+import { success, notFound, unauthorized, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
 function escapeHtml(str: string): string {
@@ -182,7 +182,7 @@ function generateInvoiceHTML(order: Record<string, unknown>): string {
 }
 
 export async function handleInvoiceRequest(
-  req: Request,
+  _req: Request,
   ctx: RequestContext,
   params: string[],
   action?: string
@@ -296,8 +296,6 @@ async function handleAdminGenerateInvoice(orderId: string, env: any): Promise<Re
     });
 
     if (!order) return notFound("Order not found");
-
-    const html = generateInvoiceHTML(order as unknown as Record<string, unknown>);
 
     // In production, upload HTML to storage and store URL
     // For now, store a placeholder URL

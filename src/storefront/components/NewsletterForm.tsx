@@ -25,7 +25,7 @@ export function NewsletterForm({ layout = "stacked" }: NewsletterFormProps) {
       return;
     }
 
-    let shouldResetTurnstile = turnstileEnabled && !!turnstileToken;
+    const shouldResetTurnstile = turnstileEnabled && !!turnstileToken;
     setStatus("loading");
     try {
       await api.post("/api/contact", { action: "newsletter", email, turnstileToken: turnstileToken || undefined });

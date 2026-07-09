@@ -1,5 +1,5 @@
 import { getPrisma } from "../../_lib/prisma";
-import { success, badRequest, notFound, serverError, unauthorized, forbidden } from "../../_lib/response";
+import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth-middleware";
 import { cleanSecret } from "../../_lib/secrets";
@@ -44,7 +44,7 @@ export async function handleMediaIntegrityRequest(
 /**
  * Get media health status
  */
-async function handleHealthCheck(req: Request, env: Env | undefined): Promise<Response> {
+async function handleHealthCheck(_req: Request, env: Env | undefined): Promise<Response> {
   if (!env) return serverError("Environment not available");
   
   try {
@@ -109,7 +109,7 @@ async function handleScan(req: Request, env: Env | undefined, scanId?: string): 
 /**
  * Get scan results by ID
  */
-async function handleGetScanById(req: Request, env: Env, scanId: string): Promise<Response> {
+async function handleGetScanById(_req: Request, env: Env, scanId: string): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const config = getCloudinaryConfig(env);

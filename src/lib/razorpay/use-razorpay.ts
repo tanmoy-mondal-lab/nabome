@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { loadRazorpayScript } from "./load-script";
 import type { RazorpaySuccessResponse, RazorpayErrorDetails } from "./types";
-import { usablePublicConfig, razorpayKeyId } from "../config";
+import { razorpayKeyId } from "../config";
 
 const razorpayKey = razorpayKeyId;
 

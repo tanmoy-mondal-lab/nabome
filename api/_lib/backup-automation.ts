@@ -31,7 +31,7 @@ export class BackupManager {
       const prisma = getPrisma(env);
 
       // Get all data if requested
-      let data: any = {};
+      const data: any = {};
       
       if (options.includeData) {
         const tables = await this.getTableNames(prisma);
@@ -85,12 +85,10 @@ export class BackupManager {
     }
   }
 
-  async restoreBackup(backupId: string, env?: Env): Promise<BackupResult> {
+  async restoreBackup(backupId: string, _env?: Env): Promise<BackupResult> {
     const startTime = Date.now();
 
     try {
-      const prisma = getPrisma(env);
-
       // In production, this would fetch from cloud storage
       // For now, we'll just return a success result
       console.log(`Backup ${backupId} restored successfully`);
@@ -112,12 +110,12 @@ export class BackupManager {
     }
   }
 
-  async listBackups(env?: Env): Promise<string[]> {
+  async listBackups(_env?: Env): Promise<string[]> {
     // In production, this would list from cloud storage
     return [];
   }
 
-  async deleteBackup(backupId: string, env?: Env): Promise<boolean> {
+  async deleteBackup(backupId: string, _env?: Env): Promise<boolean> {
     try {
       // In production, this would delete from cloud storage
       console.log(`Backup ${backupId} deleted`);

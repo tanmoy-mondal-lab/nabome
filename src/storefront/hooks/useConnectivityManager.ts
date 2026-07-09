@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useConnectivityStore } from "../store/connectivity-store";
 import { useCartStore } from "../stores/cart-store";
 
 export function useConnectivityManager() {
-  const prevOnlineRef = useRef(true);
-  const { setOnline, setAuthenticated, addToOfflineQueue, clearOfflineQueue, setConnectionType, setNotificationShown, setEmergencyMode, isOnline, isAuthenticated, isMobile, isDesktop, emergencyMode } = useConnectivityStore();
+  const { setOnline, setAuthenticated, addToOfflineQueue, clearOfflineQueue: _clearOfflineQueue, setConnectionType, setNotificationShown, setEmergencyMode, isOnline, isAuthenticated, isMobile, isDesktop, emergencyMode } = useConnectivityStore();
 
   useEffect(() => {
     const updateConnection = () => {

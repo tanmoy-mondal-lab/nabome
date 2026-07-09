@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { AlertTriangle, Trash2, Type } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Modal } from "../../common/Modal";
 
 interface PermanentDeleteDialogProps {

@@ -167,7 +167,6 @@ describe('products handler', () => {
       const req = makeRequest('GET', '/api/products/search?q=a');
       const ctx = makeContext();
       const res = await handleProductRequest(req, ctx, [], 'search');
-      const body = await parseResponse(res);
 
       expect(res.status).toBe(400);
     });
@@ -176,7 +175,6 @@ describe('products handler', () => {
       const req = makeRequest('GET', '/api/products/search');
       const ctx = makeContext();
       const res = await handleProductRequest(req, ctx, [], 'search');
-      const body = await parseResponse(res);
 
       expect(res.status).toBe(400);
     });
@@ -206,7 +204,6 @@ describe('products handler', () => {
       const req = makeRequest('GET', '/api/products/nonexistent');
       const ctx = makeContext();
       const res = await handleProductRequest(req, ctx, ['nonexistent'], 'detail');
-      const body = await parseResponse(res);
 
       expect(res.status).toBe(404);
     });
@@ -274,7 +271,6 @@ describe('products handler', () => {
       const req = makeRequest('GET', '/api/products');
       const ctx = makeContext();
       const res = await handleProductRequest(req, ctx, [], 'unknown');
-      const body = await parseResponse(res);
 
       expect(res.status).toBe(400);
     });

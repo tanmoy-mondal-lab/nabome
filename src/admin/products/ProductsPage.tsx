@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
@@ -17,7 +17,7 @@ import { ProductGridCard } from "./components/ProductGridCard";
 import {
   Edit3, Trash2, Plus, Download, Copy, Filter, Package,
   Eye, EyeOff, X, LayoutGrid, List, FolderOpen,
-  Undo2, AlertTriangle, Archive,
+  Undo2, Archive,
 } from "lucide-react";
 
 interface Product {
@@ -223,11 +223,6 @@ export default function ProductsPage() {
     const next = new Set(selected);
     if (next.has(id)) next.delete(id); else next.add(id);
     setSelected(next);
-  }
-
-  function toggleSelectAll() {
-    if (selected.size === products.length) setSelected(new Set());
-    else setSelected(new Set(products.map((p) => p.id)));
   }
 
   async function handleExport() {

@@ -6,7 +6,7 @@ import { validateBody, contactSchema, emailSchema } from "../_lib/validate";
 export async function handleContactRequest(
   req: Request,
   ctx: RequestContext,
-  params: string[],
+  _params: string[],
   action: string
 ): Promise<Response> {
   switch (action) {
@@ -26,7 +26,7 @@ async function handleContact(req: Request, env: any): Promise<Response> {
 
   try {
     const prisma = getPrisma(env);
-    const submission = await prisma.contactSubmission.create({
+    await prisma.contactSubmission.create({
       data: {
         name,
         email,

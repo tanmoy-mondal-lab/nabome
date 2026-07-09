@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
-import type { Theme, ThemeHeaderConfig, ThemeFooterConfig, ThemeBranding } from "../../cms/core/cms-types";
+import type { Theme } from "../../cms/core/cms-types";
 
 export interface SiteSettings {
   siteName: string;

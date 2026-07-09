@@ -15,7 +15,7 @@ export async function createNotification(
 ): Promise<void> {
   try {
     const prisma = getPrisma(env);
-    const notification = await prisma.notification.create({
+    await prisma.notification.create({
       data: {
         profileId,
         type: type as never,
@@ -181,7 +181,7 @@ async function handleUnreadCount(ctx: RequestContext, env: any): Promise<Respons
   }
 }
 
-async function handleAdminList(ctx: RequestContext, req: Request, env: any): Promise<Response> {
+async function handleAdminList(_ctx: RequestContext, req: Request, env: any): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -221,7 +221,7 @@ async function handleAdminList(ctx: RequestContext, req: Request, env: any): Pro
   }
 }
 
-async function handleListTemplates(ctx: RequestContext, env: any): Promise<Response> {
+async function handleListTemplates(_ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const templates = await prisma.notificationTemplate.findMany({
@@ -233,7 +233,7 @@ async function handleListTemplates(ctx: RequestContext, env: any): Promise<Respo
   }
 }
 
-async function handleUpdateTemplate(ctx: RequestContext, templateId: string, req: Request, env: any): Promise<Response> {
+async function handleUpdateTemplate(_ctx: RequestContext, templateId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const allowedFields = ["subject", "emailBody", "smsBody", "inAppBody", "isActive"];
   const updateData: Record<string, unknown> = {};
@@ -264,7 +264,7 @@ async function handleUpdateTemplate(ctx: RequestContext, templateId: string, req
   }
 }
 
-async function handleAdminSend(ctx: RequestContext, req: Request, env: any): Promise<Response> {
+async function handleAdminSend(_ctx: RequestContext, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { profileId, type, title, body: messageBody, orderId, channel } = body;
 

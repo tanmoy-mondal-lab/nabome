@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
-import type React from "react";
 import { cn } from "../../lib/utils/cn";
 
 interface Toast {

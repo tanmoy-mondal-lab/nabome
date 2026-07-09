@@ -69,7 +69,7 @@ async function handleDelete(id: string, env: any): Promise<Response> {
   } catch (err) { return notFound("Relation not found"); }
 }
 
-async function handleReorder(productId: string, req: Request, env: any): Promise<Response> {
+async function handleReorder(_productId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   const { order } = body;
   if (!Array.isArray(order)) return badRequest("Order array required");

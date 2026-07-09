@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, ChevronRight, Heart, User, ShoppingBag, Instagram, Youtube, Twitter, Facebook, Linkedin, Bookmark, Music2, MessageCircle, Globe } from "lucide-react";
 import { useUIStore } from "../stores/ui-store";
 import { useAuthStore } from "../../stores/auth-store";
 import { useSettings } from "../hooks/useSettings";
-import { useNavigation, type NavigationItem } from "../hooks/useNavigation";
+import { useNavigation } from "../hooks/useNavigation";
 import { cn } from "../../lib/utils/cn";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 
@@ -24,7 +24,6 @@ const SOCIAL_ICONS: Record<string, typeof Instagram> = {
 export function MobileNav() {
   const { isMobileMenuOpen, closeMobileMenu } = useUIStore();
   const { isAuthenticated } = useAuthStore();
-  const navigate = useNavigate();
   const { data: settings } = useSettings();
   const [expanded, setExpanded] = useState<string[]>([]);
   const navRef = useFocusTrap<HTMLElement>(isMobileMenuOpen, closeMobileMenu);

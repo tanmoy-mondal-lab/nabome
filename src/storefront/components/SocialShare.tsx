@@ -10,7 +10,7 @@ interface SocialShareProps {
   className?: string;
 }
 
-export function SocialShare({ url, title, description, image, className }: SocialShareProps) {
+export function SocialShare({ url, title, description, image: _image, className }: SocialShareProps) {
   const [copied, setCopied] = useState(false);
 
   const encodedUrl = encodeURIComponent(url);

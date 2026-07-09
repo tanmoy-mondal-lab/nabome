@@ -14,7 +14,7 @@ interface Currency {
 }
 
 export function CurrencySelector() {
-  const { i18n } = useTranslation();
+  const { i18n: _i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState("INR");
   const ref = useRef<HTMLDivElement>(null);

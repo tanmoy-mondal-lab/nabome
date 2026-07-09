@@ -5,7 +5,10 @@
  * It uses Pino for high-performance JSON logging with support for multiple transports.
  */
 
+import { createRequire } from "module";
 import pino from "pino";
+
+const _require = createRequire(import.meta.url);
 
 /**
  * Log levels
@@ -90,7 +93,7 @@ function createLogger(config: LoggerConfig = DEFAULT_CONFIG): pino.Logger {
   } else if (config.pretty) {
     // Use pino-pretty for pretty printing in development
     try {
-      const pinoPretty = require("pino-pretty");
+      const pinoPretty = _require("pino-pretty");
       destination = pinoPretty({
         colorize: true,
         translateTime: "HH:MM:ss Z",

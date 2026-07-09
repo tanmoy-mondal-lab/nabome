@@ -48,7 +48,7 @@ async function updatePagesSecrets() {
 
   // Check if we have wrangler installed
   try {
-    require("wrangler");
+    await import("wrangler");
   } catch {
     console.error("Error: wrangler not found. Install with 'npm install wrangler'");
     process.exit(1);

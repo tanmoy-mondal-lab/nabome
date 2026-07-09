@@ -135,7 +135,6 @@ export async function sendEmailNotification(
   }
 
   // ── 5. Log results ──
-  const succeeded = results.filter((r) => r.success);
   const failed = results.filter((r) => !r.success);
 
   if (failed.length > 0) {

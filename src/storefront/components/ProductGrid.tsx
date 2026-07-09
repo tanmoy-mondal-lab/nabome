@@ -9,7 +9,7 @@ interface ProductGridProps {
   onQuickView?: (product: Product) => void;
 }
 
-export function ProductGrid({ products, columns = 4, isLoading, view = "grid", onQuickView }: ProductGridProps) {
+export function ProductGrid({ products, columns: _columns = 4, isLoading, view = "grid", onQuickView }: ProductGridProps) {
   if (isLoading) {
     return (
       <div className={view === "grid" ? "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-8" : "space-y-4"}>

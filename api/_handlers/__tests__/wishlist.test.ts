@@ -52,7 +52,6 @@ describe('wishlist handler', () => {
       const req = makeRequest('POST', '/api/wishlist', { variantId: 'var-1' });
       const ctx = makeContext('user-1');
       const res = await handleWishlistRequest(req, ctx, [], 'add');
-      const body = await parseResponse(res);
 
       expect(res.status).toBe(201);
     });

@@ -6,14 +6,13 @@ import { useCart } from "../hooks/useCart";
 import { useUIStore } from "../stores/ui-store";
 import { SafeImage } from "../../components/SafeImage";
 import { formatPrice } from "../../lib/utils/format";
-import { cn } from "../../lib/utils/cn";
 
 export function CartDrawer() {
   const navigate = useNavigate();
   const { isCartOpen, closeCart } = useUIStore();
-  const { items, removeItem, updateQuantity, subtotal, total } = useCart();
+  const { items, removeItem, updateQuantity, subtotal, total: _total } = useCart();
   const prefersReducedMotion = useReducedMotion();
-  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncError, _setSyncError] = useState<string | null>(null);
 
   // Calculate total quantity (sum of all item quantities) to match header
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);

@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useCartStore } from "../stores/cart-store";
 import { useAuthStore } from "../../stores/auth-store";
-import { PriceDisplay } from "./PriceDisplay";
 import { formatPrice } from "../../lib/utils/format";
 import { SafeImage } from "../../components/SafeImage";
 import { useSettings } from "../hooks/useSettings";

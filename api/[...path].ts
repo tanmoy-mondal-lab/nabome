@@ -164,7 +164,7 @@ import { healthMonitor } from "./_lib/health-monitor";
 import { queryMonitor } from "./_lib/query-monitor";
 
 // ─── OpenAPI Docs Handler ───
-async function handleOpenApiDocs(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleOpenApiDocs(req: Request, _ctx: RequestContext): Promise<Response> {
   const spec = generateOpenAPISpec();
   const url = new URL(req.url);
   const format = url.searchParams.get("format") || "json";

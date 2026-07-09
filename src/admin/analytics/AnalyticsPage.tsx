@@ -4,7 +4,7 @@ import { adminApi } from "../../lib/api/admin";
 import { StatsCard } from "../common/StatsCard";
 import { formatPrice } from "../../lib/utils/format";
 import {
-  ShoppingCart, Users, IndianRupee, TrendingUp, Eye,
+  ShoppingCart, IndianRupee, TrendingUp, Eye,
   MapPin, Globe, Building2, Home, Hash, ChevronDown, ChevronRight,
 } from "lucide-react";
 
@@ -218,7 +218,7 @@ function DeliveryTab({ data }: { data: DeliveryData | undefined }) {
   const toggleCountry = (name: string) => {
     setExpandedCountries((prev) => {
       const next = new Set(prev);
-      next.has(name) ? next.delete(name) : next.add(name);
+      if (next.has(name)) { next.delete(name); } else { next.add(name); }
       return next;
     });
   };
@@ -226,7 +226,7 @@ function DeliveryTab({ data }: { data: DeliveryData | undefined }) {
   const toggleState = (name: string) => {
     setExpandedStates((prev) => {
       const next = new Set(prev);
-      next.has(name) ? next.delete(name) : next.add(name);
+      if (next.has(name)) { next.delete(name); } else { next.add(name); }
       return next;
     });
   };

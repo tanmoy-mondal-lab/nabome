@@ -5,7 +5,6 @@ import { customerApi } from "../../lib/api/customer";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { PhoneInput } from "../../components/PhoneInput";
 import { Helmet } from "react-helmet-async";
-import { Breadcrumbs } from "../components/Breadcrumbs";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 
@@ -54,7 +53,7 @@ export default function AddressesPage() {
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [_fetchError, _setFetchError] = useState<string | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery({

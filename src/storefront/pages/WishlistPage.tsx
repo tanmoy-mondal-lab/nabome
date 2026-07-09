@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Heart, ShoppingBag, X, ArrowLeft } from "lucide-react";
-import { api } from "../../lib/api/client";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { useAuthStore } from "../../stores/auth-store";
 import { useCartStore } from "../stores/cart-store";

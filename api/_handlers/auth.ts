@@ -655,7 +655,7 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
 
 // ─── ME ───
 
-async function handleMe(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleMe(_req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   const prisma = getPrisma(ctx.env);
@@ -1139,7 +1139,7 @@ async function handleChangePassword(req: Request, ctx: RequestContext): Promise<
 
 // ─── SESSIONS ───
 
-async function handleSessions(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleSessions(_req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   const prisma = getPrisma(ctx.env);
@@ -1166,7 +1166,7 @@ async function handleSessions(req: Request, ctx: RequestContext): Promise<Respon
   return success({ sessions: masked });
 }
 
-async function handleDeleteSession(req: Request, ctx: RequestContext, sessionId: string): Promise<Response> {
+async function handleDeleteSession(_req: Request, ctx: RequestContext, sessionId: string): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   const prisma = getPrisma(ctx.env);

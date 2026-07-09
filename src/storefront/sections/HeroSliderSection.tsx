@@ -1,20 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { HeroCarousel } from "../components/HeroCarousel";
 import { normalizeHeroSlides } from "../../cms/core/hero-slides";
-
-interface Slide {
-  id: string;
-  videoUrl: string;
-  posterUrl: string;
-  title: string;
-  subtitle: string;
-  ctaText: string;
-  ctaUrl: string;
-  soundEnabled: boolean;
-}
 
 interface SectionData {
   sectionType: string;

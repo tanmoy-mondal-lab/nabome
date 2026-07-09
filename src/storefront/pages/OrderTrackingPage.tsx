@@ -89,7 +89,6 @@ export default function OrderTrackingPage() {
               {["Ordered", "Processed", "Shipped", "Delivered"].map((label, i) => {
                 const idx = i * 2;
                 const completed = currentIdx >= idx;
-                const isCurrent = currentIdx === idx;
                 return (
                   <div key={label} className="flex-1 flex flex-col items-center">
                     <div className={cn(

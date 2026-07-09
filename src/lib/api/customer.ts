@@ -11,7 +11,6 @@ import type {
   Refund,
   Notification,
   SupportTicket,
-  CartItem,
   Pagination,
 } from "./types";
 

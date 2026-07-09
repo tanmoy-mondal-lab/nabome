@@ -3,9 +3,9 @@ import { success, badRequest, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
 export async function handleSettingsRequest(
-  req: Request,
+  _req: Request,
   ctx: RequestContext,
-  params: string[],
+  _params: string[],
   action: string
 ): Promise<Response> {
   switch (action) {

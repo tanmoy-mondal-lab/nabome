@@ -4,7 +4,6 @@
 
 import { z } from "zod";
 import { badRequest } from "./response";
-import { ErrorCode } from "./types";
 
 export type ValidationSchema<T> = z.ZodType<T>;
 

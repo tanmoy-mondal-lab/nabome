@@ -8,7 +8,7 @@ import { requireAdmin } from "../_lib/auth-middleware";
 import { ErrorCode } from "../_lib/types";
 import { validateBody, paymentVerifySchema, paymentFailedSchema, paymentRetrySchema, refundSchema } from "../_lib/validate";
 
-async function createHMACSHA256(secret: string, data: string, env: any): Promise<string> {
+async function createHMACSHA256(secret: string, data: string, _env: any): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw", enc.encode(secret),
@@ -970,7 +970,7 @@ async function handleListWebhookEvents(req: Request, env: any): Promise<Response
   });
 }
 
-async function handleReprocessWebhookEvent(req: Request, eventId: string, env: any): Promise<Response> {
+async function handleReprocessWebhookEvent(_req: Request, eventId: string, env: any): Promise<Response> {
   if (!eventId) return badRequest("eventId is required");
 
   const prisma = getPrisma(env);
@@ -1005,7 +1005,7 @@ async function handleReprocessWebhookEvent(req: Request, eventId: string, env: a
   }
 }
 
-async function handleReconcileOrder(req: Request, orderId: string, env: any): Promise<Response> {
+async function handleReconcileOrder(_req: Request, orderId: string, env: any): Promise<Response> {
   if (!orderId) return badRequest("orderId is required");
 
   const prisma = getPrisma(env);

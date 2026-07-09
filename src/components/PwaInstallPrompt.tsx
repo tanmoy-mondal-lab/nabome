@@ -7,7 +7,7 @@ const DISMISSED_KEY = "nabome-pwa-dismissed";
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showBanner, setShowBanner] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(true);
+  const [_isDismissed, setIsDismissed] = useState(true);
 
   useEffect(() => {
     const dismissed = localStorage.getItem(DISMISSED_KEY);

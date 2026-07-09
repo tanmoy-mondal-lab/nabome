@@ -4,7 +4,7 @@ import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
-import { Plus, Edit3, Trash2, Tag, AlertCircle } from "lucide-react";
+import { Plus, Edit3, Trash2, AlertCircle } from "lucide-react";
 import { useToast } from "../../components/ui/Toast";
 
 interface Label {
@@ -48,8 +48,6 @@ export default function LabelsPage() {
 
   const labels = labelsData ?? [];
   const tags = tagsData ?? [];
-  const loading = loadingLabels || loadingTags;
-
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (activeTab === "labels") {

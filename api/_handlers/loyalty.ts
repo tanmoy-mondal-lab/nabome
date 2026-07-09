@@ -1,5 +1,5 @@
 import { getPrisma } from "../_lib/prisma";
-import { success, badRequest, serverError, notFound, unauthorized } from "../_lib/response";
+import { success, badRequest, serverError, unauthorized } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
 export async function handleLoyaltyRequest(

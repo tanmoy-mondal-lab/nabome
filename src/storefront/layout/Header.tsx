@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Heart, ShoppingBag, User, Menu, ChevronDown, Bell } from "lucide-react";
 import { LanguageSwitcher } from "../../components/LanguageSwitcher";
@@ -17,7 +17,6 @@ import { MegaMenu } from "./MegaMenu";
 import { cn } from "../../lib/utils/cn";
 
 export function Header() {
-  const navigate = useNavigate();
   const { isAuthenticated, isAdmin } = useAuthStore();
   const { openSearch, toggleMobileMenu, setActiveMegaMenu, activeMegaMenu, openCart } = useUIStore();
   const itemCount = useCartStore((s) => s.items.reduce((sum, i) => sum + i.quantity, 0));

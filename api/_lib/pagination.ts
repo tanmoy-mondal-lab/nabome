@@ -6,7 +6,6 @@
 
 import { z } from "zod";
 import { badRequest } from "./response";
-import { ErrorCode } from "./types";
 import type { PaginatedResponse } from "./types";
 
 export interface PaginationParams {

@@ -3,7 +3,7 @@ import { success, badRequest, notFound, serverError, created } from "../../_lib/
 import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth-middleware";
 import { deleteMedia } from "../../_lib/media-service";
-import type { EntityType } from "../../../src/lib/media/media.types";
+
 
 export async function handleAdminMediaRequest(
   req: Request,

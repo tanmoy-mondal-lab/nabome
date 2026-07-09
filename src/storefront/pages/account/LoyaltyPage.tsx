@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { DashboardSidebar } from "../../components/DashboardSidebar";
 import { api } from "../../../lib/api/client";
-import { Gift, TrendingUp, Award, Sparkles, Medal } from "lucide-react";
+import { Gift, TrendingUp, Award } from "lucide-react";
 
 interface LoyaltyData {
   points: { points: number; tier: string; lifetimePoints: number };
@@ -10,10 +10,6 @@ interface LoyaltyData {
   tiers: { name: string; minPoints: number; discountPercent: number; badgeColor: string }[];
   nextTier: { name: string; minPoints: number } | null;
 }
-
-const TIER_ICONS: Record<string, typeof Medal> = {
-  bronze: Medal, silver: Medal, gold: Medal, platinum: Sparkles,
-};
 
 export default function LoyaltyPage() {
   const { data, isLoading } = useQuery<LoyaltyData>({

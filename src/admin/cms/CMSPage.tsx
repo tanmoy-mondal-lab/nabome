@@ -136,10 +136,9 @@ function PagesTab() {
       metaDesc: metaDescription || undefined,
     };
     try {
-      let pageId = editingId;
       if (editingId) {
         await adminApi.updatePage(editingId, payload);
-        pageId = editingId;
+        void editingId;
       } else {
         await adminApi.createPage(payload);
       }

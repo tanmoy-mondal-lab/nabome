@@ -7,11 +7,22 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "isolatedModules": true,
-    "noEmit": true,
     "strict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "composite": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationDir": ".tsbuild/types"
   },
-  "include": ["vite.config.ts", "prisma.config.ts", "playwright.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "prisma.config.ts",
+    "playwright.config.ts",
+    "vitest.config.ts",
+    "tailwind.config.ts",
+    "postcss.config.js",
+    "eslint.config.js"
+  ]
 }

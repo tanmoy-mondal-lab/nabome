@@ -25,10 +25,11 @@
  *   --cloud             Upload to cloud storage (S3/GCS)
  */
 
-import { execSync } from 'child_process';
-import { existsSync, mkdirSync, readdirSync, unlinkSync, statSync } from 'fs';
-import { join } from 'path';
-import { createHash } from 'crypto';
+import { execSync } from 'node:child_process';
+import { existsSync, mkdirSync, readdirSync, unlinkSync, statSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 interface BackupOptions {
   type: 'full' | 'schema' | 'data';
@@ -146,7 +147,7 @@ class DatabaseBackup {
    * Calculate file checksum for integrity verification
    */
   private calculateChecksum(filePath: string): string {
-    const fileBuffer = require('fs').readFileSync(filePath);
+    const fileBuffer = readFileSync(filePath);
     return createHash('sha256').update(fileBuffer).digest('hex');
   }
 
@@ -325,7 +326,7 @@ async function main() {
 }
 
 // Run if executed directly
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();
 }
 

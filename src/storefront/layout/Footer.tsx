@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Instagram, Youtube, Twitter, Facebook, Linkedin, Music2, MessageCircle, Globe, Bookmark, ArrowUp } from "lucide-react";
-import { useSettings, type SiteSettings } from "../hooks/useSettings";
+import { useSettings } from "../hooks/useSettings";
 import { useFooter } from "../hooks/useFooter";
 import { usePolicyPages } from "../hooks/usePolicyPages";
 import type { ThemeBranding, ThemeFooterConfig } from "../../cms/core/cms-types";

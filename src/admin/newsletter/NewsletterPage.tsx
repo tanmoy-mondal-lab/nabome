@@ -3,7 +3,7 @@ import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
-import { Mail, Trash2, Download, Search, AlertCircle } from "lucide-react";
+import { Mail, Trash2, Download, AlertCircle } from "lucide-react";
 import { StatusBadge } from "../common/StatusBadge";
 import { formatDate } from "../../lib/utils/format";
 import { useToast } from "../../components/ui/Toast";

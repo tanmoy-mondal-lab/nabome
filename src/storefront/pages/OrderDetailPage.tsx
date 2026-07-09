@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Package, MapPin, CreditCard, XCircle, RotateCcw, Truck, FileText, CheckCircle, Circle } from "lucide-react";
 import { customerApi } from "../../lib/api/customer";
 import { formatPrice } from "../../lib/utils/format";
@@ -8,7 +8,6 @@ import { formatDate } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { Helmet } from "react-helmet-async";
-import { Breadcrumbs } from "../components/Breadcrumbs";
 import { SafeImage } from "../../components/SafeImage";
 import { ConfirmDialog } from "../../components/ConfirmDialog";
 
@@ -80,8 +79,6 @@ const timelineIcons: Record<string, typeof Circle> = {
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-
   const { data, isLoading, isError } = useQuery({
     queryKey: ["customer", "order", id],
     queryFn: () => customerApi.getOrder(id!),

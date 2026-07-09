@@ -265,7 +265,6 @@ export async function handleCheckoutRequest(
         },
       });
       if (cart && cart.items.length > 0) {
-        const variantIds = cart.items.map(item => item.variantId!);
         const productIds = [...new Set(cart.items.map(item => item.variant.productId))];
 
         const [products, images] = await Promise.all([

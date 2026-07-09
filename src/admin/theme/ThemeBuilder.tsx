@@ -2,8 +2,7 @@ import { MediaPicker } from "../common/MediaPicker";
 import { useState, useCallback, useEffect } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
-import { Modal } from "../common/Modal";
-import { Plus, Eye, Check, Palette, Type, Layout, Image, Code, AlertCircle } from "lucide-react";
+import { Palette, Type, Layout, Image, Code, AlertCircle } from "lucide-react";
 import { type Theme, type ThemeColors, type ThemeTypography, type ThemeButtonStyle } from "../../cms/core/cms-types";
 import { useToast } from "../../components/ui/Toast";
 
@@ -108,7 +107,6 @@ function normalizeButton(
   | `${typeof style}HoverText`
 > {
   const prefix = style as "primary" | "secondary" | "outline";
-  const capitalized = prefix.charAt(0).toUpperCase() + prefix.slice(1);
   const flat = (suffix: string) => source[`${prefix}${suffix}`];
   return {
     [`${prefix}Bg`]: asString(flat("Bg"), asString(legacy.bg, defaults[`${prefix}Bg` as keyof ThemeButtonStyle] as string)),
@@ -243,7 +241,7 @@ function normalizeTheme(value: unknown): Theme {
 export default function ThemeBuilder() {
   const [activeTheme, setActiveTheme] = useState<Theme>(DEFAULT_THEME);
   const [activeTab, setActiveTab] = useState<"branding" | "colors" | "typography" | "buttons" | "layout" | "header" | "footer" | "css">("branding");
-  const [themeListOpen, setThemeListOpen] = useState(false);
+  const [_themeListOpen, _setThemeListOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 

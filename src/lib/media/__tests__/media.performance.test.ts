@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { uploadMedia, replaceMedia, deleteMedia, deleteEntityMedia } from "../media.service";
 import { getCloudinaryConfigFromEnv } from "../cloudinary.config";
-import { generateAssetId } from "../asset-id.service";
+
 import { deleteEntityAssets } from "../cloudinary.service";
 
 describe("Media Performance Tests", () => {
@@ -205,7 +205,6 @@ describe("Media Performance Tests", () => {
       return;
     }
 
-    const entityId = crypto.randomUUID();
     const operations = 10;
     const promises: Promise<any>[] = [];
 

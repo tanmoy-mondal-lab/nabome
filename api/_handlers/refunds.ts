@@ -221,7 +221,7 @@ async function handleProcess(refundId: string, env: any): Promise<Response> {
   }
 }
 
-async function handleComplete(refundId: string, ctx: RequestContext, env: any): Promise<Response> {
+async function handleComplete(refundId: string, _ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const refund = await prisma.refund.findUnique({

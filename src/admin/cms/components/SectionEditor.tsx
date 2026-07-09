@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../../lib/api/admin";
 import { sectionRegistry } from "../../../cms/core/section-registry";
-import { type PageSection, type SectionType, type SectionField } from "../../../cms/core/cms-types";
+import { type PageSection, type SectionField } from "../../../cms/core/cms-types";
 import { MediaPicker } from "../../common/MediaPicker";
 import { Upload, Loader2 } from "lucide-react";
 

@@ -1,11 +1,23 @@
 // ─────────────────────────────────────────────────────────────
-// RATE LIMITER — Cloudflare KV sliding window
+// RATE LIMITER — Cloudflare KV sliding window with in-memory fallback
 // ─────────────────────────────────────────────────────────────
 
 interface RateLimitEntry {
   count: number;
   resetAt: number;
 }
+
+const inMemoryStore = new Map<string, RateLimitEntry>();
+
+const IN_MEMORY_CLEANUP_INTERVAL = 60_000;
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of inMemoryStore) {
+    if (entry.resetAt <= now) {
+      inMemoryStore.delete(key);
+    }
+  }
+}, IN_MEMORY_CLEANUP_INTERVAL).unref?.();
 
 export interface RateLimitConfig {
   windowMs: number;
@@ -88,7 +100,20 @@ export async function checkRateLimit(
   }
 
   if (isProductionRuntime(env)) {
-    return { allowed: false, remaining: 0, resetAt: now + Math.min(config.windowMs, 60_000) };
+    console.warn(
+      `[rate-limit] KV unavailable in production — falling back to in-memory rate limiting for key "${key.split(":")[0]}"`
+    );
+    const inMemEntry = inMemoryStore.get(key);
+    if (inMemEntry && inMemEntry.resetAt > now) {
+      inMemEntry.count += 1;
+      if (inMemEntry.count > config.maxRequests) {
+        return { allowed: false, remaining: 0, resetAt: inMemEntry.resetAt };
+      }
+      return { allowed: true, remaining: Math.max(0, config.maxRequests - inMemEntry.count), resetAt: inMemEntry.resetAt };
+    }
+    const newEntry: RateLimitEntry = { count: 1, resetAt: now + config.windowMs };
+    inMemoryStore.set(key, newEntry);
+    return { allowed: true, remaining: config.maxRequests - 1, resetAt: newEntry.resetAt };
   }
 
   // No KV available locally — allow request so localhost stays usable.

@@ -686,6 +686,7 @@ export async function listAssetsInFolder(
 
     const data = await res.json() as { resources: Array<{ public_id: string; secure_url: string; resource_type: string; format: string; width?: number; height?: number; bytes: number; folder?: string }> };
 
+    logOperation("listAssetsInFolder complete", { folder, count: data.resources.length });
     return data.resources.map((resource) => ({
       publicId: resource.public_id,
       secureUrl: resource.secure_url,
@@ -696,7 +697,6 @@ export async function listAssetsInFolder(
       bytes: resource.bytes,
       folder: resource.folder,
     }));
-    logOperation("listAssetsInFolder complete", { folder, count: data.resources.length });
   } catch (err) {
     clearTimeout(timeout);
     logError("listAssetsInFolder", err);

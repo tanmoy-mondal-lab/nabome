@@ -228,16 +228,6 @@ export default function CategoryPage() {
     setSearchParams(next);
   }
 
-  function updateParams(...updates: [string, string][]) {
-    const next = new URLSearchParams(searchParams);
-    for (const [key, value] of updates) {
-      if (value) next.set(key, value);
-      else next.delete(key);
-    }
-    next.set("page", "1");
-    setSearchParams(next);
-  }
-
   const heroImage = category?.imageUrl;
 
   if (catError) {

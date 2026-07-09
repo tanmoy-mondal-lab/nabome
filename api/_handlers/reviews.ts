@@ -1,11 +1,11 @@
 import { getPrisma } from "../_lib/prisma";
-import { success, badRequest, unauthorized, serverError, created } from "../_lib/response";
+import { badRequest, unauthorized, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
 export async function handleReviewRequest(
   req: Request,
   ctx: RequestContext,
-  params: string[],
+  _params: string[],
   action: string
 ): Promise<Response> {
   switch (action) {

@@ -5,7 +5,7 @@ import { DataTable } from "../common/DataTable";
 import { Modal } from "../common/Modal";
 import { StatsCard } from "../common/StatsCard";
 import { EmptyState } from "../common/EmptyState";
-import { Package, AlertTriangle, XCircle, CheckCircle, PackageSearch, Search } from "lucide-react";
+import { AlertTriangle, XCircle, CheckCircle, PackageSearch, Search } from "lucide-react";
 import { formatDate } from "../../lib/utils/format";
 import { useToast } from "../../components/ui/Toast";
 
@@ -15,7 +15,7 @@ export default function InventoryPage() {
   const [tab, setTab] = useState<"overview" | "alerts" | "history">("overview");
   const [search, setSearch] = useState("");
   const [showAdjust, setShowAdjust] = useState(false);
-  const [adjustVariant, setAdjustVariant] = useState<Record<string, unknown> | null>(null);
+  const [adjustVariant] = useState<Record<string, unknown> | null>(null);
   const [adjustForm, setAdjustForm] = useState({ quantityChange: 0, reason: "", note: "" });
   const [adjustError, setAdjustError] = useState<string | null>(null);
 
@@ -54,12 +54,6 @@ export default function InventoryPage() {
     },
     onError: () => {},
   });
-
-  function openAdjust(variant: Record<string, unknown>) {
-    setAdjustVariant(variant);
-    setAdjustForm({ quantityChange: 0, reason: "manual_adjustment", note: "" });
-    setShowAdjust(true);
-  }
 
   function handleAdjust() {
     if (!adjustVariant) return;

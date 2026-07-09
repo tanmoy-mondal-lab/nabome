@@ -9,7 +9,6 @@ import { Helmet } from "react-helmet-async";
 import { canonical } from "../lib/seo";
 
 const VERIFICATION_ERROR = "Please verify your email address before logging in";
-const NO_ACCOUNT_ERROR = "No account found with that email";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -28,7 +27,6 @@ export default function LoginPage() {
   const state = location.state as { from?: { pathname: string }; registered?: boolean } | null;
   const from = state?.from?.pathname ?? "/";
   const needsVerification = error?.startsWith(VERIFICATION_ERROR);
-  const noAccount = error?.startsWith(NO_ACCOUNT_ERROR);
   const displayError = turnstileError || error;
 
   useEffect(() => {

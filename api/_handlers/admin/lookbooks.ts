@@ -178,7 +178,7 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
     const items = shouldSyncItems ? normalizeLookbookItems(body.items) : [];
 
     const lookbook = await prisma.$transaction(async (tx) => {
-      const updated = await tx.lookbook.update({
+      await tx.lookbook.update({
         where: { id: lookbookId },
         data: data as never,
       });
@@ -237,7 +237,7 @@ async function handleDelete(lookbookId: string, env: any): Promise<Response> {
 
 async function handleAddItem(lookbookId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
-  const { imageUrl, imagePublicId, productId, hotspotX, hotspotY, caption, sortOrder, linkUrl, linkText, type } = body;
+  const { imageUrl, imagePublicId, productId, hotspotX, hotspotY, caption, sortOrder } = body;
 
   if (!imageUrl) return badRequest("Image URL is required");
 
@@ -261,7 +261,7 @@ async function handleAddItem(lookbookId: string, req: Request, env: any): Promis
   }
 }
 
-async function handleUpdateItem(lookbookId: string, itemId: string, req: Request, env: any): Promise<Response> {
+async function handleUpdateItem(_lookbookId: string, itemId: string, req: Request, env: any): Promise<Response> {
   const body = await req.json();
   try {
     const prisma = getPrisma(env);

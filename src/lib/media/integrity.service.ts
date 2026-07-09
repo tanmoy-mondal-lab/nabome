@@ -19,7 +19,6 @@ import type {
   EntityType,
   CloudinaryConfig,
   CloudinaryResourceType,
-  CloudinaryAssetInfo,
 } from "./media.types";
 import {
   getEntityAssets,
@@ -28,9 +27,7 @@ import {
   listAssetsInFolder,
 } from "./cloudinary.service";
 import {
-  getEntityFolder,
   parseEntityFolder,
-  isAssetFolder,
   extractEntityFolder,
 } from "../media/folder.service";
 import type { PrismaClient } from "@prisma/client";
@@ -309,7 +306,7 @@ export class MediaIntegrityService {
       fileSize: number | null;
       originalFilename: string | null;
     }>,
-    options: ScanOptions
+    _options: ScanOptions
   ): Promise<Partial<IntegrityIssues>> {
     const issues: Partial<IntegrityIssues> = {
       missingInCloudinary: [],
@@ -479,7 +476,7 @@ export class MediaIntegrityService {
    * Validate folder structure
    */
   private async validateFolderStructure(
-    options: ScanOptions
+    _options: ScanOptions
   ): Promise<{ broken: Array<{ folder: string; reason: string }>; empty: Array<{ folder: string }> }> {
     const broken: Array<{ folder: string; reason: string }> = [];
     const empty: Array<{ folder: string }> = [];

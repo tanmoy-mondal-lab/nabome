@@ -38,7 +38,6 @@ export function useRecentlyViewed() {
 
   const addToRecentlyViewed = (productId: string) => {
     setRecentlyViewed((prev) => {
-      const existing = prev.find((item) => item.productId === productId);
       const newItems = prev.filter((item) => item.productId !== productId);
       
       newItems.unshift({

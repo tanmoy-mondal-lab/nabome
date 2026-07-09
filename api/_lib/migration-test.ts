@@ -91,7 +91,7 @@ export class MigrationTester {
         if (table.table_name.startsWith("_")) continue;
 
         // This is a simplified check - in production, you'd want more thorough validation
-        const countResult = await prisma.$queryRaw`
+        await prisma.$queryRaw`
           SELECT COUNT(*) as count 
           FROM ${prisma.$raw(`"${table.table_name}"`)}
         `;

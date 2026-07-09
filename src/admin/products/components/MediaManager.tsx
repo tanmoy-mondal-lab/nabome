@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Plus, Film, X, ImageIcon, Upload, Star } from "lucide-react";
+import { Plus, Film, ImageIcon, Upload, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SafeImage } from "../../../components/SafeImage";
 import { adminApi } from "../../../lib/api/admin";

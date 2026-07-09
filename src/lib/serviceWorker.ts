@@ -5,7 +5,7 @@ const SW_URL = "/sw.js";
 const SW_SCOPE = "/";
 
 let swRegistration: ServiceWorkerRegistration | null = null;
-let isSupported = typeof window !== "undefined" && "serviceWorker" in navigator;
+const isSupported = typeof window !== "undefined" && "serviceWorker" in navigator;
 let updateAvailable = false;
 
 export function registerServiceWorker(): Promise<void> {
@@ -93,7 +93,7 @@ export function skipWaiting(): Promise<void> {
     return Promise.resolve();
   }
 
-  return new Promise((resolve) => {
+  return new Promise<void>((_resolve) => {
     swRegistration!.waiting!.addEventListener("statechange", (e) => {
       if ((e.target as ServiceWorker).state === "activated") {
         swRegistration = null;

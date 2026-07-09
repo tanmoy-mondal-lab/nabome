@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Modal } from "../common/Modal";
 import { SafeImage } from "../../components/SafeImage";
 import { Plus, X, Move, Crosshair } from "lucide-react";
 import { MediaPicker } from "../common/MediaPicker";
@@ -51,13 +50,6 @@ export default function ShopTheLookManager({ lookId, onSave, onClose }: ShopTheL
       ...form,
       products: form.products.map((p, i) => (i === idx ? { ...p, [field]: value } : p)),
     });
-  };
-
-  const handleImageClick = (e: React.MouseEvent<HTMLDivElement>, idx: number) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    updateProduct(idx, "position", { x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 });
   };
 
   const handleSave = () => {

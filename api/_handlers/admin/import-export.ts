@@ -7,7 +7,7 @@ import { requireAdmin } from "../../_lib/auth-middleware";
 export async function handleAdminImportExportRequest(
   req: Request,
   ctx: RequestContext,
-  params: string[],
+  _params: string[],
   action: string
 ): Promise<Response> {
   const adminGuard = requireAdmin(ctx);

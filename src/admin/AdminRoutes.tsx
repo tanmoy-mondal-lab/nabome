@@ -5,7 +5,7 @@ import { ErrorBoundary } from "../components/ErrorBoundary";
 
 function lazyWithRetry(factory: () => Promise<{ default: React.ComponentType<unknown> }>) {
   return lazy(() =>
-    factory().catch((err: unknown) => {
+    factory().catch((_err: unknown) => {
       return new Promise<{ default: React.ComponentType<unknown> }>((resolve) => {
         setTimeout(() => resolve(factory()), 1000);
       });

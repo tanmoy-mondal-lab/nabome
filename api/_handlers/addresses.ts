@@ -7,7 +7,7 @@ export async function handleAddressRequest(
   req: Request,
   ctx: RequestContext,
   params: string[],
-  action?: string
+  _action?: string
 ): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 

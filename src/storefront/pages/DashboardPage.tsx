@@ -7,7 +7,6 @@ import { formatDate } from "../../lib/utils/format";
 import { useAuthStore } from "../../stores/auth-store";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { Helmet } from "react-helmet-async";
-import { Breadcrumbs } from "../components/Breadcrumbs";
 
 interface DashboardData {
   recentOrders: Array<{

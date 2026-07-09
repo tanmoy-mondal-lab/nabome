@@ -4,7 +4,6 @@ import type { RequestContext } from "../../_lib/types";
 import { requireAdmin } from "../../_lib/auth-middleware";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { deleteMedia, deleteEntityMedia } from "../../_lib/media-service";
-import type { EntityType } from "../../../src/lib/media/media.types";
 import { slugify } from "../../_lib/utils";
 import { toNull } from "../../_lib/sanitize";
 

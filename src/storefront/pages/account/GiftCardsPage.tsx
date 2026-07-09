@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { DashboardSidebar } from "../../components/DashboardSidebar";
 import { api } from "../../../lib/api/client";
-import { Gift, Plus, Check, CreditCard } from "lucide-react";
+import { Gift, Plus, CreditCard } from "lucide-react";
 
 export default function GiftCardsPage() {
   const [showPurchase, setShowPurchase] = useState(false);

@@ -40,7 +40,7 @@ describe('ErrorBoundary', () => {
 
   it('should call onReset when Try Again is clicked', () => {
     const onReset = vi.fn();
-    const { rerender } = render(
+    const { rerender: _rerender } = render(
       <ErrorBoundary onReset={onReset}>
         <ThrowError />
       </ErrorBoundary>

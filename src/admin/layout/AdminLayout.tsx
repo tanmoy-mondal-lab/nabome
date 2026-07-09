@@ -5,11 +5,11 @@ import { useAuthStore } from "../../stores/auth-store";
 import { useAuth } from "../../hooks/useAuth";
 import {
   LayoutDashboard, Package, ShoppingCart, Users, FileText,
-  Image, Percent, BarChart3, Settings, Megaphone, Menu, X,
+  Image, Settings, Megaphone, Menu, X,
   Search, ChevronDown, LogOut, Palette, BarChart4, BookOpen,
-  PackageSearch, RotateCcw, Tag, MessageSquare, Mail,
-  MessageCircle, Link2, Download, Activity, FileJson,
-  Target, Receipt, ShoppingBag, ClipboardList, Heart,
+  PackageSearch, RotateCcw, Tag, MessageSquare,
+  MessageCircle, Download, Activity, FileJson,
+  Target, ShoppingBag, Heart,
   Award, Share2, Gift, Zap, Flag,
 } from "lucide-react";
 

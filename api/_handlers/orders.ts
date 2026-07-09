@@ -40,7 +40,7 @@ export async function handleOrderRequest(
   return notFound();
 }
 
-async function handleStats(ctx: RequestContext, env: any): Promise<Response> {
+async function handleStats(ctx: RequestContext, _env: any): Promise<Response> {
   if (!ctx.userId) return unauthorized();
   try {
     const prisma = getPrisma(ctx.env);
@@ -67,7 +67,7 @@ async function handleStats(ctx: RequestContext, env: any): Promise<Response> {
   }
 }
 
-async function handleList(ctx: RequestContext, req: Request, env: any): Promise<Response> {
+async function handleList(ctx: RequestContext, req: Request, _env: any): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
   }
@@ -108,7 +108,7 @@ async function handleList(ctx: RequestContext, req: Request, env: any): Promise<
   }
 }
 
-async function handleDetail(ctx: RequestContext, orderId: string, env: any): Promise<Response> {
+async function handleDetail(ctx: RequestContext, orderId: string, _env: any): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
   }
@@ -146,7 +146,7 @@ async function handleDetail(ctx: RequestContext, orderId: string, env: any): Pro
   }
 }
 
-async function handleCancel(req: Request, ctx: RequestContext, orderId: string, env: any): Promise<Response> {
+async function handleCancel(req: Request, ctx: RequestContext, orderId: string, _env: any): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
   }
@@ -266,7 +266,7 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
   }
 }
 
-async function handleTracking(ctx: RequestContext, orderId: string, env: any): Promise<Response> {
+async function handleTracking(ctx: RequestContext, orderId: string, _env: any): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
   }

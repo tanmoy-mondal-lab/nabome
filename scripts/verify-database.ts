@@ -65,7 +65,7 @@ async function checkTableCounts() {
 
   for (const table of tables) {
     try {
-      // @ts-ignore
+      // @ts-expect-error dynamic table access
       const count = await prisma[table].count();
       console.log(`  ✓ ${table}: ${count} records`);
       results.push({

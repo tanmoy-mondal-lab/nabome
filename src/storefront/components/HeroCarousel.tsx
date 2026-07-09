@@ -24,7 +24,7 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
   const [current, setCurrent] = useState(0);
   const [soundOn, setSoundOn] = useState(true);
   const [paused, setPaused] = useState(false);
-  const [videoReady, setVideoReady] = useState(false);
+  const [_videoReady, setVideoReady] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const prefersReducedMotion = useReducedMotion();
@@ -62,7 +62,7 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
   }, [current]);
 
   useEffect(() => {
-    videoRefs.current.forEach((v, i) => {
+    videoRefs.current.forEach((v, _i) => {
       if (v) v.muted = !soundOn;
     });
   }, [soundOn]);

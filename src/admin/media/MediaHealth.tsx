@@ -4,10 +4,9 @@ import { StatsCard } from "../common/StatsCard";
 import { StatusBadge } from "../common/StatusBadge";
 import {
   ShieldCheck, AlertTriangle, Database, Cloud, Image as ImageIcon,
-  Video, FileText, RefreshCw, Clock, Activity, CheckCircle, XCircle,
-  AlertCircle, ArrowRight, Download, Trash2, Settings
+  Video, FileText, RefreshCw, Activity, CheckCircle, XCircle,
+  AlertCircle, ArrowRight, Trash2, Settings
 } from "lucide-react";
-import { adminApi } from "../../lib/api/admin";
 
 interface MediaHealthResult {
   status: "healthy" | "degraded" | "critical";

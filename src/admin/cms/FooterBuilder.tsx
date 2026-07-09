@@ -152,7 +152,7 @@ export default function FooterBuilder() {
       url: linkForm.url,
     };
 
-    let newLinks = [...form.links];
+    const newLinks = [...form.links];
     
     if (editingLink) {
       newLinks[editingLink.index!] = newLink;

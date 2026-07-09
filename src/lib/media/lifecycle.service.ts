@@ -29,14 +29,11 @@ import {
 } from "./cloudinary.service";
 import {
   generateAssetId,
-  isValidAssetId,
 } from "./asset-id.service";
 import {
   getEntityFolder,
   getAssetFolder,
   getTempFolder,
-  isValidFolder,
-  normalizeFolder,
 } from "./folder.service";
 import {
   sanitizeFilename,
@@ -45,7 +42,6 @@ import {
   LifecycleError,
   VerificationError,
   RollbackError,
-  SynchronizationError,
 } from "./media.errors";
 import {
   performSecurityChecks,
@@ -151,7 +147,7 @@ function logEvent(event: LifecycleEventLog): void {
  * Gets recent lifecycle events (deprecated - use logging service instead)
  * @deprecated Use the logging service for persistent logging
  */
-export function getLifecycleEvents(limit: number = 100): LifecycleEventLog[] {
+export function getLifecycleEvents(_limit: number = 100): LifecycleEventLog[] {
   const logger = getLogger();
   logger.warn("getLifecycleEvents is deprecated - use logging service for persistent logs");
   return [];
@@ -932,18 +928,13 @@ export async function verifyMediaConsistency(
  * Verifies that an asset was uploaded successfully
  */
 async function verifyAssetUpload(
-  publicId: string,
-  resourceType: CloudinaryResourceType,
-  config: CloudinaryConfig
+  _publicId: string,
+  _resourceType: CloudinaryResourceType,
+  _config: CloudinaryConfig
 ): Promise<{ exists: boolean }> {
-  try {
-    // Try to get the asset from Cloudinary
-    // In a real implementation, you would use getAsset from cloudinary.service
-    // For now, we'll assume the upload was successful if no error was thrown
-    return { exists: true };
-  } catch (error) {
-    return { exists: false };
-  }
+  // In a real implementation, you would use getAsset from cloudinary.service
+  // For now, we'll assume the upload was successful if no error was thrown
+  return { exists: true };
 }
 
 /**

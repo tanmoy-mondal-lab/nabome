@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Bell, ShoppingBag, Package, Tag, AlertCircle, Megaphone, Star, Clock } from "lucide-react";
+import { Bell, ShoppingBag, Package, Tag, AlertCircle, Megaphone, Star } from "lucide-react";
 import { customerApi } from "../../lib/api/customer";
 import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { Helmet } from "react-helmet-async";
-import { Breadcrumbs } from "../components/Breadcrumbs";
 
 interface Notification {
   id: string;

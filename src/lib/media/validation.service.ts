@@ -10,22 +10,17 @@ import {
   ALLOWED_FILE_TYPES,
   ALLOWED_MIME_TYPES,
   MAX_UPLOAD_SIZE,
-  MAX_IMAGE_SIZE,
-  MAX_VIDEO_SIZE,
-  MAX_DOCUMENT_SIZE,
   MAX_UPLOAD_COUNT,
   MAX_IMAGES_PER_ENTITY,
   MAX_VIDEOS_PER_ENTITY,
   MAX_DOCUMENTS_PER_ENTITY,
 } from "./media.constants";
 import {
-  InvalidFileError,
   FileSizeError,
   UnsupportedTypeError,
   FileContentMismatchError,
   ValidationError,
   UploadLimitError,
-  EntityMediaLimitError,
   ImageDimensionsError,
 } from "./media.errors";
 

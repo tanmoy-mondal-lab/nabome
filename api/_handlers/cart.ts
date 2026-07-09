@@ -1,12 +1,12 @@
 import { getPrisma } from "../_lib/prisma";
-import { success, badRequest, notFound, serverError, unauthorized } from "../_lib/response";
+import { success, badRequest, serverError, unauthorized } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { authenticate } from "../_lib/auth-middleware";
 
 export async function handleCartRequest(
   req: Request,
   ctx: RequestContext,
-  params: string[] = [],
+  _params: string[] = [],
   action: string = "get"
 ): Promise<Response> {
   // For guest carts, we don't require auth

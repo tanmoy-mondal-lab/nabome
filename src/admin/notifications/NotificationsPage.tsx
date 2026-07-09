@@ -4,8 +4,7 @@ import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
-import { EmptyState } from "../common/EmptyState";
-import { Bell, Edit3, AlertCircle } from "lucide-react";
+import { Edit3, AlertCircle } from "lucide-react";
 import { formatDate } from "../../lib/utils/format";
 import { useToast } from "../../components/ui/Toast";
 

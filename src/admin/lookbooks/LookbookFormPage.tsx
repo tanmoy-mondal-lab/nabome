@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
-import { Modal } from "../common/Modal";
 import { Plus, X, GripVertical, Image, Package, Crosshair } from "lucide-react";
 import ShopTheLookManager from "./ShopTheLookManager";
 import { MediaPicker } from "../common/MediaPicker";
@@ -370,7 +369,7 @@ export default function LookbookFormPage() {
       {showShopTheLook && id && (
         <ShopTheLookManager
           lookId={id}
-          onSave={(data) => {
+          onSave={(_data) => {
             toast("Shop The Look saved", "success");
             setShowShopTheLook(false);
           }}

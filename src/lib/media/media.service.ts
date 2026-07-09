@@ -17,7 +17,6 @@ import type {
   DeleteResult,
   DeleteEntityResult,
   CloudinaryConfig,
-  MediaType,
 } from "./media.types";
 import { generateAssetId } from "./asset-id.service";
 import {
@@ -33,7 +32,6 @@ import {
 } from "./validation.service";
 import {
   uploadAsset,
-  replaceAsset as cloudinaryReplace,
   deleteAsset,
   deleteEntityAssets,
   copyAsset,
@@ -64,7 +62,7 @@ export async function uploadMedia(
   options: UploadOptions,
   config: CloudinaryConfig
 ): Promise<UploadResult> {
-  const { entityType, entityId, slug, file, altText, displayName, sortOrder, isPrimary } = options;
+  const { entityType, entityId: _entityId, slug, file, altText: _altText, displayName: _displayName, sortOrder: _sortOrder, isPrimary: _isPrimary } = options;
 
   // Validate the file
   const fileValidation = validateFile(file);
@@ -143,7 +141,7 @@ export async function replaceMedia(
   options: ReplaceOptions,
   config: CloudinaryConfig
 ): Promise<ReplaceResult> {
-  const { entityType, entityId, slug, file, oldAssetId, oldPublicId, altText, displayName } = options;
+  const { entityType, entityId: _entityId, slug, file, oldAssetId, oldPublicId, altText: _altText, displayName: _displayName } = options;
 
   // Validate the file
   const fileValidation = validateFile(file);

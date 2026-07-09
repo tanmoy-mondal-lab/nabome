@@ -259,15 +259,9 @@ async function runMigrations(): Promise<boolean> {
 }
 
 async function seedDatabase(): Promise<boolean> {
-  log("Seeding database...", "info");
-  
-  try {
-    execSync("npx tsx prisma/seed.ts", { stdio: "inherit" });
-    log("Database seeded successfully", "success");
-    return true;
-  } catch (err) {
-    throw new Error(`Failed to seed database: ${err instanceof Error ? err.message : String(err)}`);
-  }
+  log("Seeding step skipped: seed system was removed during cleanup", "warning");
+  log("Run your custom seed script to populate data", "info");
+  return true;
 }
 
 // ─── Media Upload Operations ───

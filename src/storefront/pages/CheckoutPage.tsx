@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   MapPin, CreditCard, Smartphone, Building2, Wallet,
-  Package, CheckCircle, RotateCcw,
+  Package, CheckCircle,
   Plus, ArrowLeft, Gift, FileText,
   Percent, Loader2, Lock, ShoppingBag,
   AlertCircle,
@@ -34,8 +34,7 @@ const PAYMENT_METHODS = [
 
 
 export default function CheckoutPage() {
-  const navigate = useNavigate();
-  const { items, subtotal, discountAmount, total, couponCode, clearCart, applyCoupon, removeCoupon } = useCart();
+  const { items, subtotal, discountAmount, couponCode, clearCart, applyCoupon, removeCoupon } = useCart();
   const { isAuthenticated, user } = useAuthStore();
 
   const [step, setStep] = useState<"shipping" | "payment" | "confirm" | "success">("shipping");
@@ -461,8 +460,6 @@ export default function CheckoutPage() {
               const isCurrent = step === s.key;
               const isCompleted = (step === "payment" || step === "confirm") && index === 0 ||
                                  step === "confirm" && index === 1;
-              const isPending = !isCurrent && !isCompleted;
-            
               return (
                 <div key={s.key} className="flex items-center flex-1">
                   <div className="flex flex-col items-center flex-1">

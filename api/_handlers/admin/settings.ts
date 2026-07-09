@@ -6,10 +6,6 @@ import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { deleteMedia } from "../../_lib/media-service";
 import { toNull } from "../../_lib/sanitize";
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" ? value as Record<string, unknown> : null;
-}
-
 async function cleanupThemeMedia(existingTheme: unknown, nextTheme: unknown, env: any): Promise<unknown> {
   // Extract public IDs from existing theme and delete using MediaService
   const existingPublicIds = extractPublicIds(existingTheme);

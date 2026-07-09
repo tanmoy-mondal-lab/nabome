@@ -91,7 +91,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   }
 }
 
-async function handleCancel(req: Request, ctx: RequestContext): Promise<Response> {
+async function handleCancel(_req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
   try {
     const prisma = getPrisma(ctx.env);

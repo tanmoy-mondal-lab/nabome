@@ -1,4 +1,4 @@
-import { AlertTriangle, Trash2, Eye, EyeOff } from "lucide-react";
+import { Trash2, Eye, EyeOff } from "lucide-react";
 import { Modal } from "../../common/Modal";
 
 interface BulkActionDialogProps {

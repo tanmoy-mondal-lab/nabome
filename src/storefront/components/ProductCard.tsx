@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Heart, ShoppingBag, Eye } from "lucide-react";
 import { PriceDisplay } from "./PriceDisplay";
@@ -7,7 +7,6 @@ import { cn } from "../../lib/utils/cn";
 import { SafeImage } from "../../components/SafeImage";
 import { useWishlist } from "../hooks/useWishlist";
 import { useCartStore } from "../stores/cart-store";
-import { useAuthStore } from "../../stores/auth-store";
 import { hapticMedium } from "../../lib/utils/haptic";
 import type { Product } from "../../types/product";
 
@@ -20,13 +19,10 @@ interface ProductCardProps {
 export function ProductCard({ product, onQuickView, view = "grid" }: ProductCardProps) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
   const { add: addToWishlist, remove: removeFromWishlist, isInWishlist } = useWishlist();
   const addItem = useCartStore((s) => s.addItem);
   const justAdded = useCartStore((s) => s.justAdded);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-
   const name = product.name;
   const slug = product.slug;
   const basePrice = Number(product.basePrice ?? 0);

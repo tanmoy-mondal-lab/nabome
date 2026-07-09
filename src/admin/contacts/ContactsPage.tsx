@@ -3,7 +3,7 @@ import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
-import { MessageCircle, Trash2, Mail, Eye, AlertCircle } from "lucide-react";
+import { MessageCircle, Trash2, Mail, AlertCircle } from "lucide-react";
 import { formatDate, formatDateTime } from "../../lib/utils/format";
 import { useToast } from "../../components/ui/Toast";
 

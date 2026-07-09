@@ -4,7 +4,7 @@
 // Provides keyboard navigation utilities for accessibility
 // ─────────────────────────────────────────────────────────────
 
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 
 export function useKeyboardNavigation(
   handlers: Record<string, () => void>,

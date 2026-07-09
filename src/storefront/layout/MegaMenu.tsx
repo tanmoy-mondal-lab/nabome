@@ -1,5 +1,4 @@
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useUIStore } from "../stores/ui-store";
 import { useSettings } from "../hooks/useSettings";
 import { cn } from "../../lib/utils/cn";

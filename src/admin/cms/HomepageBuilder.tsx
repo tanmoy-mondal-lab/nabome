@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors,
@@ -188,7 +188,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 }
 
 function SortableSectionCard({
-  section, index, isLast, isReordering,
+  section, index: _index, isLast: _isLast, isReordering: _isReordering,
   onEdit, onToggle, onDuplicate, onDelete,
 }: {
   section: HomeSection; index: number; isLast: boolean; isReordering: boolean;
@@ -500,7 +500,7 @@ function TestimonialEditor({
 // ─── Product Grid Source Selector ───
 
 function ProductGridFields({
-  sourceType, sourceValue, sourceLabel, limit, viewAllUrl, errors,
+  sourceType, sourceValue, sourceLabel: _sourceLabel, limit, viewAllUrl, errors,
   onUpdate,
 }: {
   sourceType: string; sourceValue: string; sourceLabel: string;
@@ -1202,8 +1202,6 @@ export default function HomepageBuilder() {
         return null;
     }
   };
-
-  const typeLabel = (type: string) => SECTION_TYPES.find((t) => t.value === type)?.label ?? type;
 
   // ─── Render ───
 

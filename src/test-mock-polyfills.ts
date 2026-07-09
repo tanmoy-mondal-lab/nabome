@@ -1,7 +1,8 @@
 // Test environment polyfills
 if (typeof window !== "undefined") {
-  // Mock fetch for tests
-  global.fetch = require("node-fetch");
+  import("node-fetch").then((mod) => {
+    global.fetch = (mod.default ?? mod) as unknown as typeof global.fetch;
+  });
 
   // Mock localStorage for Zustand persist middleware
   if (typeof global.localStorage === "undefined") {

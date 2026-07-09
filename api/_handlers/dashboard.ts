@@ -25,7 +25,7 @@ function getAnonClient(env?: Env) {
 export async function handleDashboardRequest(
   req: Request,
   ctx: RequestContext,
-  params: string[],
+  _params: string[],
   action?: string
 ): Promise<Response> {
   if (!ctx.userId) return unauthorized();
@@ -46,7 +46,7 @@ export async function handleDashboardRequest(
   }
 }
 
-async function handleDashboardOverview(ctx: RequestContext, env: any): Promise<Response> {
+async function handleDashboardOverview(ctx: RequestContext, _env: any): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
     const [recentOrders, wishlistCount, addressesCount, unreadNotifications] = await Promise.all([
@@ -75,7 +75,7 @@ async function handleDashboardOverview(ctx: RequestContext, env: any): Promise<R
   }
 }
 
-async function handleGetProfile(ctx: RequestContext, env: any): Promise<Response> {
+async function handleGetProfile(ctx: RequestContext, _env: any): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
     const profile = await prisma.profile.findUnique({
@@ -111,7 +111,7 @@ async function handleGetProfile(ctx: RequestContext, env: any): Promise<Response
   }
 }
 
-async function handleUpdateProfile(ctx: RequestContext, req: Request, env: any): Promise<Response> {
+async function handleUpdateProfile(ctx: RequestContext, req: Request, _env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -167,7 +167,7 @@ async function handleUpdateProfile(ctx: RequestContext, req: Request, env: any):
   }
 }
 
-async function handleChangePassword(ctx: RequestContext, req: Request, env: any): Promise<Response> {
+async function handleChangePassword(ctx: RequestContext, req: Request, _env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -222,7 +222,7 @@ async function handleChangePassword(ctx: RequestContext, req: Request, env: any)
   }
 }
 
-async function handleOrderStats(ctx: RequestContext, env: any): Promise<Response> {
+async function handleOrderStats(ctx: RequestContext, _env: any): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
     const [totalOrders, aggregation, pendingCount, deliveredCount] = await Promise.all([

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { ArrowLeft, RotateCcw, CheckCircle, Upload, X } from "lucide-react";
 import { customerApi } from "../../lib/api/customer";
@@ -7,7 +7,6 @@ import { formatPrice } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { Helmet } from "react-helmet-async";
-import { Breadcrumbs } from "../components/Breadcrumbs";
 import { SafeImage } from "../../components/SafeImage";
 
 const returnReasons = [
@@ -32,8 +31,6 @@ interface OrderItem {
 
 export default function ReturnRequestPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-
   const [step, setStep] = useState(1);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [reason, setReason] = useState("");

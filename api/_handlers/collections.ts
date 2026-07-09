@@ -3,7 +3,7 @@ import { success, badRequest, notFound, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 
 export async function handleCollectionRequest(
-  req: Request,
+  _req: Request,
   ctx: RequestContext,
   params: string[],
   action: string

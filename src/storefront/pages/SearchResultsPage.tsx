@@ -6,7 +6,6 @@ import { useSearch } from "../hooks/useProducts";
 import { ProductGrid } from "../components/ProductGrid";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { canonical } from "../../lib/seo";
-import type { Product } from "../../types/product";
 
 export default function SearchResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams();

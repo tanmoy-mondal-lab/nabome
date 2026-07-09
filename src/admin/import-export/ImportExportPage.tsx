@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { adminApi } from "../../lib/api/admin";
-import { Download, Upload, FileSpreadsheet, RefreshCw } from "lucide-react";
+import { Download, Upload, RefreshCw } from "lucide-react";
 
 export default function ImportExportPage() {
   const [exporting, setExporting] = useState<string | null>(null);

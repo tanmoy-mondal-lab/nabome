@@ -278,7 +278,7 @@ async function handleAdminDetail(ticketId: string, env: any): Promise<Response> 
   }
 }
 
-async function handleAdminUpdateStatus(ctx: RequestContext, ticketId: string, req: Request, env: any): Promise<Response> {
+async function handleAdminUpdateStatus(_ctx: RequestContext, ticketId: string, req: Request, env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -313,7 +313,7 @@ async function handleAdminUpdateStatus(ctx: RequestContext, ticketId: string, re
   }
 }
 
-async function handleAdminAssign(ctx: RequestContext, ticketId: string, req: Request, env: any): Promise<Response> {
+async function handleAdminAssign(_ctx: RequestContext, ticketId: string, req: Request, env: any): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();

@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import { api } from "../../lib/api/client";
 import { hapticSuccess, hapticError } from "../../lib/utils/haptic";
 
 interface ConnectivityState {
@@ -115,10 +114,3 @@ export const useConnectivityStore = create<ConnectivityState>((set, get) => ({
   }),
 }));
 
-async function addToEmergencyNotification() {
-  try {
-    await api.post("/notifications/offline", { timestamp: Date.now() });
-  } catch {
-    // Silent failure - notification not critical
-  }
-}

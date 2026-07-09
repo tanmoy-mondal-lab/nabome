@@ -26,7 +26,7 @@ export class IndexStrategyManager {
 
     try {
       // Find unused indexes (simplified - in production, use pg_stat_user_indexes)
-      const indexes = await prisma.$queryRaw`
+      await prisma.$queryRaw`
         SELECT indexname, tablename 
         FROM pg_indexes 
         WHERE schemaname = 'public'
@@ -89,7 +89,7 @@ export class IndexStrategyManager {
     }
   }
 
-  async dropIndex(table: string, index: string, env?: Env): Promise<boolean> {
+  async dropIndex(_table: string, index: string, env?: Env): Promise<boolean> {
     const prisma = getPrisma(env);
     
     try {

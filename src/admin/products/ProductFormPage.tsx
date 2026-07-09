@@ -100,10 +100,10 @@ export default function ProductFormPage() {
   const [pendingImages, setPendingImages] = useState<Array<{
     url: string; publicId: string; variantId?: string;
   }>>([]);
-  const [initialized, setInitialized] = useState(false);
+  const [_initialized, setInitialized] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [validationErrors, setValidationErrors] = useState<FormErrors>({});
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [_collapsed, _setCollapsed] = useState<Record<string, boolean>>({});
 
   const initialImageIdsRef = useRef<Set<string>>(new Set());
   const initialVariantIdsRef = useRef<Set<string>>(new Set());
@@ -460,11 +460,6 @@ export default function ProductFormPage() {
   );
 
   handleSaveRef.current = () => handleSaveWithRetry();
-  const handleAdminRetry = useCallback(() => {
-    setSaveError(null);
-    handleSaveWithRetry();
-  }, [handleSaveWithRetry]);
-
   function handleDuplicate() {
     if (!id) return;
     

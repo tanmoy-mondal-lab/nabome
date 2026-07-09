@@ -8,7 +8,6 @@ import { formatDate } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { Helmet } from "react-helmet-async";
-import { Breadcrumbs } from "../components/Breadcrumbs";
 
 const statusTabs = [
   { value: "", label: "All Orders" },

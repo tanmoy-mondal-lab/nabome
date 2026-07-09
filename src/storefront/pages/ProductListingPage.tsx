@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "framer-motion";
-import { Grid3X3, List, SlidersHorizontal, X, ChevronDown, RefreshCw } from "lucide-react";
+import { Grid3X3, List, SlidersHorizontal, X, RefreshCw } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 import { ProductGrid } from "../components/ProductGrid";
@@ -20,17 +20,6 @@ const SORT_OPTIONS = [
   { value: "price_asc", label: "Price: Low to High" },
   { value: "price_desc", label: "Price: High to Low" },
 ];
-
-interface Aggregation {
-  sizes?: string[];
-  colors?: { hex: string; name: string }[];
-  materials?: string[];
-  brands?: { id: string; name: string }[];
-  categories?: { id: string; name: string; slug: string; subcategories?: { id: string; name: string; slug: string; categoryId: string }[] }[];
-  collections?: { id: string; name: string; slug: string }[];
-  minPrice?: number;
-  maxPrice?: number;
-}
 
 interface CategoryOption {
   id: string;

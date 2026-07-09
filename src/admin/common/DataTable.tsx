@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, ChevronDown, Search, ArrowUpDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, ArrowUpDown } from "lucide-react";
 
 interface Column<T> {
   key: string;

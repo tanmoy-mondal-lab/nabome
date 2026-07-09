@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { getPrisma } from "./prisma";
 import type { Env } from "./env";
 
@@ -306,9 +307,7 @@ export class ApiKeyRotationManager {
    * Hash an API key for storage
    */
   private hashKey(key: string): string {
-    // Simple hash for demonstration - use proper crypto in production
-    const crypto = require('crypto');
-    return crypto.createHash('sha256').update(key).digest('hex');
+    return createHash('sha256').update(key).digest('hex');
   }
 }
 

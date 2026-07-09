@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useRef } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "../../components/ui/Toast";
 import { adminApi } from "../../lib/api/admin";
@@ -7,7 +7,7 @@ import { EmptyState } from "../common/EmptyState";
 import { SafeImage } from "../../components/SafeImage";
 import {
   Upload, Trash2, Copy, Image, Folder, Search, File, Film,
-  FileText, X, Plus, Check, Edit3, Download,
+  FileText, Edit3, Download,
 } from "lucide-react";
 
 interface Asset {

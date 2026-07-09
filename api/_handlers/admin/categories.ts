@@ -4,7 +4,7 @@ import type { RequestContext } from "../../_lib/types";
 import { slugify } from "../../_lib/utils";
 import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { requireAdmin } from "../../_lib/auth-middleware";
-import { deleteMedia, deleteEntityMedia } from "../../_lib/media-service";
+import { deleteMedia } from "../../_lib/media-service";
 import { toNull } from "../../_lib/sanitize";
 
 export async function handleAdminCategoryRequest(

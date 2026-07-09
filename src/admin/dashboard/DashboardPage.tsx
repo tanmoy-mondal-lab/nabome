@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { adminApi, type DashboardStats } from "../../lib/api/admin";
 import { StatsCard } from "../common/StatsCard";
 import { StatusBadge } from "../common/StatusBadge";
-import { formatPrice, formatCompactPrice, formatDate } from "../../lib/utils/format";
+import { formatPrice, formatCompactPrice } from "../../lib/utils/format";
 import {
   Package, ShoppingCart, Users, IndianRupee, TrendingUp, TrendingDown,
   ArrowRight, BarChart3, ShoppingBag,

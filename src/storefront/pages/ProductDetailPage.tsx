@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
-import { Heart, ShoppingBag, Shield, Truck, RotateCcw, Star, X } from "lucide-react";
+import { Heart, ShoppingBag, Shield, Truck, RotateCcw, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { api } from "../../lib/api/client";
@@ -20,10 +20,8 @@ import { Reviews } from "../components/Reviews";
 import { SocialShare } from "../components/SocialShare";
 import { FrequentlyBoughtTogether } from "../components/FrequentlyBoughtTogether";
 import { RecentlyViewed } from "../components/RecentlyViewed";
-import type { Product } from "../../types/product";
 import { useCartStore } from "../stores/cart-store";
 import { useWishlist } from "../hooks/useWishlist";
-import { useAuthStore } from "../../stores/auth-store";
 import { addRecentlyViewed } from "../lib/recommendations";
 import { cn } from "../../lib/utils/cn";
 import { canonical, productSchema, breadcrumbSchema } from "../../lib/seo";
@@ -33,7 +31,6 @@ import { formatPrice } from "../../lib/utils/format";
 
 export default function ProductDetailPage() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
   const { data: productData, isLoading: loading, error: queryError } = useProduct(slug);
   const { data: settingsData } = useSettings();
   const product = productData?.product;
@@ -57,7 +54,6 @@ export default function ProductDetailPage() {
   const sizeGuideRef = useFocusTrap<HTMLDivElement>(showSizeGuide, () => setShowSizeGuide(false));
   const addItem = useCartStore((s) => s.addItem);
   const justAdded = useCartStore((s) => s.justAdded);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const { add: addToWishlist, remove: removeFromWishlist, isInWishlist } = useWishlist();
 
   useEffect(() => {

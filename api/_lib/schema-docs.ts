@@ -130,7 +130,7 @@ export class SchemaDocumentationGenerator {
     });
   }
 
-  private async getTableRelations(prisma: any, tableName: string): Promise<RelationDocumentation[]> {
+  private async getTableRelations(_prisma: any, _tableName: string): Promise<RelationDocumentation[]> {
     // This would need to be implemented based on actual foreign key constraints
     // For now, return empty array
     return [];

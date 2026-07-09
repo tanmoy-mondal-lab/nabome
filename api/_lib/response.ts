@@ -50,7 +50,7 @@ export function conflict(message: string, requestId?: string): Response {
   return error(ErrorCode.CONFLICT, message, 409, undefined, requestId);
 }
 
-export function serverError(err?: unknown, requestId?: string): Response {
+export function serverError(_err?: unknown, requestId?: string): Response {
   // Always return generic error message to avoid exposing internal details
   const message = "Internal server error";
   return error(ErrorCode.INTERNAL_SERVER_ERROR, message, 500, undefined, requestId);

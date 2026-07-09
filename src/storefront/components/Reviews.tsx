@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Star, ThumbsUp, Camera, BadgeCheck, ChevronDown, ChevronLeft, ChevronRight, AlertCircle, Loader2 } from "lucide-react";
+import { Star, BadgeCheck, AlertCircle, Loader2 } from "lucide-react";
 import { api } from "../../lib/api/client";
 import { StarRating } from "./StarRating";
 import { useAuthStore } from "../../stores/auth-store";

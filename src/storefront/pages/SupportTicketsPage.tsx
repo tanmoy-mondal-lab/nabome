@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { HelpCircle, Plus, MessageSquare, ChevronRight, ArrowLeft, Send, Clock } from "lucide-react";
+import { HelpCircle, Plus, MessageSquare, ChevronRight, ArrowLeft, Send } from "lucide-react";
 import { customerApi } from "../../lib/api/customer";
 import { formatDate } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { DashboardSidebar } from "../components/DashboardSidebar";
 import { Helmet } from "react-helmet-async";
-import { Breadcrumbs } from "../components/Breadcrumbs";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface Ticket {
@@ -47,7 +46,7 @@ export default function SupportTicketsPage() {
   const [createForm, setCreateForm] = useState({ subject: "", message: "", orderId: "" });
   const [replyText, setReplyText] = useState("");
 
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [_fetchError, _setFetchError] = useState<string | null>(null);
 
   const { data: ticketsData, isLoading, isError } = useQuery({
     queryKey: ["customer", "support-tickets"],

@@ -2,7 +2,6 @@ import { badRequest, unauthorized, serverError, success, rateLimitExceeded } fro
 import type { RequestContext } from "../_lib/types";
 import { requireAdmin } from "../_lib/auth-middleware";
 import { uploadMedia, validateFile, validateFileContent } from "../_lib/media-service";
-import type { EntityType } from "../../src/lib/media/media.types";
 import { checkRateLimit, getRateLimitKey } from "../_lib/rate-limit";
 
 const UPLOAD_RATE_LIMIT = { maxRequests: 20, windowMs: 60_000 };

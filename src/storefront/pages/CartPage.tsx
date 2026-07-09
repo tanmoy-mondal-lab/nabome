@@ -16,7 +16,7 @@ import { canonical } from "../../lib/seo";
 
 export default function CartPage() {
   const navigate = useNavigate();
-  const { items, removeItem, updateQuantity, subtotal, discountAmount, total, couponCode, applyCoupon, removeCoupon, clearCart } = useCart();
+  const { items, removeItem, updateQuantity, subtotal, discountAmount, total: _total, couponCode, applyCoupon, removeCoupon, clearCart } = useCart();
   const { data: settings } = useSettings();
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState("");
