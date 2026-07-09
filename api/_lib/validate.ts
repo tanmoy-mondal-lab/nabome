@@ -38,6 +38,57 @@ export async function validateBody<T>(
 }
 
 /**
+ * Parse and validate URL query parameters against a Zod schema.
+ * Returns the parsed data on success, or a 400 Response on failure.
+ */
+export function validateQuery<T>(
+  url: URL,
+  schema: z.ZodType<T>,
+  requestId?: string
+): { data: T } | { response: Response } {
+  const params = Object.fromEntries(url.searchParams.entries());
+  const result = schema.safeParse(params);
+  if (!result.success) {
+    const messages = result.error.issues.map(
+      (i) => `${i.path.join(".")}: ${i.message}`
+    );
+    return {
+      response: badRequest(
+        `Query validation failed: ${messages.join("; ")}`,
+        { fields: result.error.issues.map(i => ({ field: i.path.join("."), message: i.message })) },
+        requestId
+      ),
+    };
+  }
+  return { data: result.data };
+}
+
+/**
+ * Validate path parameters against a Zod schema.
+ * Returns the parsed data on success, or a 400 Response on failure.
+ */
+export function validateParams<T>(
+  params: Record<string, string>,
+  schema: z.ZodType<T>,
+  requestId?: string
+): { data: T } | { response: Response } {
+  const result = schema.safeParse(params);
+  if (!result.success) {
+    const messages = result.error.issues.map(
+      (i) => `${i.path.join(".")}: ${i.message}`
+    );
+    return {
+      response: badRequest(
+        `Parameter validation failed: ${messages.join("; ")}`,
+        { fields: result.error.issues.map(i => ({ field: i.path.join("."), message: i.message })) },
+        requestId
+      ),
+    };
+  }
+  return { data: result.data };
+}
+
+/**
  * Common validators used across API handlers.
  */
 export const emailSchema = z.string().email("Invalid email address");
@@ -55,6 +106,8 @@ export const nameSchema = z
   .max(100, "Name too long");
 
 export const addressSchema = z.object({
+  fullName: z.string().min(1, "Full name is required"),
+  phone: z.string().min(10, "Valid phone number required").max(15),
   line1: z.string().min(1, "Address line 1 is required"),
   line2: z.string().optional(),
   city: z.string().min(1, "City is required"),
@@ -62,7 +115,6 @@ export const addressSchema = z.object({
   state: z.string().min(1, "State is required"),
   pincode: z.string().min(6, "Valid pincode is required").max(10),
   country: z.string().min(1, "Country is required").default("India"),
-  phone: z.string().min(10, "Valid phone number required").max(15),
 });
 
 export const authRegisterSchema = z.object({
@@ -244,4 +296,157 @@ export const changePasswordSchema = z.object({
 export const verifyEmailSchema = z.object({
   email: z.string().email("Invalid email address"),
   code: z.string().regex(/^\d{6}$/, "Code must be a 6-digit number"),
+});
+
+// Admin CMS validation schemas
+export const cmsPageCreateSchema = z.object({
+  title: z.string().min(1, "Page title is required").max(200),
+  slug: z.string().optional(),
+  content: z.record(z.unknown()).optional(),
+  template: z.string().default("default"),
+  isPublished: z.boolean().default(false),
+  metaTitle: z.string().nullable().optional(),
+  metaDesc: z.string().nullable().optional(),
+  ogImage: z.string().nullable().optional(),
+});
+
+export const cmsPageUpdateSchema = cmsPageCreateSchema.partial();
+
+export const cmsHomeSectionSchema = z.object({
+  type: z.string().min(1, "Section type is required"),
+  title: z.string().optional(),
+  content: z.record(z.unknown()).optional(),
+  sortOrder: z.number().int().default(0),
+  isActive: z.boolean().default(true),
+});
+
+export const cmsHomeSectionUpdateSchema = cmsHomeSectionSchema.partial();
+
+export const cmsNavigationSchema = z.object({
+  name: z.string().min(1, "Menu name is required").max(100),
+  location: z.enum(["header", "footer", "mobile", "sidebar"]),
+  items: z.array(z.record(z.unknown())),
+  isActive: z.boolean().default(true),
+});
+
+export const cmsNavigationUpdateSchema = cmsNavigationSchema.partial();
+
+export const cmsFooterSchema = z.object({
+  column: z.number().int().default(1),
+  title: z.string().min(1, "Footer section title is required").max(100),
+  contentType: z.string().default("links"),
+  content: z.record(z.unknown()).optional(),
+  sortOrder: z.number().int().default(0),
+  isActive: z.boolean().default(true),
+});
+
+export const cmsFooterUpdateSchema = cmsFooterSchema.partial();
+
+export const cmsReorderSchema = z.object({
+  order: z.array(z.object({
+    id: z.string().min(1),
+    sortOrder: z.number().int(),
+  })),
+});
+
+// Admin settings validation schemas
+export const settingsUpdateSchema = z.object({
+  siteName: z.string().min(1).max(100).optional(),
+  tagline: z.string().max(200).optional(),
+  logoUrl: z.string().nullable().optional(),
+  logoPublicId: z.string().nullable().optional(),
+  faviconUrl: z.string().nullable().optional(),
+  faviconPublicId: z.string().nullable().optional(),
+  ogImageUrl: z.string().nullable().optional(),
+  ogImagePublicId: z.string().nullable().optional(),
+  currency: z.string().default("INR"),
+  taxRate: z.number().min(0).max(100).optional(),
+  freeShippingThreshold: z.number().min(0).optional(),
+  shippingInfo: z.string().nullable().optional(),
+  returnPolicy: z.string().nullable().optional(),
+  aboutUs: z.string().nullable().optional(),
+  contactEmail: z.string().email().nullable().optional(),
+  contactPhone: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  googleAnalyticsId: z.string().nullable().optional(),
+  facebookPixelId: z.string().nullable().optional(),
+  preferences: z.record(z.unknown()).optional(),
+  seo: z.record(z.unknown()).optional(),
+  theme: z.record(z.unknown()).optional(),
+});
+
+export const socialLinkCreateSchema = z.object({
+  platform: z.enum(["instagram", "facebook", "twitter", "youtube", "linkedin", "pinterest", "tiktok", "whatsapp", "other"]),
+  url: z.string().url("Invalid URL format"),
+  label: z.string().nullable().optional(),
+  icon: z.string().nullable().optional(),
+  isActive: z.boolean().default(true),
+  sortOrder: z.number().int().default(0),
+});
+
+export const socialLinkUpdateSchema = socialLinkCreateSchema.partial();
+
+// Admin templates validation schemas
+export const templateCreateSchema = z.object({
+  name: z.string().min(1, "Template name is required").max(100),
+  description: z.string().nullable().optional(),
+  category: z.string().default("custom"),
+  thumbnail: z.string().nullable().optional(),
+  thumbnailPublicId: z.string().nullable().optional(),
+  sections: z.record(z.unknown()),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export const templateUpdateSchema = z.object({
+  name: z.string().optional(),
+  description: z.string().nullable().optional(),
+  category: z.string().optional(),
+  thumbnail: z.string().nullable().optional(),
+  thumbnailPublicId: z.string().nullable().optional(),
+  sections: z.record(z.unknown()).optional(),
+  metadata: z.record(z.unknown()).optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const templateApplySchema = z.object({
+  pageId: z.string().min(1, "Page ID is required"),
+});
+
+// Admin related products validation schemas
+export const relatedProductCreateSchema = z.object({
+  sourceId: z.string().min(1, "Source product ID is required"),
+  targetId: z.string().min(1, "Target product ID is required"),
+  type: z.enum(["related", "upsell", "cross_sell"]).default("related"),
+  sortOrder: z.number().int().default(0),
+});
+
+export const relatedProductReorderSchema = z.object({
+  order: z.array(z.object({
+    id: z.string().min(1),
+    sortOrder: z.number().int(),
+  })),
+});
+
+// Admin size guides validation schemas
+export const sizeGuideCreateSchema = z.object({
+  name: z.string().min(1, "Size guide name is required").max(100),
+  description: z.string().nullable().optional(),
+  categoryId: z.string().nullable().optional(),
+  type: z.string().default("clothing"),
+  unit: z.string().default("inches"),
+  imageUrl: z.string().nullable().optional(),
+  imagePublicId: z.string().nullable().optional(),
+  measurements: z.record(z.unknown()),
+});
+
+export const sizeGuideUpdateSchema = z.object({
+  name: z.string().optional(),
+  description: z.string().nullable().optional(),
+  categoryId: z.string().nullable().optional(),
+  type: z.string().optional(),
+  unit: z.string().optional(),
+  imageUrl: z.string().nullable().optional(),
+  imagePublicId: z.string().nullable().optional(),
+  measurements: z.record(z.unknown()).optional(),
+  isActive: z.boolean().optional(),
 });

@@ -1,0 +1,56 @@
+import type { EntityType, CloudinaryConfig, CloudinaryResourceType } from "./types";
+export interface CreateMediaResult {
+    assetId: string;
+    url: string;
+    publicId: string;
+    folder: string;
+    secureUrl: string;
+    resourceType: CloudinaryResourceType;
+    mimeType: string;
+    width: number | null;
+    height: number | null;
+    bytes: number;
+    format: string;
+    originalFilename: string;
+}
+export declare function createMediaAsset(file: File, entityType: EntityType, _entityId: string, slug: string, config: CloudinaryConfig, _metadata?: {
+    altText?: string;
+    displayName?: string;
+    sortOrder?: number;
+    isPrimary?: boolean;
+}): Promise<CreateMediaResult>;
+export interface ReplaceMediaResult {
+    assetId: string;
+    url: string;
+    publicId: string;
+    folder: string;
+    secureUrl: string;
+    resourceType: CloudinaryResourceType;
+    mimeType: string;
+    width: number | null;
+    height: number | null;
+    bytes: number;
+    format: string;
+    originalFilename: string;
+}
+export declare function replaceMediaAsset(file: File, entityType: EntityType, entityId: string, slug: string, _oldAssetId: string, oldPublicId: string, oldResourceType: CloudinaryResourceType, config: CloudinaryConfig, metadata?: {
+    altText?: string;
+    displayName?: string;
+}): Promise<ReplaceMediaResult>;
+export declare function deleteMediaAsset(_assetId: string, publicId: string, resourceType: CloudinaryResourceType, config: CloudinaryConfig, _entityType?: EntityType, _entityId?: string, _folder?: string): Promise<void>;
+export interface DeleteEntityResult {
+    deletedCount: number;
+    migratedAssets: number;
+    failedMigrations: number;
+}
+export declare function deleteEntityMediaAssets(entityType: EntityType, _entityId: string, slug: string, config: CloudinaryConfig): Promise<DeleteEntityResult>;
+export interface MigrateSlugResult {
+    migratedAssets: number;
+    failedMigrations: number;
+}
+export declare function migrateEntitySlug(entityType: EntityType, _entityId: string, _oldSlug: string, newSlug: string, assetMappings: Array<{
+    assetId: string;
+    oldPublicId: string;
+    oldResourceType: CloudinaryResourceType;
+    originalFilename: string;
+}>, config: CloudinaryConfig): Promise<MigrateSlugResult>;

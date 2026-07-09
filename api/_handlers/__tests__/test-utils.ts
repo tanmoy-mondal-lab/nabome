@@ -83,6 +83,10 @@ export function createMockPrisma() {
       update: vi.fn().mockResolvedValue({}),
       updateMany: vi.fn().mockResolvedValue({}),
     },
+    mediaAsset: {
+      findMany: vi.fn().mockResolvedValue([]),
+      delete: vi.fn().mockResolvedValue({}),
+    },
     $transaction: vi.fn(async (operations: Promise<unknown>[]) => Promise.all(operations)),
   };
 }

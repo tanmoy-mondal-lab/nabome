@@ -98,6 +98,7 @@ import { handleCheckoutRequest } from "./_handlers/checkout";
 import { handleCartRequest } from "./_handlers/cart";
 import { handleAddressRequest } from "./_handlers/addresses";
 import { handleWishlistRequest } from "./_handlers/wishlist";
+import { handleSearchRequest } from "./_handlers/search";
 import { handleCouponRequest } from "./_handlers/coupons";
 import { handleReviewRequest } from "./_handlers/reviews";
 import { handleCMSRequest } from "./_handlers/cms";
@@ -250,6 +251,13 @@ route("GET", "/api/products/:slug", (req, ctx, p) => handleProductRequest(req, c
 route("GET", "/api/products/:slug/variants", (req, ctx, p) => handleProductRequest(req, ctx, p, "variants"));
 route("GET", "/api/products/:slug/reviews", (req, ctx, p) => handleProductRequest(req, ctx, p, "reviews"));
 route("GET", "/api/products/:slug/similar", (req, ctx, p) => handleProductRequest(req, ctx, p, "similar"));
+
+// Search routes
+route("GET", "/api/search/suggestions", (req, ctx) => handleSearchRequest(req, ctx, [], "suggestions"));
+route("GET", "/api/search/recent", (req, ctx) => handleSearchRequest(req, ctx, [], "recent"));
+route("GET", "/api/search/trending", (req, ctx) => handleSearchRequest(req, ctx, [], "trending"));
+route("POST", "/api/search/save", (req, ctx) => handleSearchRequest(req, ctx, [], "save"), { auth: true });
+route("POST", "/api/search/clear", (req, ctx) => handleSearchRequest(req, ctx, [], "clear"), { auth: true });
 
 route("GET", "/api/categories", (req, ctx) => handleCategoryRequest(req, ctx, [], "list"));
 route("GET", "/api/categories/:slug", (req, ctx, p) => handleCategoryRequest(req, ctx, p, "detail"));

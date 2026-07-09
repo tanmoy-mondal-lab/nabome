@@ -276,7 +276,7 @@ export default function ThemeBuilder() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "themes"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "themes"] });
       toast("Theme saved successfully", "success");
     },
     onError: () => {
@@ -333,7 +333,7 @@ export default function ThemeBuilder() {
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
           <p className="text-sm text-red-700">Failed to load theme</p>
-          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+          <button onClick={() => void refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
         </div>
       </div>
     );

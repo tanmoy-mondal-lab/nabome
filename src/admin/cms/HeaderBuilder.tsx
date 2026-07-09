@@ -97,24 +97,24 @@ export default function HeaderBuilder() {
   const [configOpen, setConfigOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  const { data: menus = [], isLoading: loading, error: queryError } = useQuery<NavigationMenu[]>({
+  const { data: menus = [], isLoading: loading, error: queryError } = useQuery({
     queryKey: ["admin", "navigation"],
     queryFn: async () => {
       const res = await adminApi.getNavigationMenus();
-      const rawMenus = (res.menus as NavigationMenu[]) ?? [];
+      const rawMenus = res.menus ?? [];
       // Ensure every menu item has a valid id for drag-and-drop
       return rawMenus.map((menu) => ({
         ...menu,
-        items: (menu.items ?? []).map((item) => ({
+        items: (menu.items as any[] ?? []).map((item) => ({
           ...item,
           type: item.type || "link",
           id: item.id || crypto.randomUUID(),
-          children: item.children?.map((child) => ({
+          children: item.children?.map((child: any) => ({
             ...child,
             type: child.type || "link",
             id: child.id || crypto.randomUUID(),
           })),
-          megaMenuColumns: item.megaMenuColumns?.map((col) => ({
+          megaMenuColumns: (item as any).megaMenuColumns?.map((col: any) => ({
             ...col,
             id: col.id || crypto.randomUUID(),
           })),
@@ -147,8 +147,8 @@ export default function HeaderBuilder() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
-      queryClient.invalidateQueries({ queryKey: ["settings", "public"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
+      void queryClient.invalidateQueries({ queryKey: ["settings", "public"] });
       window.dispatchEvent(new Event("settings:updated"));
       toast("Header layout settings saved", "success");
       setConfigOpen(false);
@@ -169,8 +169,8 @@ export default function HeaderBuilder() {
     },
     onSuccess: () => {
       const wasEditing = !!editMenu;
-      queryClient.invalidateQueries({ queryKey: ["admin", "navigation"] });
-      queryClient.invalidateQueries({ queryKey: ["cms", "navigation"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "navigation"] });
+      void queryClient.invalidateQueries({ queryKey: ["cms", "navigation"] });
       setModalOpen(false);
       toast(wasEditing ? "Menu updated" : "Menu created", "success");
     },
@@ -182,8 +182,8 @@ export default function HeaderBuilder() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteNavigation(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "navigation"] });
-      queryClient.invalidateQueries({ queryKey: ["cms", "navigation"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "navigation"] });
+      void queryClient.invalidateQueries({ queryKey: ["cms", "navigation"] });
       toast("Menu deleted", "success");
     },
     onError: (err: Error) => {
@@ -200,7 +200,7 @@ export default function HeaderBuilder() {
 
   const openEdit = (menu: NavigationMenu) => {
     setEditMenu(menu);
-    setForm({ name: menu.name, location: menu.location, isActive: menu.isActive, items: menu.items ?? [] });
+    setForm({ name: menu.name, location: menu.location, isActive: menu.isActive, items: menu.items as any[] ?? [] });
     setExpandedItems(new Set());
     setModalOpen(true);
   };
@@ -494,7 +494,7 @@ export default function HeaderBuilder() {
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-[11px] text-neutral-400 capitalize">{menu.location.replace("_", " ")}</span>
                       <span className="text-[11px] text-neutral-300">·</span>
-                      <span className="text-[11px] text-neutral-400">{countItems(menu.items ?? [])} items</span>
+                      <span className="text-[11px] text-neutral-400">{countItems(menu.items as any[] ?? [])} items</span>
                     </div>
                   </div>
                 </div>
@@ -504,7 +504,7 @@ export default function HeaderBuilder() {
                       ? "bg-green-50 text-green-700 border-green-200"
                       : "bg-red-50 text-red-700 border-red-200"
                   }`}>{menu.isActive ? "Active" : "Inactive"}</span>
-                  <button onClick={() => openEdit(menu)}
+                  <button onClick={() => openEdit(menu as any)}
                     className="p-2 hover:bg-neutral-100 rounded-xl text-neutral-400 hover:text-neutral-600 transition-all opacity-0 group-hover:opacity-100">
                     <Edit3 size={14} />
                   </button>
@@ -517,17 +517,17 @@ export default function HeaderBuilder() {
               {menu.items.length > 0 && (
                 <div className="px-5 pb-4 flex flex-wrap gap-1.5">
                   {menu.items.slice(0, 6).map((item, i) => {
-                    const childCount = (item.children?.length ?? 0) + (item.megaMenuColumns?.flatMap((c) => c.items).length ?? 0);
+                    const childCount = (item.children?.length ?? 0) + (item.megaMenuColumns?.flatMap((c: any) => c.items).length ?? 0);
                     return (
                       <span key={i}
                         className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border transition-colors ${
-                          item.isHighlighted
+                          (item as any).isHighlighted
                             ? "bg-amber-50 text-amber-700 border-amber-200"
                             : "bg-neutral-50 text-neutral-600 border-neutral-100"
                         }`}>
                         {typeIcon(item.type)}
                         {item.label || "Untitled"}
-                        {item.badge && <span className="text-[9px] bg-brand-500 text-white px-1 rounded">{item.badge}</span>}
+                        {(item as any).badge && <span className="text-[9px] bg-brand-500 text-white px-1 rounded">{(item as any).badge}</span>}
                         {childCount > 0 && <span className="text-neutral-400">({childCount})</span>}
                       </span>
                     );
@@ -605,7 +605,7 @@ export default function HeaderBuilder() {
                   <SortableContext items={form.items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
                     {form.items.map((item, idx) => {
                       const isExpanded = expandedItems.has(item.id);
-                      const childCount = (item.children?.length ?? 0) + (item.megaMenuColumns?.flatMap((c) => c.items).length ?? 0);
+                      const childCount = (item.children?.length ?? 0) + (item.megaMenuColumns?.flatMap((c: any) => c.items).length ?? 0);
 
                       return (
                         <SortableItem key={item.id} id={item.id}>
@@ -648,10 +648,10 @@ export default function HeaderBuilder() {
                         <span className="text-sm text-neutral-900 font-medium truncate flex-1">
                           {item.label || <span className="text-neutral-400 italic">Untitled</span>}
                         </span>
-                        {item.badge && (
-                          <span className="text-[9px] bg-brand-500 text-white px-1.5 py-0.5 rounded">{item.badge}</span>
+                        {(item as any).badge && (
+                          <span className="text-[9px] bg-brand-500 text-white px-1.5 py-0.5 rounded">{(item as any).badge}</span>
                         )}
-                        {item.isHighlighted && (
+                        {(item as any).isHighlighted && (
                           <span className="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-medium">Hot</span>
                         )}
                         {childCount > 0 && (
@@ -696,14 +696,14 @@ export default function HeaderBuilder() {
                               <MediaPicker value={item.image ?? ""}
                                 onChange={(url: string) => updateItem(idx, "image", url)}
                                 folder="navigation" placeholder="Banner" />
-                              <input type="text" placeholder="Badge" value={item.badge ?? ""}
+                              <input type="text" placeholder="Badge" value={(item as any).badge ?? ""}
                                 onChange={(e) => updateItem(idx, "badge", e.target.value)}
                                 className="w-20 px-2.5 py-1.5 text-xs border border-neutral-200 rounded-lg" title="Badge text (e.g. NEW)" />
                               <label className="flex items-center gap-1.5 text-[11px] text-neutral-500 cursor-pointer px-2 py-1 rounded-lg hover:bg-amber-50">
-                                <input type="checkbox" checked={item.isHighlighted}
+                                <input type="checkbox" checked={(item as any).isHighlighted}
                                   onChange={(e) => updateItem(idx, "isHighlighted", e.target.checked)}
                                   className="accent-brand-500" />
-                                <span className={item.isHighlighted ? "text-amber-600 font-medium" : ""}>Hot</span>
+                                <span className={(item as any).isHighlighted ? "text-amber-600 font-medium" : ""}>Hot</span>
                               </label>
                             </div>
                           )}

@@ -28,8 +28,12 @@ interface CartState {
     removeCoupon: () => void;
     clearJustAdded: () => void;
     switchUser: () => void;
-    hydrateFromServer: () => Promise<void>;
-    mergeGuestCart: (items?: CartItem[]) => Promise<void>;
+    applyServerCart: (payload: {
+        items: CartItem[];
+        couponCode?: string | null;
+        discount?: number;
+        discountType?: "percentage" | "fixed" | null;
+    }) => void;
     itemCount: () => number;
     subtotal: () => number;
     discountAmount: () => number;

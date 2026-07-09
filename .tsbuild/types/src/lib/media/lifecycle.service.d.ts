@@ -12,7 +12,7 @@
  * - No orphan assets or folders remain after operations
  */
 import type { EntityType, CloudinaryConfig, CloudinaryResourceType, UploadResult, ReplaceResult } from "./media.types";
-import { MediaUserContext } from "./security.service";
+import { type MediaUserContext } from "./security.service";
 /**
  * Lifecycle event types for logging
  */

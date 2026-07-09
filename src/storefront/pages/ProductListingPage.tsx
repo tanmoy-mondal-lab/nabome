@@ -179,7 +179,7 @@ export default function ProductListingPage() {
   const handleTouchEnd = useCallback(() => {
     if (pullDistance > 80 && !isRefreshing) {
       setIsRefreshing(true);
-      queryClient.invalidateQueries({ queryKey: ["products"] }).then(() => {
+      void queryClient.invalidateQueries({ queryKey: ["products"] }).then(() => {
         setTimeout(() => {
           setIsRefreshing(false);
           setPullDistance(0);

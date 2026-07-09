@@ -63,9 +63,15 @@ describe('productSchema', () => {
     slug: 'test-product',
     basePrice: 999,
     description: 'A test product',
-    images: [{ url: 'https://res.cloudinary.com/test/image/upload/test.jpg' }],
+    currency: 'INR',
+    isActive: true,
+    isFeatured: false,
+    isNew: false,
+    gender: 'unisex' as const,
+    sortOrder: 0,
+    images: [{ id: 'img-1', productId: 'test-id-1', url: 'https://res.cloudinary.com/test/image/upload/test.jpg', sortOrder: 0, isPrimary: true }],
     variants: [
-      { id: 'v1', sku: 'SKU-001', stock: 10, priceAdjustment: 0, size: 'M', color: 'Black' },
+      { id: 'v1', productId: 'test-id-1', sku: 'SKU-001', stock: 10, priceAdjustment: 0, size: 'M', color: 'Black', reservedStock: 0, isActive: true },
     ],
   };
 
@@ -86,8 +92,8 @@ describe('productSchema', () => {
     const schema = productSchema({
       ...baseProduct,
       variants: [
-        { id: 'v1', sku: 'SKU-001', stock: 10, priceAdjustment: 0, size: 'M', color: 'Black' },
-        { id: 'v2', sku: 'SKU-002', stock: 5, priceAdjustment: 200, size: 'L', color: 'Blue' },
+        { id: 'v1', productId: 'test-id-1', sku: 'SKU-001', stock: 10, priceAdjustment: 0, size: 'M', color: 'Black', reservedStock: 0, isActive: true },
+        { id: 'v2', productId: 'test-id-1', sku: 'SKU-002', stock: 5, priceAdjustment: 200, size: 'L', color: 'Blue', reservedStock: 0, isActive: true },
       ],
     });
     const offers = schema.offers as Record<string, unknown>;
@@ -105,7 +111,7 @@ describe('productSchema', () => {
   it('should mark out-of-stock products', () => {
     const schema = productSchema({
       ...baseProduct,
-      variants: [{ id: 'v1', sku: 'SKU-001', stock: 0, priceAdjustment: 0, size: 'M', color: 'Black' }],
+      variants: [{ id: 'v1', productId: 'test-id-1', sku: 'SKU-001', stock: 0, priceAdjustment: 0, size: 'M', color: 'Black', reservedStock: 0, isActive: true }],
     });
     const offers = schema.offers as Record<string, unknown>;
     const offerList = offers.offers as Record<string, unknown>[];
@@ -115,7 +121,7 @@ describe('productSchema', () => {
   it('should include brand when present', () => {
     const schema = productSchema({
       ...baseProduct,
-      brand: { id: 'b1', name: 'Test Brand', slug: 'test-brand' },
+      brand: { id: 'b1', name: 'Test Brand', slug: 'test-brand', sortOrder: 0, isActive: true, logoUrl: undefined, websiteUrl: undefined },
     });
     const brand = schema.brand as Record<string, unknown>;
     expect(brand['@type']).toBe('Brand');
@@ -149,11 +155,14 @@ describe('productSchema', () => {
   it('should limit offers to 5', () => {
     const variants = Array.from({ length: 10 }, (_, i) => ({
       id: `v${i}`,
+      productId: 'test-id-1',
       sku: `SKU-${i}`,
       stock: 10,
       priceAdjustment: i * 100,
       size: 'M',
       color: 'Black',
+      reservedStock: 0,
+      isActive: true,
     }));
     const schema = productSchema({ ...baseProduct, variants });
     const offers = schema.offers as Record<string, unknown>;
@@ -162,7 +171,7 @@ describe('productSchema', () => {
   });
 
   it('should use selected variant SKU when provided', () => {
-    const schema = productSchema(baseProduct, { id: 'vs', sku: 'SELECTED-SKU', stock: 10, priceAdjustment: 0, size: 'M', color: 'Black' });
+    const schema = productSchema(baseProduct, { id: 'vs', productId: 'test-id-1', sku: 'SELECTED-SKU', stock: 10, priceAdjustment: 0, size: 'M', color: 'Black', reservedStock: 0, isActive: true });
     expect(schema.sku).toBe('SELECTED-SKU');
   });
 

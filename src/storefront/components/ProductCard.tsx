@@ -50,9 +50,9 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
     if (!defaultVariant) return;
     hapticMedium();
     if (inWishlist) {
-      removeFromWishlist(defaultVariant.id);
+      void removeFromWishlist(defaultVariant.id);
     } else {
-      addToWishlist(defaultVariant.id);
+      void addToWishlist(defaultVariant.id);
     }
   }
 

@@ -3,6 +3,8 @@
 // Supports Cloudflare KV for production and in-memory for development
 // ─────────────────────────────────────────────────────────────
 
+import type { Env } from "./env.js";
+
 interface CacheEntry {
   value: string;
   expiresAt: number;
@@ -31,9 +33,9 @@ if (typeof setInterval !== "undefined") {
 }
 
 export class CacheService {
-  private env: any;
+  private env: Env;
 
-  constructor(env: any) {
+  constructor(env: Env) {
     this.env = env;
   }
 
@@ -48,7 +50,7 @@ export class CacheService {
   async get(prefix: string, key: string): Promise<string | null> {
     const cacheKey = this.getCacheKey(prefix, key);
 
-    if (this.isCloudflare()) {
+    if (this.isCloudflare() && this.env?.CACHE) {
       try {
         const value = await this.env.CACHE.get(cacheKey);
         return value;
@@ -77,7 +79,7 @@ export class CacheService {
     const ttl = options.ttl ?? 300; // Default 5 minutes
     const expiresAt = Date.now() + ttl * 1000;
 
-    if (this.isCloudflare()) {
+    if (this.isCloudflare() && this.env?.CACHE) {
       try {
         await this.env.CACHE.put(cacheKey, value, {
           expirationTtl: ttl,
@@ -98,7 +100,7 @@ export class CacheService {
   async delete(prefix: string, key: string): Promise<void> {
     const cacheKey = this.getCacheKey(prefix, key);
 
-    if (this.isCloudflare()) {
+    if (this.isCloudflare() && this.env?.CACHE) {
       try {
         await this.env.CACHE.delete(cacheKey);
       } catch (error) {
@@ -110,7 +112,7 @@ export class CacheService {
   }
 
   async invalidateByTag(tag: string): Promise<void> {
-    if (this.isCloudflare()) {
+    if (this.isCloudflare() && this.env?.CACHE) {
       try {
         const listed = await this.env.CACHE.list();
         for (const key of listed.keys) {
@@ -132,7 +134,7 @@ export class CacheService {
   }
 
   async invalidateByPrefix(prefix: string): Promise<void> {
-    if (this.isCloudflare()) {
+    if (this.isCloudflare() && this.env?.CACHE) {
       try {
         const listed = await this.env.CACHE.list({ prefix: `${prefix}:` });
         for (const key of listed.keys) {
@@ -152,7 +154,7 @@ export class CacheService {
   }
 
   async clear(): Promise<void> {
-    if (this.isCloudflare()) {
+    if (this.isCloudflare() && this.env?.CACHE) {
       try {
         const listed = await this.env.CACHE.list();
         for (const key of listed.keys) {

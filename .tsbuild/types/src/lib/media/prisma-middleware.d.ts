@@ -61,7 +61,7 @@ export declare function cleanupMediaForEntities(prisma: PrismaClient, modelName:
  * @param options - Cleanup options
  * @returns Aggregate cleanup result
  */
-export declare function cleanupMediaForWhereClause(prisma: PrismaClient, modelName: string, where: any, options?: MediaCleanupOptions): Promise<MediaCleanupResult>;
+export declare function cleanupMediaForWhereClause(prisma: PrismaClient, modelName: string, where: Record<string, unknown>, options?: MediaCleanupOptions): Promise<MediaCleanupResult>;
 /**
  * Helper function to delete an entity with automatic media cleanup
  *
@@ -73,4 +73,7 @@ export declare function cleanupMediaForWhereClause(prisma: PrismaClient, modelNa
  * @param options - Cleanup options
  * @returns The deleted entity
  */
-export declare function deleteEntityWithMediaCleanup(prisma: PrismaClient, modelName: string, entityId: string, options?: MediaCleanupOptions): Promise<any>;
+export declare function deleteEntityWithMediaCleanup(prisma: PrismaClient, modelName: string, entityId: string, options?: MediaCleanupOptions): Promise<{
+    entity: unknown;
+    cleanup: MediaCleanupResult;
+}>;

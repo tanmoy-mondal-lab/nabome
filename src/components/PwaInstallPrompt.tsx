@@ -4,8 +4,13 @@ import { X } from "lucide-react";
 
 const DISMISSED_KEY = "nabome-pwa-dismissed";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<{ outcome: "accepted" | "dismissed" }>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
 export function PwaInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
   const [_isDismissed, setIsDismissed] = useState(true);
 
@@ -15,7 +20,7 @@ export function PwaInstallPrompt() {
 
     const handler = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e);
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsDismissed(false);
       setTimeout(() => setShowBanner(true), 30000);
     };
@@ -26,7 +31,7 @@ export function PwaInstallPrompt() {
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
-    deferredPrompt.prompt();
+    void deferredPrompt.prompt();
     const result = await deferredPrompt.userChoice;
     if (result.outcome === "accepted") {
       setShowBanner(false);

@@ -85,7 +85,6 @@ export async function cleanupMediaForEntity(
 ): Promise<MediaCleanupResult> {
   const {
     skipCloudinaryCleanup = false,
-    logCleanup = true,
   } = options;
 
   const result: MediaCleanupResult = {
@@ -97,9 +96,7 @@ export async function cleanupMediaForEntity(
   // Check if this model has media assets
   const entityType = ENTITY_TYPE_MAPPING[modelName];
   if (!entityType) {
-    if (logCleanup) {
-      console.log(`[MediaCleanup] No media mapping for model ${modelName}, skipping cleanup`);
-    }
+    // No media mapping for this model, skip cleanup
     return result;
   }
 
@@ -107,23 +104,18 @@ export async function cleanupMediaForEntity(
 
   try {
     // Get the entity to retrieve its slug
-    const entity: any = await (prisma as any)[modelName].findUnique({
+    const prismaModel = (prisma as unknown as Record<string, unknown>)[modelName] as { findUnique: (args: { where: { id: string }; select: Record<string, boolean> }) => Promise<{ [key: string]: unknown; id: string }> };
+    const entity = await prismaModel.findUnique({
       where: { id: entityId },
       select: { [slugField]: true, id: true },
     });
 
     if (!entity) {
-      if (logCleanup) {
-        console.log(`[MediaCleanup] Entity ${modelName} ${entityId} not found, skipping cleanup`);
-      }
+      // Entity not found, skip cleanup
       return result;
     }
 
-    const slug = entity[slugField];
-
-    if (logCleanup) {
-      console.log(`[MediaCleanup] Cleaning up media for ${modelName} ${entityId} (slug: ${slug})`);
-    }
+    const slug = entity[slugField] as string;
 
     // Delete media assets from database
     const deletedDbAssets = await prisma.mediaAsset.deleteMany({
@@ -135,10 +127,6 @@ export async function cleanupMediaForEntity(
 
     result.dbAssetsDeleted = deletedDbAssets.count;
 
-    if (logCleanup) {
-      console.log(`[MediaCleanup] Deleted ${deletedDbAssets.count} media assets from database`);
-    }
-
     // Delete from Cloudinary if not skipped
     if (!skipCloudinaryCleanup && slug) {
       try {
@@ -147,14 +135,9 @@ export async function cleanupMediaForEntity(
         
         const deletedCloudinaryAssets = await deleteEntityAssets(entityFolder, config);
         result.cloudinaryAssetsDeleted = deletedCloudinaryAssets;
-        
-        if (logCleanup) {
-          console.log(`[MediaCleanup] Deleted ${deletedCloudinaryAssets} media assets from Cloudinary`);
-        }
       } catch (cloudinaryError) {
         const errorMsg = `Failed to delete from Cloudinary: ${cloudinaryError instanceof Error ? cloudinaryError.message : String(cloudinaryError)}`;
         result.errors.push(errorMsg);
-        console.error(`[MediaCleanup] ${errorMsg}`);
       }
     }
 
@@ -162,7 +145,6 @@ export async function cleanupMediaForEntity(
   } catch (error) {
     const errorMsg = `Error during media cleanup: ${error instanceof Error ? error.message : String(error)}`;
     result.errors.push(errorMsg);
-    console.error(`[MediaCleanup] ${errorMsg}`);
     return result;
   }
 }
@@ -210,13 +192,9 @@ export async function cleanupMediaForEntities(
 export async function cleanupMediaForWhereClause(
   prisma: PrismaClient,
   modelName: string,
-  where: any,
+  where: Record<string, unknown>,
   options: MediaCleanupOptions = {}
 ): Promise<MediaCleanupResult> {
-  const {
-    logCleanup = true,
-  } = options;
-
   const aggregateResult: MediaCleanupResult = {
     dbAssetsDeleted: 0,
     cloudinaryAssetsDeleted: 0,
@@ -226,9 +204,6 @@ export async function cleanupMediaForWhereClause(
   // Check if this model has media assets
   const entityType = ENTITY_TYPE_MAPPING[modelName];
   if (!entityType) {
-    if (logCleanup) {
-      console.log(`[MediaCleanup] No media mapping for model ${modelName}, skipping cleanup`);
-    }
     return aggregateResult;
   }
 
@@ -236,18 +211,15 @@ export async function cleanupMediaForWhereClause(
 
   try {
     // Get all entities matching the where clause
-    const entities: any[] = await (prisma as any)[modelName].findMany({
+    const prismaModel = (prisma as unknown as Record<string, unknown>)[modelName] as { findMany: (args: { where: Record<string, unknown>; select: Record<string, boolean> }) => Promise<{ [key: string]: unknown; id: string }[]> };
+    const entities = await prismaModel.findMany({
       where,
       select: { [slugField]: true, id: true },
     });
 
-    if (logCleanup) {
-      console.log(`[MediaCleanup] Cleaning up media for ${entities.length} ${modelName} entities`);
-    }
-
     // Clean up media for each entity
     for (const entity of entities) {
-      const slug = entity[slugField];
+      const slug = entity[slugField] as string;
       const entityId = entity.id;
 
       // Delete media assets from database
@@ -271,20 +243,14 @@ export async function cleanupMediaForWhereClause(
         } catch (cloudinaryError) {
           const errorMsg = `Failed to delete from Cloudinary for ${entityId}: ${cloudinaryError instanceof Error ? cloudinaryError.message : String(cloudinaryError)}`;
           aggregateResult.errors.push(errorMsg);
-          console.error(`[MediaCleanup] ${errorMsg}`);
         }
       }
-    }
-
-    if (logCleanup) {
-      console.log(`[MediaCleanup] Completed cleanup: ${aggregateResult.dbAssetsDeleted} DB assets, ${aggregateResult.cloudinaryAssetsDeleted} Cloudinary assets, ${aggregateResult.errors.length} errors`);
     }
 
     return aggregateResult;
   } catch (error) {
     const errorMsg = `Error during media cleanup: ${error instanceof Error ? error.message : String(error)}`;
     aggregateResult.errors.push(errorMsg);
-    console.error(`[MediaCleanup] ${errorMsg}`);
     return aggregateResult;
   }
 }
@@ -305,12 +271,13 @@ export async function deleteEntityWithMediaCleanup(
   modelName: string,
   entityId: string,
   options: MediaCleanupOptions = {}
-): Promise<any> {
+): Promise<{ entity: unknown; cleanup: MediaCleanupResult }> {
   // Clean up media first
   const cleanupResult = await cleanupMediaForEntity(prisma, modelName, entityId, options);
 
   // Then delete the entity
-  const deletedEntity = await (prisma as any)[modelName].delete({
+  const prismaModel = (prisma as unknown as Record<string, unknown>)[modelName] as { delete: (args: { where: { id: string } }) => Promise<unknown> };
+  const deletedEntity = await prismaModel.delete({
     where: { id: entityId },
   });
 

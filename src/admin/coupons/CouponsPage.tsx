@@ -70,8 +70,8 @@ export default function CouponsPage() {
   });
 
   const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ["admin", "coupons"] });
-    queryClient.invalidateQueries({ queryKey: ["admin", "couponRedemptions"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin", "coupons"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin", "couponRedemptions"] });
   };
 
   const saveMutation = useMutation({

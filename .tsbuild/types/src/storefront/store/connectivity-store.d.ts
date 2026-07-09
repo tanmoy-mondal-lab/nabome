@@ -1,4 +1,4 @@
-interface ConnectivityState {
+export interface ConnectivityState {
     isOnline: boolean;
     isAuthenticated: boolean;
     lastOnline: number;
@@ -24,4 +24,3 @@ interface ConnectivityState {
     reset: () => void;
 }
 export declare const useConnectivityStore: import("zustand").UseBoundStore<import("zustand").StoreApi<ConnectivityState>>;
-export {};

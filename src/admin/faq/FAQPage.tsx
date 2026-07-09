@@ -37,7 +37,7 @@ export default function FAQPage() {
     mutationFn: (data: { question: string; answer: string; category?: string; sortOrder: number }) =>
       adminApi.createFaq(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "faqs"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "faqs"] });
       setModalOpen(false);
       toast("FAQ created successfully", "success");
     },
@@ -50,7 +50,7 @@ export default function FAQPage() {
     mutationFn: ({ id, data }: { id: string; data: { question: string; answer: string; category?: string; sortOrder: number; isActive: boolean } }) =>
       adminApi.updateFaq(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "faqs"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "faqs"] });
       setModalOpen(false);
       toast("FAQ updated successfully", "success");
     },
@@ -62,7 +62,7 @@ export default function FAQPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteFaq(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "faqs"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "faqs"] });
       setDeleteConfirm(null);
       toast("FAQ deleted successfully", "success");
     },
@@ -153,7 +153,7 @@ export default function FAQPage() {
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
           <p className="text-sm text-red-700">Failed to load FAQs</p>
-          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+          <button onClick={() => void refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
         </div>
       )}
 

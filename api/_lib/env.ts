@@ -25,6 +25,13 @@ export interface Env {
   RATE_LIMIT_STORE?: { get: (key: string) => Promise<string | null>; put: (key: string, value: string, opts?: { expirationTtl?: number }) => Promise<void> };
   FEATURE_FLAGS_KV?: { get: (key: string) => Promise<string | null>; put: (key: string, value: string) => Promise<void> };
   HYPERDRIVE?: { connectionString: string };
+  CACHE?: {
+    get: (key: string) => Promise<string | null>;
+    put: (key: string, value: string, opts?: { expirationTtl?: number; metadata?: { tags?: string[] } }) => Promise<void>;
+    delete: (key: string) => Promise<void>;
+    list: (opts?: { prefix?: string }) => Promise<{ keys: { name: string }[] }>;
+    getMetadata: (key: string) => Promise<{ tags?: string[] } | null>;
+  };
 }
 
 export function getEnv(): Env {

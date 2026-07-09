@@ -1,4 +1,4 @@
-import { InputHTMLAttributes } from "react";
+import { type InputHTMLAttributes } from "react";
 import { type VariantProps } from "class-variance-authority";
 declare const inputVariants: (props?: ({
     variant?: "default" | "search" | "minimal" | "ghost" | null | undefined;

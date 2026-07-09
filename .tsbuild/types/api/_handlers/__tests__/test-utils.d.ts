@@ -79,6 +79,10 @@ export declare function createMockPrisma(): {
         update: import("vitest").Mock<import("@vitest/spy").Procedure>;
         updateMany: import("vitest").Mock<import("@vitest/spy").Procedure>;
     };
+    mediaAsset: {
+        findMany: import("vitest").Mock<import("@vitest/spy").Procedure>;
+        delete: import("vitest").Mock<import("@vitest/spy").Procedure>;
+    };
     $transaction: import("vitest").Mock<(operations: Promise<unknown>[]) => Promise<unknown[]>>;
 };
 export declare function makeRequest(method: string, url: string, body?: unknown): Request;

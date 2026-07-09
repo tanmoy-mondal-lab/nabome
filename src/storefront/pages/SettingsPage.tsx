@@ -76,7 +76,7 @@ export default function SettingsPage() {
     mutationFn: (data: { firstName?: string; lastName?: string; phone?: string; preferences?: Record<string, boolean> }) =>
       customerApi.updateProfile(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer", "profile"] });
+      void queryClient.invalidateQueries({ queryKey: ["customer", "profile"] });
       setProfileSuccess("Profile updated successfully.");
       setProfileError("");
       setTimeout(() => setProfileSuccess(""), 3000);
@@ -88,7 +88,7 @@ export default function SettingsPage() {
     mutationFn: (prefs: Record<string, boolean>) =>
       customerApi.updateProfile({ preferences: prefs }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer", "profile"] });
+      void queryClient.invalidateQueries({ queryKey: ["customer", "profile"] });
     },
   });
 
@@ -159,7 +159,7 @@ export default function SettingsPage() {
       setEmailStep("idle");
       setNewEmail("");
       setOtp(Array(OTP_LENGTH).fill(""));
-      queryClient.invalidateQueries({ queryKey: ["customer", "profile"] });
+      void queryClient.invalidateQueries({ queryKey: ["customer", "profile"] });
     } catch (err: unknown) {
       setEmailError((err as { message?: string })?.message || "Invalid verification code");
     } finally {

@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { hapticSuccess, hapticError } from "../../lib/utils/haptic";
 
-interface ConnectivityState {
+export interface ConnectivityState {
   isOnline: boolean;
   isAuthenticated: boolean;
   lastOnline: number;
@@ -85,7 +85,7 @@ export const useConnectivityStore = create<ConnectivityState>((set, get) => ({
         set((state) => ({
           offlineQueue: state.offlineQueue.filter((q) => q.id !== item.id)
         }));
-      } catch (error) {
+      } catch {
         // Silent failure - offline action failed
       }
     }

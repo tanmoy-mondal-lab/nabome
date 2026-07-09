@@ -39,7 +39,7 @@ export function useNetworkStatus() {
       setIsOnline(navigator.onLine);
       
       // Get connection type if available
-      const connection = (navigator as any).connection;
+      const connection = (navigator as { connection?: { effectiveType?: string } }).connection;
       if (connection) {
         setConnectionType(connection.effectiveType || "unknown");
       }
@@ -53,8 +53,8 @@ export function useNetworkStatus() {
     window.addEventListener("offline", updateNetworkStatus);
 
     // Listen for connection type changes
-    const connection = (navigator as any).connection;
-    if (connection) {
+    const connection = (navigator as { connection?: { addEventListener?: (event: string, handler: () => void) => void; removeEventListener?: (event: string, handler: () => void) => void } }).connection;
+    if (connection && connection.addEventListener) {
       connection.addEventListener("change", updateNetworkStatus);
     }
 
@@ -62,7 +62,7 @@ export function useNetworkStatus() {
     return () => {
       window.removeEventListener("online", updateNetworkStatus);
       window.removeEventListener("offline", updateNetworkStatus);
-      if (connection) {
+      if (connection && connection.removeEventListener) {
         connection.removeEventListener("change", updateNetworkStatus);
       }
     };

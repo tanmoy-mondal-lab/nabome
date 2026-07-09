@@ -1,6 +1,6 @@
 // Test environment polyfills
 if (typeof window !== "undefined") {
-  import("node-fetch").then((mod) => {
+  void import("node-fetch").then((mod) => {
     global.fetch = (mod.default ?? mod) as unknown as typeof global.fetch;
   });
 

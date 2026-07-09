@@ -22,12 +22,13 @@ import {
 
 interface Product {
   id: string; name: string; slug: string; basePrice: number; salePrice?: number;
-  variants: { stock: number; sku: string }[];
+  variants?: { stock: number; sku: string }[];
   category?: { name: string }; subcategory?: { name: string }; collection?: { name: string }; brand?: { name: string; logoUrl?: string };
-  images: { url: string; isPrimary: boolean }[]; _count: { variants: number };
+  images?: { url: string; isPrimary: boolean }[] | undefined; _count?: { variants?: number; reviews?: number; orderItems?: number };
   isActive: boolean; isFeatured: boolean; isNew: boolean; gender: string;
   compareAtPrice?: number; createdAt?: string; updatedAt?: string;
   totalStock?: number;
+  description?: string; shortDescription?: string; categoryId?: string; subcategoryId?: string; collectionId?: string; brandId?: string;
 }
 
 function getTotalStock(variants: { stock: number }[]): number {
@@ -81,9 +82,14 @@ export default function ProductsPage() {
       if (filters.gender) params.gender = filters.gender;
       if (filters.lowStock) params.lowStock = "true";
       const res = await adminApi.getProducts(params);
-      const raw = (res.products as Product[]) ?? [];
+      const raw = res.products ?? [];
       return {
-        products: raw.map((p) => ({ ...p, totalStock: getTotalStock(p.variants) })),
+        products: raw.map((p) => ({ 
+          ...p, 
+          totalStock: getTotalStock(p.variants || []), 
+          images: (p.images as { url: string; isPrimary: boolean }[] | undefined) || [],
+          variants: (p.variants as { stock: number; sku: string }[] | undefined) || []
+        })),
         totalPages: (res.pagination as { totalPages?: number })?.totalPages ?? 1,
       };
     },
@@ -94,12 +100,12 @@ export default function ProductsPage() {
 
   const { data: categories = [] } = useQuery({
     queryKey: ["admin", "categories"],
-    queryFn: () => adminApi.getCategories().then((r: any) => r.categories ?? []),
+    queryFn: () => adminApi.getCategories().then((r: { categories?: unknown[] }) => (r.categories as { id: string; name: string; subcategories?: { id: string; name: string }[] }[]) ?? []),
   });
 
   const { data: collections = [] } = useQuery({
     queryKey: ["admin", "collections"],
-    queryFn: () => adminApi.getCollections().then((r: any) => r.collections ?? []),
+    queryFn: () => adminApi.getCollections().then((r: { collections?: unknown[] }) => (r.collections as { id: string; name: string }[]) ?? []),
   });
 
   const stats = useMemo(() => {
@@ -134,7 +140,7 @@ export default function ProductsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteProduct(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
       toast("Product deactivated", "success");
       setDeleteTarget(null);
     },
@@ -144,8 +150,8 @@ export default function ProductsPage() {
   const restoreMutation = useMutation({
     mutationFn: (id: string) => adminApi.restoreProduct(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
       toast("Product restored to published", "success");
     },
     onError: () => toast("Failed to restore product", "error"),
@@ -154,8 +160,8 @@ export default function ProductsPage() {
   const permanentDeleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.permanentDeleteProduct(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
       toast("Product permanently deleted", "success");
       setPermDeleteTarget(null);
     },
@@ -165,8 +171,8 @@ export default function ProductsPage() {
   const bulkPermanentDeleteMutation = useMutation({
     mutationFn: (ids: string[]) => adminApi.bulkPermanentDeleteProducts(ids),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
       setSelected(new Set());
       setBulkAction(null);
       toast("Products permanently deleted", "success");
@@ -177,8 +183,8 @@ export default function ProductsPage() {
   const bulkStatusMutation = useMutation({
     mutationFn: ({ ids, active }: { ids: string[]; active: boolean }) => adminApi.bulkUpdateStatus(ids, active),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
       setSelected(new Set());
       setBulkAction(null);
       toast("Products updated successfully", "success");
@@ -189,8 +195,8 @@ export default function ProductsPage() {
   const bulkDeleteMutation = useMutation({
     mutationFn: (ids: string[]) => adminApi.bulkDeleteProducts(ids),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
       setSelected(new Set());
       setBulkAction(null);
       toast("Products deactivated", "success");
@@ -202,7 +208,7 @@ export default function ProductsPage() {
     mutationFn: ({ ids, categoryId, subcategoryId, collectionId }: { ids: string[]; categoryId?: string; subcategoryId?: string; collectionId?: string }) =>
       adminApi.bulkUpdateCategory(ids, { categoryId, subcategoryId, collectionId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
       setSelected(new Set());
       setShowBulkCategory(false);
       toast("Categories assigned successfully", "success");
@@ -213,7 +219,7 @@ export default function ProductsPage() {
   const duplicateMutation = useMutation({
     mutationFn: (id: string) => adminApi.duplicateProduct(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
       toast("Product duplicated as draft", "success");
     },
     onError: () => toast("Failed to duplicate product", "error"),

@@ -31,9 +31,9 @@ export default function InventoryPage() {
     mutationFn: (payload: { variantId: string; data: { quantityChange: number; reason: string; note: string } }) =>
       adminApi.adjustVariantStock(payload.variantId, payload.data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "inventory"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "inventory"] });
       setShowAdjust(false);
       setAdjustError(null);
       toast("Stock adjusted successfully", "success");
@@ -48,9 +48,9 @@ export default function InventoryPage() {
   const resolveAlertMutation = useMutation({
     mutationFn: (alertId: string) => adminApi.resolveAlert(alertId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["products"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "inventory"] });
+      void queryClient.invalidateQueries({ queryKey: ["products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "inventory"] });
     },
     onError: () => {},
   });

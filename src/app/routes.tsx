@@ -85,11 +85,6 @@ export const STOREFRONT_ROUTES = (
 
 export const AUTH_ROUTES = (
   <>
-    <Route path="login" element={<LoginPage />} />
-    <Route path="register" element={<RegisterPage />} />
-    <Route path="forgot-password" element={<ForgotPasswordPage />} />
-    <Route path="reset-password" element={<ResetPasswordPage />} />
-    <Route path="verify-email" element={<VerifyEmailPage />} />
     <Route path="auth/login" element={<LoginPage />} />
     <Route path="auth/register" element={<RegisterPage />} />
     <Route path="auth/forgot-password" element={<ForgotPasswordPage />} />

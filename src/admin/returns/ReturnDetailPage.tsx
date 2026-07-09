@@ -51,7 +51,7 @@ export default function ReturnDetailPage() {
       const data = (res as unknown as { return: ReturnDetail }).return;
       if (data) setReturnDetail(data);
     }).catch(() => {
-      navigate("/admin/returns");
+      void navigate("/admin/returns");
     }).finally(() => setLoading(false));
   }, [id, navigate]);
 

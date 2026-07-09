@@ -56,7 +56,8 @@ export function useInfiniteScroll<T>({
 
   useEffect(() => {
     // Load initial data
-    loadMore();
+    void loadMore();
+     
   }, []);
 
   useEffect(() => {
@@ -66,7 +67,7 @@ export function useInfiniteScroll<T>({
     observerRef.current = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          loadMore();
+          void loadMore();
         }
       },
       { threshold: 0.1, rootMargin: `${threshold}px` }

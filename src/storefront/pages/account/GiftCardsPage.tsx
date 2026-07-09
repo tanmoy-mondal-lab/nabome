@@ -22,7 +22,7 @@ export default function GiftCardsPage() {
     mutationFn: (body: { amount: number; recipientEmail?: string; recipientName?: string; message?: string }) =>
       api.post("/api/gift-cards/purchase", body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gift-cards"] });
+      void queryClient.invalidateQueries({ queryKey: ["gift-cards"] });
       setShowPurchase(false);
       setAmount(500);
       setRecipientEmail("");
@@ -31,7 +31,7 @@ export default function GiftCardsPage() {
     },
   });
 
-  const giftCards = (data as any)?.giftCards ?? [];
+  const giftCards = (data as { giftCards?: { id: string; isActive: boolean; currentBalance: number | string; code?: string; expiresAt?: string }[] })?.giftCards ?? [];
 
   return (
     <div className="container-page py-8">
@@ -87,7 +87,7 @@ export default function GiftCardsPage() {
             <div className="h-40 bg-neutral-100 animate-pulse rounded" />
           ) : giftCards.length > 0 ? (
             <div className="grid md:grid-cols-2 gap-4">
-              {giftCards.map((card: any) => (
+              {giftCards.map((card) => (
                 <div key={card.id} className="premium-card p-5 shadow-subtle border border-brand-100 bg-gradient-to-br from-white to-brand-50">
                   <div className="flex items-center justify-between mb-4">
                     <Gift className="w-6 h-6 text-brand-500" />

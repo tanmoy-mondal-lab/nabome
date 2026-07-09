@@ -15,14 +15,14 @@ export default function GiftCardsAdminPage() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (body: any) => api.post("/api/admin/gift-cards", body),
+    mutationFn: (body: { amount: number; recipientName: string; recipientEmail: string }) => api.post("/api/admin/gift-cards", body),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "gift-cards"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "gift-cards"] });
       setShowCreate(false);
     },
   });
 
-  const cards = (data as any)?.giftCards ?? [];
+  const cards = (data as { giftCards?: { id: string; code: string; currentBalance: number; isActive: boolean; createdAt: string }[] })?.giftCards ?? [];
 
   return (
     <div className="p-6">
@@ -69,7 +69,7 @@ export default function GiftCardsAdminPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {cards.map((card: any) => (
+              {cards.map((card: { id: string; code: string; currentBalance: number; isActive: boolean; createdAt: string }) => (
                 <tr key={card.id} className="hover:bg-neutral-50">
                   <td className="px-4 py-3 font-mono text-xs">{card.code}</td>
                   <td className="px-4 py-3">₹{Number(card.currentBalance).toFixed(2)}</td>

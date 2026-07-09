@@ -55,7 +55,7 @@ export default function RegisterPage() {
         phone: form.phone || undefined,
         turnstileToken: turnstileToken || undefined,
       });
-      navigate(`/auth/verify-email?email=${encodeURIComponent(form.email)}`);
+      void navigate(`/auth/verify-email?email=${encodeURIComponent(form.email)}`);
     } catch {
       // Error set by hook
     } finally {

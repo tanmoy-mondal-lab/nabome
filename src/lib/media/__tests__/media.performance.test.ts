@@ -10,11 +10,11 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { uploadMedia, replaceMedia, deleteMedia, deleteEntityMedia } from "../media.service";
 import { getCloudinaryConfigFromEnv } from "../cloudinary.config";
-
 import { deleteEntityAssets } from "../cloudinary.service";
+import type { CloudinaryConfig } from "../media.types";
 
 describe("Media Performance Tests", () => {
-  let config: any;
+  let config: CloudinaryConfig | undefined;
   const testSlug = "test-performance-product";
   const testEntityType = "products" as const;
 
@@ -22,7 +22,7 @@ describe("Media Performance Tests", () => {
     try {
       config = getCloudinaryConfigFromEnv();
       console.log("Cloudinary config loaded successfully");
-    } catch (error) {
+    } catch {
       console.warn("Cloudinary credentials not found. Skipping performance tests.");
     }
   });
@@ -160,7 +160,7 @@ describe("Media Performance Tests", () => {
 
     const entityId = crypto.randomUUID();
     const uploadCount = 5;
-    const uploadPromises: Promise<any>[] = [];
+    const uploadPromises: Promise<unknown>[] = [];
 
     const startTime = performance.now();
 
@@ -206,7 +206,7 @@ describe("Media Performance Tests", () => {
     }
 
     const operations = 10;
-    const promises: Promise<any>[] = [];
+    const promises: Promise<unknown>[] = [];
 
     const startTime = performance.now();
 
@@ -270,7 +270,7 @@ describe("Media Performance Tests", () => {
       { type: "image/jpeg" }
     );
 
-    const memoryBefore = (performance as any).memory?.usedJSHeapSize || 0;
+    const memoryBefore = (performance as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize || 0;
 
     await uploadMedia(
       {
@@ -282,7 +282,7 @@ describe("Media Performance Tests", () => {
       config
     );
 
-    const memoryAfter = (performance as any).memory?.usedJSHeapSize || 0;
+    const memoryAfter = (performance as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize || 0;
     const memoryDelta = memoryAfter - memoryBefore;
 
     console.log(`Memory delta: ${(memoryDelta / 1024 / 1024).toFixed(2)}MB`);

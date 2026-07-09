@@ -1,32 +1,5 @@
-export interface Address {
-    id: string;
-    profileId: string;
-    label: string;
-    fullName: string;
-    phone: string;
-    line1: string;
-    line2: string | null;
-    city: string;
-    district: string | null;
-    state: string;
-    pincode: string;
-    country: string;
-    isDefault: boolean;
-    createdAt: string;
-}
-export interface AddressInput {
-    label?: string;
-    fullName: string;
-    phone: string;
-    line1: string;
-    line2?: string;
-    city: string;
-    district?: string;
-    state: string;
-    pincode: string;
-    country?: string;
-    isDefault?: boolean;
-}
+import type { Address, AddressInput } from "../../types/address";
+export type { Address, AddressInput };
 export declare const addressesApi: {
     list: () => Promise<{
         addresses: Address[];

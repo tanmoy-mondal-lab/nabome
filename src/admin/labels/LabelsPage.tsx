@@ -60,8 +60,8 @@ export default function LabelsPage() {
     },
     onSuccess: () => {
       setShowModal(false);
-      queryClient.invalidateQueries({ queryKey: ["admin", "labels"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "tags"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "labels"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "tags"] });
       toast(`Successfully saved ${activeTab === "labels" ? "label" : "tag"}`, "success");
     },
     onError: (err: Error) => {
@@ -75,8 +75,8 @@ export default function LabelsPage() {
       else await adminApi.deleteTag(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "labels"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "tags"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "labels"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "tags"] });
       toast(`Successfully deleted ${activeTab === "labels" ? "label" : "tag"}`, "success");
     },
     onError: (err: Error) => {
@@ -110,7 +110,7 @@ export default function LabelsPage() {
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
           <p className="text-sm text-red-700">Failed to load labels or tags</p>
-          <button onClick={() => { refetchLabels(); refetchTags(); }} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+          <button onClick={() => { void refetchLabels(); void refetchTags(); }} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
         </div>
       )}
 

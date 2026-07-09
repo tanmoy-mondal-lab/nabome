@@ -2,10 +2,14 @@
 
 import { useEffect, useCallback } from "react";
 import { useConnectivityStore } from "../store/connectivity-store";
+import type { ConnectivityState } from "../store/connectivity-store";
 import { useCartStore } from "../stores/cart-store";
+import { useCartSync } from "./useCartSync";
 
 export function useConnectivityManager() {
   const { setOnline, setAuthenticated, addToOfflineQueue, clearOfflineQueue: _clearOfflineQueue, setConnectionType, setNotificationShown, setEmergencyMode, isOnline, isAuthenticated, isMobile, isDesktop, emergencyMode } = useConnectivityStore();
+  const { items } = useCartStore();
+  const { mergeGuestCartOnServer } = useCartSync(items);
 
   useEffect(() => {
     const updateConnection = () => {
@@ -18,16 +22,22 @@ export function useConnectivityManager() {
     const detectConnectionType = () => {
       if (typeof navigator === "undefined") return;
       
-      const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
+      const connection = (navigator as { connection?: { type: string; addEventListener?: (event: string, handler: () => void) => void; removeEventListener?: (event: string, handler: () => void) => void }; mozConnection?: { type: string; addEventListener?: (event: string, handler: () => void) => void; removeEventListener?: (event: string, handler: () => void) => void }; webkitConnection?: { type: string; addEventListener?: (event: string, handler: () => void) => void; removeEventListener?: (event: string, handler: () => void) => void } }).connection || (navigator as { mozConnection?: { type: string; addEventListener?: (event: string, handler: () => void) => void; removeEventListener?: (event: string, handler: () => void) => void } }).mozConnection || (navigator as { webkitConnection?: { type: string; addEventListener?: (event: string, handler: () => void) => void; removeEventListener?: (event: string, handler: () => void) => void } }).webkitConnection;
       if (connection) {
-        setConnectionType(connection.type as any);
+        setConnectionType(connection.type as ConnectivityState["connectionType"]);
         
         const updateConnectionType = () => {
-          setConnectionType(connection.type as any);
+          setConnectionType(connection.type as ConnectivityState["connectionType"]);
         };
         
-        connection.addEventListener("change", updateConnectionType);
-        return () => connection.removeEventListener("change", updateConnectionType);
+        if (connection.addEventListener && connection.removeEventListener) {
+          connection.addEventListener("change", updateConnectionType);
+          return () => {
+            if (connection.removeEventListener) {
+              connection.removeEventListener("change", updateConnectionType);
+            }
+          };
+        }
       }
     };
 
@@ -36,6 +46,7 @@ export function useConnectivityManager() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     window.addEventListener("connectionchange", updateConnection);
+    void updateConnection();
 
     return () => {
       window.removeEventListener("online", handleOnline);
@@ -64,16 +75,13 @@ export function useConnectivityManager() {
 
   useEffect(() => {
     const cartSync = async () => {
-      const { items } = useCartStore.getState();
-      
       if (!isOnline && items.length > 0) {
-        const { mergeGuestCart } = useCartStore.getState();
-        addToOfflineQueue(() => mergeGuestCart(items));
+        addToOfflineQueue(() => mergeGuestCartOnServer(items));
       }
     };
 
-    cartSync();
-  }, [isOnline, addToOfflineQueue]);
+    void cartSync();
+  }, [isOnline, addToOfflineQueue, items, mergeGuestCartOnServer]);
 
   useEffect(() => {
     const stabilityTimeout = setTimeout(() => {
@@ -109,10 +117,10 @@ export function useConnectivityManager() {
     isMobile,
     isDesktop,
     emergencyMode,
-    connectionType: useConnectivityStore((s: any) => s.connectionType),
-    offlineQueueSize: useConnectivityStore((s: any) => s.offlineQueue.length),
-    notificationsEnabled: useConnectivityStore((s: any) => s.notificationsEnabled),
-    notificationShown: useConnectivityStore((s: any) => s.notificationShown),
+    connectionType: useConnectivityStore((s) => s.connectionType),
+    offlineQueueSize: useConnectivityStore((s) => s.offlineQueue.length),
+    notificationsEnabled: useConnectivityStore((s) => s.notificationsEnabled),
+    notificationShown: useConnectivityStore((s) => s.notificationShown),
     isRecoverableConnection,
   };
 }

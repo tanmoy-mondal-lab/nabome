@@ -10,16 +10,19 @@ import { useToast } from "../../components/ui/Toast";
 
 interface Announcement {
   id: string;
-  text: string;
-  linkUrl: string | null;
-  linkText: string | null;
-  bgColor: string | null;
-  textColor: string | null;
-  position: string;
-  isActive: boolean;
-  startDate: string | null;
-  endDate: string | null;
-  createdAt: string;
+  text?: string;
+  linkUrl?: string | null;
+  linkText?: string | null;
+  bgColor?: string | null;
+  textColor?: string | null;
+  position?: string;
+  isActive?: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  name?: string;
+  type?: string;
 }
 
 export default function AnnouncementsPage() {
@@ -33,16 +36,16 @@ export default function AnnouncementsPage() {
     position: "top", isActive: true, startDate: "", endDate: "",
   });
 
-  const { data: announcements = [], isLoading: loading, error: queryError } = useQuery<Announcement[]>({
+  const { data: announcements = [], isLoading: loading, error: queryError } = useQuery({
     queryKey: ["admin", "announcements"],
     queryFn: async () => {
       const res = await adminApi.getAnnouncements();
-      return (res.announcements as Announcement[]) ?? [];
+      return res.announcements ?? [];
     },
   });
 
   const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ["admin", "announcements"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin", "announcements"] });
   };
 
   const saveMutation = useMutation({
@@ -98,10 +101,10 @@ export default function AnnouncementsPage() {
   const openEdit = (a: Announcement) => {
     setEditItem(a);
     setForm({
-      text: a.text, linkUrl: a.linkUrl ?? "", linkText: a.linkText ?? "",
-      bgColor: a.bgColor ?? "#000000", textColor: a.textColor ?? "#ffffff",
-      position: a.position,
-      isActive: a.isActive, startDate: a.startDate ?? "", endDate: a.endDate ?? "",
+      text: (a as any).text ?? "", linkUrl: (a as any).linkUrl ?? "", linkText: (a as any).linkText ?? "",
+      bgColor: (a as any).bgColor ?? "#000000", textColor: (a as any).textColor ?? "#ffffff",
+      position: (a as any).position,
+      isActive: (a as any).isActive ?? true, startDate: a.startDate ?? "", endDate: a.endDate ?? "",
     });
     setModalOpen(true);
   };
@@ -150,13 +153,13 @@ export default function AnnouncementsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm text-neutral-900 font-medium truncate">{a.text}</span>
+                        <span className="text-sm text-neutral-900 font-medium truncate">{(a as any).text}</span>
                         <StatusBadge status={a.isActive ? "active" : "inactive"} />
-                        {a.position && <span className="text-xs px-1.5 py-0.5 bg-neutral-100 rounded capitalize">{a.position}</span>}
+                        {(a as any).position && <span className="text-xs px-1.5 py-0.5 bg-neutral-100 rounded capitalize">{(a as any).position}</span>}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-neutral-400">
-                        {a.linkText && a.linkUrl && <span>Link: {a.linkText}</span>}
-                        {a.bgColor && <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>Color: <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 2, backgroundColor: a.bgColor }} /></span>}
+                        {(a as any).linkText && (a as any).linkUrl && <span>Link: {(a as any).linkText}</span>}
+                        {(a as any).bgColor && <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>Color: <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 2, backgroundColor: (a as any).bgColor }} /></span>}
                         {a.startDate && <span>From: {formatDate(a.startDate)}</span>}
                         {a.endDate && <span>Until: {formatDate(a.endDate)}</span>}
                         <span>Created: {formatDate(a.createdAt)}</span>

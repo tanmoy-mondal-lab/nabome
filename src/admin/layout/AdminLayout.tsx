@@ -131,7 +131,7 @@ export default function AdminLayout() {
 
   const handleLogout = async () => {
     await logout();
-    navigate("/auth/login");
+    void navigate("/auth/login");
   };
 
   // Segment-aware active matching: exact match for root, prefix+boundary for children

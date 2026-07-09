@@ -37,6 +37,13 @@ export interface RequestContext {
   requestId?: string;
 }
 
+export function requireEnv(ctx: RequestContext): Env | never {
+  if (!ctx.env) {
+    throw new Error("Environment not available");
+  }
+  return ctx.env;
+}
+
 // Standard error codes for consistent error handling
 export enum ErrorCode {
   // Validation errors (400)

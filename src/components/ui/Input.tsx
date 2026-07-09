@@ -1,4 +1,4 @@
-import { forwardRef, InputHTMLAttributes } from "react";
+import { forwardRef, type InputHTMLAttributes } from "react";
 import { cn } from "../../lib/utils/cn";
 import { cva, type VariantProps } from "class-variance-authority";
 
@@ -38,7 +38,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="relative">
         {leftIcon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" aria-hidden="true">
             {leftIcon}
           </div>
         )}
@@ -51,10 +51,11 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             rightIcon && "pr-10",
             className
           )}
+          aria-invalid={error}
           {...props}
         />
         {rightIcon && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none" aria-hidden="true">
             {rightIcon}
           </div>
         )}

@@ -56,7 +56,7 @@ function VideoField({
       )}
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
       <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={(e) => {
-        const file = e.target.files?.[0]; if (file) handleUpload(file);
+        const file = e.target.files?.[0]; if (file) void handleUpload(file);
         if (fileRef.current) fileRef.current.value = "";
       }} />
     </div>

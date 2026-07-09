@@ -26,11 +26,22 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
       - name: TypeScript Check
-        run: npx tsc --noEmit -p tsconfig.json 2>/dev/null || echo "TypeScript check completed with warnings"
+        run: npm run typecheck
       - name: Lint
-        run: npm run lint 2>/dev/null || echo "Lint completed with warnings"
+        run: npm run lint
       - name: Unit Tests
-        run: npm test 2>/dev/null || echo "No tests to run"
+        run: npm test -- --run
+      - name: Security Audit
+        run: npm audit --audit-level=moderate
+      - name: Dependency Audit
+        run: npx audit-ci --moderate
+      - name: Bundle Size Check
+        run: npm run build
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: dist/
 
   deploy:
     needs: quality
@@ -55,6 +66,12 @@ jobs:
 
       - name: Build
         run: npm run pages:build
+
+      - name: Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v10
+        with:
+          uploadArtifacts: true
+          temporaryPublicStorage: true
 
       - name: Determine deployment branch
         id: branch

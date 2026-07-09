@@ -48,7 +48,7 @@ export default function BrandsPage() {
     },
     onSuccess: () => {
       const wasEditing = !!edit;
-      queryClient.invalidateQueries({ queryKey: ["admin", "brands"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "brands"] });
       setShowModal(false);
       setEdit(null);
       toast(wasEditing ? "Brand updated" : "Brand created", "success");
@@ -59,7 +59,7 @@ export default function BrandsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteBrand(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "brands"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "brands"] });
       toast("Brand deleted", "success");
     },
     onError: () => toast("Failed to delete brand", "error"),
@@ -125,7 +125,7 @@ export default function BrandsPage() {
           <p className="text-sm text-neutral-600">Are you sure you want to delete "{confirmDelete.name}"? This action cannot be undone.</p>
           <div className="flex justify-end gap-2 pt-4 border-t mt-4">
             <button onClick={() => setConfirmDelete(null)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors">Cancel</button>
-            <button onClick={() => { deleteMutation.mutate(confirmDelete.id); setConfirmDelete(null); }} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">Delete</button>
+            <button onClick={() => { void deleteMutation.mutate(confirmDelete.id); setConfirmDelete(null); }} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">Delete</button>
           </div>
         </Modal>
       )}

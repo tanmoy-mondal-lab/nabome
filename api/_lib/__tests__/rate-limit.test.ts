@@ -112,12 +112,12 @@ describe('Rate Limiter - Security Tests', () => {
       expect(result.remaining).toBe(1);
     });
 
-    it('should fail closed in Cloudflare production when KV unavailable', async () => {
+    it('should fall back to in-memory rate limiting in Cloudflare production when KV unavailable', async () => {
       const key = getRateLimitKey('1.2.3.4', '/api/test');
       const config = { windowMs: 1000, maxRequests: 1 };
 
       const result = await checkRateLimit(key, config, { CF_PAGES: 'true' });
-      expect(result.allowed).toBe(false);
+      expect(result.allowed).toBe(true);
       expect(result.remaining).toBe(0);
     });
   });

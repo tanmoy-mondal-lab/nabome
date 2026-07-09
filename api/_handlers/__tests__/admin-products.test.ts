@@ -10,8 +10,12 @@ vi.mock("../../../src/lib/media/cloudinary.service", () => ({
   deleteEntityAssets: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("../../_lib/media-service", () => ({
+  deleteMedia: vi.fn().mockResolvedValue(undefined),
+  deleteEntityMedia: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { getPrisma } from "../../_lib/prisma";
-import { deleteEntityAssets } from "../../../src/lib/media/cloudinary.service";
 import { handleAdminProductRequest } from "../admin/products";
 
 const mockPrisma = createMockPrisma();
@@ -75,12 +79,9 @@ describe("admin products handler", () => {
     expect(mockPrisma.productImage.deleteMany).toHaveBeenCalledWith({
       where: { productId: "prod-1", variantId: { in: ["variant-2"] } },
     });
-    expect(deleteEntityAssets).toHaveBeenCalledWith(
-      expect.arrayContaining(["old-video", "removed-video"]),
-      {},
-      "video"
-    );
-    expect(deleteEntityAssets).toHaveBeenCalledWith(["removed-image"], {});
+    expect(mockPrisma.productVariant.deleteMany).toHaveBeenCalledWith({
+      where: { productId: "prod-1", id: { in: ["variant-2"] } },
+    });
     expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
   });
 });

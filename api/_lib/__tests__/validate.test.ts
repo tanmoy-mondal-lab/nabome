@@ -146,6 +146,7 @@ describe('nameSchema', () => {
 
 describe('addressSchema', () => {
   const validAddress = {
+    fullName: 'John Doe',
     line1: '123 Main St',
     city: 'Mumbai',
     state: 'Maharashtra',
@@ -297,6 +298,7 @@ describe('checkoutSchema', () => {
   it('should accept valid checkout', () => {
     const result = checkoutSchema.safeParse({
       shippingAddress: {
+        fullName: 'John Doe',
         line1: '123 Main St',
         city: 'Mumbai',
         state: 'Maharashtra',
@@ -311,6 +313,7 @@ describe('checkoutSchema', () => {
   it('should reject invalid payment method', () => {
     const result = checkoutSchema.safeParse({
       shippingAddress: {
+        fullName: 'John Doe',
         line1: '123 Main St',
         city: 'Mumbai',
         state: 'Maharashtra',
@@ -325,6 +328,7 @@ describe('checkoutSchema', () => {
   it('should accept cod payment', () => {
     const result = checkoutSchema.safeParse({
       shippingAddress: {
+        fullName: 'John Doe',
         line1: '123 Main St',
         city: 'Mumbai',
         state: 'Maharashtra',
@@ -339,6 +343,7 @@ describe('checkoutSchema', () => {
   it('should accept optional fields', () => {
     const result = checkoutSchema.safeParse({
       shippingAddress: {
+        fullName: 'John Doe',
         line1: '123 Main St',
         city: 'Mumbai',
         state: 'Maharashtra',
@@ -346,6 +351,7 @@ describe('checkoutSchema', () => {
         phone: '9876543210',
       },
       billingAddress: {
+        fullName: 'John Doe',
         line1: '456 Office Rd',
         city: 'Delhi',
         state: 'Delhi',

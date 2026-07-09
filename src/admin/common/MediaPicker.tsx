@@ -44,7 +44,7 @@ export function MediaPicker({
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    doUpload(file);
+    void doUpload(file);
     if (fileRef.current) fileRef.current.value = "";
   }, [doUpload]);
 
@@ -53,7 +53,7 @@ export function MediaPicker({
     setDragOver(false);
     const files = Array.from(e.dataTransfer.files ?? []);
     for (const file of files) {
-      if (file) doUpload(file);
+      if (file) void doUpload(file);
     }
   }, [doUpload]);
 

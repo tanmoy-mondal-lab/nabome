@@ -1,6 +1,7 @@
 // ─────────────────────────────────────────────────────────────
 // API CLIENT — Base HTTP client with auth token injection
 // and automatic 401 → refresh → retry interceptor
+// Consumes Zustand auth store as the single source of truth.
 // ─────────────────────────────────────────────────────────────
 //
 // Convention: all path arguments omit the /api prefix.
@@ -34,99 +35,66 @@ let refreshPromise: Promise<boolean> | null = null;
 const MAX_REFRESH_RETRIES = 2;
 let refreshRetryCount = 0;
 
-function getStoredAuth():
-  | { accessToken: string; refreshToken: string; expiresAt: number }
-  | null {
-  try {
-    if (typeof window === "undefined" || typeof localStorage === "undefined") {
-      return null;
-    }
-    const stored = localStorage.getItem("nabome-auth");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      const state = parsed?.state ?? parsed;
-      if (state?.accessToken) {
-        return {
-          accessToken: state.accessToken,
-          refreshToken: state.refreshToken ?? "",
-          expiresAt: state.expiresAt ?? 0,
-        };
-      }
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function setStoredTokens(
-  accessToken: string,
-  refreshToken: string,
-  expiresAt: number
-): void {
-  try {
-    if (typeof window === "undefined" || typeof localStorage === "undefined") {
-      return;
-    }
-    const stored = localStorage.getItem("nabome-auth");
-    let state: Record<string, unknown> = {};
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      state = parsed?.state ?? parsed;
-    }
-    state.accessToken = accessToken;
-    state.refreshToken = refreshToken;
-    state.expiresAt = expiresAt;
-    localStorage.setItem(
-      "nabome-auth",
-      JSON.stringify({ state })
-    );
-  } catch {
-    // Storage unavailable
-  }
-}
-
-function clearStoredAuth(): void {
-  try {
-    if (typeof window === "undefined" || typeof localStorage === "undefined") {
-      return;
-    }
-    localStorage.removeItem("nabome-auth");
-  } catch {
-    // Storage unavailable
-  }
-}
-
 async function attemptTokenRefresh(): Promise<boolean> {
-  const auth = getStoredAuth();
-  if (!auth?.refreshToken) return false;
+  const { refreshToken, accessToken } = await getAuthStateFromStore();
+  if (!refreshToken) return false;
 
   try {
     const res = await fetch(`${BASE_URL}/auth/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken: auth.refreshToken }),
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({ refreshToken }),
     });
 
     if (!res.ok) {
-      clearStoredAuth();
+      await fireLogout();
       return false;
     }
 
     const json = await res.json();
     const session = json.data?.session ?? json.session;
     if (session?.accessToken) {
-      setStoredTokens(
-        session.accessToken,
-        session.refreshToken,
-        session.expiresAt
-      );
+      await updateTokensInStore(session.accessToken, session.refreshToken, session.expiresAt);
       return true;
     }
     return false;
   } catch {
-    clearStoredAuth();
+    await fireLogout();
     return false;
+  }
+}
+
+async function getAuthStateFromStore(): Promise<{ accessToken: string | null; refreshToken: string | null }> {
+  try {
+    const { useAuthStore } = await import("../../stores/auth-store");
+    const state = useAuthStore.getState();
+    return { accessToken: state.accessToken, refreshToken: state.refreshToken };
+  } catch {
+    return { accessToken: null, refreshToken: null };
+  }
+}
+
+async function updateTokensInStore(accessToken: string, refreshToken: string, expiresAt: number): Promise<void> {
+  try {
+    const { useAuthStore } = await import("../../stores/auth-store");
+    useAuthStore.getState().setTokens(accessToken, refreshToken, expiresAt);
+  } catch {
+    // Store not available
+  }
+}
+
+async function fireLogout(): Promise<void> {
+  try {
+    const { useAuthStore } = await import("../../stores/auth-store");
+    useAuthStore.getState().clearAuth();
+  } catch {
+    // Store not available
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("auth:logout"));
   }
 }
 
@@ -154,15 +122,14 @@ async function request<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  const auth = getStoredAuth();
-  if (auth?.accessToken) {
-    headers.set("Authorization", `Bearer ${auth.accessToken}`);
+  const { accessToken, refreshToken } = await getAuthStateFromStore();
+  if (accessToken) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
   // CSRF token from cookie for state-changing methods
   const method = (fetchOptions.method ?? "GET").toUpperCase();
   if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
-    // Ensure CSRF token is initialized before first state-changing request
     await ensureCsrfToken();
     if (typeof document !== "undefined") {
       const csrfCookie = document.cookie
@@ -192,8 +159,7 @@ async function request<T>(
           : undefined,
   }).finally(() => clearTimeout(timeoutId));
 
-  if (response.status === 401 && auth?.refreshToken) {
-    // ── Auto-refresh on 401 ──
+  if (response.status === 401 && refreshToken) {
     if (!isRefreshing) {
       isRefreshing = true;
       refreshPromise = attemptTokenRefresh();
@@ -204,14 +170,11 @@ async function request<T>(
     refreshPromise = null;
 
     if (refreshed) {
-      // Reset retry count on successful refresh
       refreshRetryCount = 0;
-      // Retry the original request with new token
-      const newAuth = getStoredAuth();
-      if (newAuth?.accessToken) {
-        headers.set("Authorization", `Bearer ${newAuth.accessToken}`);
+      const { accessToken: newToken } = await getAuthStateFromStore();
+      if (newToken) {
+        headers.set("Authorization", `Bearer ${newToken}`);
       }
-      // Create a fresh abort controller for retry (original signal may be aborted by timeout)
       const retryController = new AbortController();
       const retryResponse = await fetch(url.toString(), {
         ...fetchOptions,
@@ -230,7 +193,6 @@ async function request<T>(
       }
 
       if (!retryResponse.ok) {
-        // If we get 401 again on retry, try refresh once more with limit
         if (retryResponse.status === 401 && refreshRetryCount < MAX_REFRESH_RETRIES) {
           refreshRetryCount++;
           return request<T>(endpoint, { ...options, body, params });
@@ -248,8 +210,7 @@ async function request<T>(
     }
 
     refreshRetryCount = 0;
-    clearStoredAuth();
-    window.dispatchEvent(new CustomEvent("auth:logout"));
+    await fireLogout();
     throw new ApiError("Session expired — please log in again", 401);
   }
 

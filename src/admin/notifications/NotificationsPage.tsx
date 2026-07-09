@@ -21,12 +21,15 @@ interface NotificationEntry {
 
 interface NotificationTemplate {
   id: string;
-  event: string;
-  subject: string;
-  emailBody: string | null;
-  smsBody: string | null;
-  inAppBody: string | null;
-  isActive: boolean;
+  name?: string;
+  type?: string;
+  event?: string;
+  subject?: string;
+  emailSubject?: string;
+  emailBody?: string;
+  smsBody?: string;
+  inAppBody?: string;
+  isActive?: boolean;
 }
 
 export default function NotificationsPage() {
@@ -59,7 +62,7 @@ export default function NotificationsPage() {
     queryKey: ["admin", "notificationTemplates"],
     queryFn: async () => {
       const res = await adminApi.getNotificationTemplates();
-      return (res.templates as NotificationTemplate[]) ?? [];
+      return res.templates ?? [];
     },
     enabled: activeTab === "templates",
   });
@@ -72,7 +75,7 @@ export default function NotificationsPage() {
     mutationFn: ({ id, data }: { id: string; data: typeof templateForm }) =>
       adminApi.updateNotificationTemplate(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "notificationTemplates"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "notificationTemplates"] });
       setTemplateModalOpen(false);
       setEditingTemplate(null);
       toast("Template updated", "success");
@@ -84,7 +87,7 @@ export default function NotificationsPage() {
 
   const openEditTemplate = (t: NotificationTemplate) => {
     setEditingTemplate(t);
-    setTemplateForm({ subject: t.subject, emailBody: t.emailBody ?? "", smsBody: t.smsBody ?? "", inAppBody: t.inAppBody ?? "", isActive: t.isActive });
+    setTemplateForm({ subject: t.subject || "", emailBody: t.emailBody ?? "", smsBody: t.smsBody ?? "", inAppBody: t.inAppBody ?? "", isActive: t.isActive ?? true });
     setTemplateModalOpen(true);
   };
 
@@ -122,7 +125,7 @@ export default function NotificationsPage() {
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
           <p className="text-sm text-red-700">Failed to load notifications</p>
-          <button onClick={() => { refetchNotif(); refetchTemplates(); }} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+          <button onClick={() => { void refetchNotif(); void refetchTemplates(); }} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
         </div>
       )}
 
@@ -164,8 +167,8 @@ export default function NotificationsPage() {
               ) : (
                 templates.map((t) => (
                   <tr key={t.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                    <td className="px-4 py-3 font-mono text-xs text-neutral-900">{t.event.replace(/_/g, " ")}</td>
-                    <td className="px-4 py-3 text-neutral-900 max-w-[200px] truncate">{t.subject}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-neutral-900">{(t as any).event || t.type || ""}</td>
+                    <td className="px-4 py-3 text-neutral-900 max-w-[200px] truncate">{(t as any).subject || t.emailSubject || ""}</td>
                     <td className="px-4 py-3 text-xs">{t.emailBody ? <span className="text-green-600">Yes</span> : <span className="text-neutral-300">-</span>}</td>
                     <td className="px-4 py-3 text-xs">{t.smsBody ? <span className="text-green-600">Yes</span> : <span className="text-neutral-300">-</span>}</td>
                     <td className="px-4 py-3 text-xs">{t.inAppBody ? <span className="text-green-600">Yes</span> : <span className="text-neutral-300">-</span>}</td>

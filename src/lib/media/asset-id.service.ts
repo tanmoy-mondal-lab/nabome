@@ -25,8 +25,8 @@ export function generateAssetId(): string {
     // Generate UUID v4
     const uuid = crypto.randomUUID();
     
-    // Take first 13 characters and convert to uppercase
-    const shortId = uuid.slice(0, 13).toUpperCase();
+    // Remove hyphens and take first 13 characters
+    const shortId = uuid.replace(/-/g, '').slice(0, 13).toUpperCase();
     
     // Combine with prefix
     return `${ASSET_ID_PREFIX}${shortId}`;

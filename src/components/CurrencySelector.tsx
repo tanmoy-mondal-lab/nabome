@@ -25,7 +25,7 @@ export function CurrencySelector() {
     staleTime: 1000 * 60 * 30,
   });
 
-  const currencies = ((data as any)?.currencies ?? []) as Currency[];
+  const currencies = ((data as { currencies?: Currency[] })?.currencies ?? []) as Currency[];
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

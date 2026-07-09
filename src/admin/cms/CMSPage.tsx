@@ -72,7 +72,7 @@ function PagesTab() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deletePage(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "cmsPages"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "cmsPages"] });
       toast("Page deleted", "success");
     },
     onError: () => toast("Failed to delete page", "error"),
@@ -142,11 +142,11 @@ function PagesTab() {
       } else {
         await adminApi.createPage(payload);
       }
-      queryClient.invalidateQueries({ queryKey: ["admin", "cmsPages"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "cmsPages"] });
       toast(editingId ? "Page updated" : "Page created", "success");
       setView("list");
       if (slug) {
-        queryClient.invalidateQueries({ queryKey: ["cms", "page", slug] });
+        void queryClient.invalidateQueries({ queryKey: ["cms", "page", slug] });
       }
     } catch {
       toast("Failed to save page", "error");

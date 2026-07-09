@@ -15,9 +15,10 @@ import { uploadMedia, replaceMedia, deleteMedia, deleteEntityMedia } from "../me
 import { getCloudinaryConfigFromEnv } from "../cloudinary.config";
 import { generateAssetId } from "../asset-id.service";
 import { deleteEntityAssets } from "../cloudinary.service";
+import type { CloudinaryConfig } from "../media.types";
 
 describe("Media Integration Tests", () => {
-  let config: any;
+  let config: CloudinaryConfig | undefined;
   let testAssetId: string;
   let testPublicId: string;
   let testEntityId: string;
@@ -29,7 +30,7 @@ describe("Media Integration Tests", () => {
     try {
       config = getCloudinaryConfigFromEnv();
       console.log("Cloudinary config loaded successfully");
-    } catch (error) {
+    } catch {
       console.warn("Cloudinary credentials not found. Skipping integration tests.");
       console.warn("Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET to run integration tests.");
     }

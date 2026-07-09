@@ -5,3 +5,6 @@ export declare function corsHeaders(request: Request): Record<string, string>;
 export declare function cacheControlHeaders(path: string): Record<string, string>;
 export declare function renderStaticHeadersFile(): string;
 export declare function getCompressionHeaders(request: Request): Record<string, string>;
+export declare function generateETag(content: string): string;
+export declare function getETagHeaders(content: string): Record<string, string>;
+export declare function checkETag(request: Request, currentETag: string): boolean;

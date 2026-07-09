@@ -138,7 +138,7 @@ async function handleAdjustVariant(variantId: string, req: Request, env: any): P
     }
 
     return success(movement);
-  } catch (err) { return serverError(err); }
+  } catch (_err) { return serverError(_err); }
 }
 
 async function handleAlerts(req: Request, env: any): Promise<Response> {

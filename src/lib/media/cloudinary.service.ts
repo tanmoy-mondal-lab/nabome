@@ -24,12 +24,12 @@ import {
 /**
  * Logging utility for Cloudinary operations
  */
-function logOperation(operation: string, details: Record<string, unknown>): void {
-  console.log(`[CloudinaryService] ${operation}`, JSON.stringify(details, null, 2));
+function logOperation(_operation: string, _details: Record<string, unknown>): void {
+  // Logging disabled for production
 }
 
-function logError(operation: string, error: unknown): void {
-  console.error(`[CloudinaryService] ${operation} failed:`, error);
+function logError(_operation: string, _error: unknown): void {
+  // Error logging disabled for production
 }
 
 /**
@@ -364,22 +364,22 @@ export async function deleteEntityAssets(
   // Delete images
   try {
     totalDeleted += await deleteFolderAssets(folder, "image", config);
-  } catch (err) {
-    console.error(`[CloudinaryService] Failed to delete images in folder ${folder}:`, err);
+  } catch {
+    // Silent fail - continue with other resource types
   }
 
   // Delete videos
   try {
     totalDeleted += await deleteFolderAssets(folder, "video", config);
-  } catch (err) {
-    console.error(`[CloudinaryService] Failed to delete videos in folder ${folder}:`, err);
+  } catch {
+    // Silent fail - continue with other resource types
   }
 
   // Delete raw files (documents)
   try {
     totalDeleted += await deleteFolderAssets(folder, "raw", config);
-  } catch (err) {
-    console.error(`[CloudinaryService] Failed to delete raw files in folder ${folder}:`, err);
+  } catch {
+    // Silent fail - continue with other resource types
   }
 
   logOperation("deleteEntityAssets complete", { folder, totalDeleted });

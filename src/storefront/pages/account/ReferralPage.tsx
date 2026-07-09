@@ -18,11 +18,11 @@ export default function ReferralPage() {
   });
 
   const code = data?.referralCode?.code;
-  const referralLink = code ? `${window.location.origin}/register?ref=${code}` : "";
+  const referralLink = code ? `${window.location.origin}/auth/register?ref=${code}` : "";
 
   function copyLink() {
     if (!referralLink) return;
-    navigator.clipboard.writeText(referralLink).then(() => {
+    void navigator.clipboard.writeText(referralLink).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -31,7 +31,7 @@ export default function ReferralPage() {
   function shareReferral() {
     if (!referralLink) return;
     if (navigator.share) {
-      navigator.share({ title: "Join নবME", text: "Use my referral code for exclusive benefits!", url: referralLink });
+      void navigator.share({ title: "Join নবME", text: "Use my referral code for exclusive benefits!", url: referralLink });
     } else {
       copyLink();
     }

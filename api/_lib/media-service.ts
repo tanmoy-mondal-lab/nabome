@@ -1,21 +1,19 @@
 import type { Env } from "./env";
-import type { EntityType } from "../../src/lib/media/media.types";
-import { generateAssetId } from "../../src/lib/media/asset-id.service";
-import { getAssetFolder, getEntityFolder } from "../../src/lib/media/folder.service";
-import { cleanSecret } from "./secrets";
-import { getPrisma } from "./prisma";
-import { deleteAsset } from "../../src/lib/media/cloudinary.service";
-import type { CloudinaryConfig } from "../../src/lib/media/media.types";
+import type { EntityType, CloudinaryConfig } from "./media/types";
+import { generateAssetId } from "./media/asset-id";
+import { getAssetFolder, getEntityFolder } from "./media/folder";
 import {
   createMediaAsset,
   replaceMediaAsset,
   deleteMediaAsset as lifecycleDeleteMediaAsset,
   deleteEntityMediaAssets as lifecycleDeleteEntityMediaAssets,
   migrateEntitySlug as lifecycleMigrateEntitySlug,
-} from "../../src/lib/media/lifecycle.service";
-import { validateFile, validateFileContent, throwIfInvalid, getFileTypeConfig } from "../../src/lib/media/validation.service";
+} from "./media/lifecycle";
+import { validateFile, validateFileContent, throwIfInvalid, getFileTypeConfig } from "./media/validation";
+import { deleteAsset } from "./media/cloudinary";
+import { cleanSecret } from "./secrets";
+import { getPrisma } from "./prisma";
 
-// Re-export validation functions for use by upload handler
 export { validateFile, validateFileContent };
 
 function envToCloudinaryConfig(env: Env): CloudinaryConfig {
@@ -80,10 +78,9 @@ export async function uploadMedia(options: UploadOptions, env: Env): Promise<Med
   const config = envToCloudinaryConfig(env);
   const prisma = getPrisma(env);
 
-  // Use the lifecycle service for upload with verification
   const lifecycleResult = await createMediaAsset(
     file,
-    entityType as any,
+    entityType,
     entityId,
     slug,
     config,
@@ -94,7 +91,7 @@ export async function uploadMedia(options: UploadOptions, env: Env): Promise<Med
     const asset = await prisma.mediaAsset.create({
       data: {
         assetId: lifecycleResult.assetId,
-        entityType: entityType as any,
+        entityType,
         entityId,
         url: lifecycleResult.url,
         secureUrl: lifecycleResult.secureUrl,
@@ -164,7 +161,7 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
   // Use the lifecycle service for safe replacement
   const lifecycleResult = await replaceMediaAsset(
     file,
-    entityType as any,
+    entityType,
     entityId,
     slug,
     oldAssetId,
@@ -178,7 +175,7 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
     const newAsset = await prisma.mediaAsset.create({
       data: {
         assetId: lifecycleResult.assetId,
-        entityType: entityType as any,
+        entityType,
         entityId,
         url: lifecycleResult.url,
         secureUrl: lifecycleResult.secureUrl,
@@ -241,7 +238,7 @@ export async function deleteMedia(assetId: string, env: Env): Promise<void> {
       asset.publicId,
       resourceType,
       config,
-      asset.entityType as any,
+      asset.entityType as EntityType,
       asset.entityId,
       asset.folder || undefined
     );
@@ -261,17 +258,16 @@ export async function deleteEntityMedia(entityType: EntityType, entityId: string
 
   const config = envToCloudinaryConfig(env);
 
-  // Use the lifecycle service for safe entity deletion
-  const deletedCount = await lifecycleDeleteEntityMediaAssets(
-    entityType as any,
+  const deleteResult = await lifecycleDeleteEntityMediaAssets(
+    entityType,
     entityId,
     slug,
     config
   );
 
-  await prisma.mediaAsset.deleteMany({ where: { entityType: entityType as any, entityId } });
+  await prisma.mediaAsset.deleteMany({ where: { entityType, entityId } });
 
-  return deletedCount;
+  return deleteResult.deletedCount;
 }
 
 export async function migrateEntitySlug(
@@ -298,9 +294,8 @@ export async function migrateEntitySlug(
     originalFilename: asset.originalFilename || "file",
   }));
 
-  // Use the lifecycle service for safe slug migration
   const result = await lifecycleMigrateEntitySlug(
-    entityType as any,
+    entityType,
     entityId,
     oldSlug,
     newSlug,

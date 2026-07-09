@@ -9,11 +9,11 @@ export interface SEOMetadata {
     canonical?: string;
     noindex?: boolean;
     nofollow?: boolean;
-    structuredData?: Record<string, any>;
+    structuredData?: Record<string, unknown>;
 }
 export declare class SEOManager {
     generateMetadata(metadata: SEOMetadata): Record<string, string>;
-    generateStructuredData(type: string, data: Record<string, any>): string;
+    generateStructuredData(type: string, data: Record<string, unknown>): string;
     generateProductStructuredData(product: {
         name: string;
         description: string;

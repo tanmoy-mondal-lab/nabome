@@ -181,9 +181,9 @@ export class MediaIntegrityService {
       // Get all database assets
       const dbAssets = await this.prisma.mediaAsset.findMany({
         where: options.entityType && options.entityId
-          ? { entityType: options.entityType as any, entityId: options.entityId }
+          ? { entityType: options.entityType as "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users" | "temp", entityId: options.entityId }
           : options.entityType
-          ? { entityType: options.entityType as any }
+          ? { entityType: options.entityType as "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users" | "temp" }
           : undefined,
         select: {
           id: true,
@@ -459,7 +459,7 @@ export class MediaIntegrityService {
             entityId: asset.entityId,
           });
         }
-      } catch (error) {
+      } catch {
         // Assume asset doesn't exist if check fails
         orphanedRecords.push({
           assetId: asset.assetId,
@@ -622,7 +622,7 @@ export class MediaIntegrityService {
           // For other entity types, assume they exist for now
           return true;
       }
-    } catch (error) {
+    } catch {
       return false;
     }
   }

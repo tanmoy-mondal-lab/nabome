@@ -39,7 +39,7 @@ describe('format utilities', () => {
 
     it('should handle object with toString', () => {
       const obj = { toString: () => '1234' };
-      expect(formatPrice(obj as any)).toContain('₹');
+      expect(formatPrice(obj as unknown as string | number | { toString(): string })).toContain('₹');
     });
   });
 
@@ -82,7 +82,7 @@ describe('format utilities', () => {
     });
 
     it('should handle undefined dates', () => {
-      expect(formatDate(undefined as any)).toBe('—');
+      expect(formatDate(undefined as unknown as string | Date | null)).toBe('—');
     });
   });
 

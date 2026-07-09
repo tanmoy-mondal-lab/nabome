@@ -55,7 +55,7 @@ export default function ContactsPage() {
   const markReadMutation = useMutation({
     mutationFn: (id: string) => adminApi.markContactRead(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "contacts"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "contacts"] });
     },
     onError: () => {
       toast("Failed to mark submission as read", "error");
@@ -66,7 +66,7 @@ export default function ContactsPage() {
     mutationFn: (id: string) => adminApi.deleteContactSubmission(id),
     onSuccess: () => {
       setDeleteConfirm(null);
-      queryClient.invalidateQueries({ queryKey: ["admin", "contacts"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "contacts"] });
       toast("Submission deleted", "success");
     },
     onError: () => {
@@ -116,7 +116,7 @@ export default function ContactsPage() {
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
           <p className="text-sm text-red-700">Failed to load submissions</p>
-          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+          <button onClick={() => void refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
         </div>
       )}
 

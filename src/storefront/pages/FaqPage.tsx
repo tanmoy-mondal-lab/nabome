@@ -44,7 +44,7 @@ export default function FaqPage() {
     staleTime: 1000 * 60 * 10,
   });
 
-  const faqGroups = faqData?.faqs ?? {};
+  const faqGroups = useMemo(() => faqData?.faqs ?? {}, [faqData?.faqs]);
   const hasFaqs = Object.keys(faqGroups).length > 0;
 
   const allCategories = useMemo(() => {

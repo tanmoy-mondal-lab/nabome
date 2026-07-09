@@ -1,13 +1,29 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../../lib/api/admin";
 
+interface Referral {
+  id: string;
+  referrerCode?: {
+    profile?: {
+      email?: string;
+    };
+  };
+  referredEmail: string;
+  status: string;
+  createdAt: string;
+}
+
+interface ReferralsResponse {
+  referrals: Referral[];
+}
+
 export default function ReferralsAdminPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "referrals"],
     queryFn: () => api.get("/api/admin/referrals"),
   });
 
-  const referrals = (data as any)?.referrals ?? [];
+  const referrals = (data as ReferralsResponse)?.referrals ?? [];
 
   return (
     <div className="p-6">
@@ -26,7 +42,7 @@ export default function ReferralsAdminPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {referrals.map((ref: any) => (
+              {referrals.map((ref: Referral) => (
                 <tr key={ref.id} className="hover:bg-neutral-50">
                   <td className="px-4 py-3">{ref.referrerCode?.profile?.email || "N/A"}</td>
                   <td className="px-4 py-3">{ref.referredEmail}</td>

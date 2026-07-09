@@ -34,7 +34,7 @@ export default function ResetPasswordPage() {
 
     try {
       await resetPassword(email, code, password);
-      navigate("/auth/login", { state: { reset: true } });
+      void navigate("/auth/login", { state: { reset: true } });
     } catch {
       // Error set by hook
     }

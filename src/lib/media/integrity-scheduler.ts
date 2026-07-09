@@ -112,16 +112,12 @@ export class MediaIntegrityScheduler {
    */
   start(): void {
     if (!this.scheduleConfig.enabled) {
-      console.log("[MediaIntegrityScheduler] Scheduler is disabled in current configuration");
       return;
     }
 
     if (this.isRunning) {
-      console.log("[MediaIntegrityScheduler] Scheduler is already running");
       return;
     }
-
-    console.log(`[MediaIntegrityScheduler] Starting scheduler with interval: ${this.scheduleConfig.intervalMinutes} minutes`);
     
     // Schedule first run
     this.scheduleNextRun();
@@ -137,7 +133,6 @@ export class MediaIntegrityScheduler {
       this.timer = null;
     }
     this.isRunning = false;
-    console.log("[MediaIntegrityScheduler] Scheduler stopped");
   }
 
   /**
@@ -147,7 +142,7 @@ export class MediaIntegrityScheduler {
     const intervalMs = this.scheduleConfig.intervalMinutes * 60 * 1000;
     
     this.timer = setTimeout(() => {
-      this.runScheduledScan().then(() => {
+      void this.runScheduledScan().then(() => {
         if (this.isRunning) {
           this.scheduleNextRun();
         }
@@ -159,8 +154,6 @@ export class MediaIntegrityScheduler {
    * Run a scheduled scan
    */
   private async runScheduledScan(): Promise<ScheduledScanResult> {
-    console.log(`[MediaIntegrityScheduler] Running scheduled scan at ${new Date().toISOString()}`);
-    
     const result: ScheduledScanResult = {
       scanId: crypto.randomUUID(),
       timestamp: new Date(),
@@ -204,13 +197,7 @@ export class MediaIntegrityScheduler {
 
       // Log results
       if (this.scheduleConfig.verboseLogging) {
-        console.log(`[MediaIntegrityScheduler] Scan complete:`, {
-          scanId: result.scanId,
-          duration: result.duration,
-          integrityScore: result.integrityScore,
-          status: result.status,
-          issuesDetected: result.issuesDetected,
-        });
+        // Results available in result object
       }
 
       // Auto-repair if enabled and safe
@@ -224,10 +211,6 @@ export class MediaIntegrityScheduler {
           });
           
           result.autoRepaired = repairResult.assetsRepaired;
-          
-          if (repairResult.assetsRepaired > 0) {
-            console.log(`[MediaIntegrityScheduler] Auto-repaired ${repairResult.assetsRepaired} assets`);
-          }
         } catch (error) {
           result.errors.push(`Auto-repair failed: ${error instanceof Error ? error.message : String(error)}`);
         }
@@ -243,14 +226,12 @@ export class MediaIntegrityScheduler {
 
       // Alert if critical
       if (result.status === "critical") {
-        console.error(`[MediaIntegrityScheduler] CRITICAL: Media integrity score is ${result.integrityScore}%`);
         // In production, you would send an alert here (email, Slack, etc.)
       }
 
     } catch (error) {
       result.duration = Date.now() - startTime;
       result.errors.push(error instanceof Error ? error.message : String(error));
-      console.error("[MediaIntegrityScheduler] Scheduled scan failed:", error);
     }
 
     return result;

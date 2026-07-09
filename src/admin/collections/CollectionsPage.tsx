@@ -43,7 +43,7 @@ export default function CollectionsPage() {
   });
 
   const invalidateCollections = () => {
-    queryClient.invalidateQueries({ queryKey: ["admin", "collections"] });
+    void queryClient.invalidateQueries({ queryKey: ["admin", "collections"] });
   };
 
   const saveMutation = useMutation({

@@ -96,7 +96,7 @@ export function TurnstileWidget({
       }
     }
 
-    renderWidget();
+    void renderWidget();
 
     return () => {
       cancelled = true;

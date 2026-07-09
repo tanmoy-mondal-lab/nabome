@@ -1,4 +1,4 @@
-import { HTMLAttributes, forwardRef } from "react";
+import { type HTMLAttributes, forwardRef } from "react";
 import { cn } from "../../lib/utils/cn";
 import { cva, type VariantProps } from "class-variance-authority";
 
@@ -44,7 +44,7 @@ export interface CardProps
 }
 
 const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, padding, rounded, asChild = false, ...props }, ref) => {
+  ({ className, variant, padding, rounded, asChild: _asChild = false, ...props }, ref) => {
     return (
       <div
         ref={ref}

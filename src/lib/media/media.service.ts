@@ -215,17 +215,16 @@ export async function replaceMedia(
   // Clean up temp upload
   try {
     await deleteAsset(tempResult.publicId, fileConfig.resourceType, config);
-  } catch (cleanupErr) {
-    console.error("[MediaService] Failed to cleanup temp upload:", cleanupErr);
+  } catch {
+    // Silent fail - temp cleanup is non-critical
   }
 
   // Delete old asset if oldPublicId is provided
   if (oldPublicId) {
     try {
       await deleteAsset(oldPublicId, fileConfig.resourceType, config);
-      console.log("[MediaService] Deleted old asset:", oldPublicId);
-    } catch (cleanupErr) {
-      console.error("[MediaService] Failed to delete old asset:", oldPublicId, cleanupErr);
+      // Old asset deleted successfully
+    } catch {
       // Don't throw - the new asset was successfully uploaded
     }
   }
@@ -268,7 +267,7 @@ export async function deleteMedia(
   config: CloudinaryConfig
 ): Promise<DeleteResult> {
   try {
-    const success = await deleteAsset(publicId, resourceType as any, config);
+    const success = await deleteAsset(publicId, resourceType as "image" | "video" | "raw", config);
 
     if (!success) {
       return {
@@ -304,7 +303,7 @@ export async function deleteEntityMedia(
   slug: string,
   config: CloudinaryConfig
 ): Promise<DeleteEntityResult> {
-  const entityFolder = getEntityFolder(entityType as any, slug);
+  const entityFolder = getEntityFolder(entityType as "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users" | "temp", slug);
 
   try {
     const deletedCount = await deleteEntityAssets(entityFolder, config);
@@ -339,7 +338,7 @@ export async function copyMedia(
   config: CloudinaryConfig
 ): Promise<string> {
   const newAssetId = generateAssetId();
-  const targetFolder = getEntityFolder(targetEntityType as any, targetSlug);
+  const targetFolder = getEntityFolder(targetEntityType as "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users" | "temp", targetSlug);
   const targetPublicId = `${targetFolder}/${newAssetId}`;
 
   // Extract resource type from source public ID
@@ -350,7 +349,7 @@ export async function copyMedia(
       sourcePublicId,
       targetPublicId,
       targetFolder,
-      resourceType as any,
+      resourceType as "image" | "video" | "raw",
       config
     );
 
@@ -387,7 +386,7 @@ export async function moveMedia(
   config: CloudinaryConfig
 ): Promise<string> {
   const newAssetId = generateAssetId();
-  const targetFolder = getEntityFolder(targetEntityType as any, targetSlug);
+  const targetFolder = getEntityFolder(targetEntityType as "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users" | "temp", targetSlug);
   const targetPublicId = `${targetFolder}/${newAssetId}`;
 
   // Extract resource type from source public ID
@@ -398,7 +397,7 @@ export async function moveMedia(
       sourcePublicId,
       targetPublicId,
       targetFolder,
-      resourceType as any,
+      resourceType as "image" | "video" | "raw",
       config
     );
 
@@ -432,7 +431,7 @@ export async function getMediaInfo(
   config: CloudinaryConfig
 ) {
   try {
-    return await getAsset(publicId, resourceType as any, config);
+    return await getAsset(publicId, resourceType as "image" | "video" | "raw", config);
   } catch (err) {
     throw new AssetNotFoundError(
       err instanceof Error ? err.message : String(err),
@@ -454,7 +453,7 @@ export async function mediaExists(
   resourceType: string,
   config: CloudinaryConfig
 ): Promise<boolean> {
-  return await assetExists(publicId, resourceType as any, config);
+  return await assetExists(publicId, resourceType as "image" | "video" | "raw", config);
 }
 
 /**
@@ -495,7 +494,7 @@ export async function prepareUploadMetadata(
   const previewAssetId = generateAssetId();
 
   // Generate folder paths
-  const entityFolder = getEntityFolder(entityType as any, slug);
+  const entityFolder = getEntityFolder(entityType as "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users", slug);
   const assetFolder = getAssetFolder(entityFolder, previewAssetId);
 
   // Sanitize filename
@@ -546,7 +545,7 @@ export async function batchUploadMedia(
     try {
       const result = await uploadMedia(
         {
-          entityType: entityType as any,
+          entityType: entityType as "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users" | "temp",
           entityId,
           slug,
           file,
@@ -554,8 +553,7 @@ export async function batchUploadMedia(
         config
       );
       results.push(result);
-    } catch (err) {
-      console.error(`[MediaService] Failed to upload file ${i + 1}:`, err);
+    } catch {
       // Continue with other files even if one fails
       // Could optionally throw here to fail fast
     }

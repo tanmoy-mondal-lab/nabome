@@ -95,11 +95,11 @@ export function useRazorpay(): RazorpayHookResult {
         rzp.on("payment.failed", (response: { error: RazorpayErrorDetails }) => {
           if (settled) return;
           settled = true;
-          const err = new Error(response.error.description || "Payment failed");
-          (err as any).code = response.error.code;
-          (err as any).source = response.error.source;
-          (err as any).step = response.error.step;
-          (err as any).reason = response.error.reason;
+          const err = new Error(response.error.description || "Payment failed") as Error & { code?: string; source?: string; step?: string; reason?: string };
+          err.code = response.error.code;
+          err.source = response.error.source;
+          err.step = response.error.step;
+          err.reason = response.error.reason;
           reject(err);
         });
 

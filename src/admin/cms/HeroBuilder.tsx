@@ -44,15 +44,15 @@ export default function HeroBuilder() {
     setLoading(true);
     try {
       const res = await adminApi.getHomepageSections();
-      const sections = (res.sections as Array<Record<string, unknown>>) ?? [];
+      const sections = res.sections ?? [];
       const heroSection = sections.find((s) => s.sectionType === "hero_slider");
       if (heroSection) {
-        setSectionId(heroSection.id as string);
-        const content = heroSection.content as HeroConfig | null;
+        setSectionId(heroSection.id);
+        const content = (heroSection.content as any as HeroConfig | null) || (typeof heroSection.content === 'string' ? null : heroSection.content as any as HeroConfig | null);
         setConfig({
           slides: normalizeHeroSlides(content?.slides, {
-            title: heroSection.title as string | undefined,
-            subtitle: heroSection.subtitle as string | undefined,
+            title: heroSection.title,
+            subtitle: heroSection.subtitle,
           }),
           interval: content?.interval ?? 7000,
         });

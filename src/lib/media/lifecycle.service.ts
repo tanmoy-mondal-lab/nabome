@@ -46,7 +46,7 @@ import {
 import {
   performSecurityChecks,
   MediaAuthorizationLevel,
-  MediaUserContext,
+  type MediaUserContext,
   authorizeMediaOperation,
   createSafePublicId,
 } from "./security.service";
@@ -276,8 +276,8 @@ export async function createMediaAsset(
     // Rollback: delete the asset if verification fails
     try {
       await deleteAsset(cloudinaryResult.publicId, resourceType, config);
-    } catch (cleanupError) {
-      console.error("[MediaLifecycle] Failed to cleanup failed upload:", cleanupError);
+    } catch {
+      // Silent fail - cleanup is non-critical
     }
     
     throw new VerificationError(
@@ -401,8 +401,8 @@ export async function replaceMediaAsset(
     // Rollback: delete temp upload
     try {
       await deleteAsset(tempResult.publicId, resourceType, config);
-    } catch (cleanupError) {
-      console.error("[MediaLifecycle] Failed to cleanup temp upload on error:", cleanupError);
+    } catch {
+      // Silent fail - temp cleanup is non-critical
     }
     
     logEvent({
@@ -428,8 +428,8 @@ export async function replaceMediaAsset(
     try {
       await deleteAsset(tempResult.publicId, resourceType, config);
       await deleteAsset(finalResult.publicId, resourceType, config);
-    } catch (cleanupError) {
-      console.error("[MediaLifecycle] Failed to cleanup failed replacement:", cleanupError);
+    } catch {
+      // Silent fail - cleanup is non-critical
     }
     
     throw new VerificationError(
@@ -445,7 +445,6 @@ export async function replaceMediaAsset(
       await deleteAsset(oldPublicId, oldResourceType, config);
       oldAssetDeleted = true;
     } catch (error) {
-      console.error(`[MediaLifecycle] Failed to delete old asset ${oldPublicId}:`, error);
       // Don't throw - the new asset was successfully uploaded
       // Log this for manual cleanup
       logEvent({
@@ -465,8 +464,8 @@ export async function replaceMediaAsset(
   // Step 5: Delete temp upload
   try {
     await deleteAsset(tempResult.publicId, resourceType, config);
-  } catch (error) {
-    console.error("[MediaLifecycle] Failed to cleanup temp upload:", error);
+  } catch {
+    // Silent fail - temp cleanup is non-critical
   }
 
   logEvent({
@@ -714,8 +713,8 @@ export async function migrateEntitySlug(
     try {
       await deleteEntityAssets(oldEntityFolder, config);
       result.oldFolderDeleted = true;
-    } catch (error) {
-      console.error(`[MediaLifecycle] Failed to delete old entity folder ${oldEntityFolder}:`, error);
+    } catch {
+      // Silent fail - folder cleanup is non-critical
     }
   }
 

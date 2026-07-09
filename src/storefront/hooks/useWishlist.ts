@@ -29,7 +29,7 @@ export function useWishlist() {
     try {
       const res = await api.get<WishlistResponse>("/wishlist", { signal });
       setItems(res.items ?? []);
-    } catch (err) {
+    } catch {
       if (signal?.aborted) return;
       setItems([]);
       setError("Failed to load wishlist.");
@@ -37,7 +37,7 @@ export function useWishlist() {
     setLoading(false);
   }, [isAuthenticated]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { void fetch(); }, [fetch]);
 
   const add = async (variantId: string) => {
     if (!isAuthenticated) return;

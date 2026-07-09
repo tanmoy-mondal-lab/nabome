@@ -31,7 +31,7 @@ export function useSettings() {
 
   useEffect(() => {
     const handler = () => {
-      queryClient.invalidateQueries({ queryKey: ["settings", "public"] });
+      void queryClient.invalidateQueries({ queryKey: ["settings", "public"] });
     };
     window.addEventListener("settings:updated", handler);
     return () => window.removeEventListener("settings:updated", handler);

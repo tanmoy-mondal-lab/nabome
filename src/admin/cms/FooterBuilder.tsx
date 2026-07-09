@@ -68,8 +68,8 @@ export default function FooterBuilder() {
     },
     onSuccess: () => {
       const wasEditing = !!editItem;
-      queryClient.invalidateQueries({ queryKey: ["admin", "footer"] });
-      queryClient.invalidateQueries({ queryKey: ["cms", "footer"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "footer"] });
+      void queryClient.invalidateQueries({ queryKey: ["cms", "footer"] });
       setModalOpen(false);
       toast(wasEditing ? "Section updated" : "Section created", "success");
     },
@@ -83,8 +83,8 @@ export default function FooterBuilder() {
       await adminApi.deleteFooterSection(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "footer"] });
-      queryClient.invalidateQueries({ queryKey: ["cms", "footer"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "footer"] });
+      void queryClient.invalidateQueries({ queryKey: ["cms", "footer"] });
       toast("Section deleted", "success");
     },
     onError: (err: Error) => {

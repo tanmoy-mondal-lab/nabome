@@ -1,4 +1,4 @@
-import { forwardRef, SelectHTMLAttributes } from "react";
+import { forwardRef, type SelectHTMLAttributes } from "react";
 import { cn } from "../../lib/utils/cn";
 import { cva, type VariantProps } from "class-variance-authority";
 

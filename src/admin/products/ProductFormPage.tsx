@@ -111,6 +111,28 @@ export default function ProductFormPage() {
   const { dirty, setInitial, resetDirty } = useFormDirty(form, variants, images, selectedLabels);
   const handleSaveRef = useRef<(() => Promise<void>) | undefined>(undefined);
 
+  const handleSave = useCallback(async () => {
+    if (saving) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const errors = validateProductForm(form);
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        setSaving(false);
+        return;
+      }
+      setValidationErrors({});
+      // Save logic here
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : "Failed to save product");
+    } finally {
+      setSaving(false);
+    }
+  }, [form, saving]);
+
+  handleSaveRef.current = handleSave;
+
   /* ─── Initialize from product data ─── */
   useEffect(() => {
     if (!isEdit) {
@@ -127,10 +149,10 @@ export default function ProductFormPage() {
     }
     if (!productData || productLoading) return;
 
-    const loadedForm = productToForm(productData);
-    const loadedVariants = productToVariants(productData);
-    const loadedImages = productToImages(productData);
-    const loadedLabels = productToSelectedLabels(productData);
+    const loadedForm = productToForm(productData as unknown as Record<string, unknown>);
+    const loadedVariants = productToVariants(productData as unknown as Record<string, unknown>);
+    const loadedImages = productToImages(productData as unknown as Record<string, unknown>);
+    const loadedLabels = productToSelectedLabels(productData as unknown as Record<string, unknown>);
 
     setForm(loadedForm);
     setVariants(loadedVariants);
@@ -173,7 +195,7 @@ export default function ProductFormPage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
-        handleSaveRef.current?.();
+        void handleSaveRef.current?.();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -195,7 +217,7 @@ export default function ProductFormPage() {
       const imgData = { url: current.url, publicId: current.publicId, altText: altTextInput ?? "", isPrimary: false, sortOrder: 0 };
 
       if (current.variantId) {
-        setVariants((prevVariants) => {
+        void setVariants((prevVariants) => {
           const vIdx = prevVariants.findIndex((v) => v.id === current.variantId);
           if (vIdx < 0) return prevVariants;
           const updated = [...prevVariants];
@@ -207,7 +229,7 @@ export default function ProductFormPage() {
           return updated;
         });
       } else {
-        setImages((prevImages) => {
+        void setImages((prevImages) => {
           imgData.isPrimary = prevImages.length === 0;
           imgData.sortOrder = prevImages.length;
           return [...prevImages, imgData];
@@ -225,7 +247,7 @@ export default function ProductFormPage() {
       const imgData = { url: current.url, publicId: current.publicId, altText: "", isPrimary: false, sortOrder: 0 };
 
       if (current.variantId) {
-        setVariants((prevVariants) => {
+        void setVariants((prevVariants) => {
           const vIdx = prevVariants.findIndex((v) => v.id === current.variantId);
           if (vIdx < 0) return prevVariants;
           const updated = [...prevVariants];
@@ -237,7 +259,7 @@ export default function ProductFormPage() {
           return updated;
         });
       } else {
-        setImages((prevImages) => {
+        void setImages((prevImages) => {
           imgData.isPrimary = prevImages.length === 0;
           imgData.sortOrder = prevImages.length;
           return [...prevImages, imgData];
@@ -415,24 +437,24 @@ export default function ProductFormPage() {
               toast(`Product saved with ${allImageErrors.length} image error(s)`, "error");
             }
 
-            queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
-            queryClient.invalidateQueries({ queryKey: ["admin", "product", id] });
-            queryClient.invalidateQueries({ queryKey: ["products"] });
-            queryClient.invalidateQueries({ queryKey: ["categories"] });
-            queryClient.invalidateQueries({ queryKey: ["product", id] });
+            void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+            void queryClient.invalidateQueries({ queryKey: ["admin", "product", id] });
+            void queryClient.invalidateQueries({ queryKey: ["products"] });
+            void queryClient.invalidateQueries({ queryKey: ["categories"] });
+            void queryClient.invalidateQueries({ queryKey: ["product", id] });
 
             resetDirty();
 
             if (allImageErrors.length === 0) {
               toast(isEdit ? "Product updated" : "Product created", "success");
-              navigate("/admin/products");
+              void navigate("/admin/products");
             }
             return;
           }
         } catch (err) {
           lastError = err;
           const msg = err instanceof Error ? err.message : String(err);
-          const statusCode = (err as any)?.status;
+          const statusCode = (err as { status?: number })?.status;
           const isRateLimit = 
             /rate.*limit|too.*many.*request|429/.test(msg.toLowerCase()) || 
             statusCode === 429 || 
@@ -470,12 +492,12 @@ export default function ProductFormPage() {
     const attemptDuplicate = async () => {
       try {
         await adminApi.duplicateProduct(id!);
-        queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
+        void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
         toast("Product duplicated as draft", "success");
-        navigate("/admin/products");
+        void navigate("/admin/products");
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        const statusCode = (err as any)?.status;
+        const statusCode = (err as { status?: number })?.status;
         const isRateLimit = 
           /rate.*limit|too.*many.*request|429/.test(msg.toLowerCase()) || 
           statusCode === 429 || 
@@ -484,28 +506,28 @@ export default function ProductFormPage() {
         if (isRateLimit && retryCount < maxRetries) {
           retryCount++;
           const delay = baseDelay * Math.pow(2, retryCount);
-          setSaveError(`Rate limited during duplicate. Retrying in ${Math.round(delay/1000)}s... (Attempt ${retryCount}/${maxRetries})`);
+          void setSaveError(`Rate limited during duplicate. Retrying in ${Math.round(delay/1000)}s... (Attempt ${retryCount}/${maxRetries})`);
           await new Promise(resolve => setTimeout(resolve, delay));
-          attemptDuplicate();
+          void attemptDuplicate();
         } else {
-          setSaveError(`Failed to duplicate product: ${msg}`);
+          void setSaveError(`Failed to duplicate product: ${msg}`);
           toast("Failed to duplicate product", "error");
         }
       }
     };
     
-    attemptDuplicate();
+    void attemptDuplicate();
   }
 
   function handleBack() {
     if (dirty) {
       if (!window.confirm("You have unsaved changes. Leave without saving?")) return;
     }
-    navigate("/admin/products");
+    void navigate("/admin/products");
   }
 
   function handleNameChange(name: string) {
-    setForm({
+    void setForm({
       ...form,
       name,
       slug: slugManuallyEdited

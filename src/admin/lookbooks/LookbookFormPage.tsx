@@ -100,7 +100,7 @@ export default function LookbookFormPage() {
   useEffect(() => {
     if (lookbookQuery.error) {
       toast("Failed to load lookbook", "error");
-      navigate("/admin/lookbooks");
+      void navigate("/admin/lookbooks");
     }
   }, [lookbookQuery.error, navigate, toast]);
 
@@ -110,9 +110,9 @@ export default function LookbookFormPage() {
         ? adminApi.updateLookbook(id!, payload)
         : adminApi.createLookbook(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "lookbooks"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "lookbooks"] });
       toast(isEdit ? "Lookbook updated" : "Lookbook created", "success");
-      navigate("/admin/lookbooks");
+      void navigate("/admin/lookbooks");
     },
     onError: () => {
       toast("Failed to save lookbook", "error");

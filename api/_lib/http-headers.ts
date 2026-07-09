@@ -135,3 +135,26 @@ export function getCompressionHeaders(request: Request): Record<string, string> 
   
   return headers;
 }
+
+export function generateETag(content: string): string {
+  // Simple hash-based ETag generation
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    const char = content.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return `"${Math.abs(hash).toString(16)}"`;
+}
+
+export function getETagHeaders(content: string): Record<string, string> {
+  return {
+    "ETag": generateETag(content),
+  };
+}
+
+export function checkETag(request: Request, currentETag: string): boolean {
+  const ifNoneMatch = request.headers.get("if-none-match");
+  if (!ifNoneMatch) return false;
+  return ifNoneMatch === currentETag;
+}

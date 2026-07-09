@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { getPrisma } from "./prisma";
 import type { Env } from "./env";
 
@@ -63,7 +62,7 @@ export class ApiKeyRotationManager {
    */
   async createApiKey(name: string, expiresAt?: Date): Promise<ApiKeyInfo> {
     const key = this.generateApiKey();
-    const hashedKey = this.hashKey(key);
+    const hashedKey = await this.hashKey(key);
 
     try {
       const apiKey = await this.prisma.apiKey.create({
@@ -149,7 +148,7 @@ export class ApiKeyRotationManager {
    * Validate an API key
    */
   async validateApiKey(key: string): Promise<ApiKeyInfo | null> {
-    const hashedKey = this.hashKey(key);
+    const hashedKey = await this.hashKey(key);
 
     try {
       const apiKey = await this.prisma.apiKey.findFirst({
@@ -305,9 +304,14 @@ export class ApiKeyRotationManager {
 
   /**
    * Hash an API key for storage
+   * Uses Web Crypto API for Cloudflare Workers compatibility
    */
-  private hashKey(key: string): string {
-    return createHash('sha256').update(key).digest('hex');
+  private async hashKey(key: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(key);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 }
 

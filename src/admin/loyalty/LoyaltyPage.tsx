@@ -11,10 +11,10 @@ export default function LoyaltyAdminPage() {
   const adjustMutation = useMutation({
     mutationFn: (body: { profileId: string; points: number; reason: string }) =>
       api.post("/api/admin/loyalty/adjust", body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "loyalty"] }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["admin", "loyalty"] }),
   });
 
-  const accounts = (data as any)?.loyaltyAccounts ?? [];
+  const accounts = (data as { loyaltyAccounts?: { id: string; profile?: { email: string }; profileId: string; points: number; tier: string }[] })?.loyaltyAccounts ?? [];
 
   return (
     <div className="p-6">
@@ -33,7 +33,7 @@ export default function LoyaltyAdminPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100">
-              {accounts.map((acc: any) => (
+              {accounts.map((acc: { id: string; profile?: { email: string }; profileId: string; points: number; tier: string }) => (
                 <tr key={acc.id} className="hover:bg-neutral-50">
                   <td className="px-4 py-3">{acc.profile?.email || "N/A"}</td>
                   <td className="px-4 py-3 font-medium">{acc.points}</td>

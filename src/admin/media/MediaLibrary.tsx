@@ -12,27 +12,28 @@ import {
 
 interface Asset {
   id: string;
-  assetId: string;
+  assetId?: string;
   url: string;
   secureUrl?: string;
   publicId?: string;
   type: string;
   resourceType?: string;
-  mimeType: string;
-  altText: string;
-  displayName?: string;
-  entityType: string;
-  entityId: string;
+  mimeType?: string;
+  altText: string | null;
+  displayName?: string | null;
+  entityType?: string | null;
+  entityId?: string | null;
   originalFilename?: string;
   tags: string[];
-  folder: string;
+  folder?: string | null;
   width: number | null;
   height: number | null;
   fileSize: number | null;
   sortOrder: number;
   isPrimary: boolean;
   format: string;
-  createdAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const FILE_ICONS: Record<string, typeof File> = {
@@ -81,8 +82,8 @@ export default function MediaLibrary() {
       if (selectedEntityType !== "all") params.entityType = selectedEntityType;
       const res = await adminApi.getMedia(params);
       return {
-        assets: (res.assets as Asset[]) ?? [],
-        entityTypes: (res.folders as { name: string; count: number }[]) ?? [],
+        assets: res.assets ?? [],
+        entityTypes: res.folders ?? [],
       };
     },
   });
@@ -93,7 +94,7 @@ export default function MediaLibrary() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteMedia(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
       toast("Asset deleted", "success");
     },
     onError: () => {
@@ -105,7 +106,7 @@ export default function MediaLibrary() {
     mutationFn: ({ id, data }: { id: string; data: { altText?: string; displayName?: string; sortOrder?: number; isPrimary?: boolean } }) =>
       adminApi.updateMedia(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
       setEditAsset(null);
       toast("Asset updated", "success");
     },
@@ -133,7 +134,7 @@ export default function MediaLibrary() {
     setUploadModalOpen(false);
     setUploadQueue([]);
     if (completed > 0) {
-      queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
     }
     if (completed > 0 && failed > 0) {
       toast(`${completed} uploaded, ${failed} failed`, "error");
@@ -186,7 +187,7 @@ export default function MediaLibrary() {
   };
 
   const copyUrl = (url: string) => {
-    navigator.clipboard.writeText(url);
+    void navigator.clipboard.writeText(url);
   };
 
   const openUploadModal = () => {
@@ -196,7 +197,7 @@ export default function MediaLibrary() {
   const openEdit = (asset: Asset) => {
     setEditAsset(asset);
     setEditForm({
-      altText: asset.altText,
+      altText: asset.altText || "",
       displayName: asset.displayName || "",
       sortOrder: asset.sortOrder || 0,
       isPrimary: asset.isPrimary || false,
@@ -213,7 +214,7 @@ export default function MediaLibrary() {
   };
 
   const confirmUpload = () => {
-    doUpload(uploadQueue);
+    void doUpload(uploadQueue);
   };
 
   const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
@@ -324,7 +325,7 @@ export default function MediaLibrary() {
               <div key={asset.id} className="group relative bg-white border border-neutral-200 rounded overflow-hidden">
                 <div className="aspect-square bg-neutral-100 cursor-pointer" onClick={() => setPreview(asset)}>
                   {asset.type === "image" ? (
-                    <SafeImage src={asset.url} alt={asset.altText} className="w-full h-full object-cover" useTransform={false} />
+                    <SafeImage src={asset.url} alt={asset.altText || ""} className="w-full h-full object-cover" useTransform={false} />
                   ) : asset.type === "video" ? (
                     <div className="relative w-full h-full flex items-center justify-center bg-neutral-900">
                       <video src={asset.url} className="w-full h-full object-cover opacity-70" />
@@ -414,7 +415,7 @@ export default function MediaLibrary() {
         {preview && (
           <div className="space-y-4">
             {preview.type === "image" ? (
-              <SafeImage src={preview.url} alt={preview.altText}
+              <SafeImage src={preview.url} alt={preview.altText || ""}
                 className="w-full max-h-96 object-contain bg-neutral-50 rounded" useTransform={false} />
             ) : preview.type === "video" ? (
               <video src={preview.url} controls className="w-full max-h-96 rounded bg-neutral-900" />
@@ -443,7 +444,7 @@ export default function MediaLibrary() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => { navigator.clipboard.writeText(preview.url); }}
+              <button onClick={() => { void navigator.clipboard.writeText(preview.url); }}
                 className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium hover:bg-neutral-800">
                 Copy URL
               </button>

@@ -85,7 +85,10 @@ export declare function useProductDropdowns(): {
     labels: import("@tanstack/react-query").UseQueryResult<NoInfer<DropdownItem[]>, Error>;
     sizeGuides: import("@tanstack/react-query").UseQueryResult<NoInfer<DropdownItem[]>, Error>;
 };
-export declare function useProduct(id: string | undefined): import("@tanstack/react-query").UseQueryResult<NoInfer<Record<string, unknown> | null>, Error>;
+export declare function useProduct(id: string | undefined): import("@tanstack/react-query").UseQueryResult<NoInfer<(import("../../../types").Product & {
+    variants: import("../../../types").ProductVariant[];
+    images: import("../../../types").ProductImage[];
+}) | null>, Error>;
 export declare function buildDefaultForm(): ProductFormData;
 export declare function productToForm(p: Record<string, unknown>): ProductFormData;
 export declare function productToVariants(p: Record<string, unknown>): Variant[];

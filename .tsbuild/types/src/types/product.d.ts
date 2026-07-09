@@ -1,30 +1,32 @@
 export interface ProductImage {
-    id?: string;
+    id: string;
+    productId: string;
+    variantId?: string;
     url: string;
     publicId?: string;
     altText?: string;
-    sortOrder?: number;
-    isPrimary?: boolean;
+    sortOrder: number;
+    isPrimary: boolean;
     type?: string;
 }
 export interface ProductVariant {
     id: string;
-    productId?: string;
+    productId: string;
     sku: string;
     size: string;
     color: string;
     colorHex?: string;
     priceAdjustment: number;
     stock: number;
-    reservedStock?: number;
+    reservedStock: number;
     weight?: number;
     videoUrl?: string;
     videoPublicId?: string;
-    isActive?: boolean;
+    isActive: boolean;
     images?: ProductImage[];
 }
 export interface ProductLabel {
-    id?: string;
+    id: string;
     name: string;
     slug?: string;
     color?: string;
@@ -41,8 +43,8 @@ export interface Category {
     imageUrl?: string;
     imagePublicId?: string;
     parentId?: string;
-    sortOrder?: number;
-    isActive?: boolean;
+    sortOrder: number;
+    isActive: boolean;
 }
 export interface Brand {
     id: string;
@@ -52,8 +54,8 @@ export interface Brand {
     logoUrl?: string;
     logoPublicId?: string;
     websiteUrl?: string;
-    sortOrder?: number;
-    isActive?: boolean;
+    sortOrder: number;
+    isActive: boolean;
 }
 export interface ReviewStats {
     averageRating: number;
@@ -74,17 +76,17 @@ export interface Product {
     costPrice?: number;
     salePrice?: number;
     discountPercent?: number;
-    currency?: string;
+    currency: string;
     material?: string;
     careInstructions?: string;
     sizeChartUrl?: string;
     sizeChartPublicId?: string;
     sizeGuideId?: string;
-    isActive?: boolean;
-    isFeatured?: boolean;
-    isNew?: boolean;
-    gender?: string;
-    sortOrder?: number;
+    isActive: boolean;
+    isFeatured: boolean;
+    isNew: boolean;
+    gender: string;
+    sortOrder: number;
     publishedAt?: string;
     metaTitle?: string;
     metaDesc?: string;
@@ -130,4 +132,14 @@ export interface SearchResponse {
         total: number;
         totalPages: number;
     };
+}
+export interface Collection {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    heroImageUrl?: string;
+    isActive: boolean;
+    isFeatured: boolean;
+    sortOrder: number;
 }

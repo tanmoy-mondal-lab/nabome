@@ -6,7 +6,8 @@
 
 import { useEffect, useRef } from "react";
 import { cn } from "../../lib/utils/cn";
-import { useEscapeHandler, useFocusTrap } from "../../hooks/useKeyboardNavigation";
+import { useEscapeHandler } from "../../hooks/useKeyboardNavigation";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface DialogProps {
   isOpen: boolean;

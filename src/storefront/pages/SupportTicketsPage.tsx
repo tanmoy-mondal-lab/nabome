@@ -70,7 +70,7 @@ export default function SupportTicketsPage() {
       orderId: createForm.orderId || undefined,
     }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer", "support-tickets"] });
+      void queryClient.invalidateQueries({ queryKey: ["customer", "support-tickets"] });
       setShowCreate(false);
       setCreateForm({ subject: "", message: "", orderId: "" });
     },
@@ -85,7 +85,7 @@ export default function SupportTicketsPage() {
   const replyMutation = useMutation({
     mutationFn: () => customerApi.addSupportReply(selectedTicket!, { message: replyText }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customer", "support-ticket", selectedTicket] });
+      void queryClient.invalidateQueries({ queryKey: ["customer", "support-ticket", selectedTicket] });
       setReplyText("");
     },
   });

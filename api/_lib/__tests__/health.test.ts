@@ -9,6 +9,26 @@ vi.mock("../../_lib/prisma", () => ({
   })),
 }));
 
+vi.mock("../../_lib/job-queue", () => ({
+  getJobQueueStats: vi.fn().mockResolvedValue({
+    pending: 0,
+    processing: 0,
+    completed: 0,
+    failed: 0,
+  }),
+}));
+
+vi.mock("../../_lib/health-monitor", () => ({
+  healthMonitor: {
+    getMetrics: vi.fn(() => ({
+      uptime: 100,
+      requestCount: 10,
+      errorRate: 0,
+      averageResponseTime: 100,
+    })),
+  },
+}));
+
 vi.mock("@supabase/supabase-js", () => ({
   createClient: vi.fn(() => ({
     auth: {
@@ -23,7 +43,6 @@ import { GET } from "../../health";
 
 describe("health endpoint probes", () => {
   const env = {
-    CF_PAGES: "true",
     DATABASE_URL: "postgres://example",
     SUPABASE_URL: "https://example.supabase.co",
     SUPABASE_ANON_KEY: "anon-key",
@@ -90,9 +109,9 @@ describe("health endpoint probes", () => {
       env: {
         CF_PAGES: "true",
         DATABASE_URL: "postgres://example",
-      } as never,
+      } as any,
     });
-    const body = await res.json() as Record<string, any>;
+    const body = await res.json() as { status: string; checks: { supabase: { configured: boolean }; payments: { configured: boolean }; email: { configured: boolean }; media: { configured: boolean } } };
 
     expect(res.status).toBe(503);
     expect(body.status).toBe("degraded");

@@ -92,7 +92,7 @@ export default function OrderDetailPage() {
 
   const cancelMutation = useMutation({
     mutationFn: () => customerApi.cancelOrder(id!),
-    onSuccess: () => { qClient.invalidateQueries({ queryKey: ["customer", "order", id] }); setCancelError(null); },
+    onSuccess: () => { void qClient.invalidateQueries({ queryKey: ["customer", "order", id] }); setCancelError(null); },
     onError: () => setCancelError("Failed to cancel order. Please try again."),
   });
 

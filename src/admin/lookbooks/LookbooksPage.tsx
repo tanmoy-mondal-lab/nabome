@@ -48,7 +48,7 @@ export default function LookbooksPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteLookbook(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "lookbooks"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "lookbooks"] });
     },
     onError: () => {
       toast("Failed to delete lookbook", "error");
@@ -117,7 +117,7 @@ export default function LookbooksPage() {
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
           <p className="text-sm text-red-700">Failed to load lookbooks</p>
-          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+          <button onClick={() => void refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
         </div>
       )}
 
@@ -130,7 +130,7 @@ export default function LookbooksPage() {
         actions={(l) => (
           <div className="flex justify-end gap-1">
             <button
-              onClick={(e) => { e.stopPropagation(); navigate(`/admin/lookbooks/${l.id}/edit`); }}
+              onClick={(e) => { e.stopPropagation(); void navigate(`/admin/lookbooks/${l.id}/edit`); }}
               className="p-2 hover:bg-neutral-100 rounded-xl text-neutral-400 hover:text-neutral-600"
             >
               <Edit3 size={14} />

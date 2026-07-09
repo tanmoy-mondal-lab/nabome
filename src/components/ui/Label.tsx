@@ -1,4 +1,4 @@
-import { forwardRef, LabelHTMLAttributes } from "react";
+import { forwardRef, type LabelHTMLAttributes } from "react";
 import { cn } from "../../lib/utils/cn";
 import { cva, type VariantProps } from "class-variance-authority";
 

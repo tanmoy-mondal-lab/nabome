@@ -67,7 +67,7 @@ export default function CategoriesPage() {
         ? adminApi.updateCategory(editItem.id, data)
         : adminApi.createCategory(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
       setModalOpen(false);
       toast(editItem ? "Category updated" : "Category created", "success");
     },
@@ -79,7 +79,7 @@ export default function CategoriesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteCategory(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
       toast("Category deleted", "success");
     },
     onError: (err: Error) => {
@@ -94,7 +94,7 @@ export default function CategoriesPage() {
         ? adminApi.updateSubcategory(editSubItem.id, data)
         : adminApi.createSubcategory(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
       setSubModalOpen(false);
       setEditSubItem(null);
       toast(editSubItem ? "Subcategory updated" : "Subcategory created", "success");
@@ -107,7 +107,7 @@ export default function CategoriesPage() {
   const deleteSubMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteSubcategory(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "categories"] });
       toast("Subcategory deleted", "success");
     },
     onError: (err: Error) => {

@@ -88,7 +88,7 @@ export default function MediaHealth() {
   }, [fetchHealth]);
 
   useEffect(() => {
-    fetchHealth();
+    void fetchHealth();
   }, [fetchHealth]);
 
   const getStatusColor = (status: string) => {

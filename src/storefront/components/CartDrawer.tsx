@@ -28,12 +28,12 @@ export function CartDrawer() {
 
   function handleCheckout() {
     closeCart();
-    navigate("/checkout");
+    void navigate("/checkout");
   }
 
   function handleViewCart() {
     closeCart();
-    navigate("/cart");
+    void navigate("/cart");
   }
 
   return (

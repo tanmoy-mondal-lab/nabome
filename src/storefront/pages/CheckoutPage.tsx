@@ -292,23 +292,24 @@ export default function CheckoutPage() {
           setOrderId((order.id ?? order.orderId) as string);
           clearCart();
           setStep("success");
-        } catch (payErr: any) {
-          if (payErr?.code) {
+        } catch (payErr: unknown) {
+          if (payErr && typeof payErr === "object" && "code" in payErr) {
+            const err = payErr as { code?: string; description?: string; message?: string };
             await customerApi.reportPaymentFailed({
               orderId: (order.id ?? order.orderId) as string,
               razorpayOrderId: razorpayOrderId!,
-              errorDescription: payErr.description || payErr.message,
+              errorDescription: err.description || err.message,
             });
-            setApiError(`Payment failed: ${payErr.description || "Please try again."}`);
-          } else if (payErr?.message === "Payment cancelled") {
+            setApiError(`Payment failed: ${err.description || "Please try again."}`);
+          } else if (payErr && typeof payErr === "object" && "message" in payErr && (payErr as { message: string }).message === "Payment cancelled") {
             setApiError("Payment was cancelled. You can try again.");
           } else {
-            setApiError(payErr?.message || "Payment failed. Please try again.");
+            setApiError(payErr && typeof payErr === "object" && "message" in payErr ? (payErr as { message: string }).message : "Payment failed. Please try again.");
           }
         }
       }
-    } catch (err: any) {
-      setApiError(err?.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      setApiError(err && typeof err === "object" && "message" in err ? (err.message as string) : "Something went wrong. Please try again.");
     }
     setProcessing(false);
   }

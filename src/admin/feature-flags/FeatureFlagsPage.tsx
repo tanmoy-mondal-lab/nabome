@@ -3,13 +3,13 @@ import { api } from "../../lib/api/admin";
 import { FEATURE_FLAGS, type FeatureFlag, type FeatureFlagConfig } from "../../../scripts/feature-flags";
 
 export default function FeatureFlagsPage() {
-  const [flags, setFlags] = useState<Record<FeatureFlag, boolean>>({} as any);
+  const [flags, setFlags] = useState<Record<FeatureFlag, boolean>>({} as Record<FeatureFlag, boolean>);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     api.get("/api/admin/feature-flags")
-      .then((res: any) => { setFlags(res.flags || {}); })
+      .then((res: unknown) => { setFlags(((res as { flags?: Record<FeatureFlag, boolean> }).flags || {}) as Record<FeatureFlag, boolean>); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

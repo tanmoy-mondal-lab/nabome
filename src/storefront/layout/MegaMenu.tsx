@@ -116,8 +116,8 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
                   role="button"
                   tabIndex={0}
                   className="relative md:aspect-[4/3] aspect-[4/3] bg-neutral-100 overflow-hidden md:rounded-none rounded-2xl group cursor-pointer"
-                  onClick={() => { const u = activeItem.link || activeItem.url; if (u) navigate(u); setActiveMegaMenu(null); }}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const u = activeItem.link || activeItem.url; if (u) navigate(u); setActiveMegaMenu(null); } }}
+                  onClick={() => { const u = activeItem.link || activeItem.url; if (u) void navigate(u); setActiveMegaMenu(null); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const u = activeItem.link || activeItem.url; if (u) void navigate(u); setActiveMegaMenu(null); } }}
                 >
                   <SafeImage src={activeItem.image} alt={activeItem.description || "Featured collection"} responsive className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
@@ -179,8 +179,8 @@ export function MegaMenu({ label, menus }: { label: string; menus?: NavItem[] })
                     role="button"
                     tabIndex={0}
                     className="relative md:aspect-[4/3] aspect-[4/3] bg-neutral-100 overflow-hidden md:rounded-none rounded-2xl group cursor-pointer mb-4"
-                    onClick={() => { const u = activeItem.link || activeItem.url; if (u) navigate(u); setActiveMegaMenu(null); }}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const u = activeItem.link || activeItem.url; if (u) navigate(u); setActiveMegaMenu(null); } }}
+                    onClick={() => { const u = activeItem.link || activeItem.url; if (u) void navigate(u); setActiveMegaMenu(null); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const u = activeItem.link || activeItem.url; if (u) void navigate(u); setActiveMegaMenu(null); } }}
                   >
                   <SafeImage src={activeItem.image} alt={activeItem.description || "Featured collection"} responsive premium className="w-full h-full object-cover md:group-hover:scale-[1.03] group-hover:scale-105 transition-transform duration-700" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />

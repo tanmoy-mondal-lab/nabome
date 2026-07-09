@@ -296,8 +296,8 @@ export function VariantManager({
                               >
                                 <Film size={9} /> {v.videoUrl ? "Added" : "Video"}
                               </button>
-                              <input ref={(el) => { variantImageRefs.current[v.id] = el; }} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleVariantImageUpload(v.id, f); }} />
-                              <input ref={(el) => { variantVideoRefs.current[v.id] = el; }} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleVariantVideoUpload(v.id, f); }} />
+                              <input ref={(el) => { variantImageRefs.current[v.id] = el; }} type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleVariantImageUpload(v.id, f); }} />
+                              <input ref={(el) => { variantVideoRefs.current[v.id] = el; }} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleVariantVideoUpload(v.id, f); }} />
                             </div>
                           </div>
 

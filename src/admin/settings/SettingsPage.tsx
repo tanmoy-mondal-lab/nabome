@@ -92,9 +92,9 @@ export default function SettingsPage() {
       return adminApi.createPage(payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "cmsPages"] });
-      queryClient.invalidateQueries({ queryKey: ["cms"] });
-      queryClient.invalidateQueries({ queryKey: ["cms", "policyPages"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "cmsPages"] });
+      void queryClient.invalidateQueries({ queryKey: ["cms"] });
+      void queryClient.invalidateQueries({ queryKey: ["cms", "policyPages"] });
       setEditingSlug(null);
       setPageSaving(false);
       toast("Page saved", "success");
@@ -174,8 +174,8 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       await adminApi.updateSettings(form);
-      queryClient.invalidateQueries({ queryKey: ["settings", "public"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
+      void queryClient.invalidateQueries({ queryKey: ["settings", "public"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "settings"] });
       window.dispatchEvent(new Event("settings:updated"));
       toast("Settings saved successfully", "success");
     } catch (error) {

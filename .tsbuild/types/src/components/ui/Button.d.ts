@@ -1,8 +1,8 @@
-import { ButtonHTMLAttributes } from "react";
+import { type ButtonHTMLAttributes } from "react";
 import { type VariantProps } from "class-variance-authority";
 declare const buttonVariants: (props?: ({
-    variant?: "link" | "outline" | "primary" | "gold" | "secondary" | "ghost" | "gold-outline" | null | undefined;
-    size?: "icon" | "sm" | "md" | "lg" | "xl" | null | undefined;
+    variant?: "link" | "ghost" | "primary" | "secondary" | "outline" | "gold" | "gold-outline" | null | undefined;
+    size?: "sm" | "md" | "lg" | "xl" | "icon" | null | undefined;
     fullWidth?: boolean | null | undefined;
 } & import("class-variance-authority/types").ClassProp) | undefined) => string;
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {

@@ -66,12 +66,12 @@ export default function AddressesPage() {
 
   const createMutation = useMutation({
     mutationFn: (body: typeof form) => customerApi.createAddress(body),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["customer", "addresses"] }); closeModal(); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["customer", "addresses"] }); closeModal(); },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Partial<typeof form> }) => customerApi.updateAddress(id, body),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["customer", "addresses"] }); closeModal(); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["customer", "addresses"] }); closeModal(); },
   });
 
   const deleteMutation = useMutation({

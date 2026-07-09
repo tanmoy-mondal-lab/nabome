@@ -48,7 +48,7 @@ export default function SocialLinksPage() {
     },
     onSuccess: () => {
       const wasEditing = !!editItem;
-      queryClient.invalidateQueries({ queryKey: ["admin", "socialLinks"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "socialLinks"] });
       setModalOpen(false);
       setEditItem(null);
       toast(wasEditing ? "Social link updated" : "Social link created", "success");
@@ -63,7 +63,7 @@ export default function SocialLinksPage() {
       await adminApi.deleteSocialLink(id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "socialLinks"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "socialLinks"] });
       setDeleteConfirm(null);
       toast("Social link deleted", "success");
     },
@@ -140,7 +140,7 @@ export default function SocialLinksPage() {
         <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
           <p className="text-sm text-red-700">Failed to load social links</p>
-          <button onClick={() => refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
+          <button onClick={() => void refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
         </div>
       )}
 

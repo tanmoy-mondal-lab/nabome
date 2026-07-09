@@ -44,7 +44,7 @@ export default function SupportTicketsPage() {
   }, [page, statusFilter]);
 
   useEffect(() => { setPage(1); }, [statusFilter]);
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { void fetch(); }, [fetch]);
 
   const statuses = ["", "open", "in_progress", "resolved", "closed"];
 

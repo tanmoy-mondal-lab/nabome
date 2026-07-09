@@ -26,7 +26,7 @@ export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBo
 
   function handleAddAll() {
     if (!isAuthenticated) {
-      navigate("/auth/login", { state: { from: typeof window !== 'undefined' ? window.location.pathname : '/' } });
+      void navigate("/auth/login", { state: { from: typeof window !== 'undefined' ? window.location.pathname : '/' } });
       return;
     }
     const all = [mainProduct, ...products];
@@ -48,7 +48,7 @@ export function FrequentlyBoughtTogether({ products, mainProduct }: FrequentlyBo
         store.removeItem(variantId);
       }
 
-      addItem({
+      void addItem({
         productId: p.id,
         variantId,
         name: p.name,

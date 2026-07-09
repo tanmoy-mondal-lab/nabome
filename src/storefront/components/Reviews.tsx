@@ -30,7 +30,7 @@ export function Reviews({ productId, slug }: ReviewsProps) {
   const submitMutation = useMutation({
     mutationFn: (body: { productId: string; rating: number; title: string; body: string }) =>
       api.post("/api/reviews", body),
-    onSuccess: () => { setShowForm(false); setForm({ rating: 5, title: "", body: "" }); setAllReviews([]); setPage(1); refetch(); },
+    onSuccess: () => { setShowForm(false); setForm({ rating: 5, title: "", body: "" }); setAllReviews([]); setPage(1); void refetch(); },
   });
 
   const reviews = page === 1 ? (data?.reviews ?? []) : [...allReviews, ...(data?.reviews ?? [])];

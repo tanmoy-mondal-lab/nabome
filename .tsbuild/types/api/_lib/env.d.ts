@@ -35,5 +35,25 @@ export interface Env {
     HYPERDRIVE?: {
         connectionString: string;
     };
+    CACHE?: {
+        get: (key: string) => Promise<string | null>;
+        put: (key: string, value: string, opts?: {
+            expirationTtl?: number;
+            metadata?: {
+                tags?: string[];
+            };
+        }) => Promise<void>;
+        delete: (key: string) => Promise<void>;
+        list: (opts?: {
+            prefix?: string;
+        }) => Promise<{
+            keys: {
+                name: string;
+            }[];
+        }>;
+        getMetadata: (key: string) => Promise<{
+            tags?: string[];
+        } | null>;
+    };
 }
 export declare function getEnv(): Env;

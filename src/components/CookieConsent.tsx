@@ -27,18 +27,19 @@ export function CookieConsent() {
         const parsed = JSON.parse(savedConsent);
         setConsent(parsed);
         applyConsent(parsed);
-      } catch (e) {
+      } catch {
         setIsVisible(true);
       }
     }
+     
   }, []);
 
   const applyConsent = (consentData: ConsentType) => {
     if (!consentData.analytics) {
-      (window as any)["ga-disable-G-XXXXXXXXXX"] = true;
+      (window as unknown as Record<string, unknown>)["ga-disable-G-XXXXXXXXXX"] = true;
     }
     // Log consent for GDPR compliance
-    logConsent(consentData);
+    void logConsent(consentData);
   };
 
   const logConsent = async (consentData: ConsentType) => {
@@ -54,7 +55,7 @@ export function CookieConsent() {
           userAgent: navigator.userAgent,
         }),
       });
-    } catch (error) {
+    } catch {
       // Silently fail - consent logging not critical
     }
   };

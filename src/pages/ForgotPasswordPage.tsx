@@ -107,7 +107,7 @@ export default function ForgotPasswordPage() {
     }
     try {
       await resetPassword(email, otp.join(""), password);
-      navigate("/auth/login", { state: { reset: true } });
+      void navigate("/auth/login", { state: { reset: true } });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to reset password");
     }

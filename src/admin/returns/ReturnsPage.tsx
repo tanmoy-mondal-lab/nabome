@@ -64,7 +64,7 @@ export default function ReturnsPage() {
   }, [page, activeTab]);
 
   useEffect(() => { setPage(1); }, [activeTab]);
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { void fetch(); }, [fetch]);
 
   const handleAction = (returnItem: ReturnEntry, action: "approve" | "reject") => {
     setSelectedReturn(returnItem);
@@ -83,7 +83,7 @@ export default function ReturnsPage() {
         await adminApi.rejectReturn(selectedReturn.id, { adminNote });
       }
       setModalOpen(false);
-      fetch();
+      void fetch();
     } catch {
       setFetchError("Failed to process return action");
     } finally {

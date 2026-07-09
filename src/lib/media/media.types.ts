@@ -30,7 +30,8 @@ export type EntityType =
   | "blogs"
   | "cms"
   | "sellers"
-  | "users";
+  | "users"
+  | "temp";
 
 /**
  * Upload options for media upload operations

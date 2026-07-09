@@ -36,20 +36,20 @@ export default function SubscriptionPage() {
 
   const subscribeMutation = useMutation({
     mutationFn: (planId: string) => api.post("/api/subscriptions/create", { planId }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["subscriptions"] }); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["subscriptions"] }); },
   });
 
   const cancelMutation = useMutation({
     mutationFn: () => api.post("/api/subscriptions/cancel", {}),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
+      void queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
       setShowCancel(false);
     },
   });
 
-  const plans = (plansData as any)?.plans ?? [];
-  const mySub = (mySubData as any)?.subscription;
-  const invoices = (invoicesData as any)?.invoices ?? [];
+  const plans = (plansData as { plans?: Plan[] })?.plans ?? [];
+  const mySub = (mySubData as { subscription?: { plan?: { name: string }; currentPeriodEnd?: string } })?.subscription;
+  const invoices = (invoicesData as { invoices?: { id: string; amount: number | string; createdAt: string; status: string }[] })?.invoices ?? [];
 
   return (
     <div className="container-page py-8">
@@ -123,7 +123,7 @@ export default function SubscriptionPage() {
             <div>
               <h3 className="text-sm font-medium text-neutral-900 mb-4 uppercase tracking-wide">Billing History</h3>
               <div className="space-y-2">
-                {invoices.map((inv: any) => (
+                {invoices.map((inv) => (
                   <div key={inv.id} className="flex items-center justify-between py-3 px-4 bg-neutral-50 rounded">
                     <div>
                       <p className="text-sm text-neutral-900">₹{Number(inv.amount).toFixed(2)}</p>

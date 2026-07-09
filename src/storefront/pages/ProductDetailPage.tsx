@@ -155,9 +155,9 @@ export default function ProductDetailPage() {
   function handleWishlistToggle() {
     if (!matchedVariant) return;
     if (isInWishlist(matchedVariant.id)) {
-      removeFromWishlist(matchedVariant.id);
+      void removeFromWishlist(matchedVariant.id);
     } else {
-      addToWishlist(matchedVariant.id);
+      void addToWishlist(matchedVariant.id);
     }
   }
 

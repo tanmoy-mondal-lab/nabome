@@ -54,13 +54,25 @@ export function useViewport() {
   const [height, setHeight] = useState(window.innerHeight);
 
   useEffect(() => {
+    let timeoutId: number | null = null;
+    
     const handleResize = () => {
-      setWidth(window.innerWidth);
-      setHeight(window.innerHeight);
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+      timeoutId = window.setTimeout(() => {
+        setWidth(window.innerWidth);
+        setHeight(window.innerHeight);
+      }, 100);
     };
 
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   return { width, height };

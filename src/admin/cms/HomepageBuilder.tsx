@@ -26,8 +26,8 @@ import { normalizeHeroSlides } from "../../cms/core/hero-slides";
 interface HomeSection {
   id: string;
   sectionType: string;
-  title: string;
-  subtitle: string;
+  title: string | undefined;
+  subtitle: string | undefined;
   sortOrder: number;
   isActive: boolean;
   visibility: string;
@@ -38,8 +38,8 @@ interface HeroSlide {
   id: string;
   videoUrl: string;
   posterUrl: string;
-  title: string;
-  subtitle: string;
+  title: string | undefined;
+  subtitle: string | undefined;
   ctaText: string;
   ctaUrl: string;
   soundEnabled: boolean;
@@ -54,14 +54,14 @@ interface TestimonialItem {
 }
 
 interface TrustItem {
-  title: string;
+  title: string | undefined;
   description: string;
 }
 
 interface FormState {
   sectionType: string;
-  title: string;
-  subtitle: string;
+  title: string | undefined;
+  subtitle: string | undefined;
   isActive: boolean;
   visibility: string;
   productSourceType: string;
@@ -690,11 +690,11 @@ export default function HomepageBuilder() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const { data: sections = [], isLoading: loading, error: queryError } = useQuery<HomeSection[]>({
+  const { data: sections = [], isLoading: loading, error: queryError } = useQuery({
     queryKey: ["admin", "homepage"],
     queryFn: async () => {
       const res = await adminApi.getHomepageSections();
-      return (res.sections as HomeSection[]) ?? [];
+      return res.sections ?? [];
     },
   });
 
@@ -1005,7 +1005,7 @@ export default function HomepageBuilder() {
     if (oldIndex === -1 || newIndex === -1) return;
 
     const reordered = arrayMove(sections, oldIndex, newIndex);
-    queryClient.setQueryData<HomeSection[]>(["admin", "homepage"], reordered);
+    queryClient.setQueryData<any[]>(["admin", "homepage"], reordered);
     reorderMutation.mutate(reordered.map((s, i) => ({ id: s.id, sortOrder: i })));
   };
 
@@ -1273,13 +1273,13 @@ export default function HomepageBuilder() {
               {filteredSections.map((sec, i) => (
                 <SortableSectionCard
                   key={sec.id}
-                  section={sec}
+                  section={sec as any}
                   index={i}
                   isLast={i === filteredSections.length - 1}
                   isReordering={reorderMutation.isPending}
-                  onEdit={() => openEdit(sec)}
-                  onToggle={() => toggleActive(sec)}
-                  onDuplicate={() => handleDuplicate(sec)}
+                  onEdit={() => openEdit(sec as any)}
+                  onToggle={() => toggleActive(sec as any)}
+                  onDuplicate={() => handleDuplicate(sec as any)}
                   onDelete={() => handleDelete(sec.id)}
                 />
               ))}

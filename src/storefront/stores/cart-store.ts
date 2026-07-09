@@ -1,8 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { api } from "../../lib/api/client";
 import { useAuthStore } from "../../stores/auth-store";
-import { hapticSuccess } from "../../lib/utils/haptic";
 
 export interface CartItem {
   id: string;
@@ -26,31 +24,10 @@ export interface CartItem {
 // so each user (and guest) gets their own isolated cart.
 
 const CART_STORAGE_KEY = "nabome-cart";
-let syncTimer: ReturnType<typeof setTimeout> | null = null;
-let syncFailureCount = 0;
-const MAX_SYNC_FAILURES = 3;
-
-// Emit a custom event when sync fails too many times
-function emitSyncFailure(): void {
-  syncFailureCount++;
-  if (syncFailureCount >= MAX_SYNC_FAILURES) {
-    window.dispatchEvent(new CustomEvent("cart:sync-failed", { detail: { failures: syncFailureCount } }));
-  }
-}
-
-function resetSyncFailureCount(): void {
-  syncFailureCount = 0;
-}
 
 function getUserId(): string {
-  try {
-    const raw = localStorage.getItem("nabome-auth");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return parsed?.state?.user?.id ?? "guest";
-    }
-  } catch {}
-  return "guest";
+  const auth = useAuthStore.getState();
+  return auth.user?.id ?? "guest";
 }
 
 const userCartStorage = {
@@ -70,13 +47,6 @@ const userCartStorage = {
 function hasAuthenticatedSession(): boolean {
   const auth = useAuthStore.getState();
   return auth.isAuthenticated && !!auth.accessToken;
-}
-
-function toServerItems(items: CartItem[]): Array<{ variantId: string; quantity: number }> {
-  return items.map((item) => ({
-    variantId: item.variantId,
-    quantity: item.quantity,
-  }));
 }
 
 function setGuestCartState(): void {
@@ -117,76 +87,6 @@ function applyServerCartState(payload: {
   });
 }
 
-async function hydrateServerCart(): Promise<void> {
-  if (!hasAuthenticatedSession()) return;
-  try {
-    const cart = await api.get<{
-      items: CartItem[];
-      couponCode: string | null;
-      discount: number;
-      discountType: "percentage" | "fixed" | null;
-    }>("/cart");
-    applyServerCartState(cart);
-  } catch {
-    // Keep the current cart if the network is unavailable.
-  }
-}
-
-async function syncServerCart(): Promise<void> {
-  if (!hasAuthenticatedSession()) return;
-
-  const { items } = useCartStore.getState();
-  try {
-    await api.post("/cart/sync", {
-      items: toServerItems(items),
-    });
-    resetSyncFailureCount();
-  } catch {
-    emitSyncFailure();
-    // Keep the local cart; retry on the next mutation.
-  }
-}
-
-function queueServerSync(): void {
-  if (!hasAuthenticatedSession()) return;
-  if (syncTimer) clearTimeout(syncTimer);
-  syncTimer = setTimeout(() => {
-    syncTimer = null;
-    void syncServerCart();
-  }, 250);
-}
-
-async function mergeGuestCartOnServer(items?: CartItem[]): Promise<void> {
-  if (!hasAuthenticatedSession()) return;
-
-  if (syncTimer) {
-    clearTimeout(syncTimer);
-    syncTimer = null;
-  }
-
-  const payload = toServerItems(items ?? useCartStore.getState().items);
-  if (payload.length > 0) {
-    try {
-      await api.post("/cart/merge", { items: payload });
-    } catch {
-      // Fall back to the current local cart if merge fails.
-      return;
-    }
-  }
-
-  // Clean up old guest cart data from localStorage after successful merge
-  try {
-    const guestKey = `${CART_STORAGE_KEY}-guest`;
-    if (localStorage.getItem(guestKey)) {
-      localStorage.removeItem(guestKey);
-    }
-  } catch {
-    // Silently continue if localStorage is unavailable
-  }
-
-  await hydrateServerCart();
-}
-
 interface CartState {
   items: CartItem[];
   couponCode: string | null;
@@ -201,8 +101,12 @@ interface CartState {
   removeCoupon: () => void;
   clearJustAdded: () => void;
   switchUser: () => void;
-  hydrateFromServer: () => Promise<void>;
-  mergeGuestCart: (items?: CartItem[]) => Promise<void>;
+  applyServerCart: (payload: {
+    items: CartItem[];
+    couponCode?: string | null;
+    discount?: number;
+    discountType?: "percentage" | "fixed" | null;
+  }) => void;
   itemCount: () => number;
   subtotal: () => number;
   discountAmount: () => number;
@@ -236,15 +140,10 @@ export const useCartStore = create<CartState>()(
             justAdded: item.variantId,
           });
         }
-        queueServerSync();
-        // Clear the "just added" indicator after 2s
-        setTimeout(() => { try { get().clearJustAdded(); } catch {} }, 2000);
-        hapticSuccess();
       },
 
       removeItem: (variantId) => {
         set({ items: get().items.filter((i) => i.variantId !== variantId) });
-        queueServerSync();
       },
 
       updateQuantity: (variantId, quantity) => {
@@ -257,12 +156,10 @@ export const useCartStore = create<CartState>()(
             i.variantId === variantId ? { ...i, quantity: Math.min(quantity, i.maxQuantity) } : i
           ),
         });
-        queueServerSync();
       },
 
       clearCart: () => {
         set({ items: [], couponCode: null, discount: 0, discountType: null, justAdded: null });
-        queueServerSync();
       },
 
       applyCoupon: (code, discount, type) => set({ couponCode: code, discount, discountType: type }),
@@ -273,18 +170,14 @@ export const useCartStore = create<CartState>()(
 
       switchUser: () => {
         if (hasAuthenticatedSession()) {
-          void hydrateServerCart();
+          // Server cart should be hydrated by the useCartSync hook
           return;
         }
         setGuestCartState();
       },
 
-      hydrateFromServer: async () => {
-        await hydrateServerCart();
-      },
-
-      mergeGuestCart: async (items?: CartItem[]) => {
-        await mergeGuestCartOnServer(items);
+      applyServerCart: (payload) => {
+        applyServerCartState(payload);
       },
 
       itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),

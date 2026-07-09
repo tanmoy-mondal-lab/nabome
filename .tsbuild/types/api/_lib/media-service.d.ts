@@ -1,6 +1,6 @@
 import type { Env } from "./env";
-import type { EntityType } from "../../src/lib/media/media.types";
-import { validateFile, validateFileContent } from "../../src/lib/media/validation.service";
+import type { EntityType } from "./media/types";
+import { validateFile, validateFileContent } from "./media/validation";
 export { validateFile, validateFileContent };
 export type CloudinaryResourceType = "image" | "video" | "raw";
 export interface UploadOptions {

@@ -46,7 +46,7 @@ export default function SizeGuidesPage() {
     },
     onSuccess: () => {
       const wasEditing = !!edit;
-      queryClient.invalidateQueries({ queryKey: ["admin", "sizeGuides"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "sizeGuides"] });
       setShowModal(false);
       setEdit(null);
       toast(wasEditing ? "Size guide updated" : "Size guide created", "success");
@@ -59,7 +59,7 @@ export default function SizeGuidesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteSizeGuide(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "sizeGuides"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "sizeGuides"] });
       toast("Size guide deleted", "success");
     },
     onError: (err: Error) => {

@@ -19,6 +19,7 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "prisma:reset": "prisma migrate reset --force",
+    "prisma:seed": "tsx prisma/seed/index.ts",
     "api:dev": "tsx watch scripts/api-dev-server.ts",
     "typecheck": "tsc -b",
     "build": "tsx scripts/sync-public-headers.ts && prisma generate && npm run typecheck && vite build",

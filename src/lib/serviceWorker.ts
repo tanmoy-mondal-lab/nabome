@@ -34,9 +34,9 @@ export function registerServiceWorker(): Promise<void> {
       });
       
       // Periodic sync for mobile apps (if available)
-      if ((registration as any).periodicSync) {
+      if ((registration as ServiceWorkerRegistration & { periodicSync?: { register: (name: string, options: { minInterval: number }) => void } }).periodicSync) {
         try {
-          (registration as any).periodicSync.register("content-sync", {
+          (registration as ServiceWorkerRegistration & { periodicSync: { register: (name: string, options: { minInterval: number }) => void } }).periodicSync.register("content-sync", {
             minInterval: 60 * 60 * 1000 // 1 hour
           });
         } catch {
@@ -71,9 +71,9 @@ export function registerServiceWorker(): Promise<void> {
     };
 
     if (!swRegistration) {
-      loadSW();
+      void loadSW();
     } else {
-      swRegistration.update().finally(() => {
+      void swRegistration.update().finally(() => {
         resolve();
       });
     }
@@ -129,8 +129,8 @@ export function setupConnectivityDetection() {
       // Mobile-specific offline handling
       
       // Request background sync for future operations
-      if (swRegistration && (swRegistration as any).sync) {
-        (swRegistration as any).sync.register("cart-sync").catch(() => {
+      if (swRegistration && (swRegistration as ServiceWorkerRegistration & { sync?: { register: (tag: string) => Promise<void> } }).sync) {
+        (swRegistration as ServiceWorkerRegistration & { sync: { register: (tag: string) => Promise<void> } }).sync.register("cart-sync").catch(() => {
           // Silent fail - sync not critical
         });
       }
@@ -181,6 +181,6 @@ export function setupConnectivityDetection() {
     window.removeEventListener("offline", handleOffline);
     window.removeEventListener("connectionchange", handleConnectionChangeEvent);
     
-    intervals.forEach(id => clearInterval(id as any));
+    intervals.forEach(id => clearInterval(id as unknown as number));
   };
 }

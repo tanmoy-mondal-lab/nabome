@@ -3,12 +3,14 @@ import { hasUsableSecret, cleanSecret } from "./_lib/secrets";
 import { getPrisma } from "./_lib/prisma";
 import { createClient } from "@supabase/supabase-js";
 import { healthMonitor } from "./_lib/health-monitor";
+import { getJobQueueStats } from "./_lib/job-queue";
 
 interface ProbeResult {
   configured: boolean;
   reachable: boolean;
   status: "ok" | "degraded";
   message?: string;
+  metrics?: Record<string, unknown>;
 }
 
 interface HealthChecks {
@@ -17,6 +19,8 @@ interface HealthChecks {
   payments: ProbeResult;
   email: ProbeResult;
   media: ProbeResult;
+  worker?: ProbeResult;
+  queue?: ProbeResult;
 }
 
 function isLocalHost(hostname: string): boolean {
@@ -184,6 +188,42 @@ async function probeMedia(env?: Env): Promise<ProbeResult> {
   }
 }
 
+async function probeWorker(_env?: Env): Promise<ProbeResult> {
+  // Cloudflare Pages Functions are serverless - check if runtime is available
+  const configured = true; // Always configured in Cloudflare Pages
+  const metrics = healthMonitor.getMetrics();
+  
+  return {
+    configured,
+    reachable: true,
+    status: "ok",
+    metrics: {
+      uptime: metrics.uptime,
+      requests: metrics.requestCount,
+      errorRate: metrics.errorRate,
+      avgResponseTime: metrics.averageResponseTime,
+    },
+  };
+}
+
+async function probeQueue(env?: Env): Promise<ProbeResult> {
+  const configured = true; // Database-backed queue is always configured
+  try {
+    if (!env) {
+      return readyState(true, false, "Environment not available");
+    }
+    const stats = await getJobQueueStats(env);
+    return {
+      configured,
+      reachable: true,
+      status: "ok",
+      metrics: stats,
+    };
+  } catch (error) {
+    return readyState(true, false, error instanceof Error ? error.message : "Queue probe failed");
+  }
+}
+
 export async function GET(req: Request, opts?: { env?: Env }): Promise<Response> {
   const env = opts?.env;
   const url = new URL(req.url);
@@ -195,12 +235,14 @@ export async function GET(req: Request, opts?: { env?: Env }): Promise<Response>
   };
 
   if (includeChecks) {
-    const [database, supabase, payments, email, media] = await Promise.all([
+    const [database, supabase, payments, email, media, worker, queue] = await Promise.all([
       probeDatabase(env),
       probeSupabase(env),
       probePayments(env),
       probeEmail(env),
       probeMedia(env),
+      probeWorker(env),
+      probeQueue(env),
     ]);
 
     const checks: HealthChecks = {
@@ -209,6 +251,8 @@ export async function GET(req: Request, opts?: { env?: Env }): Promise<Response>
       payments,
       email,
       media,
+      worker,
+      queue,
     };
 
     const overallReady = Object.values(checks).every((check) => check.status === "ok");

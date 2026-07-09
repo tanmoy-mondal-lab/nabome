@@ -60,7 +60,7 @@ export default function CustomersPage() {
     }
   }, [page]);
 
-  useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
+  useEffect(() => { void fetchCustomers(); }, [fetchCustomers]);
 
   const viewDetail = async (c: Customer) => {
     try {
@@ -82,7 +82,7 @@ export default function CustomersPage() {
     try {
       await adminApi.updateCustomer(editTarget.id, editForm);
       setEditTarget(null);
-      fetchCustomers();
+      void fetchCustomers();
     } catch (err) { setEditError(`Failed to update customer: ${(err as Error).message ?? "Unknown error"}`); }
   };
 

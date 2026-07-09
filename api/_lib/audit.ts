@@ -1,5 +1,6 @@
 import { getPrisma } from "./prisma";
 import type { Env } from "./env";
+import type { Prisma } from "@prisma/client";
 
 export interface AuditLogOptions {
   entity?: string;
@@ -23,7 +24,7 @@ export async function logAction(
         action,
         entity: opts.entity ?? null,
         entityId: opts.entityId ?? null,
-        metadata: (opts.metadata ?? null) as never,
+        metadata: (opts.metadata ?? null) as Prisma.InputJsonValue,
         ipAddress: opts.ipAddress ?? null,
         userAgent: opts.userAgent ?? null,
       },

@@ -32,6 +32,7 @@ export interface RequestContext {
     env?: Env;
     requestId?: string;
 }
+export declare function requireEnv(ctx: RequestContext): Env | never;
 export declare enum ErrorCode {
     VALIDATION_ERROR = "VALIDATION_ERROR",
     INVALID_JSON = "INVALID_JSON",

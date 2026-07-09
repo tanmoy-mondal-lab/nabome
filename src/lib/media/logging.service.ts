@@ -100,8 +100,8 @@ function createLogger(config: LoggerConfig = DEFAULT_CONFIG): pino.Logger {
         ignore: "pid,hostname",
         singleLine: false,
       });
-    } catch (error) {
-      console.warn("pino-pretty not available, using default output");
+    } catch {
+      // pino-pretty not available, using default output
     }
   }
 

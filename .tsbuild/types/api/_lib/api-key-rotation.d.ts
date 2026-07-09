@@ -72,6 +72,7 @@ export declare class ApiKeyRotationManager {
     autoRotateExpiredKeys(): Promise<number>;
     /**
      * Hash an API key for storage
+     * Uses Web Crypto API for Cloudflare Workers compatibility
      */
     private hashKey;
 }

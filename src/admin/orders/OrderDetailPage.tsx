@@ -103,12 +103,12 @@ export default function OrderDetailPage() {
       adminApi.getOrder(id),
       adminApi.getOrderTimeline(id),
     ]).then(([orderRes, timelineRes]) => {
-      const o = orderRes.order as Order;
+      const o = orderRes.order as unknown as Order & { internalNotes?: string; notes?: string };
       setOrder(o);
       setInternalNote(o.internalNotes || o.notes || "");
       setTimeline((timelineRes.timeline as TimelineEntry[]) ?? []);
     }).catch(() => {
-      navigate("/admin/orders");
+      void navigate("/admin/orders");
     }).finally(() => setLoading(false));
   }, [id, navigate]);
 

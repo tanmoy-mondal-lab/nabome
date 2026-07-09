@@ -69,17 +69,19 @@ async function sendViaResend(
  * Flow:
  *   1. Build HTML template from type
  *   2. Resolve recipients
- *   3. Send email(s) via Resend — THIS IS THE CRITICAL PATH
- *   4. Record in DB (fire-and-forget, non-blocking)
+ *   3. Enqueue job for async processing (non-blocking)
+ *   4. Return immediately
  *
  * @param type - Email type (e.g. "email_verification", "order_confirmation")
  * @param data - Template data (must include `email` for customer emails)
  * @param env - Environment with RESEND_API_KEY, EMAIL_FROM, ADMIN_EMAILS
+ * @param sync - If true, send synchronously (for critical emails like password reset)
  */
 export async function sendEmailNotification(
   type: EmailType,
   data: Record<string, unknown>,
-  env?: { RESEND_API_KEY?: string; EMAIL_FROM?: string; ADMIN_EMAILS?: string; SITE_URL?: string; VITE_SITE_URL?: string }
+  env?: { RESEND_API_KEY?: string; EMAIL_FROM?: string; ADMIN_EMAILS?: string; SITE_URL?: string; VITE_SITE_URL?: string },
+  sync: boolean = false
 ): Promise<{ success: boolean; error?: string }> {
   // ── 1. Validate env ──
   const resendApiKey = cleanSecret(env?.RESEND_API_KEY);
@@ -120,48 +122,99 @@ export async function sendEmailNotification(
     recipients = [email];
   }
 
-  // ── 4. Send emails (CRITICAL PATH — must succeed) ──
-  const results: EmailSendResult[] = [];
-  for (const to of recipients) {
-    const result = await sendViaResend(
-      resendApiKey,
-      from,
-      to,
-      template.subject,
-      template.html,
-      data.replyTo as string | undefined
-    );
-    results.push(result);
-  }
+  // ── 4. Send emails (sync or async) ──
+  if (sync) {
+    // Critical emails: send synchronously
+    const results: EmailSendResult[] = [];
+    for (const to of recipients) {
+      const result = await sendViaResend(
+        resendApiKey,
+        from,
+        to,
+        template.subject,
+        template.html,
+        data.replyTo as string | undefined
+      );
+      results.push(result);
+    }
 
-  // ── 5. Log results ──
-  const failed = results.filter((r) => !r.success);
+    const failed = results.filter((r) => !r.success);
+    if (failed.length > 0) {
+      console.error(`[EMAIL] Failed to send ${failed.length} email(s) for type: ${type}`, failed);
+      return { success: false, error: `Failed to send ${failed.length} email(s)` };
+    }
 
-  if (failed.length > 0) {
-    console.error(`[EMAIL] Failed to send ${failed.length} email(s) for type: ${type}`, failed);
-    return { success: false, error: `Failed to send ${failed.length} email(s)` };
-  }
-
-  // ── 6. Send admin notifications for customer events ──
-  const adminEmails = cleanSecret(env?.ADMIN_EMAILS);
-  if (!isAdminEmail && template.adminNotification && adminEmails) {
-    const adminType = template.adminNotification as EmailType;
-    const adminTemplate = getEmailTemplate(adminType, { ...templateData, email: recipients[0] });
-    if (adminTemplate) {
-      const adminRecipients = adminEmails.split(",").map((e) => e.trim()).filter(Boolean);
-      const adminResults = await Promise.all(adminRecipients.map((adminEmail) =>
-        sendViaResend(resendApiKey, from, adminEmail, adminTemplate.subject, adminTemplate.html)
-          .then((result) => ({ adminEmail, result }))
-      ));
-      for (const { adminEmail, result } of adminResults) {
-        if (!result.success) {
-          console.error(`[EMAIL] Failed to send admin notification to ${adminEmail}:`, result.error);
+    // Send admin notifications for customer events
+    const adminEmails = cleanSecret(env?.ADMIN_EMAILS);
+    if (!isAdminEmail && template.adminNotification && adminEmails) {
+      const adminType = template.adminNotification as EmailType;
+      const adminTemplate = getEmailTemplate(adminType, { ...templateData, email: recipients[0] });
+      if (adminTemplate) {
+        const adminRecipients = adminEmails.split(",").map((e) => e.trim()).filter(Boolean);
+        const adminResults = await Promise.all(adminRecipients.map((adminEmail) =>
+          sendViaResend(resendApiKey, from, adminEmail, adminTemplate.subject, adminTemplate.html)
+            .then((result) => ({ adminEmail, result }))
+        ));
+        for (const { adminEmail, result } of adminResults) {
+          if (!result.success) {
+            console.error(`[EMAIL] Failed to send admin notification to ${adminEmail}:`, result.error);
+          }
         }
       }
     }
-  }
 
-  return { success: true };
+    return { success: true };
+  } else {
+    // Non-critical emails: enqueue for async processing
+    try {
+      const { enqueueJob } = await import("./job-queue");
+      
+      for (const to of recipients) {
+        await enqueueJob("send_email", {
+          type,
+          data: { ...templateData, email: to, from, replyTo: data.replyTo },
+        }, { priority: 5 }, env as any);
+      }
+
+      // Enqueue admin notifications if needed
+      const adminEmails = cleanSecret(env?.ADMIN_EMAILS);
+      if (!isAdminEmail && template.adminNotification && adminEmails) {
+        const adminType = template.adminNotification as EmailType;
+        const adminTemplate = getEmailTemplate(adminType, { ...templateData, email: recipients[0] });
+        if (adminTemplate) {
+          const adminRecipients = adminEmails.split(",").map((e) => e.trim()).filter(Boolean);
+          for (const adminEmail of adminRecipients) {
+            await enqueueJob("send_email", {
+              type: adminType,
+              data: { ...templateData, email: adminEmail, from },
+            }, { priority: 3 }, env as any);
+          }
+        }
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error(`[EMAIL] Failed to enqueue email job:`, err);
+      // Fallback to sync send if queue fails
+      const results: EmailSendResult[] = [];
+      for (const to of recipients) {
+        const result = await sendViaResend(
+          resendApiKey,
+          from,
+          to,
+          template.subject,
+          template.html,
+          data.replyTo as string | undefined
+        );
+        results.push(result);
+      }
+
+      const failed = results.filter((r) => !r.success);
+      return failed.length > 0 
+        ? { success: false, error: `Failed to send ${failed.length} email(s)` }
+        : { success: true };
+    }
+  }
 }
 
 /**

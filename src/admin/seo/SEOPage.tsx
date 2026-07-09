@@ -69,8 +69,8 @@ export default function SEOPage() {
       const current = await adminApi.getSettings();
       const settings = current.settings as Record<string, unknown> ?? {};
       await adminApi.updateSettings({ ...settings, seo: form });
-      queryClient.invalidateQueries({ queryKey: ["settings", "public"] });
-      queryClient.invalidateQueries({ queryKey: ["admin", "seo"] });
+      void queryClient.invalidateQueries({ queryKey: ["settings", "public"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "seo"] });
       window.dispatchEvent(new Event("settings:updated"));
       toast("SEO settings saved", "success");
     } catch {

@@ -128,7 +128,7 @@ export function useAsyncValidation<T>(
         const validationError = await validator(value);
         setError(validationError);
         return !validationError;
-      } catch (err) {
+      } catch {
         setError("Validation failed");
         return false;
       } finally {

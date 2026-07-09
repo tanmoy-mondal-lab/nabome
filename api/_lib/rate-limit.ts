@@ -10,14 +10,18 @@ interface RateLimitEntry {
 const inMemoryStore = new Map<string, RateLimitEntry>();
 
 const IN_MEMORY_CLEANUP_INTERVAL = 60_000;
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of inMemoryStore) {
-    if (entry.resetAt <= now) {
-      inMemoryStore.delete(key);
+// Cleanup interval for in-memory rate limiting (local development only)
+// In production, Cloudflare KV handles expiration automatically
+if (typeof setInterval !== "undefined") {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of inMemoryStore) {
+      if (entry.resetAt <= now) {
+        inMemoryStore.delete(key);
+      }
     }
-  }
-}, IN_MEMORY_CLEANUP_INTERVAL).unref?.();
+  }, IN_MEMORY_CLEANUP_INTERVAL);
+}
 
 export interface RateLimitConfig {
   windowMs: number;

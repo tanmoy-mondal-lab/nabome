@@ -12,6 +12,7 @@ interface Collection {
   slug: string;
   description?: string;
   heroImageUrl?: string;
+  imageUrl?: string;
   isFeatured?: boolean;
 }
 
@@ -21,8 +22,8 @@ export default function CollectionsIndexPage() {
     queryFn: () =>
       api.get<unknown>("/collections").then((r) => {
         if (Array.isArray(r)) return r;
-        if (r && typeof r === "object" && "collections" in r && Array.isArray((r as any).collections)) {
-          return (r as any).collections;
+        if (r && typeof r === "object" && "collections" in r && Array.isArray((r as { collections?: unknown[] }).collections)) {
+          return (r as { collections: unknown[] }).collections;
         }
         return [];
       }),
@@ -59,7 +60,7 @@ export default function CollectionsIndexPage() {
         <p className="text-neutral-500 font-editorial">No collections available yet.</p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-          {collections.map((c: any) => (
+          {collections.map((c: Collection) => (
             <Link
               key={c.id}
               to={`/collections/${c.slug}`}

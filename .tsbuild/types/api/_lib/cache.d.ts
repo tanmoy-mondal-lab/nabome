@@ -1,3 +1,4 @@
+import type { Env } from "./env.js";
 interface CacheOptions {
     ttl?: number;
     tags?: string[];
@@ -5,7 +6,7 @@ interface CacheOptions {
 }
 export declare class CacheService {
     private env;
-    constructor(env: any);
+    constructor(env: Env);
     private isCloudflare;
     private getCacheKey;
     get(prefix: string, key: string): Promise<string | null>;

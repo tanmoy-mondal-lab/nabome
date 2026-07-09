@@ -42,7 +42,7 @@ export default function CampaignsPage() {
     mutationFn: (data: { name: string; description?: string; type: string; startDate: string; endDate?: string }) =>
       adminApi.createCampaign(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "campaigns"] });
       setModalOpen(false);
       toast("Campaign created", "success");
     },
@@ -55,7 +55,7 @@ export default function CampaignsPage() {
     mutationFn: ({ id, data }: { id: string; data: { name: string; description: string | null; type: string; startDate: string; endDate: string | null; isActive: boolean } }) =>
       adminApi.updateCampaign(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "campaigns"] });
       setModalOpen(false);
       toast("Campaign updated", "success");
     },
@@ -67,7 +67,7 @@ export default function CampaignsPage() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteCampaign(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "campaigns"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "campaigns"] });
       setDeleteConfirm(null);
       toast("Campaign deleted", "success");
     },

@@ -151,40 +151,49 @@ export function validateProductForm(form: ProductFormData): FormErrors {
 
 // ─── React Query Hooks ───
 
+interface ApiResponse<T> {
+  categories?: T;
+  subcategories?: T;
+  collections?: T;
+  brands?: T;
+  labels?: T;
+  sizeGuides?: T;
+}
+
 export function useProductDropdowns() {
   const categories = useQuery({
     queryKey: ["admin", "categories"],
-    queryFn: () => adminApi.getCategories().then((r: any) => (r.categories ?? []) as DropdownItem[]),
+    queryFn: () => adminApi.getCategories().then((r: ApiResponse<DropdownItem[]>) => (r.categories ?? []) as DropdownItem[]),
     staleTime: 1000 * 60 * 10,
   });
 
   const subcategories = useQuery({
     queryKey: ["admin", "subcategories"],
-    queryFn: () => adminApi.getSubcategories().then((r: any) => (r.subcategories ?? []) as DropdownItem[]),
+    queryFn: () => adminApi.getSubcategories().then((r: ApiResponse<DropdownItem[]>) => (r.subcategories ?? []) as DropdownItem[]),
     staleTime: 1000 * 60 * 10,
   });
 
   const collections = useQuery({
     queryKey: ["admin", "collections"],
-    queryFn: () => adminApi.getCollections().then((r: any) => (r.collections ?? []) as DropdownItem[]),
+    queryFn: () => adminApi.getCollections().then((r: ApiResponse<DropdownItem[]>) => (r.collections ?? []) as DropdownItem[]),
     staleTime: 1000 * 60 * 10,
   });
 
   const brands = useQuery({
     queryKey: ["admin", "brands"],
-    queryFn: () => adminApi.getBrands().then((r: any) => (r.brands ?? []) as DropdownItem[]),
+    queryFn: () => adminApi.getBrands().then((r: ApiResponse<DropdownItem[]>) => (r.brands ?? []) as DropdownItem[]),
     staleTime: 1000 * 60 * 10,
   });
 
   const labels = useQuery({
     queryKey: ["admin", "labels"],
-    queryFn: () => adminApi.getLabels().then((r: any) => (r.labels ?? []) as DropdownItem[]),
+    queryFn: () => adminApi.getLabels().then((r: ApiResponse<DropdownItem[]>) => (r.labels ?? []) as DropdownItem[]),
     staleTime: 1000 * 60 * 10,
   });
 
   const sizeGuides = useQuery({
     queryKey: ["admin", "sizeGuides"],
-    queryFn: () => adminApi.getSizeGuides().then((r: any) => (r.sizeGuides ?? []) as DropdownItem[]),
+    queryFn: () => adminApi.getSizeGuides().then((r: ApiResponse<DropdownItem[]>) => (r.sizeGuides ?? []) as DropdownItem[]),
     staleTime: 1000 * 60 * 10,
   });
 
@@ -197,7 +206,7 @@ export function useProduct(id: string | undefined) {
     queryFn: async () => {
       if (!id) return null;
       const res = await adminApi.getProduct(id);
-      return res.product as Record<string, unknown>;
+      return res.product;
     },
     enabled: !!id,
     staleTime: 1000 * 60 * 2,

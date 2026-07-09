@@ -23,7 +23,7 @@ export function BottomNav() {
     hapticMedium();
     const needsAuth = href === "/account" || href === "/account/wishlist";
     if (needsAuth && !isAuthenticated) {
-      navigate("/auth/login", { state: { from: href } });
+      void navigate("/auth/login", { state: { from: href } });
       return;
     }
   }

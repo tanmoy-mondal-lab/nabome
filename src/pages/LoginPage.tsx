@@ -63,9 +63,9 @@ export default function LoginPage() {
       const user = await login({ email, password, turnstileToken: turnstileToken || undefined });
       toast(`Welcome back, ${user.firstName}`, "success");
         if (user.role === "admin") {
-        navigate("/admin", { replace: true });
+        void navigate("/admin", { replace: true });
       } else {
-        navigate(from, { replace: true });
+        void navigate(from, { replace: true });
       }
     } catch {
       // Error is set in useAuth

@@ -4,9 +4,9 @@ export declare function useConnectivityManager(): {
     isMobile: boolean;
     isDesktop: boolean;
     emergencyMode: boolean;
-    connectionType: any;
-    offlineQueueSize: any;
-    notificationsEnabled: any;
-    notificationShown: any;
+    connectionType: "unknown" | "wifi" | "cellular" | "ethernet";
+    offlineQueueSize: number;
+    notificationsEnabled: boolean;
+    notificationShown: boolean;
     isRecoverableConnection: () => boolean;
 };

@@ -88,10 +88,10 @@ export function QuickViewModal({ isOpen, onClose, product }: QuickViewModalProps
     if (!selectedVariant) return;
     if (!isAuthenticated) {
       onClose();
-      navigate("/auth/login", { state: { from: window.location.pathname } });
+      void navigate("/auth/login", { state: { from: window.location.pathname } });
       return;
     }
-    addItem({
+    void addItem({
       productId: product.id as string,
       variantId: (selectedVariant.id as string) || (selectedVariant.sku as string),
       name,

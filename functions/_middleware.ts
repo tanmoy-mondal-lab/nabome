@@ -263,8 +263,16 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   try {
     const payload = await getSeoPayload(context.request, context.env as unknown as Env);
     const responseHeaders = new Headers(response.headers);
+    
+    // Preserve compression headers for better performance
+    // Only delete content-length since we're modifying the body
     responseHeaders.delete("content-length");
-    responseHeaders.delete("content-encoding");
+    
+    // Add cache-control headers to reduce server load
+    const url = new URL(context.request.url);
+    const cacheMaxAge = noindexPath(url.pathname) ? 300 : 3600; // 5 min for noindex, 1 hour for indexable
+    responseHeaders.set("cache-control", `public, max-age=${cacheMaxAge}, s-maxage=${cacheMaxAge * 2}, stale-while-revalidate=${cacheMaxAge * 4}`);
+    
     return new Response(injectMeta(html, payload), {
       status: response.status,
       statusText: response.statusText,
@@ -273,7 +281,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   } catch (error) {
     const fallbackHeaders = new Headers(response.headers);
     fallbackHeaders.delete("content-length");
-    fallbackHeaders.delete("content-encoding");
+    // Add cache-control even on error to reduce server load
+    fallbackHeaders.set("cache-control", "public, max-age=300, s-maxage=600, stale-while-revalidate=1200");
     return new Response(html, {
       status: response.status,
       statusText: response.statusText,

@@ -9,6 +9,7 @@ import { useAuthStore } from "../stores/auth-store";
 import { authApi, type LoginRequest, type RegisterRequest } from "../lib/api/auth";
 import { ApiError } from "../lib/api/client";
 import { useCartStore } from "../storefront/stores/cart-store";
+import { useCartSync } from "../storefront/hooks/useCartSync";
 
 const REFRESH_MARGIN_SECONDS = 60;
 
@@ -17,6 +18,8 @@ export function useAuth() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { items } = useCartStore();
+  const { mergeGuestCartOnServer, hydrateServerCart } = useCartSync(items);
 
   // ── Listen for forced logout from API client (session expired) ──
   useEffect(() => {
@@ -61,7 +64,7 @@ export function useAuth() {
     };
 
     refreshTimer.current = setInterval(checkAndRefresh, 30_000);
-    checkAndRefresh();
+    void checkAndRefresh();
 
     return () => {
       if (refreshTimer.current) clearInterval(refreshTimer.current);
@@ -76,9 +79,9 @@ export function useAuth() {
         const res = await authApi.login(data);
         store.setAuth(res.user, res.session.accessToken, res.session.refreshToken, res.session.expiresAt);
         if (guestCartItems.length > 0) {
-          void useCartStore.getState().mergeGuestCart(guestCartItems);
+          await mergeGuestCartOnServer(guestCartItems);
         } else {
-          void useCartStore.getState().hydrateFromServer();
+          await hydrateServerCart();
         }
         return res.user;
       } catch (err) {
@@ -87,7 +90,7 @@ export function useAuth() {
         throw err;
       }
     },
-    [store]
+    [store, mergeGuestCartOnServer, hydrateServerCart]
   );
 
   const register = useCallback(

@@ -33,8 +33,12 @@ interface Order {
   currency?: string;
   paymentMethod?: string;
   createdAt: string;
-  profile: { firstName: string; lastName: string; email: string };
-  _count: { items: number };
+  profile?: { firstName: string; lastName: string; email: string };
+  _count?: { items: number; variants?: number; reviews?: number; orderItems?: number };
+  discountAmount?: number;
+  notes?: string;
+  shippingAddress?: unknown;
+  billingAddress?: unknown;
 }
 
 interface OrderStats {
@@ -97,7 +101,7 @@ export default function OrdersPage() {
       if (dateFrom) params.from = dateFrom;
       if (dateTo) params.to = dateTo;
       const res = await adminApi.getOrders(params);
-      setOrders((res.orders as Order[]) ?? []);
+      setOrders(res.orders ?? []);
       const pag = res.pagination as { totalPages?: number } | undefined;
       setTotalPages(pag?.totalPages ?? 1);
     } catch {
@@ -107,9 +111,9 @@ export default function OrdersPage() {
     }
   }, [page, activeTab, debouncedSearch, dateFrom, dateTo]);
 
-  useEffect(() => { fetchStats(); }, [fetchStats]);
+  useEffect(() => { void fetchStats(); }, [fetchStats]);
   useEffect(() => { setPage(1); }, [activeTab, searchQuery, dateFrom, dateTo]);
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useEffect(() => { void fetchOrders(); }, [fetchOrders]);
 
   const statCards = stats
     ? [

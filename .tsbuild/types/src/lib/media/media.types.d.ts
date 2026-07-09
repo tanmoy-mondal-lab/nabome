@@ -15,7 +15,7 @@ export type MediaType = "image" | "video" | "document";
 /**
  * Entity types that can have associated media assets
  */
-export type EntityType = "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users";
+export type EntityType = "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users" | "temp";
 /**
  * Upload options for media upload operations
  */

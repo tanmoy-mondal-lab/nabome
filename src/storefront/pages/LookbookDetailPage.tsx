@@ -138,7 +138,7 @@ export default function LookbookDetailPage() {
                   <button
                     onClick={() => {
                       if (!isAuthenticated) {
-                        navigate("/auth/login", { state: { from: typeof window !== 'undefined' ? window.location.pathname : '/' } });
+                        void navigate("/auth/login", { state: { from: typeof window !== 'undefined' ? window.location.pathname : '/' } });
                         return;
                       }
                       products.forEach((p) => {
@@ -146,7 +146,7 @@ export default function LookbookDetailPage() {
                         const variants = (p.variants as ProductVariant[]) ?? [];
                         const v = variants[0];
                         if (!v) return;
-                        addItem({
+                        void addItem({
                           productId: p.id as string,
                           variantId: v.id as string,
                           name: p.name as string,
