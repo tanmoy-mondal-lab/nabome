@@ -3,23 +3,21 @@ import { createRoot } from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
 import { App } from "./App";
 import "../styles/globals.css";
-// import { registerServiceWorker } from "../lib/serviceWorker";
+import { registerServiceWorker } from "../lib/serviceWorker";
 import { ConnectivityProvider } from "../storefront/components/ConnectivityIndicators";
 
 // Debug logging to identify mount failures
 console.log("[main.tsx] Script loaded, starting initialization");
 
-// TEMPORARILY DISABLED: Service worker to rule out caching issues on Cloudflare Pages
 // Initialize enhanced offline support for mobile and desktop
-// registerServiceWorker()
-//   .then(() => {
-//     console.log("[main.tsx] Service worker initialized successfully");
-//   })
-//   .catch((error) => {
-//     console.warn("[main.tsx] Service worker registration failed:", error);
-//     // App works without service worker
-//   });
-console.log("[main.tsx] Service worker registration DISABLED for debugging");
+registerServiceWorker()
+  .then(() => {
+    console.log("[main.tsx] Service worker initialized successfully");
+  })
+  .catch((error) => {
+    console.warn("[main.tsx] Service worker registration failed:", error);
+    // App works without service worker
+  });
 
 // Wait for DOM to be ready before mounting
 function mountApp() {
