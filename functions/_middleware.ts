@@ -44,7 +44,8 @@ function isHtmlRequest(request: Request): boolean {
   if (url.pathname === "/robots.txt" || url.pathname === "/sitemap.xml") return false;
   if (ASSET_EXTENSIONS.test(url.pathname)) return false;
   const accept = request.headers.get("Accept") ?? "";
-  return !accept || accept.includes("text/html") || accept.includes("*/*");
+  // Only process requests that explicitly accept HTML
+  return accept.includes("text/html") && !accept.includes("application/javascript");
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -278,7 +279,15 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
 
 export const onRequest = async (context: { request: Request; next: () => Promise<Response>; env: Env }) => {
   const response = await context.next();
+  
+  // Additional safeguard: check request path to ensure we only process HTML pages
+  const url = new URL(context.request.url);
+  if (ASSET_EXTENSIONS.test(url.pathname)) return response;
+  if (url.pathname.startsWith("/api/")) return response;
+  if (url.pathname === "/robots.txt" || url.pathname === "/sitemap.xml") return response;
+  
   if (!isHtmlRequest(context.request)) return response;
+  
   const contentType = response.headers.get("Content-Type") ?? "";
   if (!contentType.includes("text/html")) return response;
 
