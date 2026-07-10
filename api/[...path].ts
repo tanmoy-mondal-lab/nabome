@@ -11,6 +11,7 @@ import { checkRateLimit, RATE_LIMIT_CONFIG, rateLimitResponse, getRateLimitKey }
 import { setCsrfCookie, validateCsrf, csrfError } from "./_lib/csrf";
 import { verifyTurnstileToken } from "./_lib/turnstile";
 import { cacheControlHeaders, corsHeaders, SECURITY_HEADERS } from "./_lib/http-headers";
+import { setSecurityHeaders } from "./_lib/security-headers";
 import type { RequestContext } from "./_lib/types";
 import { ErrorCode } from "./_lib/types";
 
@@ -28,6 +29,17 @@ function withCors(response: Response, request: Request, path?: string): Response
   for (const [key, value] of Object.entries(headers)) {
     response.headers.set(key, value);
   }
+  
+  // Security: Apply comprehensive security headers
+  const env = request.headers.get("CF-Pages") ? "production" : "development";
+  const cloudinaryCloudName = response.headers.get("X-Cloudinary-Cloud-Name") || undefined;
+  setSecurityHeaders(response, {
+    useNonce: true,
+    cloudinaryCloudName,
+    allowAnalytics: true,
+    env: env as "development" | "production",
+  });
+  
   return response;
 }
 

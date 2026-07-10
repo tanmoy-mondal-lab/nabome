@@ -13,13 +13,8 @@ export interface RegisterRequest {
     turnstileToken?: string;
 }
 export interface AuthResponse {
-    session: {
-        accessToken: string;
-        refreshToken: string;
-        expiresAt: number;
-        expiresIn: number;
-    };
     user: UserProfile;
+    message?: string;
 }
 export interface UserProfile {
     id: string;
@@ -65,13 +60,8 @@ export declare const authApi: {
     logout: () => Promise<{
         message: string;
     }>;
-    refresh: (refreshToken: string) => Promise<{
-        session: {
-            accessToken: string;
-            refreshToken: string;
-            expiresAt: number;
-            expiresIn: number;
-        };
+    refresh: () => Promise<{
+        message: string;
     }>;
     me: () => Promise<{
         user: UserProfile;

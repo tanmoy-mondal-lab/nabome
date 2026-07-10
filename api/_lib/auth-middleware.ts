@@ -13,6 +13,7 @@ import { hashToken } from "./token-hash";
 import type { RequestContext } from "./types";
 import type { Env } from "./env";
 import { getEnv } from "./env";
+import { parseCookies, COOKIE_CONFIG } from "./cookies";
 
 function getSupabaseAdmin(env?: Env) {
   // Use provided env, or fall back to process.env for local development
@@ -143,13 +144,18 @@ export async function authenticate(
   }
 
   // 3. JWT verification
-  const authHeader = request.headers.get("Authorization");
-  if (opts.required) {
-    if (!authHeader?.startsWith("Bearer ")) {
-      return unauthorized("Missing or invalid authorization header");
-    }
+  // Security: Read access token from httpOnly cookie instead of Authorization header
+  const cookieHeader = request.headers.get("Cookie");
+  const cookies = cookieHeader ? parseCookies(cookieHeader) : {};
+  const accessToken = cookies[COOKIE_CONFIG.ACCESS_TOKEN.name];
+  const authHeader = request.headers.get("Authorization"); // Fallback for compatibility
 
-    const token = authHeader.slice(7);
+  const token = accessToken || (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null);
+
+  if (opts.required) {
+    if (!token) {
+      return unauthorized("Missing authentication token");
+    }
 
     try {
       const supabase = getSupabaseAdmin(env);

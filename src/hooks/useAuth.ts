@@ -1,9 +1,10 @@
 // ─────────────────────────────────────────────────────────────
 // USE AUTH — Hook for auth actions with loading/error states
-// Handles session restore, auto-refresh, and expiry detection
+// Security: Uses httpOnly cookies for tokens, no localStorage
+// Handles session restore via API call and auto-refresh
 // ─────────────────────────────────────────────────────────────
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth-store";
 import { authApi, type LoginRequest, type RegisterRequest } from "../lib/api/auth";
@@ -11,15 +12,25 @@ import { ApiError } from "../lib/api/client";
 import { useCartStore } from "../storefront/stores/cart-store";
 import { useCartSync } from "../storefront/hooks/useCartSync";
 
-const REFRESH_MARGIN_SECONDS = 60;
-
 export function useAuth() {
   const store = useAuthStore();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
-  const refreshTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const { items } = useCartStore();
   const { mergeGuestCartOnServer, hydrateServerCart } = useCartSync(items);
+
+  // ── Restore session on mount using cookies ──
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const res = await authApi.me();
+        store.setAuth(res.user);
+      } catch {
+        store.setLoading(false);
+      }
+    };
+    restoreSession();
+  }, [store]);
 
   // ── Listen for forced logout from API client (session expired) ──
   useEffect(() => {
@@ -33,29 +44,13 @@ export function useAuth() {
   }, [store, queryClient]);
 
   // ── Proactive refresh timer ──
-  // Checks every 30s whether the token is about to expire
-  // and attempts a silent refresh before it does
+  // Uses API refresh endpoint which sets new cookies automatically
   useEffect(() => {
-    if (!store.refreshToken || !store.expiresAt) return;
-
     const checkAndRefresh = async () => {
-      const current = useAuthStore.getState();
-      if (!current.refreshToken || !current.expiresAt) return;
-
-      const now = Math.floor(Date.now() / 1000);
-      const timeUntilExpiry = current.expiresAt - now;
-
-      if (timeUntilExpiry > REFRESH_MARGIN_SECONDS) return;
-
       try {
-        const res = await authApi.refresh(current.refreshToken);
-        current.setTokens(
-          res.session.accessToken,
-          res.session.refreshToken,
-          res.session.expiresAt
-        );
+        await authApi.refresh();
       } catch {
-        current.clearAuth();
+        store.clearAuth();
         useCartStore.getState().switchUser();
         if (typeof window !== "undefined") {
           window.location.href = "/auth/login";
@@ -63,12 +58,8 @@ export function useAuth() {
       }
     };
 
-    refreshTimer.current = setInterval(checkAndRefresh, 30_000);
-    void checkAndRefresh();
-
-    return () => {
-      if (refreshTimer.current) clearInterval(refreshTimer.current);
-    };
+    const refreshTimer = setInterval(checkAndRefresh, 30_000);
+    return () => clearInterval(refreshTimer);
   }, [store]);
 
   const login = useCallback(
@@ -77,7 +68,7 @@ export function useAuth() {
       try {
         const guestCartItems = useCartStore.getState().items;
         const res = await authApi.login(data);
-        store.setAuth(res.user, res.session.accessToken, res.session.refreshToken, res.session.expiresAt);
+        store.setAuth(res.user);
         if (guestCartItems.length > 0) {
           await mergeGuestCartOnServer(guestCartItems);
         } else {

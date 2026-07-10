@@ -36,17 +36,15 @@ const MAX_REFRESH_RETRIES = 2;
 let refreshRetryCount = 0;
 
 async function attemptTokenRefresh(): Promise<boolean> {
-  const { refreshToken, accessToken } = await getAuthStateFromStore();
-  if (!refreshToken) return false;
-
+  // Security: Tokens are in httpOnly cookies, no need to send them
+  // The server reads refresh token from cookie
   try {
     const res = await fetch(`${BASE_URL}/auth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
-      body: JSON.stringify({ refreshToken }),
+      // CSRF token is added automatically by the request function
     });
 
     if (!res.ok) {
@@ -54,35 +52,21 @@ async function attemptTokenRefresh(): Promise<boolean> {
       return false;
     }
 
-    const json = await res.json();
-    const session = json.data?.session ?? json.session;
-    if (session?.accessToken) {
-      await updateTokensInStore(session.accessToken, session.refreshToken, session.expiresAt);
-      return true;
-    }
-    return false;
+    // Server sets new cookies automatically, no need to update store
+    return true;
   } catch {
     await fireLogout();
     return false;
   }
 }
 
-async function getAuthStateFromStore(): Promise<{ accessToken: string | null; refreshToken: string | null }> {
+async function getAuthStateFromStore(): Promise<{ isAuthenticated: boolean }> {
   try {
     const { useAuthStore } = await import("../../stores/auth-store");
     const state = useAuthStore.getState();
-    return { accessToken: state.accessToken, refreshToken: state.refreshToken };
+    return { isAuthenticated: state.isAuthenticated };
   } catch {
-    return { accessToken: null, refreshToken: null };
-  }
-}
-
-async function updateTokensInStore(accessToken: string, refreshToken: string, expiresAt: number): Promise<void> {
-  try {
-    const { useAuthStore } = await import("../../stores/auth-store");
-    useAuthStore.getState().setTokens(accessToken, refreshToken, expiresAt);
-  } catch {
-    // Store not available
+    return { isAuthenticated: false };
   }
 }
 
@@ -122,11 +106,7 @@ async function request<T>(
     headers.set("Content-Type", "application/json");
   }
 
-  const { accessToken, refreshToken } = await getAuthStateFromStore();
-  if (accessToken) {
-    headers.set("Authorization", `Bearer ${accessToken}`);
-  }
-
+  // Security: No Authorization header needed - tokens are in httpOnly cookies
   // CSRF token from cookie for state-changing methods
   const method = (fetchOptions.method ?? "GET").toUpperCase();
   if (["POST", "PUT", "DELETE", "PATCH"].includes(method)) {
@@ -159,7 +139,13 @@ async function request<T>(
           : undefined,
   }).finally(() => clearTimeout(timeoutId));
 
-  if (response.status === 401 && refreshToken) {
+  if (response.status === 401) {
+    const { isAuthenticated } = await getAuthStateFromStore();
+    if (!isAuthenticated) {
+      await fireLogout();
+      throw new ApiError("Session expired — please log in again", 401);
+    }
+
     if (!isRefreshing) {
       isRefreshing = true;
       refreshPromise = attemptTokenRefresh();
@@ -171,10 +157,6 @@ async function request<T>(
 
     if (refreshed) {
       refreshRetryCount = 0;
-      const { accessToken: newToken } = await getAuthStateFromStore();
-      if (newToken) {
-        headers.set("Authorization", `Bearer ${newToken}`);
-      }
       const retryController = new AbortController();
       const retryResponse = await fetch(url.toString(), {
         ...fetchOptions,

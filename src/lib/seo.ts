@@ -227,3 +227,8 @@ export function imgSet(
     return { src: url || "/placeholder.svg" };
   }
 }
+
+export function metaDescription(description: string, maxLength: number = 160): string {
+  if (!description) return "";
+  return description.length > maxLength ? description.slice(0, maxLength - 1) + "…" : description;
+}

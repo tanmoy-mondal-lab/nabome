@@ -25,14 +25,14 @@ export declare function processJob(jobId: string, env: Env): Promise<JobResult>;
  * Get next pending jobs for processing
  */
 export declare function getNextJobs(limit: number | undefined, env: Env): Promise<{
-    status: import("@prisma/client").$Enums.JobStatus;
     id: string;
     createdAt: Date;
     updatedAt: Date;
+    status: import("@prisma/client").$Enums.JobStatus;
+    payload: Prisma.JsonValue;
     errorMessage: string | null;
     retryCount: number;
     priority: number;
-    payload: Prisma.JsonValue;
     jobType: string;
     maxRetries: number;
     retryAfter: Date | null;

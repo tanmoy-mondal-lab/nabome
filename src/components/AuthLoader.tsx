@@ -15,68 +15,32 @@ function invalidateCustomerCaches(queryClient: ReturnType<typeof useQueryClient>
 
 export function AuthLoader() {
   const queryClient = useQueryClient();
-  const hydrated = useAuthStore.persist?.hasHydrated?.() ?? false;
   const ran = useRef(false);
   const { items } = useCartStore();
   const { mergeGuestCartOnServer, hydrateServerCart } = useCartSync(items);
 
   useEffect(() => {
-    if (!hydrated) return;
     if (ran.current) return;
     ran.current = true;
 
     const doInit = async () => {
-      const { accessToken, refreshToken, expiresAt, user, setUser, setLoading, clearAuth, setTokens } =
-        useAuthStore.getState();
+      const { setUser, setLoading, clearAuth } = useAuthStore.getState();
 
-      if (!accessToken) {
-        useCartStore.getState().switchUser();
-        setLoading(false);
-        return;
-      }
-
-      if (expiresAt && Date.now() / 1000 > expiresAt) {
-        if (refreshToken) {
-          try {
-            const res = await authApi.refresh(refreshToken);
-            setTokens(res.session.accessToken, res.session.refreshToken, res.session.expiresAt);
-            const meRes = await authApi.me();
-            setUser(meRes.user);
-            await mergeGuestCartOnServer();
-            invalidateCustomerCaches(queryClient);
-          } catch {
-            clearAuth();
-            useCartStore.getState().switchUser();
-          }
-        } else {
-          clearAuth();
-          useCartStore.getState().switchUser();
-        }
-        setLoading(false);
-        return;
-      }
-
-      if (!user) {
-        try {
-          const res = await authApi.me();
-          setUser(res.user);
-          await mergeGuestCartOnServer();
-          invalidateCustomerCaches(queryClient);
-        } catch {
-          clearAuth();
-          useCartStore.getState().switchUser();
-        }
-        setLoading(false);
-      } else {
-        useCartStore.getState().switchUser();
-        await hydrateServerCart();
+      // Security: Session restoration via API call (cookies handle tokens)
+      try {
+        const res = await authApi.me();
+        setUser(res.user);
+        await mergeGuestCartOnServer();
         invalidateCustomerCaches(queryClient);
-        setLoading(false);
+      } catch {
+        clearAuth();
+        useCartStore.getState().switchUser();
       }
+      setLoading(false);
     };
 
     void doInit();
-  }, [hydrated, queryClient, mergeGuestCartOnServer, hydrateServerCart]);
+  }, [queryClient, mergeGuestCartOnServer, hydrateServerCart]);
 
   return null;
 }

@@ -26,7 +26,8 @@ export function useCartSync(
 
   const hasAuthenticatedSession = () => {
     const auth = useAuthStore.getState();
-    return auth.isAuthenticated && !!auth.accessToken;
+    // Security: Session check via isAuthenticated flag (cookies handle tokens)
+    return auth.isAuthenticated;
   };
 
   const toServerItems = (cartItems: CartItem[]): Array<{ variantId: string; quantity: number }> => {

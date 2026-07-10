@@ -4,6 +4,7 @@ import { getPrisma } from "./_lib/prisma";
 import { createClient } from "@supabase/supabase-js";
 import { healthMonitor } from "./_lib/health-monitor";
 import { getJobQueueStats } from "./_lib/job-queue";
+import { setCsrfCookie } from "./_lib/csrf";
 
 interface ProbeResult {
   configured: boolean;
@@ -266,8 +267,11 @@ export async function GET(req: Request, opts?: { env?: Env }): Promise<Response>
 
   const shouldFailClosed = includeChecks && (env?.CF_PAGES === "1" || env?.CF_PAGES === "true");
 
-  return Response.json(body, {
+  const response = Response.json(body, {
     status: shouldFailClosed && body.status === "degraded" ? 503 : 200,
     headers: { "Cache-Control": "no-store" },
   });
+
+  // Security: Set CSRF cookie on health check for initial token establishment
+  return setCsrfCookie(response, env);
 }

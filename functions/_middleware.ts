@@ -148,7 +148,7 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
   if (cached && cached.expiresAt > Date.now()) return cached.payload;
 
   const prisma = getPrisma(env);
-  const settings = await prisma.siteSetting.findFirst({
+  const settings = await prisma.site_settings.findFirst({
     select: {
       siteName: true,
       ogImageUrl: true,
@@ -179,7 +179,7 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
   if (payload.robots === "index, follow") {
     const parts = pathname.split("/").filter(Boolean);
     if (parts[0] === "products" && parts[1]) {
-      const product = await prisma.product.findFirst({
+      const product = await prisma.products.findFirst({
         where: { slug: parts[1], isActive: true },
         select: {
           name: true,
@@ -201,7 +201,7 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
         payload.type = "product";
       }
     } else if (parts[0] === "collections" && parts[1]) {
-      const collection = await prisma.collection.findFirst({
+      const collection = await prisma.collections.findFirst({
         where: { slug: parts[1], isActive: true },
         select: { name: true, description: true, metaTitle: true, metaDesc: true, heroImageUrl: true },
       });
@@ -211,7 +211,7 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
         payload.imageUrl = absoluteUrl(text(collection.heroImageUrl, fallbackImage), canonicalBase);
       }
     } else if (parts[0] === "lookbooks" && parts[1]) {
-      const lookbook = await prisma.lookbook.findFirst({
+      const lookbook = await prisma.lookbooks.findFirst({
         where: { slug: parts[1], isActive: true },
         select: { name: true, description: true, metaTitle: true, metaDesc: true, coverImageUrl: true },
       });
@@ -222,7 +222,7 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
         payload.type = "article";
       }
     } else if (parts.length === 1 && !["products", "collections", "lookbooks", "search"].includes(parts[0])) {
-      const page = await prisma.staticPage.findFirst({
+      const page = await prisma.static_pages.findFirst({
         where: { slug: parts[0], isPublished: true },
         select: { title: true, metaTitle: true, metaDesc: true, ogImage: true },
       });
@@ -253,7 +253,7 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
   return payload;
 }
 
-export const onRequest: PagesFunction<Env> = async (context) => {
+export const onRequest = async (context: { request: Request; next: () => Promise<Response>; env: Env }) => {
   const response = await context.next();
   if (!isHtmlRequest(context.request)) return response;
   const contentType = response.headers.get("Content-Type") ?? "";

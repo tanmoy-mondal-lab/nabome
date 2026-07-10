@@ -21,13 +21,8 @@ export interface RegisterRequest {
 }
 
 export interface AuthResponse {
-  session: {
-    accessToken: string;
-    refreshToken: string;
-    expiresAt: number;
-    expiresIn: number;
-  };
   user: UserProfile;
+  message?: string;
 }
 
 export interface UserProfile {
@@ -74,11 +69,8 @@ export const authApi = {
   logout: () =>
     api.post<{ message: string }>("/auth/logout"),
 
-  refresh: (refreshToken: string) =>
-    api.post<{ session: { accessToken: string; refreshToken: string; expiresAt: number; expiresIn: number } }>(
-      "/auth/refresh",
-      { refreshToken }
-    ),
+  refresh: () =>
+    api.post<{ message: string }>("/auth/refresh"),
 
   me: () =>
     api.get<{ user: UserProfile }>("/auth/me"),

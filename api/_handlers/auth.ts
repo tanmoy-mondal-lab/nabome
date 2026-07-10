@@ -17,6 +17,7 @@ import { cleanSecret } from "../_lib/secrets";
 import { hashToken } from "../_lib/token-hash";
 import { getEnv } from "../_lib/env";
 import { withRateLimit, RATE_LIMIT_CONFIG } from "../_lib/rate-limit";
+import { setCookie, clearCookie, parseCookies, COOKIE_CONFIG } from "../_lib/cookies";
 
 function generateVerificationCode(): string {
   const buf = new Uint8Array(4);
@@ -542,15 +543,16 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
       userAgent: userAgent,
     }, ctx.env);
 
-    return success({
-      session: {
-        accessToken: data.session.access_token,
-        refreshToken: data.session.refresh_token,
-        expiresAt: data.session.expires_at,
-        expiresIn: data.session.expires_in,
-      },
+    // Security: Set httpOnly cookies instead of returning tokens in response
+    const response = success({
       user: dbProfile,
+      message: "Login successful",
     });
+
+    setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, data.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env);
+    setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, data.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env);
+
+    return response;
   } catch (err) {
     return serverError(err);
   }
@@ -561,16 +563,13 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
 // Uses Supabase `setSession` to get fresh tokens, then rotates local session record.
 
 async function handleRefresh(req: Request, ctx: RequestContext): Promise<Response> {
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return badRequest("Invalid JSON body");
-  }
-  const { refreshToken } = body;
+  // Security: Read refresh token from httpOnly cookie instead of request body
+  const cookieHeader = req.headers.get("Cookie");
+  const cookies = cookieHeader ? parseCookies(cookieHeader) : {};
+  const refreshToken = cookies[COOKIE_CONFIG.REFRESH_TOKEN.name];
 
   if (!refreshToken || typeof refreshToken !== "string") {
-    return badRequest("Refresh token is required");
+    return unauthorized("Refresh token not found in cookies");
   }
 
   const prisma = getPrisma(ctx.env);
@@ -673,14 +672,15 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
     userAgent: userAgent,
   }, ctx.env);
 
-  return success({
-    session: {
-      accessToken: sbData.session.access_token,
-      refreshToken: sbData.session.refresh_token,
-      expiresAt: Math.floor(newExpiresAt.getTime() / 1000),
-      expiresIn: sbData.session.expires_in,
-    },
+  // Security: Set httpOnly cookies for new tokens
+  const response = success({
+    message: "Token refreshed successfully",
   });
+
+  setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, sbData.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env);
+  setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, sbData.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env);
+
+  return response;
 }
 
 // ─── LOGOUT ───
@@ -719,7 +719,12 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
 
   logAction(ctx.userId, "auth.logout", extractRequestMeta(req), ctx.env);
 
-  return success({ message: "Logged out successfully" });
+  // Security: Clear httpOnly cookies
+  const response = success({ message: "Logged out successfully" });
+  clearCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, { path: "/", sameSite: "lax" });
+  clearCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, { path: "/", sameSite: "strict" });
+
+  return response;
 }
 
 // ─── ME ───

@@ -47,3 +47,4 @@ export declare function imgSet(url: string | undefined | null, widths?: number[]
 } | {
     src: string;
 };
+export declare function metaDescription(description: string, maxLength?: number): string;

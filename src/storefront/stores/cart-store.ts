@@ -46,7 +46,8 @@ const userCartStorage = {
 
 function hasAuthenticatedSession(): boolean {
   const auth = useAuthStore.getState();
-  return auth.isAuthenticated && !!auth.accessToken;
+  // Security: Session check via isAuthenticated flag (cookies handle tokens)
+  return auth.isAuthenticated;
 }
 
 function setGuestCartState(): void {
