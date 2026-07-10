@@ -8,6 +8,7 @@ export interface LoginRequest {
   email: string;
   password: string;
   turnstileToken?: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterRequest {
@@ -65,7 +66,7 @@ export const authApi = {
     api.post<AuthResponse>("/auth/login", data),
 
   register: (data: RegisterRequest) =>
-    api.post<{ user: { id: string; email: string; firstName: string }; message: string }>(
+    api.post<{ user?: { id: string; email: string; firstName: string }; message: string; emailSent?: boolean; accountExists?: boolean }>(
       "/auth/register",
       data
     ),

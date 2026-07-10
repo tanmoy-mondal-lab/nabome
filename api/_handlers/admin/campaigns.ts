@@ -26,8 +26,8 @@ async function handleList(req: Request, env: any): Promise<Response> {
     const where: Record<string, unknown> = {};
     if (type) where.type = type;
     const [items, total] = await Promise.all([
-      prisma.campaign.findMany({ where: where as never, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
-      prisma.campaign.count({ where: where as never }),
+      prisma.campaigns.findMany({ where: where as never, orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit }),
+      prisma.campaigns.count({ where: where as never }),
     ]);
     return success({ campaigns: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
   } catch (err) { return serverError(err); }
@@ -39,7 +39,7 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
   if (body.endDate && new Date(body.endDate) < new Date(body.startDate)) return badRequest("End date must be after start date");
   try {
     const prisma = getPrisma(env);
-    const item = await prisma.campaign.create({ data: { name: body.name, description: body.description ?? null, type: body.type, startDate: new Date(body.startDate), endDate: body.endDate ? new Date(body.endDate) : null, isActive: body.isActive ?? true, metadata: body.metadata ?? null } });
+    const item = await prisma.campaigns.create({ data: { name: body.name, description: body.description ?? null, type: body.type, startDate: new Date(body.startDate), endDate: body.endDate ? new Date(body.endDate) : null, isActive: body.isActive ?? true, metadata: body.metadata ?? null } });
     return created(item);
   } catch (err) { return serverError(err); }
 }
@@ -47,7 +47,7 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
 async function handleDetail(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const item = await prisma.campaign.findUnique({ where: { id } });
+    const item = await prisma.campaigns.findUnique({ where: { id } });
     if (!item) return notFound("Campaign not found");
     return success({ campaign: item });
   } catch (err) { return serverError(err); }
@@ -56,14 +56,14 @@ async function handleDetail(id: string, env: any): Promise<Response> {
 async function handleUpdate(id: string, req: Request, env: any): Promise<Response> {
   const prisma = getPrisma(env);
   const body = await req.json();
-  const existing = await prisma.campaign.findUnique({ where: { id } });
+  const existing = await prisma.campaigns.findUnique({ where: { id } });
   if (!existing) return notFound("Campaign not found");
   const data: Record<string, unknown> = {};
   ["name", "description", "type", "isActive", "metadata"].forEach((f) => { if (body[f] !== undefined) data[f] = body[f]; });
   if (body.startDate) data.startDate = new Date(body.startDate);
   if (body.endDate !== undefined) data.endDate = body.endDate ? new Date(body.endDate) : null;
   try {
-    const updated = await prisma.campaign.update({ where: { id }, data: data as never });
+    const updated = await prisma.campaigns.update({ where: { id }, data: data as never });
     return success(updated);
   } catch (err) { return serverError(err); }
 }
@@ -71,7 +71,7 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
 async function handleDelete(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    await prisma.campaign.delete({ where: { id } });
+    await prisma.campaigns.delete({ where: { id } });
     return success({ message: "Campaign deleted" });
   } catch {
     return notFound("Campaign not found");

@@ -33,7 +33,7 @@ export async function handleDataExportRequest(
     const limit = Math.min(1000, Math.max(1, parseInt(url.searchParams.get("limit") || "1000", 10)));
     const skip = (page - 1) * limit;
 
-    const profile = await prisma.profile.findUnique({
+    const profile = await prisma.profiles.findUnique({
       where: { id: profileId },
       select: {
         id: true,
@@ -55,7 +55,7 @@ export async function handleDataExportRequest(
     }
 
     const [addresses, orders, wishlistItems, reviews, supportTickets, returnRequests] = await Promise.all([
-      prisma.address.findMany({
+      prisma.addresses.findMany({
         where: { profileId },
         skip,
         take: limit,
@@ -77,7 +77,7 @@ export async function handleDataExportRequest(
           updatedAt: true,
         },
       }),
-      prisma.order.findMany({
+      prisma.orders.findMany({
         where: { profileId },
         skip,
         take: limit,
@@ -117,7 +117,7 @@ export async function handleDataExportRequest(
         },
         orderBy: { createdAt: "desc" },
       }),
-      prisma.wishlistItem.findMany({
+      prisma.wishlist_items.findMany({
         where: { profileId },
         skip,
         take: limit,
@@ -141,7 +141,7 @@ export async function handleDataExportRequest(
         },
         orderBy: { createdAt: "desc" },
       }),
-      prisma.review.findMany({
+      prisma.reviews.findMany({
         where: { profileId },
         skip,
         take: limit,
@@ -162,7 +162,7 @@ export async function handleDataExportRequest(
         },
         orderBy: { createdAt: "desc" },
       }),
-      prisma.supportTicket.findMany({
+      prisma.support_tickets.findMany({
         where: { profileId },
         skip,
         take: limit,
@@ -185,7 +185,7 @@ export async function handleDataExportRequest(
         },
         orderBy: { createdAt: "desc" },
       }),
-      prisma.returnRequest.findMany({
+      prisma.return_requests.findMany({
         where: { profileId },
         skip,
         take: limit,
@@ -205,7 +205,7 @@ export async function handleDataExportRequest(
       }),
     ]);
 
-    const loginAttempts = await prisma.loginAttempt.findMany({
+    const loginAttempts = await prisma.login_attempts.findMany({
       where: { profileId },
       skip,
       take: limit,
@@ -221,7 +221,7 @@ export async function handleDataExportRequest(
       orderBy: { createdAt: "desc" },
     });
 
-    const userActionLogs = await prisma.userActionLog.findMany({
+    const userActionLogs = await prisma.user_action_logs.findMany({
       where: { profileId },
       skip,
       take: limit,
@@ -238,7 +238,7 @@ export async function handleDataExportRequest(
       orderBy: { createdAt: "desc" },
     });
 
-    const notifications = await prisma.notification.findMany({
+    const notifications = await prisma.notifications.findMany({
       where: { profileId },
       skip,
       take: limit,
@@ -267,7 +267,7 @@ export async function handleDataExportRequest(
       notifications,
     };
 
-    await prisma.userActionLog.create({
+    await prisma.user_action_logs.create({
       data: {
         profileId,
         action: "data_export",
@@ -322,7 +322,7 @@ export async function handleDataDeleteRequest(
     }
 
     // Check if user has active orders
-    const activeOrders = await prisma.order.count({
+    const activeOrders = await prisma.orders.count({
       where: {
         profileId,
         status: { notIn: ["delivered", "cancelled", "returned", "refunded"] },
@@ -334,7 +334,7 @@ export async function handleDataDeleteRequest(
     }
 
     // Soft delete - anonymize data instead of hard delete
-    await prisma.profile.update({
+    await prisma.profiles.update({
       where: { id: profileId },
       data: {
         email: `deleted-${profileId}@nabome.local`,
@@ -348,7 +348,7 @@ export async function handleDataDeleteRequest(
     });
 
     // Log the deletion for audit trail
-    await prisma.userActionLog.create({
+    await prisma.user_action_logs.create({
       data: {
         profileId,
         action: "data_deletion",

@@ -18,7 +18,7 @@ export async function handleSizeGuideRequest(
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const guides = await prisma.sizeGuide.findMany({
+    const guides = await prisma.size_guides.findMany({
       where: { isActive: true },
       include: {
         category: { select: { id: true, name: true, slug: true } },
@@ -32,7 +32,7 @@ async function handleList(env: any): Promise<Response> {
 async function handleDetail(slug: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const guide = await prisma.sizeGuide.findUnique({
+    const guide = await prisma.size_guides.findUnique({
       where: { slug, isActive: true },
       include: {
         category: { select: { id: true, name: true, slug: true } },

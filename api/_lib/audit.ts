@@ -18,7 +18,7 @@ export async function logAction(
 ): Promise<void> {
   try {
     const prisma = getPrisma(env);
-    await prisma.userActionLog.create({
+    await prisma.user_action_logs.create({
       data: {
         profileId: profileId ?? null,
         action,

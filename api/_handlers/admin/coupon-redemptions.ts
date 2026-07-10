@@ -31,12 +31,12 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [items, total] = await Promise.all([
-      prisma.couponRedemption.findMany({
+      prisma.coupon_redemptions.findMany({
         where: where as never,
         include: { coupon: { select: { code: true } }, order: { select: { orderNumber: true, total: true } }, profile: { select: { firstName: true, lastName: true, email: true } } },
         orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit,
       }),
-      prisma.couponRedemption.count({ where: where as never }),
+      prisma.coupon_redemptions.count({ where: where as never }),
     ]);
     return success({ redemptions: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
   } catch (err) {

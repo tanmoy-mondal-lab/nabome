@@ -12,7 +12,7 @@ async function createNotification(
   env?: any
 ) {
   const prisma = getPrisma(env);
-  await prisma.notification.create({
+  await prisma.notifications.create({
     data: {
       profileId,
       orderId,
@@ -69,7 +69,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
 
   try {
     const prisma = getPrisma(env);
-    const order = await prisma.order.findUnique({
+    const order = await prisma.orders.findUnique({
       where: { id: orderId as string },
       include: { items: true },
     });
@@ -87,7 +87,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
       if (!item) return badRequest("Order item not found in this order");
     }
 
-    const returnRequest = await prisma.returnRequest.create({
+    const returnRequest = await prisma.return_requests.create({
       data: {
         orderId: orderId as string,
         orderItemId: orderItemId as string | null ?? null,
@@ -102,7 +102,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
       },
     });
 
-    await prisma.order.update({
+    await prisma.orders.update({
       where: { id: orderId as string },
       data: { returnRequestedAt: new Date() },
     });
@@ -127,7 +127,7 @@ async function handleListMy(ctx: RequestContext, env: any): Promise<Response> {
 
   try {
     const prisma = getPrisma(env);
-    const returns = await prisma.returnRequest.findMany({
+    const returns = await prisma.return_requests.findMany({
       where: { profileId: ctx.userId },
       include: {
         order: { select: { orderNumber: true, total: true } },
@@ -146,7 +146,7 @@ async function handleDetailMy(returnId: string, ctx: RequestContext, env: any): 
 
   try {
     const prisma = getPrisma(env);
-    const returnRequest = await prisma.returnRequest.findUnique({
+    const returnRequest = await prisma.return_requests.findUnique({
       where: { id: returnId },
       include: {
         order: { select: { orderNumber: true, status: true, total: true } },
@@ -177,7 +177,7 @@ async function handleAdminList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [returns, total] = await Promise.all([
-      prisma.returnRequest.findMany({
+      prisma.return_requests.findMany({
         where: where as never,
         include: {
           profile: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -188,7 +188,7 @@ async function handleAdminList(req: Request, env: any): Promise<Response> {
         skip,
         take: limit,
       }),
-      prisma.returnRequest.count({ where: where as never }),
+      prisma.return_requests.count({ where: where as never }),
     ]);
 
     return success({
@@ -203,7 +203,7 @@ async function handleAdminList(req: Request, env: any): Promise<Response> {
 async function handleAdminDetail(returnId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const returnRequest = await prisma.returnRequest.findUnique({
+    const returnRequest = await prisma.return_requests.findUnique({
       where: { id: returnId },
       include: {
         profile: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
@@ -222,7 +222,7 @@ async function handleAdminDetail(returnId: string, env: any): Promise<Response> 
 async function handleApprove(returnId: string, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const returnRequest = await prisma.returnRequest.findUnique({
+    const returnRequest = await prisma.return_requests.findUnique({
       where: { id: returnId },
       include: { order: { select: { orderNumber: true, profileId: true } } },
     });
@@ -230,7 +230,7 @@ async function handleApprove(returnId: string, ctx: RequestContext, env: any): P
     if (!returnRequest) return notFound("Return request not found");
     if (returnRequest.status !== "pending") return badRequest("Can only approve pending requests");
 
-    const updated = await prisma.returnRequest.update({
+    const updated = await prisma.return_requests.update({
       where: { id: returnId },
       data: {
         status: "approved",
@@ -260,7 +260,7 @@ async function handleReject(returnId: string, req: Request, ctx: RequestContext,
 
   try {
     const prisma = getPrisma(env);
-    const returnRequest = await prisma.returnRequest.findUnique({
+    const returnRequest = await prisma.return_requests.findUnique({
       where: { id: returnId },
       include: { order: { select: { orderNumber: true, profileId: true } } },
     });
@@ -268,7 +268,7 @@ async function handleReject(returnId: string, req: Request, ctx: RequestContext,
     if (!returnRequest) return notFound("Return request not found");
     if (returnRequest.status !== "pending") return badRequest("Can only reject pending requests");
 
-    const updated = await prisma.returnRequest.update({
+    const updated = await prisma.return_requests.update({
       where: { id: returnId },
       data: {
         status: "rejected",
@@ -298,7 +298,7 @@ async function handleReject(returnId: string, req: Request, ctx: RequestContext,
 async function handleReceive(returnId: string, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const returnRequest = await prisma.returnRequest.findUnique({
+    const returnRequest = await prisma.return_requests.findUnique({
       where: { id: returnId },
       include: {
         order: { select: { orderNumber: true, profileId: true, total: true } },
@@ -309,14 +309,14 @@ async function handleReceive(returnId: string, ctx: RequestContext, env: any): P
     if (returnRequest.status !== "approved") return badRequest("Can only receive approved returns");
 
     const [updated] = await prisma.$transaction([
-      prisma.returnRequest.update({
+      prisma.return_requests.update({
         where: { id: returnId },
         data: {
           status: "item_received",
           itemReceivedAt: new Date(),
         },
       }),
-      prisma.refund.create({
+      prisma.refunds.create({
         data: {
           returnRequestId: returnId,
           orderId: returnRequest.orderId,

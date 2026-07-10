@@ -21,12 +21,12 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [items, total] = await Promise.all([
-      prisma.cart.findMany({
+      prisma.carts.findMany({
         where: { updatedAt: { lte: cutoff }, items: { some: {} } },
         include: { profile: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } }, items: { include: { variant: { select: { id: true, sku: true, priceAdjustment: true, product: { select: { name: true } } } } } } },
         orderBy: { updatedAt: "desc" }, skip: (page - 1) * limit, take: limit,
       }),
-      prisma.cart.count({ where: { updatedAt: { lte: cutoff }, items: { some: {} } } }),
+      prisma.carts.count({ where: { updatedAt: { lte: cutoff }, items: { some: {} } } }),
     ]);
     return success({ carts: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
   } catch (err) {

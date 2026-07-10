@@ -86,12 +86,15 @@ export declare const authRegisterSchema: z.ZodObject<{
 export declare const authLoginSchema: z.ZodObject<{
     email: z.ZodString;
     password: z.ZodString;
+    rememberMe: z.ZodDefault<z.ZodOptional<z.ZodBoolean>>;
 }, "strip", z.ZodTypeAny, {
     email: string;
     password: string;
+    rememberMe: boolean;
 }, {
     email: string;
     password: string;
+    rememberMe?: boolean | undefined;
 }>;
 export declare const reviewSchema: z.ZodObject<{
     productId: z.ZodString;
@@ -640,6 +643,13 @@ export declare const verifyEmailSchema: z.ZodObject<{
     email: string;
 }, {
     code: string;
+    email: string;
+}>;
+export declare const resendVerificationSchema: z.ZodObject<{
+    email: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    email: string;
+}, {
     email: string;
 }>;
 export declare const cmsPageCreateSchema: z.ZodObject<{

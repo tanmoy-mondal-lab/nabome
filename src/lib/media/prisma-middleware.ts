@@ -118,7 +118,7 @@ export async function cleanupMediaForEntity(
     const slug = entity[slugField] as string;
 
     // Delete media assets from database
-    const deletedDbAssets = await prisma.mediaAsset.deleteMany({
+    const deletedDbAssets = await prisma.media_assets.deleteMany({
       where: {
         entityType,
         entityId,
@@ -223,7 +223,7 @@ export async function cleanupMediaForWhereClause(
       const entityId = entity.id;
 
       // Delete media assets from database
-      const deletedDbAssets = await prisma.mediaAsset.deleteMany({
+      const deletedDbAssets = await prisma.media_assets.deleteMany({
         where: {
           entityType,
           entityId,

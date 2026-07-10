@@ -1,4 +1,4 @@
-import type { Category, Collection, Lookbook, Product, StaticPage } from "@prisma/client";
+import type { categories as Category, collections as Collection, lookbooks as Lookbook, products as Product, static_pages as StaticPage } from "@prisma/client";
 import { getPrisma } from "./prisma";
 import type { Env } from "./env";
 
@@ -26,7 +26,7 @@ export async function buildRobotsResponse(env?: Env): Promise<Response> {
   let content = "";
 
   try {
-    const settings = await getPrisma(env).siteSetting.findFirst({
+    const settings = await getPrisma(env).site_settings.findFirst({
       select: { seo: true },
     });
     const seo = settings?.seo && typeof settings.seo === "object"
@@ -79,24 +79,24 @@ export async function buildSitemapResponse(env?: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [settings, products, categories, collections, lookbooks, pages] = await Promise.all([
-      prisma.siteSetting.findFirst({ select: { seo: true } }),
-      prisma.product.findMany({
+      prisma.site_settings.findFirst({ select: { seo: true } }),
+      prisma.products.findMany({
         where: { isActive: true },
         select: { slug: true, updatedAt: true },
       }),
-      prisma.category.findMany({
+      prisma.categories.findMany({
         where: { isActive: true },
         select: { slug: true, updatedAt: true },
       }),
-      prisma.collection.findMany({
+      prisma.collections.findMany({
         where: { isActive: true },
         select: { slug: true, updatedAt: true },
       }),
-      prisma.lookbook.findMany({
+      prisma.lookbooks.findMany({
         where: { isActive: true },
         select: { slug: true, updatedAt: true },
       }),
-      prisma.staticPage.findMany({
+      prisma.static_pages.findMany({
         where: { isPublished: true },
         select: { slug: true, updatedAt: true },
       }),

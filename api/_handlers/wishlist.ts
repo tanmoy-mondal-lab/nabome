@@ -23,7 +23,7 @@ export async function handleWishlistRequest(
 async function handleList(userId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const items = await prisma.wishlistItem.findMany({
+    const items = await prisma.wishlist_items.findMany({
       where: { profileId: userId },
       include: {
         variant: {
@@ -58,7 +58,7 @@ async function handleAdd(userId: string, req: Request, env: any): Promise<Respon
 
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.wishlistItem.findUnique({
+    const existing = await prisma.wishlist_items.findUnique({
       where: { profileId_variantId: { profileId: userId, variantId } },
     });
 
@@ -66,7 +66,7 @@ async function handleAdd(userId: string, req: Request, env: any): Promise<Respon
       return success({ message: "Already in wishlist", item: existing });
     }
 
-    const item = await prisma.wishlistItem.create({
+    const item = await prisma.wishlist_items.create({
       data: { profileId: userId, variantId },
       include: {
         variant: {
@@ -89,13 +89,13 @@ async function handleAdd(userId: string, req: Request, env: any): Promise<Respon
 async function handleRemove(userId: string, variantId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const item = await prisma.wishlistItem.findUnique({
+    const item = await prisma.wishlist_items.findUnique({
       where: { profileId_variantId: { profileId: userId, variantId } },
     });
 
     if (!item) return notFound("Item not found in wishlist");
 
-    await prisma.wishlistItem.delete({
+    await prisma.wishlist_items.delete({
       where: { profileId_variantId: { profileId: userId, variantId } },
     });
 

@@ -61,7 +61,7 @@ async function resolveActiveSession(
   const now = new Date();
   const idleTimeout = 2 * 60 * 60 * 1000; // 2 hours idle timeout
 
-  const session = await prisma.authSession.findFirst({
+  const session = await prisma.auth_sessions.findFirst({
     where: {
       profileId: userId,
       isActive: true,
@@ -91,7 +91,7 @@ async function resolveActiveSession(
   const timeSinceLastActive = now.getTime() - session.lastActiveAt.getTime();
   if (timeSinceLastActive > idleTimeout) {
     // Revoke session due to inactivity
-    await prisma.authSession.update({
+    await prisma.auth_sessions.update({
       where: { id: session.id },
       data: { isActive: false, revokedAt: now },
     });
@@ -99,7 +99,7 @@ async function resolveActiveSession(
   }
 
   // Update last active timestamp
-  await prisma.authSession.update({
+  await prisma.auth_sessions.update({
     where: { id: session.id },
     data: { lastActiveAt: now },
   });
@@ -172,7 +172,7 @@ export async function authenticate(
       // 4. Email verification check
       if (opts.requireEmailVerified) {
         const prisma = getPrisma(env);
-        const profile = await prisma.profile.findUnique({
+        const profile = await prisma.profiles.findUnique({
           where: { id: user.id },
           select: { emailVerified: true },
         });

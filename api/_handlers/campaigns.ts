@@ -25,7 +25,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
     const where: Record<string, unknown> = { isActive: true };
     if (type) where.type = type;
 
-    const campaigns = await prisma.campaign.findMany({
+    const campaigns = await prisma.campaigns.findMany({
       where: where as never,
       orderBy: { startDate: "desc" },
     });
@@ -38,7 +38,7 @@ async function handleActive(env: any): Promise<Response> {
     const prisma = getPrisma(env);
     const now = new Date();
     
-    const campaigns = await prisma.campaign.findMany({
+    const campaigns = await prisma.campaigns.findMany({
       where: {
         isActive: true,
         startDate: { lte: now },
@@ -56,7 +56,7 @@ async function handleActive(env: any): Promise<Response> {
 async function handleDetail(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const campaign = await prisma.campaign.findUnique({
+    const campaign = await prisma.campaigns.findUnique({
       where: { id },
     });
     if (!campaign) return notFound("Campaign not found");

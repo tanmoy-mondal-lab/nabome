@@ -32,7 +32,7 @@ export async function handleSubscriptionRequest(
 async function handlePlans(ctx: RequestContext): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const plans = await prisma.subscriptionPlan.findMany({
+    const plans = await prisma.subscription_plans.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
     });
@@ -46,7 +46,7 @@ async function handleMySubscription(_req: Request, ctx: RequestContext): Promise
   if (!ctx.userId) return unauthorized();
   try {
     const prisma = getPrisma(ctx.env);
-    const subscription = await prisma.subscription.findFirst({
+    const subscription = await prisma.subscriptions.findFirst({
       where: { profileId: ctx.userId, status: { in: ["active", "trial", "past_due"] } },
       include: { plan: true },
       orderBy: { createdAt: "desc" },
@@ -63,9 +63,9 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
     const { planId, razorpaySubscriptionId } = await req.json() as { planId: string; razorpaySubscriptionId?: string };
     if (!planId) return badRequest("Plan ID required");
     const prisma = getPrisma(ctx.env);
-    const plan = await prisma.subscriptionPlan.findUnique({ where: { id: planId } });
+    const plan = await prisma.subscription_plans.findUnique({ where: { id: planId } });
     if (!plan) return notFound("Plan not found");
-    const existing = await prisma.subscription.findFirst({
+    const existing = await prisma.subscriptions.findFirst({
       where: { profileId: ctx.userId, status: { in: ["active", "trial", "past_due"] } },
     });
     if (existing) return badRequest("Already have an active subscription");
@@ -73,7 +73,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
     const periodEnd = new Date(now);
     periodEnd.setMonth(periodEnd.getMonth() + (plan.interval === "yearly" ? 12 : 1));
     const trialEnd = plan.trialPeriodDays > 0 ? new Date(now.getTime() + plan.trialPeriodDays * 86400000) : null;
-    const subscription = await prisma.subscription.create({
+    const subscription = await prisma.subscriptions.create({
       data: {
         profileId: ctx.userId,
         planId: plan.id,
@@ -95,11 +95,11 @@ async function handleCancel(_req: Request, ctx: RequestContext): Promise<Respons
   if (!ctx.userId) return unauthorized();
   try {
     const prisma = getPrisma(ctx.env);
-    const subscription = await prisma.subscription.findFirst({
+    const subscription = await prisma.subscriptions.findFirst({
       where: { profileId: ctx.userId, status: { in: ["active", "trial", "past_due"] } },
     });
     if (!subscription) return notFound("No active subscription found");
-    await prisma.subscription.update({
+    await prisma.subscriptions.update({
       where: { id: subscription.id },
       data: { status: "cancelled", cancelledAt: new Date() },
     });
@@ -113,12 +113,12 @@ async function handleInvoices(_req: Request, ctx: RequestContext): Promise<Respo
   if (!ctx.userId) return unauthorized();
   try {
     const prisma = getPrisma(ctx.env);
-    const subscription = await prisma.subscription.findFirst({
+    const subscription = await prisma.subscriptions.findFirst({
       where: { profileId: ctx.userId },
       orderBy: { createdAt: "desc" },
     });
     if (!subscription) return success({ invoices: [] });
-    const invoices = await prisma.subscriptionInvoice.findMany({
+    const invoices = await prisma.subscription_invoices.findMany({
       where: { subscriptionId: subscription.id },
       orderBy: { createdAt: "desc" },
     });
@@ -131,7 +131,7 @@ async function handleInvoices(_req: Request, ctx: RequestContext): Promise<Respo
 async function handleAdminPlans(ctx: RequestContext): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const plans = await prisma.subscriptionPlan.findMany({ orderBy: { sortOrder: "asc" } });
+    const plans = await prisma.subscription_plans.findMany({ orderBy: { sortOrder: "asc" } });
     return success({ plans });
   } catch (e) {
     return serverError(e);
@@ -146,7 +146,7 @@ async function handleAdminCreatePlan(req: Request, ctx: RequestContext): Promise
     };
     if (!body.name || !body.slug || !body.price) return badRequest("Name, slug, and price required");
     const prisma = getPrisma(ctx.env);
-    const plan = await prisma.subscriptionPlan.create({ data: body as any });
+    const plan = await prisma.subscription_plans.create({ data: body as any });
     return created({ plan });
   } catch (e) {
     return serverError(e);

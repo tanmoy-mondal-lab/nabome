@@ -36,7 +36,7 @@ export async function handleAdminTemplateRequest(
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const templates = await prisma.pageTemplate.findMany({
+    const templates = await prisma.page_templates.findMany({
       orderBy: { useCount: "desc" },
     });
     return success({ templates });
@@ -48,7 +48,7 @@ async function handleList(env: any): Promise<Response> {
 async function handleDetail(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const template = await prisma.pageTemplate.findUnique({ where: { id } });
+    const template = await prisma.page_templates.findUnique({ where: { id } });
     if (!template) return notFound("Template not found");
     return success({ template });
   } catch (err) {
@@ -64,11 +64,11 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
 
   const slug = slugify(name);
   const prisma = getPrisma(env);
-  const slugExists = await prisma.pageTemplate.findUnique({ where: { slug } });
+  const slugExists = await prisma.page_templates.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
-    const template = await prisma.pageTemplate.create({
+    const template = await prisma.page_templates.create({
       data: {
         name,
         slug: finalSlug,
@@ -90,7 +90,7 @@ async function handleUpdate(templateId: string, req: Request, env: any): Promise
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.pageTemplate.findUnique({ where: { id: templateId } });
+    const existing = await prisma.page_templates.findUnique({ where: { id: templateId } });
     if (!existing) return notFound("Template not found");
 
     const data: Record<string, unknown> = {};
@@ -101,7 +101,7 @@ async function handleUpdate(templateId: string, req: Request, env: any): Promise
     // Handle thumbnail media replacement using MediaService
     if (body.thumbnailPublicId !== undefined && existing.thumbnailPublicId !== body.thumbnailPublicId) {
       if (existing.thumbnailPublicId) {
-        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+        const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.thumbnailPublicId, entityType: "cms", entityId: templateId },
         });
         if (oldMediaAsset) {
@@ -112,7 +112,7 @@ async function handleUpdate(templateId: string, req: Request, env: any): Promise
     }
     if (body.name) data.slug = slugify(body.name);
 
-    const template = await prisma.pageTemplate.update({
+    const template = await prisma.page_templates.update({
       where: { id: templateId },
       data: data as never,
     });
@@ -125,10 +125,10 @@ async function handleUpdate(templateId: string, req: Request, env: any): Promise
 async function handleDelete(templateId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const template = await prisma.pageTemplate.findUnique({ where: { id: templateId } });
+    const template = await prisma.page_templates.findUnique({ where: { id: templateId } });
     if (!template) return notFound("Template not found");
     if (template.thumbnailPublicId) {
-      const mediaAsset = await prisma.mediaAsset.findFirst({
+      const mediaAsset = await prisma.media_assets.findFirst({
         where: { publicId: template.thumbnailPublicId, entityType: "cms", entityId: templateId },
         select: { id: true },
       });
@@ -136,7 +136,7 @@ async function handleDelete(templateId: string, env: any): Promise<Response> {
         await deleteMedia(mediaAsset.id, env);
       }
     }
-    await prisma.pageTemplate.delete({ where: { id: templateId } });
+    await prisma.page_templates.delete({ where: { id: templateId } });
     return success({ message: "Template deleted" });
   } catch (err) {
     return notFound("Template not found");
@@ -151,18 +151,18 @@ async function handleApply(templateId: string, req: Request, env: any): Promise<
   try {
     const prisma = getPrisma(env);
     const [template, page] = await Promise.all([
-      prisma.pageTemplate.findUnique({ where: { id: templateId } }),
-      prisma.staticPage.findUnique({ where: { id: pageId } }),
+      prisma.page_templates.findUnique({ where: { id: templateId } }),
+      prisma.static_pages.findUnique({ where: { id: pageId } }),
     ]);
     if (!template) return notFound("Template not found");
     if (!page) return notFound("Page not found");
 
-    const updated = await prisma.staticPage.update({
+    const updated = await prisma.static_pages.update({
       where: { id: pageId },
       data: { content: template.sections as never },
     });
 
-    await prisma.pageTemplate.update({
+    await prisma.page_templates.update({
       where: { id: templateId },
       data: { useCount: { increment: 1 } },
     });

@@ -205,7 +205,7 @@ async function handleGetByOrderNumber(ctx: RequestContext, orderNumber: string, 
   if (!ctx.userId) return unauthorized();
   try {
     const prisma = getPrisma(env);
-    const order = await prisma.order.findFirst({
+    const order = await prisma.orders.findFirst({
       where: { orderNumber, profileId: ctx.userId },
       include: {
         items: true,
@@ -232,7 +232,7 @@ async function handleGetInvoice(ctx: RequestContext, orderId: string, env: any):
 
   try {
     const prisma = getPrisma(env);
-    const order = await prisma.order.findFirst({
+    const order = await prisma.orders.findFirst({
       where: {
         id: orderId,
         profileId: ctx.userId,
@@ -260,7 +260,7 @@ async function handleGetInvoice(ctx: RequestContext, orderId: string, env: any):
 async function handleAdminGetInvoice(orderId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const order = await prisma.order.findUnique({
+    const order = await prisma.orders.findUnique({
       where: { id: orderId },
       include: {
         items: true,
@@ -285,7 +285,7 @@ async function handleAdminGetInvoice(orderId: string, env: any): Promise<Respons
 async function handleAdminGenerateInvoice(orderId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const order = await prisma.order.findUnique({
+    const order = await prisma.orders.findUnique({
       where: { id: orderId },
       include: {
         items: true,
@@ -301,7 +301,7 @@ async function handleAdminGenerateInvoice(orderId: string, env: any): Promise<Re
     // For now, store a placeholder URL
     const invoiceUrl = `/api/invoices/${order.orderNumber}`;
 
-    await prisma.order.update({
+    await prisma.orders.update({
       where: { id: orderId },
       data: { invoiceUrl },
     });

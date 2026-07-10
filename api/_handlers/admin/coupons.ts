@@ -36,13 +36,13 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [coupons, total] = await Promise.all([
-      prisma.coupon.findMany({
+      prisma.coupons.findMany({
         include: { _count: { select: { redemptions: true } } },
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
-      prisma.coupon.count(),
+      prisma.coupons.count(),
     ]);
     return success({
       coupons,
@@ -62,11 +62,11 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
   }
 
   const prisma = getPrisma(env);
-  const existingCode = await prisma.coupon.findUnique({ where: { code: code.toUpperCase() } });
+  const existingCode = await prisma.coupons.findUnique({ where: { code: code.toUpperCase() } });
   if (existingCode) return badRequest("A coupon with this code already exists");
 
   try {
-    const coupon = await prisma.coupon.create({
+    const coupon = await prisma.coupons.create({
       data: {
         code: code.toUpperCase(),
         description: description ?? null,
@@ -99,7 +99,7 @@ async function handleUpdate(couponId: string, req: Request, ctx: RequestContext,
 
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.coupon.findUnique({ where: { id: couponId } });
+    const existing = await prisma.coupons.findUnique({ where: { id: couponId } });
     if (!existing) return notFound("Coupon not found");
 
     const data: Record<string, unknown> = {};
@@ -109,7 +109,7 @@ async function handleUpdate(couponId: string, req: Request, ctx: RequestContext,
     }
     if (body.code) {
       const newCode = body.code.toUpperCase();
-      const codeExists = await prisma.coupon.findFirst({
+      const codeExists = await prisma.coupons.findFirst({
         where: { code: newCode, id: { not: couponId } },
       });
       if (codeExists) return badRequest("Coupon code already exists");
@@ -119,7 +119,7 @@ async function handleUpdate(couponId: string, req: Request, ctx: RequestContext,
     if (body.endDate) data.endDate = new Date(body.endDate);
     if (body.isActive !== undefined) data.isActive = body.isActive;
 
-    const coupon = await prisma.coupon.update({
+    const coupon = await prisma.coupons.update({
       where: { id: couponId },
       data: data as never,
     });
@@ -138,9 +138,9 @@ async function handleUpdate(couponId: string, req: Request, ctx: RequestContext,
 async function handleDelete(couponId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.coupon.findUnique({ where: { id: couponId } });
+    const existing = await prisma.coupons.findUnique({ where: { id: couponId } });
     if (!existing) return notFound("Coupon not found");
-    await prisma.coupon.update({
+    await prisma.coupons.update({
       where: { id: couponId },
       data: { isActive: false },
     });

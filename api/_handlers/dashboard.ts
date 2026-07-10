@@ -50,7 +50,7 @@ async function handleDashboardOverview(ctx: RequestContext, _env: any): Promise<
   try {
     const prisma = getPrisma(ctx.env);
     const [recentOrders, wishlistCount, addressesCount, unreadNotifications] = await Promise.all([
-      prisma.order.findMany({
+      prisma.orders.findMany({
         where: { profileId: ctx.userId },
         include: {
           items: true,
@@ -59,9 +59,9 @@ async function handleDashboardOverview(ctx: RequestContext, _env: any): Promise<
         orderBy: { createdAt: "desc" },
         take: 5,
       }),
-      prisma.wishlistItem.count({ where: { profileId: ctx.userId } }),
-      prisma.address.count({ where: { profileId: ctx.userId } }),
-      prisma.notification.count({ where: { profileId: ctx.userId, isRead: false } }),
+      prisma.wishlist_items.count({ where: { profileId: ctx.userId } }),
+      prisma.addresses.count({ where: { profileId: ctx.userId } }),
+      prisma.notifications.count({ where: { profileId: ctx.userId, isRead: false } }),
     ]);
 
     return success({
@@ -78,7 +78,7 @@ async function handleDashboardOverview(ctx: RequestContext, _env: any): Promise<
 async function handleGetProfile(ctx: RequestContext, _env: any): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const profile = await prisma.profile.findUnique({
+    const profile = await prisma.profiles.findUnique({
       where: { id: ctx.userId },
       select: {
         id: true,
@@ -125,7 +125,7 @@ async function handleUpdateProfile(ctx: RequestContext, req: Request, _env: any)
   for (const field of allowedFields) {
     if (body[field] !== undefined) {
       if (field === "preferences") {
-        const existing = await getPrisma(ctx.env).profile.findUnique({
+        const existing = await getPrisma(ctx.env).profiles.findUnique({
           where: { id: ctx.userId },
           select: { preferences: true },
         });
@@ -145,7 +145,7 @@ async function handleUpdateProfile(ctx: RequestContext, req: Request, _env: any)
 
   try {
     const prisma = getPrisma(ctx.env);
-    const profile = await prisma.profile.update({
+    const profile = await prisma.profiles.update({
       where: { id: ctx.userId },
       data: updateData,
       select: {
@@ -190,7 +190,7 @@ async function handleChangePassword(ctx: RequestContext, req: Request, _env: any
 
   try {
     const prisma = getPrisma(ctx.env);
-    const user = await prisma.profile.findUnique({ where: { id: ctx.userId } });
+    const user = await prisma.profiles.findUnique({ where: { id: ctx.userId } });
     if (!user) return unauthorized();
 
     const anonClient = getAnonClient(ctx.env);
@@ -211,7 +211,7 @@ async function handleChangePassword(ctx: RequestContext, req: Request, _env: any
     if (updateError) return badRequest(updateError.message);
 
     await supabase.auth.admin.signOut(ctx.userId!);
-    await prisma.authSession.updateMany({
+    await prisma.auth_sessions.updateMany({
       where: { profileId: ctx.userId, isActive: true },
       data: { isActive: false },
     }).catch(() => {});
@@ -226,15 +226,15 @@ async function handleOrderStats(ctx: RequestContext, _env: any): Promise<Respons
   try {
     const prisma = getPrisma(ctx.env);
     const [totalOrders, aggregation, pendingCount, deliveredCount] = await Promise.all([
-      prisma.order.count({ where: { profileId: ctx.userId } }),
-      prisma.order.aggregate({
+      prisma.orders.count({ where: { profileId: ctx.userId } }),
+      prisma.orders.aggregate({
         where: { profileId: ctx.userId },
         _sum: { total: true },
       }),
-      prisma.order.count({
+      prisma.orders.count({
         where: { profileId: ctx.userId, status: { in: ["pending", "confirmed", "processing"] } },
       }),
-      prisma.order.count({
+      prisma.orders.count({
         where: { profileId: ctx.userId, status: "delivered" },
       }),
     ]);

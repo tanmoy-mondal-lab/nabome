@@ -28,7 +28,7 @@ export async function handleAdminSizeGuideRequest(
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const guides = await prisma.sizeGuide.findMany({
+    const guides = await prisma.size_guides.findMany({
       include: { category: { select: { id: true, name: true } }, _count: { select: { products: true } } },
       orderBy: { createdAt: "desc" as const },
     });
@@ -39,7 +39,7 @@ async function handleList(env: any): Promise<Response> {
 async function handleDetail(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const guide = await prisma.sizeGuide.findUnique({ where: { id }, include: { category: { select: { id: true, name: true } } } });
+    const guide = await prisma.size_guides.findUnique({ where: { id }, include: { category: { select: { id: true, name: true } } } });
     if (!guide) return notFound("Size guide not found");
     return success({ sizeGuide: guide });
   } catch (err) { return serverError(err); }
@@ -51,10 +51,10 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
   if (!name || !measurements) return badRequest("Name and measurements are required");
   const slug = slugify(name);
   const prisma = getPrisma(env);
-  const slugExists = await prisma.sizeGuide.findUnique({ where: { slug } });
+  const slugExists = await prisma.size_guides.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
   try {
-    const guide = await prisma.sizeGuide.create({
+    const guide = await prisma.size_guides.create({
       data: { name, slug: finalSlug, description, categoryId: toNull(categoryId), type: type ?? "clothing", unit: unit ?? "inches", imageUrl, imagePublicId, measurements },
     });
     return created(guide);
@@ -65,7 +65,7 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.sizeGuide.findUnique({ where: { id } });
+    const existing = await prisma.size_guides.findUnique({ where: { id } });
     if (!existing) return notFound("Size guide not found");
     const fields = ["name", "description", "categoryId", "type", "unit", "imageUrl", "measurements", "isActive"];
     const data: Record<string, unknown> = {};
@@ -74,7 +74,7 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
     // Handle image media replacement using MediaService
     if (body.imagePublicId !== undefined && existing.imagePublicId !== body.imagePublicId) {
       if (existing.imagePublicId) {
-        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+        const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.imagePublicId, entityType: "products", entityId: id },
         });
         if (oldMediaAsset) {
@@ -85,12 +85,12 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
     }
     if (body.name) {
       const newSlug = slugify(body.name);
-      const slugExists = await prisma.sizeGuide.findFirst({
+      const slugExists = await prisma.size_guides.findFirst({
         where: { slug: newSlug, id: { not: id } },
       });
       data.slug = slugExists ? `${newSlug}-${Date.now().toString(36)}` : newSlug;
     }
-    const guide = await prisma.sizeGuide.update({ where: { id }, data: data as never });
+    const guide = await prisma.size_guides.update({ where: { id }, data: data as never });
     return success(guide);
   } catch (err) { return serverError(err); }
 }
@@ -98,10 +98,10 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
 async function handleDelete(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const guide = await prisma.sizeGuide.findUnique({ where: { id } });
+    const guide = await prisma.size_guides.findUnique({ where: { id } });
     if (!guide) return notFound("Size guide not found");
     if (guide.imagePublicId) {
-      const mediaAsset = await prisma.mediaAsset.findFirst({
+      const mediaAsset = await prisma.media_assets.findFirst({
         where: { publicId: guide.imagePublicId, entityType: "products", entityId: id },
         select: { id: true },
       });
@@ -109,7 +109,7 @@ async function handleDelete(id: string, env: any): Promise<Response> {
         await deleteMedia(mediaAsset.id, env);
       }
     }
-    await prisma.sizeGuide.delete({ where: { id } });
+    await prisma.size_guides.delete({ where: { id } });
     return success({ message: "Size guide deleted" });
   } catch (err) { return notFound("Size guide not found"); }
 }

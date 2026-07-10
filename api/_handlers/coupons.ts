@@ -27,7 +27,7 @@ async function handleValidate(ctx: RequestContext, req: Request, env: any): Prom
     const authCtx = await optionalAuth(req, env);
     const userId = ctx.userId || authCtx.userId;
     const prisma = getPrisma(env);
-    const coupon = await prisma.coupon.findUnique({
+    const coupon = await prisma.coupons.findUnique({
       where: { code: code.toUpperCase() },
     });
 
@@ -58,7 +58,7 @@ async function handleValidate(ctx: RequestContext, req: Request, env: any): Prom
     }
 
     if (userId) {
-      const userUsageCount = await prisma.couponRedemption.count({
+      const userUsageCount = await prisma.coupon_redemptions.count({
         where: {
           couponId: coupon.id,
           profileId: userId,

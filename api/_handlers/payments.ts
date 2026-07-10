@@ -95,7 +95,7 @@ async function handleVerify(req: Request, ctx: RequestContext, env: any): Promis
       return serverError(new Error("Razorpay secret not configured"));
     }
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    const order = await prisma.orders.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
     
     // Ownership validation: only the order owner can verify payment
@@ -127,7 +127,7 @@ async function handleVerify(req: Request, ctx: RequestContext, env: any): Promis
 
     await prisma.$transaction(async (tx) => {
       // Check for duplicate payment inside transaction to prevent race condition (R3)
-      const paymentAlreadyUsed = await tx.order.findFirst({
+      const paymentAlreadyUsed = await tx.orders.findFirst({
         where: {
           razorpayPaymentId,
           id: { not: orderId },
@@ -135,7 +135,7 @@ async function handleVerify(req: Request, ctx: RequestContext, env: any): Promis
         select: { id: true },
       });
       if (paymentAlreadyUsed) throw new Error("Payment has already been applied to another order");
-      await tx.order.update({
+      await tx.orders.update({
         where: { id: orderId },
         data: {
           razorpayPaymentId,
@@ -144,7 +144,7 @@ async function handleVerify(req: Request, ctx: RequestContext, env: any): Promis
         },
       });
 
-      await tx.orderStatusHistory.create({
+      await tx.order_status_history.create({
         data: {
           orderId,
           status: "confirmed",
@@ -154,7 +154,7 @@ async function handleVerify(req: Request, ctx: RequestContext, env: any): Promis
       });
 
       if (order.profileId) {
-        await tx.notification.create({
+        await tx.notifications.create({
           data: {
             profileId: order.profileId,
             orderId,
@@ -202,7 +202,7 @@ async function handleFailed(req: Request, ctx: RequestContext, env: any): Promis
 
     const prisma = getPrisma(env);
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    const order = await prisma.orders.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
     if (order.razorpayOrderId !== razorpayOrderId) {
       return badRequest("Payment order does not match this order");
@@ -220,13 +220,13 @@ async function handleFailed(req: Request, ctx: RequestContext, env: any): Promis
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.order.update({
+      await tx.orders.update({
         where: { id: orderId },
         data: { paymentStatus: "failed" },
       });
 
       if (order.profileId) {
-        await tx.notification.create({
+        await tx.notifications.create({
           data: {
             profileId: order.profileId,
             orderId,
@@ -275,7 +275,7 @@ async function handleRetry(req: Request, ctx: RequestContext, env: any): Promise
 
     const prisma = getPrisma(env);
 
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    const order = await prisma.orders.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
     if (!ctx.userId || order.profileId !== ctx.userId) {
       return notFound("Order not found");
@@ -293,7 +293,7 @@ async function handleRetry(req: Request, ctx: RequestContext, env: any): Promise
 
     const razorpayOrderId = razorpayData.id as string;
 
-    await prisma.order.update({
+    await prisma.orders.update({
       where: { id: orderId },
       data: { razorpayOrderId, paymentStatus: "pending" },
     });
@@ -314,7 +314,7 @@ async function handleRefund(req: Request, ctx: RequestContext, env: any): Promis
 
     const prisma = getPrisma(env);
 
-    const order = await prisma.order.findUnique({
+    const order = await prisma.orders.findUnique({
       where: { id: orderId },
       include: { refunds: true },
     });
@@ -350,13 +350,13 @@ async function handleRefund(req: Request, ctx: RequestContext, env: any): Promis
       // Create or reuse a return request for this refund
       let rrId = returnRequestId as string | undefined;
       if (!rrId) {
-        const existingRR = await tx.returnRequest.findFirst({
+        const existingRR = await tx.return_requests.findFirst({
           where: { orderId, status: "approved" },
         });
         if (existingRR) {
           rrId = existingRR.id;
         } else {
-          const rr = await tx.returnRequest.create({
+          const rr = await tx.return_requests.create({
             data: {
               orderId,
               profileId: order.profileId!,
@@ -371,7 +371,7 @@ async function handleRefund(req: Request, ctx: RequestContext, env: any): Promis
         }
       }
 
-      await tx.refund.create({
+      await tx.refunds.create({
         data: {
           returnRequestId: rrId,
           orderId,
@@ -385,7 +385,7 @@ async function handleRefund(req: Request, ctx: RequestContext, env: any): Promis
         },
       });
 
-      await tx.order.update({
+      await tx.orders.update({
         where: { id: orderId },
         data: {
           paymentStatus: isFullRefund ? "refunded" : "partially_refunded",
@@ -393,7 +393,7 @@ async function handleRefund(req: Request, ctx: RequestContext, env: any): Promis
         },
       });
 
-      await tx.notification.create({
+      await tx.notifications.create({
         data: {
           profileId: order.profileId!,
           orderId,
@@ -456,12 +456,12 @@ function getWebhookEventId(event: WebhookEventPayload): string {
 
 async function findOrderByRazorpayOrderId(razorpayOrderId: string, env: any) {
   const prisma = getPrisma(env);
-  return prisma.order.findFirst({ where: { razorpayOrderId } });
+  return prisma.orders.findFirst({ where: { razorpayOrderId } });
 }
 
 async function findOrderByPaymentId(razorpayPaymentId: string, env: any) {
   const prisma = getPrisma(env);
-  return prisma.order.findFirst({ where: { razorpayPaymentId } });
+  return prisma.orders.findFirst({ where: { razorpayPaymentId } });
 }
 
 function roundAmount(amount: unknown): number {
@@ -486,10 +486,10 @@ async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: any
   if (!order) throw new Error(`Order not found for razorpay_order_id: ${razorpayOrderId}`);
 
   const result = await prisma.$transaction(async (tx) => {
-    const current = await tx.order.findUnique({ where: { id: order.id } });
+    const current = await tx.orders.findUnique({ where: { id: order.id } });
     if (!current || current.paymentStatus === "paid") return { status: "already_processed", orderId: order.id, orderNumber: order.orderNumber };
 
-    await tx.order.update({
+    await tx.orders.update({
       where: { id: order.id },
       data: {
         razorpayPaymentId,
@@ -499,7 +499,7 @@ async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: any
       },
     });
 
-    await tx.orderStatusHistory.create({
+    await tx.order_status_history.create({
       data: {
         orderId: order.id,
         status: "confirmed",
@@ -509,7 +509,7 @@ async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: any
     });
 
     if (order.profileId) {
-      await tx.notification.create({
+      await tx.notifications.create({
         data: {
           profileId: order.profileId,
           orderId: order.id,
@@ -556,16 +556,16 @@ async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: any }
   if (!order) throw new Error(`Order not found for razorpay_order_id: ${razorpayOrderId}`);
 
   const result = await prisma.$transaction(async (tx) => {
-    const current = await tx.order.findUnique({ where: { id: order.id } });
+    const current = await tx.orders.findUnique({ where: { id: order.id } });
     if (!current || current.paymentStatus === "failed") return { status: "already_processed", orderId: order.id };
 
-    await tx.order.update({
+    await tx.orders.update({
       where: { id: order.id },
       data: { paymentStatus: "failed" },
     });
 
     if (order.profileId) {
-      await tx.notification.create({
+      await tx.notifications.create({
         data: {
           profileId: order.profileId,
           orderId: order.id,
@@ -617,19 +617,19 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }
   if (!order) throw new Error(`Order not found for razorpay_payment_id: ${razorpayPaymentId}`);
 
   return prisma.$transaction(async (tx) => {
-    const existingRefund = await tx.refund.findFirst({
+    const existingRefund = await tx.refunds.findFirst({
       where: { transactionId: refundId },
     });
     if (existingRefund) return { status: "already_processed", refundId: existingRefund.id, orderId: order.id };
 
     let rrId: string | null = null;
-    const existingRR = await tx.returnRequest.findFirst({
+    const existingRR = await tx.return_requests.findFirst({
       where: { orderId: order.id, status: "approved" },
     });
     if (existingRR) {
       rrId = existingRR.id;
     } else {
-      const rr = await tx.returnRequest.create({
+      const rr = await tx.return_requests.create({
         data: {
           orderId: order.id,
           profileId: order.profileId!,
@@ -642,7 +642,7 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }
       rrId = rr.id;
     }
 
-    const refundRecord = await tx.refund.create({
+    const refundRecord = await tx.refunds.create({
       data: {
         returnRequestId: rrId,
         orderId: order.id,
@@ -656,7 +656,7 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }
       },
     });
 
-    const allRefunds = await tx.refund.findMany({
+    const allRefunds = await tx.refunds.findMany({
       where: { orderId: order.id, status: "completed", id: { not: refundRecord.id } },
     });
     // Only add current refund amount if it's already completed (not the one we just created)
@@ -664,7 +664,7 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }
     const orderTotal = Number(order.total);
     const isFullRefund = totalRefunded >= orderTotal;
 
-    await tx.order.update({
+    await tx.orders.update({
       where: { id: order.id },
       data: {
         paymentStatus: isFullRefund ? "refunded" : "partially_refunded",
@@ -673,7 +673,7 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }
     });
 
     if (order.profileId) {
-      await tx.notification.create({
+      await tx.notifications.create({
         data: {
           profileId: order.profileId,
           orderId: order.id,
@@ -698,7 +698,7 @@ async function handleRefundProcessed(event: WebhookEventPayload, ctx: { env: any
   const refundId = refund.id as string;
   const refundAmount = roundAmount(refund.amount);
 
-  const existingRefund = await prisma.refund.findFirst({
+  const existingRefund = await prisma.refunds.findFirst({
     where: { transactionId: refundId },
   });
   if (!existingRefund) {
@@ -708,7 +708,7 @@ async function handleRefundProcessed(event: WebhookEventPayload, ctx: { env: any
   return prisma.$transaction(async (tx) => {
     if (existingRefund.status === "completed") return { status: "already_processed", refundId: existingRefund.id };
 
-    await tx.refund.update({
+    await tx.refunds.update({
       where: { id: existingRefund.id },
       data: {
         status: "completed",
@@ -716,15 +716,15 @@ async function handleRefundProcessed(event: WebhookEventPayload, ctx: { env: any
       },
     });
 
-    const allRefunds = await tx.refund.findMany({
+    const allRefunds = await tx.refunds.findMany({
       where: { orderId: existingRefund.orderId, status: "completed" },
     });
     const totalRefunded = allRefunds.reduce((sum, r) => sum + Number(r.amount), 0) + Number(refundAmount);
-    const order = await tx.order.findUnique({ where: { id: existingRefund.orderId } });
+    const order = await tx.orders.findUnique({ where: { id: existingRefund.orderId } });
     if (!order) throw new Error(`Order not found: ${existingRefund.orderId}`);
 
     const isFullRefund = totalRefunded >= Number(order.total);
-    await tx.order.update({
+    await tx.orders.update({
       where: { id: order.id },
       data: {
         paymentStatus: isFullRefund ? "refunded" : "partially_refunded",
@@ -733,7 +733,7 @@ async function handleRefundProcessed(event: WebhookEventPayload, ctx: { env: any
     });
 
     if (order.profileId) {
-      await tx.notification.create({
+      await tx.notifications.create({
         data: {
           profileId: order.profileId,
           orderId: order.id,
@@ -812,7 +812,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
 
   // ── 4. Dedup — check if we already processed this event ──
   try {
-    const existing = await prisma.webhookEvent.findUnique({
+    const existing = await prisma.webhook_events.findUnique({
       where: { source_eventId: { source: "razorpay", eventId } },
     });
 
@@ -835,7 +835,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
   // ── 5. Create or update WebhookEvent record ──
   let webhookEventId: string;
   try {
-    const record = await prisma.webhookEvent.upsert({
+    const record = await prisma.webhook_events.upsert({
       where: { source_eventId: { source: "razorpay", eventId } },
       create: {
         eventId,
@@ -854,7 +854,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
   } catch {
     // Upsert failed — try simple create
     try {
-      const record = await prisma.webhookEvent.create({
+      const record = await prisma.webhook_events.create({
         data: {
           eventId,
           source: "razorpay",
@@ -872,7 +872,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
   // ── 6. Route to handler ──
   const handler = EVENT_HANDLERS[eventName];
   if (!handler) {
-    await prisma.webhookEvent.update({
+    await prisma.webhook_events.update({
       where: { id: webhookEventId },
       data: { status: "skipped", processedAt: new Date(), errorMessage: `No handler for event: ${eventName}` },
     }).catch(() => {});
@@ -882,7 +882,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
   try {
     const result = await handler(event, { env });
 
-    await prisma.webhookEvent.update({
+    await prisma.webhook_events.update({
       where: { id: webhookEventId },
       data: {
         status: "processed",
@@ -901,7 +901,7 @@ async function handleWebhook(req: Request, env: any): Promise<Response> {
   } catch (err) {
     const errorMessage = (err as Error).message;
 
-    await prisma.webhookEvent.update({
+    await prisma.webhook_events.update({
       where: { id: webhookEventId },
       data: {
         status: "failed",
@@ -955,13 +955,13 @@ async function handleListWebhookEvents(req: Request, env: any): Promise<Response
   if (eventType) where.eventType = eventType;
 
   const [events, total] = await Promise.all([
-    prisma.webhookEvent.findMany({
+    prisma.webhook_events.findMany({
       where: where as any,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,
     }),
-    prisma.webhookEvent.count({ where: where as any }),
+    prisma.webhook_events.count({ where: where as any }),
   ]);
 
   return success({
@@ -974,7 +974,7 @@ async function handleReprocessWebhookEvent(_req: Request, eventId: string, env: 
   if (!eventId) return badRequest("eventId is required");
 
   const prisma = getPrisma(env);
-  const event = await prisma.webhookEvent.findUnique({ where: { id: eventId } });
+  const event = await prisma.webhook_events.findUnique({ where: { id: eventId } });
   if (!event) return notFound("Webhook event not found");
 
   const handler = EVENT_HANDLERS[event.eventType];
@@ -982,7 +982,7 @@ async function handleReprocessWebhookEvent(_req: Request, eventId: string, env: 
 
   try {
     const result = await handler(event.payload as unknown as WebhookEventPayload, { env });
-    await prisma.webhookEvent.update({
+    await prisma.webhook_events.update({
       where: { id: eventId },
       data: {
         status: "processed",
@@ -993,7 +993,7 @@ async function handleReprocessWebhookEvent(_req: Request, eventId: string, env: 
     });
     return success({ status: "reprocessed", result });
   } catch (err) {
-    await prisma.webhookEvent.update({
+    await prisma.webhook_events.update({
       where: { id: eventId },
       data: {
         status: "failed",
@@ -1009,7 +1009,7 @@ async function handleReconcileOrder(_req: Request, orderId: string, env: any): P
   if (!orderId) return badRequest("orderId is required");
 
   const prisma = getPrisma(env);
-  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  const order = await prisma.orders.findUnique({ where: { id: orderId } });
   if (!order) return notFound("Order not found");
 
   if (!order.razorpayOrderId) return badRequest("Order has no Razorpay order ID");
@@ -1029,7 +1029,7 @@ async function handleReconcileOrder(_req: Request, orderId: string, env: any): P
     }
 
     if (Object.keys(updates).length > 0) {
-      await prisma.order.update({
+      await prisma.orders.update({
         where: { id: order.id },
         data: updates,
       });

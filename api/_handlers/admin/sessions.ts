@@ -26,7 +26,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [items, total] = await Promise.all([
-      prisma.authSession.findMany({
+      prisma.auth_sessions.findMany({
         where: where as never,
         select: {
           id: true,
@@ -43,7 +43,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
         },
         orderBy: { lastActiveAt: "desc" }, skip: (page - 1) * limit, take: limit,
       }),
-      prisma.authSession.count({ where: where as never }),
+      prisma.auth_sessions.count({ where: where as never }),
     ]);
     return success({ sessions: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
   } catch (err) {
@@ -54,9 +54,9 @@ async function handleList(req: Request, env: any): Promise<Response> {
 async function handleRevoke(sessionId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const session = await prisma.authSession.findUnique({ where: { id: sessionId } });
+    const session = await prisma.auth_sessions.findUnique({ where: { id: sessionId } });
     if (!session) return notFound("Session not found");
-    await prisma.authSession.update({ where: { id: sessionId }, data: { isActive: false, revokedAt: new Date() } });
+    await prisma.auth_sessions.update({ where: { id: sessionId }, data: { isActive: false, revokedAt: new Date() } });
     return success({ message: "Session revoked" });
   } catch { return serverError(new Error("Failed to revoke session")); }
 }

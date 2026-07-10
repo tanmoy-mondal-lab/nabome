@@ -51,7 +51,7 @@ export async function enqueueJob(
       ? new Date(Date.now() + options.delay * 1000)
       : undefined;
 
-    const job = await prisma.jobQueue.create({
+    const job = await prisma.job_queue.create({
       data: {
         jobType,
         payload: payload as Prisma.InputJsonValue,
@@ -78,7 +78,7 @@ export async function processJob(jobId: string, env: Env): Promise<JobResult> {
 
   try {
     // Mark job as processing
-    const job = await prisma.jobQueue.update({
+    const job = await prisma.job_queue.update({
       where: { id: jobId },
       data: {
         status: "processing",
@@ -91,7 +91,7 @@ export async function processJob(jobId: string, env: Env): Promise<JobResult> {
 
     if (result.success) {
       // Mark as completed
-      await prisma.jobQueue.update({
+      await prisma.job_queue.update({
         where: { id: jobId },
         data: {
           status: "completed",
@@ -106,7 +106,7 @@ export async function processJob(jobId: string, env: Env): Promise<JobResult> {
     return result;
   } catch (err) {
     const error = (err as Error).message;
-    const job = await prisma.jobQueue.findUnique({ where: { id: jobId } });
+    const job = await prisma.job_queue.findUnique({ where: { id: jobId } });
     
     if (job) {
       await handleJobFailure(jobId, job, error, env);
@@ -154,7 +154,7 @@ async function executeNewsletterSubscribe(payload: JobPayload, env: Env): Promis
   const { email } = payload as { email: string };
 
   try {
-    await prisma.newsletterSubscriber.upsert({
+    await prisma.newsletter_subscribers.upsert({
       where: { email },
       create: { email },
       update: {},
@@ -174,9 +174,9 @@ async function executeNewsletterUnsubscribe(payload: JobPayload, env: Env): Prom
   const { email } = payload as { email: string };
 
   try {
-    const subscriber = await prisma.newsletterSubscriber.findUnique({ where: { email } });
+    const subscriber = await prisma.newsletter_subscribers.findUnique({ where: { email } });
     if (subscriber) {
-      await prisma.newsletterSubscriber.delete({ where: { email } });
+      await prisma.newsletter_subscribers.delete({ where: { email } });
     }
 
     return { success: true };
@@ -200,7 +200,7 @@ async function handleJobFailure(
   if (newRetryCount >= job.maxRetries) {
     // Move to dead-letter queue
     await prisma.$transaction([
-      prisma.jobQueue.update({
+      prisma.job_queue.update({
         where: { id: jobId },
         data: {
           status: "failed",
@@ -208,7 +208,7 @@ async function handleJobFailure(
           completedAt: new Date(),
         },
       }),
-      prisma.deadLetterQueue.create({
+      prisma.dead_letter_queue.create({
         data: {
           jobType: job.jobType,
           payload: job.payload as Prisma.InputJsonValue,
@@ -223,7 +223,7 @@ async function handleJobFailure(
     const retryDelay = Math.pow(2, newRetryCount) * 60; // 2^n minutes
     const retryAfter = new Date(Date.now() + retryDelay * 1000);
 
-    await prisma.jobQueue.update({
+    await prisma.job_queue.update({
       where: { id: jobId },
       data: {
         status: "retrying",
@@ -241,7 +241,7 @@ async function handleJobFailure(
 export async function getNextJobs(limit: number = 10, env: Env) {
   const prisma = getPrisma(env);
 
-  return prisma.jobQueue.findMany({
+  return prisma.job_queue.findMany({
     where: {
       OR: [
         { status: "pending" },
@@ -295,12 +295,12 @@ export async function getJobQueueStats(env: Env) {
   const prisma = getPrisma(env);
 
   const [pending, processing, retrying, completed, failed, deadLetter] = await Promise.all([
-    prisma.jobQueue.count({ where: { status: "pending" } }),
-    prisma.jobQueue.count({ where: { status: "processing" } }),
-    prisma.jobQueue.count({ where: { status: "retrying" } }),
-    prisma.jobQueue.count({ where: { status: "completed" } }),
-    prisma.jobQueue.count({ where: { status: "failed" } }),
-    prisma.deadLetterQueue.count(),
+    prisma.job_queue.count({ where: { status: "pending" } }),
+    prisma.job_queue.count({ where: { status: "processing" } }),
+    prisma.job_queue.count({ where: { status: "retrying" } }),
+    prisma.job_queue.count({ where: { status: "completed" } }),
+    prisma.job_queue.count({ where: { status: "failed" } }),
+    prisma.dead_letter_queue.count(),
   ]);
 
   return {

@@ -12,7 +12,7 @@ async function createNotification(
   env?: any
 ) {
   const prisma = getPrisma(env);
-  await prisma.notification.create({
+  await prisma.notifications.create({
     data: {
       profileId,
       orderId,
@@ -65,7 +65,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [refunds, total] = await Promise.all([
-      prisma.refund.findMany({
+      prisma.refunds.findMany({
         where: where as never,
         include: {
           returnRequest: {
@@ -78,7 +78,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
         skip,
         take: limit,
       }),
-      prisma.refund.count({ where: where as never }),
+      prisma.refunds.count({ where: where as never }),
     ]);
 
     return success({
@@ -93,7 +93,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
 async function handleDetail(refundId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const refund = await prisma.refund.findUnique({
+    const refund = await prisma.refunds.findUnique({
       where: { id: refundId },
       include: {
         returnRequest: {
@@ -124,7 +124,7 @@ async function handleListMy(req: Request, ctx: RequestContext, env: any): Promis
     const prisma = getPrisma(env);
     const where = { returnRequest: { profileId: ctx.userId } };
     const [refunds, total] = await Promise.all([
-      prisma.refund.findMany({
+      prisma.refunds.findMany({
         where,
         include: {
           returnRequest: { select: { id: true, status: true, reason: true } },
@@ -134,7 +134,7 @@ async function handleListMy(req: Request, ctx: RequestContext, env: any): Promis
         skip,
         take: limit,
       }),
-      prisma.refund.count({ where }),
+      prisma.refunds.count({ where }),
     ]);
     return success({
       refunds,
@@ -149,7 +149,7 @@ async function handleDetailMy(refundId: string, ctx: RequestContext, env: any): 
   if (!ctx.userId) return badRequest("Unauthorized");
   try {
     const prisma = getPrisma(env);
-    const refund = await prisma.refund.findFirst({
+    const refund = await prisma.refunds.findFirst({
       where: { id: refundId, returnRequest: { profileId: ctx.userId } },
       include: {
         returnRequest: { include: { orderItem: true } },
@@ -182,10 +182,10 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
 
   try {
     const prisma = getPrisma(env);
-    const order = await prisma.order.findUnique({ where: { id: orderId as string } });
+    const order = await prisma.orders.findUnique({ where: { id: orderId as string } });
     if (!order) return notFound("Order not found");
 
-    const refund = await prisma.refund.create({
+    const refund = await prisma.refunds.create({
       data: {
         orderId: orderId as string,
         amount: amount as number | string,
@@ -206,11 +206,11 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
 async function handleProcess(refundId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const refund = await prisma.refund.findUnique({ where: { id: refundId } });
+    const refund = await prisma.refunds.findUnique({ where: { id: refundId } });
     if (!refund) return notFound("Refund not found");
     if (refund.status !== "pending") return badRequest("Can only process pending refunds");
 
-    const updated = await prisma.refund.update({
+    const updated = await prisma.refunds.update({
       where: { id: refundId },
       data: { status: "processing" },
     });
@@ -224,7 +224,7 @@ async function handleProcess(refundId: string, env: any): Promise<Response> {
 async function handleComplete(refundId: string, _ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const refund = await prisma.refund.findUnique({
+    const refund = await prisma.refunds.findUnique({
       where: { id: refundId },
       include: {
         order: { select: { id: true, total: true, profileId: true, orderNumber: true } },
@@ -237,14 +237,14 @@ async function handleComplete(refundId: string, _ctx: RequestContext, env: any):
     const paymentStatus = refund.type === "full" ? "refunded" : "partially_refunded";
 
     const [updated] = await prisma.$transaction([
-      prisma.refund.update({
+      prisma.refunds.update({
         where: { id: refundId },
         data: {
           status: "completed",
           processedAt: new Date(),
         },
       }),
-      prisma.order.update({
+      prisma.orders.update({
         where: { id: refund.orderId },
         data: {
           paymentStatus,
@@ -252,7 +252,7 @@ async function handleComplete(refundId: string, _ctx: RequestContext, env: any):
         },
       }),
       ...(refund.returnRequestId ? [
-        prisma.returnRequest.updateMany({
+        prisma.return_requests.updateMany({
           where: { id: refund.returnRequestId },
           data: {
             status: "completed",
@@ -287,13 +287,13 @@ async function handleFail(refundId: string, req: Request, env: any): Promise<Res
 
   try {
     const prisma = getPrisma(env);
-    const refund = await prisma.refund.findUnique({ where: { id: refundId } });
+    const refund = await prisma.refunds.findUnique({ where: { id: refundId } });
     if (!refund) return notFound("Refund not found");
     if (!["pending", "processing"].includes(refund.status)) {
       return badRequest("Can only fail pending or processing refunds");
     }
 
-    const updated = await prisma.refund.update({
+    const updated = await prisma.refunds.update({
       where: { id: refundId },
       data: {
         status: "failed",

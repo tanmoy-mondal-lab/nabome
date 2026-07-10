@@ -28,7 +28,7 @@ async function handleOverview(env: any): Promise<Response> {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // Get low stock threshold from site settings
-    const siteSettings = await prisma.siteSetting.findFirst();
+    const siteSettings = await prisma.site_settings.findFirst();
     const lowStockThreshold = (siteSettings?.preferences as Record<string, unknown> | null)?.lowStockThreshold as number ?? 5;
 
     const [
@@ -43,14 +43,14 @@ async function handleOverview(env: any): Promise<Response> {
       pendingReviews,
       recentCustomers,
     ] = await Promise.all([
-      prisma.product.count({ where: { isActive: true } }),
-      prisma.order.count(),
-      prisma.profile.count(),
-      prisma.order.aggregate({
+      prisma.products.count({ where: { isActive: true } }),
+      prisma.orders.count(),
+      prisma.profiles.count(),
+      prisma.orders.aggregate({
         _sum: { total: true },
         where: { paymentStatus: "paid" },
       }),
-      prisma.order.findMany({
+      prisma.orders.findMany({
         take: 10,
         orderBy: { createdAt: "desc" },
         include: {
@@ -58,21 +58,21 @@ async function handleOverview(env: any): Promise<Response> {
           profile: { select: { firstName: true, lastName: true } },
         },
       }),
-      prisma.order.aggregate({
+      prisma.orders.aggregate({
         _sum: { total: true },
         where: {
           paymentStatus: "paid",
           createdAt: { gte: startOfMonth },
         },
       }),
-      prisma.order.count({
+      prisma.orders.count({
         where: { createdAt: { gte: startOfMonth } },
       }),
-      prisma.productVariant.count({
+      prisma.product_variants.count({
         where: { stock: { lte: lowStockThreshold }, isActive: true },
       }),
-      prisma.review.count({ where: { isApproved: false } }),
-      prisma.profile.findMany({
+      prisma.reviews.count({ where: { isApproved: false } }),
+      prisma.profiles.findMany({
         orderBy: { createdAt: "desc" },
         take: 10,
         select: { id: true, firstName: true, lastName: true, email: true, role: true, createdAt: true },
@@ -80,13 +80,13 @@ async function handleOverview(env: any): Promise<Response> {
     ]);
 
     // Orders by status
-    const ordersByStatus = await prisma.order.groupBy({
+    const ordersByStatus = await prisma.orders.groupBy({
       by: ["status"],
       _count: true,
     });
 
     // Sales by day (last 30 days) — fetch paid orders and group by day
-    const paidOrders = await prisma.order.findMany({
+    const paidOrders = await prisma.orders.findMany({
       where: {
         paymentStatus: "paid",
         createdAt: { gte: thirtyDaysAgo },

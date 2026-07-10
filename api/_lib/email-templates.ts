@@ -459,7 +459,7 @@ function emailVerification(data: Record<string, unknown>): EmailTemplate {
 <div style="background:#ffffff;border:2px dashed ${BRAND.primaryColor};border-radius:8px;padding:16px;margin:0 auto;display:inline-block;font-size:32px;font-weight:700;letter-spacing:8px;color:${BRAND.primaryColor};font-family:'Courier New',monospace">${verificationCode}</div>
 </div>
 
-<p style="font-size:13px;color:${BRAND.textMuted};line-height:1.5;margin:0 0 8px">This code will expire in 10 minutes.</p>
+<p style="font-size:13px;color:${BRAND.textMuted};line-height:1.5;margin:0 0 8px">This code will expire in 24 hours.</p>
 <p style="font-size:12px;color:${BRAND.textMuted};line-height:1.5;margin:0">If you didn't create this account, please ignore this email.</p>`;
 
   return {

@@ -128,6 +128,7 @@ export const authRegisterSchema = z.object({
 export const authLoginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Password is required"),
+  rememberMe: z.boolean().optional().default(false),
 });
 
 export const reviewSchema = z.object({
@@ -296,6 +297,10 @@ export const changePasswordSchema = z.object({
 export const verifyEmailSchema = z.object({
   email: z.string().email("Invalid email address"),
   code: z.string().regex(/^\d{6}$/, "Code must be a 6-digit number"),
+});
+
+export const resendVerificationSchema = z.object({
+  email: z.string().email("Invalid email address"),
 });
 
 // Admin CMS validation schemas

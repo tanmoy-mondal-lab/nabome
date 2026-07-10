@@ -28,7 +28,7 @@ export async function handleAddressRequest(
 async function handleList(userId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const addresses = await prisma.address.findMany({
+    const addresses = await prisma.addresses.findMany({
       where: { profileId: userId },
       orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
     });
@@ -50,13 +50,13 @@ async function handleCreate(userId: string, req: Request, env: any): Promise<Res
     const prisma = getPrisma(env);
     // If this is the default address, unset other defaults
     if (isDefault) {
-      await prisma.address.updateMany({
+      await prisma.addresses.updateMany({
         where: { profileId: userId, isDefault: true },
         data: { isDefault: false },
       });
     }
 
-    const address = await prisma.address.create({
+    const address = await prisma.addresses.create({
       data: {
         profileId: userId,
         label: label ?? "Home",
@@ -84,19 +84,19 @@ async function handleUpdate(userId: string, addressId: string, req: Request, env
 
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.address.findFirst({
+    const existing = await prisma.addresses.findFirst({
       where: { id: addressId, profileId: userId },
     });
     if (!existing) return notFound("Address not found");
 
     if (body.isDefault) {
-      await prisma.address.updateMany({
+      await prisma.addresses.updateMany({
         where: { profileId: userId, isDefault: true, id: { not: addressId } },
         data: { isDefault: false },
       });
     }
 
-    const address = await prisma.address.update({
+    const address = await prisma.addresses.update({
       where: { id: addressId },
       data: {
         label: body.label ?? existing.label,
@@ -122,12 +122,12 @@ async function handleUpdate(userId: string, addressId: string, req: Request, env
 async function handleDelete(userId: string, addressId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.address.findFirst({
+    const existing = await prisma.addresses.findFirst({
       where: { id: addressId, profileId: userId },
     });
     if (!existing) return notFound("Address not found");
 
-    await prisma.address.delete({ where: { id: addressId } });
+    await prisma.addresses.delete({ where: { id: addressId } });
 
     return success({ message: "Address deleted" });
   } catch (err) {

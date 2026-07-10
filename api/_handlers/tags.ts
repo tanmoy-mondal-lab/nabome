@@ -19,7 +19,7 @@ export async function handleTagRequest(
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const tags = await prisma.productTag.findMany({
+    const tags = await prisma.product_tags.findMany({
       include: {
         _count: { select: { products: true } },
       },
@@ -32,7 +32,7 @@ async function handleList(env: any): Promise<Response> {
 async function handleDetail(slug: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const tag = await prisma.productTag.findUnique({
+    const tag = await prisma.product_tags.findUnique({
       where: { slug },
       include: {
         _count: { select: { products: true } },
@@ -46,10 +46,10 @@ async function handleDetail(slug: string, env: any): Promise<Response> {
 async function handleProducts(slug: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const tag = await prisma.productTag.findUnique({ where: { slug } });
+    const tag = await prisma.product_tags.findUnique({ where: { slug } });
     if (!tag) return notFound("Tag not found");
 
-    const products = await prisma.product.findMany({
+    const products = await prisma.products.findMany({
       where: {
         isActive: true,
         productTags: { some: { tagId: tag.id } },

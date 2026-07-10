@@ -57,7 +57,7 @@ async function handleBuild(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [products, pages, categories, collections, lookbooks] = await Promise.all([
-      prisma.product.findMany({
+      prisma.products.findMany({
         where: { isActive: true },
         include: {
           images: { where: { isPrimary: true }, take: 1 },
@@ -65,12 +65,12 @@ async function handleBuild(env: any): Promise<Response> {
           _count: { select: { variants: true } },
         },
       }),
-      prisma.staticPage.findMany({
+      prisma.static_pages.findMany({
         where: { isPublished: true },
       }),
-      prisma.category.findMany({ where: { isActive: true } }),
-      prisma.collection.findMany({ where: { isActive: true } }),
-      prisma.lookbook.findMany({ where: { isActive: true } }),
+      prisma.categories.findMany({ where: { isActive: true } }),
+      prisma.collections.findMany({ where: { isActive: true } }),
+      prisma.lookbooks.findMany({ where: { isActive: true } }),
     ]);
 
     const docs: SearchableDoc[] = [

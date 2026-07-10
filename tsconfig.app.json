@@ -26,5 +26,6 @@
     "emitDeclarationOnly": true,
     "declarationDir": ".tsbuild/types"
   },
-  "include": ["src", "scripts/feature-flags.ts"]
+  "include": ["src", "scripts/feature-flags.ts"],
+  "exclude": ["src/**/__tests__", "src/**/*.test.ts"]
 }

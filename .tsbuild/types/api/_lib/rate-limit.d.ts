@@ -24,6 +24,11 @@ declare const DEFAULTS: {
         maxRequests: number;
         message: string;
     };
+    resendVerification: {
+        windowMs: number;
+        maxRequests: number;
+        message: string;
+    };
 };
 export declare function checkRateLimit(key: string, config?: RateLimitConfig, env?: any): Promise<{
     allowed: boolean;

@@ -25,12 +25,12 @@ async function handleList(productId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [relatedTo, relatedFrom] = await Promise.all([
-      prisma.relatedProduct.findMany({
+      prisma.related_products.findMany({
         where: { sourceId: productId },
         include: { target: { select: { id: true, name: true, slug: true, basePrice: true, images: { where: { isPrimary: true }, take: 1, select: { url: true } } } } },
         orderBy: { sortOrder: "asc" as const },
       }),
-      prisma.relatedProduct.findMany({
+      prisma.related_products.findMany({
         where: { targetId: productId },
         include: { source: { select: { id: true, name: true, slug: true, basePrice: true, images: { where: { isPrimary: true }, take: 1, select: { url: true } } } } },
         orderBy: { sortOrder: "asc" as const },
@@ -49,11 +49,11 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
   if (sourceId === targetId) return badRequest("Cannot relate a product to itself");
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.relatedProduct.findUnique({
+    const existing = await prisma.related_products.findUnique({
       where: { sourceId_targetId_type: { sourceId, targetId, type: type ?? "related" } },
     });
     if (existing) return success(existing);
-    const related = await prisma.relatedProduct.create({
+    const related = await prisma.related_products.create({
       data: { sourceId, targetId, type: type ?? "related", sortOrder: sortOrder ?? 0 },
       include: { target: { select: { id: true, name: true, slug: true, basePrice: true, images: { where: { isPrimary: true }, take: 1, select: { url: true } } } } },
     });
@@ -64,7 +64,7 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
 async function handleDelete(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    await prisma.relatedProduct.delete({ where: { id } });
+    await prisma.related_products.delete({ where: { id } });
     return success({ message: "Relation removed" });
   } catch (err) { return notFound("Relation not found"); }
 }
@@ -77,7 +77,7 @@ async function handleReorder(_productId: string, req: Request, env: any): Promis
     const prisma = getPrisma(env);
     await prisma.$transaction(
       order.map((item: { id: string; sortOrder: number }) =>
-        prisma.relatedProduct.update({ where: { id: item.id }, data: { sortOrder: item.sortOrder } })
+        prisma.related_products.update({ where: { id: item.id }, data: { sortOrder: item.sortOrder } })
       )
     );
     return success({ message: "Reordered" });

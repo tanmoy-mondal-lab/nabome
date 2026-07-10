@@ -79,7 +79,7 @@ function normalizeLookbookItems(items: unknown[]): Array<{
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const lookbooks = await prisma.lookbook.findMany({
+    const lookbooks = await prisma.lookbooks.findMany({
       include: buildInclude(),
       orderBy: { sortOrder: "asc" },
     });
@@ -92,7 +92,7 @@ async function handleList(env: any): Promise<Response> {
 async function handleDetail(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const lookbook = await prisma.lookbook.findUnique({
+    const lookbook = await prisma.lookbooks.findUnique({
       where: { id },
       include: buildInclude(),
     });
@@ -111,12 +111,12 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
 
   const slug = slugify(name);
   const prisma = getPrisma(env);
-  const slugExists = await prisma.lookbook.findUnique({ where: { slug } });
+  const slugExists = await prisma.lookbooks.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
   const items = Array.isArray(body.items) ? normalizeLookbookItems(body.items) : [];
 
   try {
-    const lookbook = await prisma.lookbook.create({
+    const lookbook = await prisma.lookbooks.create({
       data: {
         name,
         slug: finalSlug,
@@ -146,7 +146,7 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.lookbook.findUnique({
+    const existing = await prisma.lookbooks.findUnique({
       where: { id: lookbookId },
       include: { items: { select: { imagePublicId: true } } },
     });
@@ -160,7 +160,7 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
     // Handle cover image media replacement using MediaService
     if (body.coverImagePublicId !== undefined && existing.coverImagePublicId !== body.coverImagePublicId) {
       if (existing.coverImagePublicId) {
-        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+        const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.coverImagePublicId, entityType: "lookbooks", entityId: lookbookId },
         });
         if (oldMediaAsset) {
@@ -178,19 +178,19 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
     const items = shouldSyncItems ? normalizeLookbookItems(body.items) : [];
 
     const lookbook = await prisma.$transaction(async (tx) => {
-      await tx.lookbook.update({
+      await tx.lookbooks.update({
         where: { id: lookbookId },
         data: data as never,
       });
       if (shouldSyncItems) {
-        await tx.lookbookItem.deleteMany({ where: { lookbookId } });
+        await tx.lookbook_items.deleteMany({ where: { lookbookId } });
         if (items.length > 0) {
-          await tx.lookbookItem.createMany({
+          await tx.lookbook_items.createMany({
             data: items.map((item) => ({ ...item, lookbookId })),
           });
         }
       }
-      return tx.lookbook.findUnique({
+      return tx.lookbooks.findUnique({
         where: { id: lookbookId },
         include: buildInclude(),
       });
@@ -203,7 +203,7 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
       
       // Delete removed media using MediaService
       if (removedPublicIds.length > 0) {
-        const mediaAssets = await prisma.mediaAsset.findMany({
+        const mediaAssets = await prisma.media_assets.findMany({
           where: { publicId: { in: removedPublicIds }, entityType: "lookbooks" },
           select: { id: true },
         });
@@ -221,14 +221,14 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
 async function handleDelete(lookbookId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const lookbook = await prisma.lookbook.findUnique({
+    const lookbook = await prisma.lookbooks.findUnique({
       where: { id: lookbookId },
       include: { items: { select: { imagePublicId: true } } },
     });
     if (!lookbook) return notFound("Lookbook not found");
     // Delete all media for this lookbook using MediaService
     await deleteEntityMedia("lookbooks", lookbookId, lookbook.slug, env);
-    await prisma.lookbook.delete({ where: { id: lookbookId } });
+    await prisma.lookbooks.delete({ where: { id: lookbookId } });
     return success({ message: "Lookbook deleted" });
   } catch (err) {
     return notFound("Lookbook not found");
@@ -243,7 +243,7 @@ async function handleAddItem(lookbookId: string, req: Request, env: any): Promis
 
   try {
     const prisma = getPrisma(env);
-    const item = await prisma.lookbookItem.create({
+    const item = await prisma.lookbook_items.create({
       data: {
         lookbookId,
         imageUrl,
@@ -265,7 +265,7 @@ async function handleUpdateItem(_lookbookId: string, itemId: string, req: Reques
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.lookbookItem.findUnique({ where: { id: itemId } });
+    const existing = await prisma.lookbook_items.findUnique({ where: { id: itemId } });
     if (!existing) return notFound("Item not found");
     const data: Record<string, unknown> = {};
     const fields = ["imageUrl", "productId", "caption", "sortOrder"];
@@ -276,7 +276,7 @@ async function handleUpdateItem(_lookbookId: string, itemId: string, req: Reques
     // Handle image media replacement using MediaService
     if (body.imagePublicId !== undefined && existing.imagePublicId !== body.imagePublicId) {
       if (existing.imagePublicId) {
-        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+        const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.imagePublicId, entityType: "lookbooks", entityId: itemId },
         });
         if (oldMediaAsset) {
@@ -288,7 +288,7 @@ async function handleUpdateItem(_lookbookId: string, itemId: string, req: Reques
     if (body.hotspotX !== undefined) data.hotspotX = parseFloat(String(body.hotspotX));
     if (body.hotspotY !== undefined) data.hotspotY = parseFloat(String(body.hotspotY));
 
-    const item = await prisma.lookbookItem.update({
+    const item = await prisma.lookbook_items.update({
       where: { id: itemId },
       data: data as never,
     });
@@ -301,13 +301,13 @@ async function handleUpdateItem(_lookbookId: string, itemId: string, req: Reques
 async function handleRemoveItem(lookbookId: string, itemId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const item = await prisma.lookbookItem.findUnique({
+    const item = await prisma.lookbook_items.findUnique({
       where: { id: itemId },
       select: { id: true, lookbookId: true, imagePublicId: true },
     });
     if (!item || item.lookbookId !== lookbookId) return notFound("Item not found");
     if (item.imagePublicId) {
-      const mediaAsset = await prisma.mediaAsset.findFirst({
+      const mediaAsset = await prisma.media_assets.findFirst({
         where: { publicId: item.imagePublicId, entityType: "lookbooks", entityId: itemId },
         select: { id: true },
       });
@@ -315,7 +315,7 @@ async function handleRemoveItem(lookbookId: string, itemId: string, env: any): P
         await deleteMedia(mediaAsset.id, env);
       }
     }
-    await prisma.lookbookItem.delete({
+    await prisma.lookbook_items.delete({
       where: { id: itemId },
     });
     return success({ message: "Item removed from lookbook" });
@@ -332,7 +332,7 @@ async function handleReorderItems(lookbookId: string, req: Request, env: any): P
     const prisma = getPrisma(env);
     await prisma.$transaction(
       order.map((item: { id: string; sortOrder: number }) =>
-        prisma.lookbookItem.update({
+        prisma.lookbook_items.update({
           where: { id: item.id, lookbookId },
           data: { sortOrder: item.sortOrder },
         })

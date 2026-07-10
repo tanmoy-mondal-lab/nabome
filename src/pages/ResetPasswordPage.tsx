@@ -9,7 +9,17 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const email = searchParams.get("email") || "";
-  const code = searchParams.get("code") || "";
+  // Read code from URL once, then immediately strip it from the URL
+  // to prevent exposure in browser history, server logs, or referrer headers
+  const [code] = useState(() => {
+    const c = searchParams.get("code") || "";
+    if (c && typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("code");
+      window.history.replaceState({}, "", url.toString());
+    }
+    return c;
+  });
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -25,6 +35,22 @@ export default function ResetPasswordPage() {
 
     if (password.length < 8) {
       setValidationError("Password must be at least 8 characters");
+      return;
+    }
+    if (!/[a-z]/.test(password)) {
+      setValidationError("Password must contain at least one lowercase letter");
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setValidationError("Password must contain at least one uppercase letter");
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setValidationError("Password must contain at least one number");
+      return;
+    }
+    if (!/[^a-zA-Z0-9]/.test(password)) {
+      setValidationError("Password must contain at least one special character");
       return;
     }
     if (password !== confirmPassword) {

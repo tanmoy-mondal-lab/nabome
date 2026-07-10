@@ -42,14 +42,14 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [submissions, total, unreadCount] = await Promise.all([
-      prisma.contactSubmission.findMany({
+      prisma.contact_submissions.findMany({
         where: where as never,
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
-      prisma.contactSubmission.count({ where: where as never }),
-      prisma.contactSubmission.count({ where: { isRead: false } }),
+      prisma.contact_submissions.count({ where: where as never }),
+      prisma.contact_submissions.count({ where: { isRead: false } }),
     ]);
 
     return success({
@@ -65,9 +65,9 @@ async function handleList(req: Request, env: any): Promise<Response> {
 async function handleMarkRead(submissionId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.contactSubmission.findUnique({ where: { id: submissionId } });
+    const existing = await prisma.contact_submissions.findUnique({ where: { id: submissionId } });
     if (!existing) return notFound("Submission not found");
-    const submission = await prisma.contactSubmission.update({
+    const submission = await prisma.contact_submissions.update({
       where: { id: submissionId },
       data: { isRead: true },
     });
@@ -80,9 +80,9 @@ async function handleMarkRead(submissionId: string, env: any): Promise<Response>
 async function handleDelete(submissionId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.contactSubmission.findUnique({ where: { id: submissionId } });
+    const existing = await prisma.contact_submissions.findUnique({ where: { id: submissionId } });
     if (!existing) return notFound("Submission not found");
-    await prisma.contactSubmission.delete({ where: { id: submissionId } });
+    await prisma.contact_submissions.delete({ where: { id: submissionId } });
     return success({ message: "Submission deleted" });
   } catch (err) {
     return serverError(err);
@@ -99,12 +99,12 @@ async function handleSubscribers(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [subscribers, total] = await Promise.all([
-      prisma.newsletterSubscriber.findMany({
+      prisma.newsletter_subscribers.findMany({
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
-      prisma.newsletterSubscriber.count(),
+      prisma.newsletter_subscribers.count(),
     ]);
 
     return success({
@@ -119,9 +119,9 @@ async function handleSubscribers(req: Request, env: any): Promise<Response> {
 async function handleDeleteSubscriber(subscriberId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.newsletterSubscriber.findUnique({ where: { id: subscriberId } });
+    const existing = await prisma.newsletter_subscribers.findUnique({ where: { id: subscriberId } });
     if (!existing) return notFound("Subscriber not found");
-    await prisma.newsletterSubscriber.delete({ where: { id: subscriberId } });
+    await prisma.newsletter_subscribers.delete({ where: { id: subscriberId } });
     return success({ message: "Subscriber removed" });
   } catch (err) {
     return serverError(err);

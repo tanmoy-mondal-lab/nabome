@@ -29,7 +29,7 @@ export async function handleAdminBrandRequest(
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const brands = await prisma.brand.findMany({
+    const brands = await prisma.brands.findMany({
       include: { _count: { select: { products: true } } },
       orderBy: { sortOrder: "asc" as const },
     });
@@ -40,7 +40,7 @@ async function handleList(env: any): Promise<Response> {
 async function handleDetail(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const brand = await prisma.brand.findUnique({
+    const brand = await prisma.brands.findUnique({
       where: { id },
       include: { _count: { select: { products: true } } },
     });
@@ -60,10 +60,10 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
   if (!name) return badRequest("Brand name is required");
   const prisma = getPrisma(env);
   const slug = slugify(name);
-  const slugExists = await prisma.brand.findUnique({ where: { slug } });
+  const slugExists = await prisma.brands.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
   try {
-    const brand = await prisma.brand.create({
+    const brand = await prisma.brands.create({
       data: { name, slug: finalSlug, description, logoUrl, logoPublicId, websiteUrl, sortOrder: sortOrder ?? 0 },
     });
     logAction(ctx.userId, "admin.brands.create", {
@@ -85,7 +85,7 @@ async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: 
   }
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.brand.findUnique({ where: { id } });
+    const existing = await prisma.brands.findUnique({ where: { id } });
     if (!existing) return notFound("Brand not found");
     const data: Record<string, unknown> = {};
     const fields = ["name", "description", "logoUrl", "websiteUrl", "sortOrder", "isActive"];
@@ -95,7 +95,7 @@ async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: 
     if (body.logoPublicId !== undefined && existing.logoPublicId !== body.logoPublicId) {
       if (existing.logoPublicId) {
         // Find the media asset record for the old logo
-        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+        const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.logoPublicId, entityType: "brands", entityId: id },
         });
         if (oldMediaAsset) {
@@ -106,12 +106,12 @@ async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: 
     }
     if (body.name) {
       const newSlug = slugify(body.name);
-      const slugExists = await prisma.brand.findFirst({
+      const slugExists = await prisma.brands.findFirst({
         where: { slug: newSlug, id: { not: id } },
       });
       data.slug = slugExists ? `${newSlug}-${Date.now().toString(36)}` : newSlug;
     }
-    const brand = await prisma.brand.update({ where: { id }, data: data as never });
+    const brand = await prisma.brands.update({ where: { id }, data: data as never });
     logAction(ctx.userId, "admin.brands.update", {
       entity: "brand",
       entityId: brand.id,
@@ -125,9 +125,9 @@ async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: 
 async function handleDelete(id: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.brand.findUnique({ where: { id }, select: { id: true } });
+    const existing = await prisma.brands.findUnique({ where: { id }, select: { id: true } });
     if (!existing) return notFound("Brand not found");
-    await prisma.brand.update({ where: { id }, data: { isActive: false } });
+    await prisma.brands.update({ where: { id }, data: { isActive: false } });
     logAction(ctx.userId, "admin.brands.delete", {
       entity: "brand",
       entityId: id,

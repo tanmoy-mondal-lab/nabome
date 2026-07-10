@@ -27,20 +27,20 @@ async function handleOverview(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     // Read low stock threshold from site settings
-    const siteSettings = await prisma.siteSetting.findFirst();
+    const siteSettings = await prisma.site_settings.findFirst();
     const lowStockThreshold = (siteSettings?.preferences as Record<string, unknown> | null)?.lowStockThreshold as number ?? 5;
 
     const [totalVariants, totalStock, lowStockCount, outOfStockCount, recentMovements, recentAlerts] = await Promise.all([
-      prisma.productVariant.count({ where: { isActive: true } }),
-      prisma.productVariant.aggregate({ _sum: { stock: true }, where: { isActive: true } }),
-      prisma.productVariant.count({ where: { stock: { gt: 0, lte: lowStockThreshold }, isActive: true } }),
-      prisma.productVariant.count({ where: { stock: 0, isActive: true } }),
-      prisma.inventoryMovement.findMany({
+      prisma.product_variants.count({ where: { isActive: true } }),
+      prisma.product_variants.aggregate({ _sum: { stock: true }, where: { isActive: true } }),
+      prisma.product_variants.count({ where: { stock: { gt: 0, lte: lowStockThreshold }, isActive: true } }),
+      prisma.product_variants.count({ where: { stock: 0, isActive: true } }),
+      prisma.inventory_movements.findMany({
         take: 20,
         orderBy: { createdAt: "desc" as const },
         include: { variant: { select: { id: true, sku: true, size: true, color: true, product: { select: { id: true, name: true, slug: true } } } } },
       }),
-      prisma.inventoryAlert.findMany({
+      prisma.inventory_alerts.findMany({
         where: { isResolved: false },
         orderBy: { createdAt: "desc" as const },
         include: { variant: { select: { id: true, sku: true, size: true, color: true, product: { select: { id: true, name: true, slug: true } } } } },
@@ -58,12 +58,12 @@ async function handleOverview(env: any): Promise<Response> {
 async function handleProductMovements(productId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const variants = await prisma.productVariant.findMany({
+    const variants = await prisma.product_variants.findMany({
       where: { productId },
       select: { id: true, sku: true, size: true, color: true, stock: true },
     });
     const variantIds = variants.map((v) => v.id);
-    const movements = await prisma.inventoryMovement.findMany({
+    const movements = await prisma.inventory_movements.findMany({
       where: { variantId: { in: variantIds } },
       orderBy: { createdAt: "desc" as const },
       take: 100,
@@ -76,8 +76,8 @@ async function handleVariantMovements(variantId: string, env: any): Promise<Resp
   try {
     const prisma = getPrisma(env);
     const [, movements] = await Promise.all([
-      prisma.productVariant.findUnique({ where: { id: variantId } }),
-      prisma.inventoryMovement.findMany({
+      prisma.product_variants.findUnique({ where: { id: variantId } }),
+      prisma.inventory_movements.findMany({
         where: { variantId },
         orderBy: { createdAt: "desc" as const },
       }),
@@ -95,22 +95,22 @@ async function handleAdjustVariant(variantId: string, req: Request, env: any): P
   try {
     const prisma = getPrisma(env);
     // Read low stock threshold from site settings
-    const siteSettings = await prisma.siteSetting.findFirst();
+    const siteSettings = await prisma.site_settings.findFirst();
     const lowStockThreshold = (siteSettings?.preferences as Record<string, unknown> | null)?.lowStockThreshold as number ?? 5;
 
     // Fix race condition by moving stock calculation inside transaction (R5)
     const [movement, variant] = await prisma.$transaction(async (tx) => {
-      const currentVariant = await tx.productVariant.findUnique({ where: { id: variantId } });
+      const currentVariant = await tx.product_variants.findUnique({ where: { id: variantId } });
       if (!currentVariant) throw new Error("Variant not found");
       
       const newStock = currentVariant.stock + quantityChange;
       if (newStock < 0) throw new Error(`Insufficient stock. Current: ${currentVariant.stock}, attempted change: ${quantityChange}`);
 
-      const movement = await tx.inventoryMovement.create({
+      const movement = await tx.inventory_movements.create({
         data: { variantId, quantityChange, stockAfter: newStock, reason, note: note ?? null },
       });
       
-      await tx.productVariant.update({
+      await tx.product_variants.update({
         where: { id: variantId },
         data: { stock: newStock },
       });
@@ -122,14 +122,14 @@ async function handleAdjustVariant(variantId: string, req: Request, env: any): P
 
     // Create alert if stock is low
     if (newStock <= lowStockThreshold && newStock > 0) {
-      await prisma.inventoryAlert.create({
+      await prisma.inventory_alerts.create({
         data: {
           variantId, type: "low_stock", currentStock: newStock, threshold: lowStockThreshold,
           message: `Low stock: "${variant.sku}" (${variant.size}/${variant.color}) — only ${newStock} left`,
         },
       }).catch(() => {});
     } else if (newStock <= 0) {
-      await prisma.inventoryAlert.create({
+      await prisma.inventory_alerts.create({
         data: {
           variantId, type: "out_of_stock", currentStock: 0,
           message: `Out of stock: "${variant.sku}" (${variant.size}/${variant.color})`,
@@ -149,7 +149,7 @@ async function handleAlerts(req: Request, env: any): Promise<Response> {
   if (type) where.type = type;
   try {
     const prisma = getPrisma(env);
-    const alerts = await prisma.inventoryAlert.findMany({
+    const alerts = await prisma.inventory_alerts.findMany({
       where: where as never,
       orderBy: { createdAt: "desc" as const },
       include: { variant: { select: { id: true, sku: true, size: true, color: true, stock: true, product: { select: { id: true, name: true, slug: true } } } } },
@@ -161,7 +161,7 @@ async function handleAlerts(req: Request, env: any): Promise<Response> {
 async function handleResolveAlert(alertId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const alert = await prisma.inventoryAlert.update({
+    const alert = await prisma.inventory_alerts.update({
       where: { id: alertId },
       data: { isResolved: true, resolvedAt: new Date() },
     });

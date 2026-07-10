@@ -33,7 +33,7 @@ export async function handleAdminCategoryRequest(
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const categories = await prisma.category.findMany({
+    const categories = await prisma.categories.findMany({
       include: {
         parent: { select: { id: true, name: true } },
         children: { select: { id: true, name: true, slug: true } },
@@ -56,11 +56,11 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
 
   const prisma = getPrisma(env);
   const slug = slugify(name);
-  const slugExists = await prisma.category.findUnique({ where: { slug } });
+  const slugExists = await prisma.categories.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
-    const category = await prisma.category.create({
+    const category = await prisma.categories.create({
       data: {
         name,
         slug: finalSlug,
@@ -97,7 +97,7 @@ async function handleUpdate(categoryId: string, req: Request, ctx: RequestContex
 
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.category.findUnique({ where: { id: categoryId } });
+    const existing = await prisma.categories.findUnique({ where: { id: categoryId } });
     if (!existing) return notFound("Category not found");
 
     const data: Record<string, unknown> = {};
@@ -110,7 +110,7 @@ async function handleUpdate(categoryId: string, req: Request, ctx: RequestContex
     if (body.imagePublicId !== undefined && existing.imagePublicId !== body.imagePublicId) {
       if (existing.imagePublicId) {
         // Find the media asset record for the old image
-        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+        const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.imagePublicId, entityType: "categories", entityId: categoryId },
         });
         if (oldMediaAsset) {
@@ -122,13 +122,13 @@ async function handleUpdate(categoryId: string, req: Request, ctx: RequestContex
 
     if (body.name && body.name !== existing.name) {
       const newSlug = slugify(body.name);
-      const slugExists = await prisma.category.findFirst({
+      const slugExists = await prisma.categories.findFirst({
         where: { slug: newSlug, id: { not: categoryId } },
       });
       data.slug = slugExists ? `${newSlug}-${Date.now().toString(36)}` : newSlug;
     }
 
-    const category = await prisma.category.update({
+    const category = await prisma.categories.update({
       where: { id: categoryId },
       data: data as never,
       include: { _count: { select: { products: true, children: true } }, parent: { select: { id: true, name: true } } },
@@ -150,22 +150,22 @@ async function handleUpdate(categoryId: string, req: Request, ctx: RequestContex
 async function handleDelete(categoryId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const category = await prisma.category.findUnique({ where: { id: categoryId } });
+    const category = await prisma.categories.findUnique({ where: { id: categoryId } });
     if (!category) return notFound("Category not found");
 
-    const productCount = await prisma.product.count({ where: { categoryId } });
+    const productCount = await prisma.products.count({ where: { categoryId } });
     if (productCount > 0) {
       return badRequest(`Cannot delete category: ${productCount} products are assigned to it. Move them first.`);
     }
 
-    const subCount = await prisma.category.count({ where: { parentId: categoryId } });
+    const subCount = await prisma.categories.count({ where: { parentId: categoryId } });
     if (subCount > 0) {
       return badRequest(`Cannot delete category: ${subCount} subcategories are assigned to it. Remove them first.`);
     }
 
     // Delete all media for this category using MediaService
     if (category.imagePublicId) {
-      const mediaAsset = await prisma.mediaAsset.findFirst({
+      const mediaAsset = await prisma.media_assets.findFirst({
         where: { publicId: category.imagePublicId, entityType: "categories", entityId: categoryId },
         select: { id: true },
       });
@@ -174,7 +174,7 @@ async function handleDelete(categoryId: string, req: Request, ctx: RequestContex
       }
     }
 
-    await prisma.category.delete({ where: { id: categoryId } });
+    await prisma.categories.delete({ where: { id: categoryId } });
 
     logAction(ctx.userId, "admin.category.delete", {
       entity: "category",

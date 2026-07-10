@@ -119,7 +119,7 @@ export async function handleCheckoutRequest(
     let profileId = ctx.userId ?? null;
 
     if (!isGuest) {
-      const profile = await prisma.profile.findUnique({
+      const profile = await prisma.profiles.findUnique({
         where: { id: ctx.userId },
         select: { id: true, email: true, isActive: true },
       });
@@ -169,7 +169,7 @@ export async function handleCheckoutRequest(
 
       const variantIds = Array.from(requestedQuantities.keys());
       // Fetch variants with selective fields
-      const variants = await prisma.productVariant.findMany({
+      const variants = await prisma.product_variants.findMany({
         where: {
           id: { in: variantIds },
           isActive: true,
@@ -189,7 +189,7 @@ export async function handleCheckoutRequest(
 
       // Fetch products separately to avoid deep nesting
       const productIds = [...new Set(variants.map(v => v.productId))];
-      const products = await prisma.product.findMany({
+      const products = await prisma.products.findMany({
         where: { id: { in: productIds } },
         select: {
           id: true,
@@ -201,7 +201,7 @@ export async function handleCheckoutRequest(
       });
 
       // Fetch images separately
-      const images = await prisma.productImage.findMany({
+      const images = await prisma.product_images.findMany({
         where: { productId: { in: productIds }, isPrimary: true },
         select: { productId: true, url: true },
       });
@@ -243,7 +243,7 @@ export async function handleCheckoutRequest(
 
     // Priority 2: Fallback to server-side cart for authenticated users (if no items in request body)
     if (cartItems.length === 0 && ctx.userId) {
-      const cart = await prisma.cart.findUnique({
+      const cart = await prisma.carts.findUnique({
         where: { profileId: ctx.userId },
         include: {
           items: {
@@ -268,7 +268,7 @@ export async function handleCheckoutRequest(
         const productIds = [...new Set(cart.items.map(item => item.variant.productId))];
 
         const [products, images] = await Promise.all([
-          prisma.product.findMany({
+          prisma.products.findMany({
             where: { id: { in: productIds } },
             select: {
               id: true,
@@ -278,7 +278,7 @@ export async function handleCheckoutRequest(
               isActive: true,
             },
           }),
-          prisma.productImage.findMany({
+          prisma.product_images.findMany({
             where: { productId: { in: productIds }, isPrimary: true },
             select: { productId: true, url: true },
           }),
@@ -350,14 +350,14 @@ export async function handleCheckoutRequest(
 
     if (isGuest) {
       // Check if a guest profile already exists for this email
-      let guestProfile = await prisma.profile.findUnique({
+      let guestProfile = await prisma.profiles.findUnique({
         where: { email: checkoutEmail },
         select: { id: true, preferences: true },
       });
 
       if (!guestProfile) {
         // Create new guest profile with real email so addresses can be retrieved later
-        guestProfile = await prisma.profile.create({
+        guestProfile = await prisma.profiles.create({
           data: {
             email: checkoutEmail,
             firstName: checkoutEmail.split("@")[0] || "Guest",
@@ -368,7 +368,7 @@ export async function handleCheckoutRequest(
         });
       } else {
         // Update existing profile to mark as guest if not already
-        await prisma.profile.update({
+        await prisma.profiles.update({
           where: { id: guestProfile.id },
           data: { preferences: { ...(guestProfile.preferences as Record<string, unknown> || {}), guest: true } },
         });
@@ -386,7 +386,7 @@ export async function handleCheckoutRequest(
         throw new CheckoutError("Checkout profile is missing");
       }
       if (typeof addrId === "string") {
-        const ownedAddress = await prisma.address.findFirst({
+        const ownedAddress = await prisma.addresses.findFirst({
           where: { id: addrId, profileId },
           select: { id: true },
         });
@@ -396,7 +396,7 @@ export async function handleCheckoutRequest(
       if (addrBody && typeof addrBody === "object") {
         const a = addrBody as Record<string, unknown>;
         // Dedup: look for existing matching address for this profile
-        const existing = await prisma.address.findFirst({
+        const existing = await prisma.addresses.findFirst({
           where: {
             profileId,
             fullName: a.fullName as string,
@@ -411,7 +411,7 @@ export async function handleCheckoutRequest(
         });
         if (existing) return existing.id;
 
-        const addr = await prisma.address.create({
+        const addr = await prisma.addresses.create({
           data: {
             profileId,
             fullName: a.fullName as string,
@@ -456,7 +456,7 @@ export async function handleCheckoutRequest(
     }
 
     // ── Settings ──
-    const settings = await prisma.siteSetting.findFirst();
+    const settings = await prisma.site_settings.findFirst();
     const taxRate = settings ? Number(settings.taxRate) : DEFAULT_TAX_RATE;
     const freeThreshold = settings?.freeShippingThreshold
       ? Number(settings.freeShippingThreshold)
@@ -469,7 +469,7 @@ export async function handleCheckoutRequest(
     let discount = 0;
     let appliedCoupon: { id: string; usageLimit: number | null; perUserLimit: number } | null = null;
     if (couponCode && typeof couponCode === "string") {
-      const coupon = await prisma.coupon.findUnique({
+      const coupon = await prisma.coupons.findUnique({
         where: { code: couponCode.toUpperCase() },
       });
       const now = new Date();
@@ -530,7 +530,7 @@ export async function handleCheckoutRequest(
     const order = await prisma.$transaction(async (tx) => {
       // First, reserve stock
       for (const item of cartItems) {
-        const updated = await tx.productVariant.updateMany({
+        const updated = await tx.product_variants.updateMany({
           where: {
             id: item.variantId,
             isActive: true,
@@ -550,7 +550,7 @@ export async function handleCheckoutRequest(
       }
 
       // Create the database order
-      const newOrder = await tx.order.create({
+      const newOrder = await tx.orders.create({
         data: {
           orderNumber,
           profileId,
@@ -598,7 +598,7 @@ export async function handleCheckoutRequest(
       });
 
       // Record inventory movements in batch
-      await tx.inventoryMovement.createMany({
+      await tx.inventory_movements.createMany({
         data: cartItems.map((item) => ({
           variantId: item.variantId,
           quantityChange: -item.quantity,
@@ -610,7 +610,7 @@ export async function handleCheckoutRequest(
 
       // Update coupon usage
       if (appliedCoupon) {
-        const couponUpdated = await tx.coupon.updateMany({
+        const couponUpdated = await tx.coupons.updateMany({
           where: {
             id: appliedCoupon.id,
             isActive: true,
@@ -625,14 +625,14 @@ export async function handleCheckoutRequest(
         if (couponUpdated.count !== 1) throw new CheckoutError("Coupon is no longer available");
 
         if (!profileId) throw new CheckoutError("Profile is required for coupon redemption");
-        const userUsageCount = await tx.couponRedemption.count({
+        const userUsageCount = await tx.coupon_redemptions.count({
           where: { couponId: appliedCoupon.id, profileId },
         });
         if (userUsageCount >= appliedCoupon.perUserLimit) {
           throw new CheckoutError("Coupon usage limit reached for this customer");
         }
         if (!profileId) throw new CheckoutError("Profile is required for coupon redemption");
-        await tx.couponRedemption.create({
+        await tx.coupon_redemptions.create({
           data: {
             couponId: appliedCoupon.id,
             orderId: newOrder.id,
@@ -643,15 +643,15 @@ export async function handleCheckoutRequest(
 
       // Clear cart
       if (ctx.userId) {
-        const cart = await tx.cart.findUnique({ where: { profileId: ctx.userId } });
+        const cart = await tx.carts.findUnique({ where: { profileId: ctx.userId } });
         if (cart) {
-          await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+          await tx.cart_items.deleteMany({ where: { cartId: cart.id } });
         }
       }
 
       // Notification
       if (profileId) {
-        await tx.notification.create({
+        await tx.notifications.create({
           data: {
             profileId,
             orderId: newOrder.id,
@@ -706,7 +706,7 @@ export async function handleCheckoutRequest(
     if (!completedOrder && createdAddressIds.length > 0) {
       try {
         const prisma = getPrisma(ctx.env);
-        await prisma.address.deleteMany({
+        await prisma.addresses.deleteMany({
           where: { id: { in: createdAddressIds } },
         });
       } catch (cleanupErr) {

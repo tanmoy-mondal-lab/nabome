@@ -1,99 +1,194 @@
-import { PrismaClient } from '@prisma/client';
-import { seedCategories } from './categories';
-import { seedProducts } from './products';
-import { seedCollections } from './collections';
-import { seedBrands } from './brands';
-import { seedLabels } from './labels';
-import { seedCoupons } from './coupons';
-import { seedCMS } from './cms';
-import { seedLookbooks } from './lookbooks';
-import { seedAnnouncements } from './announcements';
-import { seedSettings } from './settings';
+/**
+ * Production Seed System - Main Entry Point
+ * 
+ * This script seeds the NABOME platform with production-ready starter data.
+ * All seeds are idempotent - running multiple times will not create duplicates.
+ * 
+ * Dependency Order:
+ * 1. System (settings, currencies, countries, shipping, tax, payment, analytics)
+ * 2. Roles & Permissions
+ * 3. Admin
+ * 4. Customers
+ * 5. Categories
+ * 6. Brands
+ * 7. Collections
+ * 8. Products (with variants, images, inventory, attributes)
+ * 9. CMS (homepage, navigation, footer, lookbooks, announcements, FAQ)
+ * 10. Marketing (coupons, newsletter, notifications, email templates)
+ */
 
-const prisma = new PrismaClient();
+import { prisma } from './utils/helpers';
+
+// System seeds
+import { seedSiteSettings } from './system/site-settings';
+import { seedCurrencies } from './system/currencies';
+import { seedCountries } from './system/countries';
+import { seedShippingZones } from './system/shipping-zones';
+import { seedTax } from './system/tax';
+import { seedPaymentMethods } from './system/payment-methods';
+import { seedAnalytics } from './system/analytics';
+
+// Admin seeds
+import { seedAdmin } from './admin/admin';
+import { seedRoles } from './admin/roles';
+import { seedPermissions } from './admin/permissions';
+
+// Customer seeds
+import { seedCustomer } from './customers/customer';
+import { seedCustomerAddresses } from './customers/addresses';
+
+// Product seeds
+import { seedCategories } from './products/categories';
+import { seedSubcategories } from './products/subcategories';
+import { seedBrands } from './products/brands';
+import { seedCollections } from './products/collections';
+import { seedLabels } from './products/labels';
+import { seedTags } from './products/tags';
+import { seedSizeGuides } from './products/size-guides';
+import { seedProducts } from './products/products';
+import { seedVariants } from './products/variants';
+import { seedProductImages } from './products/product-images';
+import { seedInventory } from './products/inventory';
+import { seedAttributes } from './products/attributes';
+import { seedPricing } from './products/pricing';
+
+// CMS seeds
+import { seedHomepage } from './cms/homepage';
+import { seedHero } from './cms/hero';
+import { seedHeader } from './cms/header';
+import { seedFooter } from './cms/footer';
+import { seedLookbooks } from './cms/lookbooks';
+import { seedAnnouncements } from './cms/announcements';
+import { seedFAQ } from './cms/faq';
+import { seedPageTemplates } from './cms/page-templates';
+import { seedNavigation } from './cms/navigation';
+import { seedSEO } from './cms/seo';
+
+// Marketing seeds
+import { seedCoupon } from './marketing/coupon';
+import { seedNewsletter } from './marketing/newsletter';
+import { seedNotificationTemplates } from './marketing/notification-template';
+import { seedEmailTemplates } from './marketing/email-template';
 
 async function main() {
-  console.log('🌱 Starting NABOME V1 Launch Content Seeding...\n');
+  console.log('🌱 Starting NABOME Production Seed System...\n');
+  console.log('='.repeat(60));
+  console.log('PHASE 1: SYSTEM CONFIGURATION');
+  console.log('='.repeat(60));
 
-  // Clear existing data (in development mode)
-  const isDev = process.env.NODE_ENV === 'development';
-  if (isDev) {
-    console.log('🧹 Clearing existing seed data...');
-    await prisma.homepageSection.deleteMany();
-    await prisma.navigationMenu.deleteMany();
-    await prisma.footerSection.deleteMany();
-    await prisma.staticPage.deleteMany();
-    await prisma.announcementBar.deleteMany();
-    await prisma.lookbookItem.deleteMany();
-    await prisma.lookbook.deleteMany();
-    await prisma.productLabelOnProduct.deleteMany();
-    await prisma.productLabel.deleteMany();
-    await prisma.coupon.deleteMany();
-    await prisma.collection.deleteMany();
-    await prisma.brand.deleteMany();
-    await prisma.productImage.deleteMany();
-    await prisma.productVariant.deleteMany();
-    await prisma.productAttribute.deleteMany();
-    await prisma.product.deleteMany();
-    await prisma.subcategory.deleteMany();
-    await prisma.category.deleteMany();
-    console.log('✅ Cleared existing data\n');
-  }
+  await seedSiteSettings();
+  await seedCurrencies();
+  await seedCountries();
+  await seedShippingZones();
+  await seedTax();
+  await seedPaymentMethods();
+  await seedAnalytics();
 
-  // Seed in order of dependencies
-  console.log('📦 Seeding Categories...');
-  await seedCategories(prisma);
-  console.log('✅ Categories seeded\n');
+  console.log('\n' + '='.repeat(60));
+  console.log('PHASE 2: ROLES & PERMISSIONS');
+  console.log('='.repeat(60));
 
-  console.log('🏷️  Seeding Brands...');
-  await seedBrands(prisma);
-  console.log('✅ Brands seeded\n');
+  await seedRoles();
+  await seedPermissions();
 
-  console.log('👗 Seeding Products...');
-  await seedProducts(prisma);
-  console.log('✅ Products seeded\n');
+  console.log('\n' + '='.repeat(60));
+  console.log('PHASE 3: ADMIN');
+  console.log('='.repeat(60));
 
-  console.log('🎨 Seeding Collections...');
-  await seedCollections(prisma);
-  console.log('✅ Collections seeded\n');
+  const admin = await seedAdmin();
 
-  console.log('🏷️  Seeding Labels...');
-  await seedLabels(prisma);
-  console.log('✅ Labels seeded\n');
+  console.log('\n' + '='.repeat(60));
+  console.log('PHASE 4: CUSTOMERS');
+  console.log('='.repeat(60));
 
-  console.log('🎟️  Seeding Coupons...');
-  await seedCoupons(prisma);
-  console.log('✅ Coupons seeded\n');
+  const { customer } = await seedCustomer();
+  await seedCustomerAddresses(customer.id);
 
-  console.log('📄 Seeding CMS Content...');
-  await seedCMS(prisma);
-  console.log('✅ CMS Content seeded\n');
+  console.log('\n' + '='.repeat(60));
+  console.log('PHASE 5: PRODUCT FOUNDATION');
+  console.log('='.repeat(60));
 
-  console.log('📸 Seeding Lookbooks...');
-  await seedLookbooks(prisma);
-  console.log('✅ Lookbooks seeded\n');
+  const category = await seedCategories();
+  const subcategory = await seedSubcategories(category.id);
+  const brand = await seedBrands();
+  const collection = await seedCollections();
+  const label = await seedLabels();
+  const tag = await seedTags();
+  const sizeGuide = await seedSizeGuides(category.id);
 
-  console.log('📢 Seeding Announcements...');
-  await seedAnnouncements(prisma);
-  console.log('✅ Announcements seeded\n');
+  console.log('\n' + '='.repeat(60));
+  console.log('PHASE 6: PRODUCTS');
+  console.log('='.repeat(60));
 
-  console.log('⚙️  Seeding Settings...');
-  await seedSettings(prisma);
-  console.log('✅ Settings seeded\n');
+  const product = await seedProducts(
+    category.id,
+    subcategory.id,
+    collection.id,
+    brand.id,
+    sizeGuide.id
+  );
+  const variants = await seedVariants(product.id);
+  await seedProductImages(product.id, variants.map(v => v.id));
+  await seedInventory(variants.map(v => v.id));
+  await seedAttributes(product.id);
+  await seedPricing(product.id, label.id, tag.id);
 
-  console.log('🎉 NABOME V1 Launch Content Seeding Complete!\n');
-  console.log('📊 Summary:');
-  console.log('   - Categories: 6');
-  console.log('   - Subcategories: 12');
-  console.log('   - Brands: 4');
-  console.log('   - Products: 24');
-  console.log('   - Collections: 4');
-  console.log('   - Labels: 5');
-  console.log('   - Coupons: 3');
-  console.log('   - CMS Pages: 6');
-  console.log('   - Homepage Sections: 8');
-  console.log('   - Lookbooks: 3');
-  console.log('   - Announcements: 2');
+  console.log('\n' + '='.repeat(60));
+  console.log('PHASE 7: CMS');
+  console.log('='.repeat(60));
+
+  await seedHomepage();
+  await seedHero();
+  await seedHeader();
+  await seedFooter();
+  await seedLookbooks();
+  await seedAnnouncements();
+  await seedFAQ();
+  await seedPageTemplates();
+  await seedNavigation();
+  await seedSEO();
+
+  console.log('\n' + '='.repeat(60));
+  console.log('PHASE 8: MARKETING');
+  console.log('='.repeat(60));
+
+  await seedCoupon();
+  await seedNewsletter();
+  await seedNotificationTemplates();
+  await seedEmailTemplates();
+
+  console.log('\n' + '='.repeat(60));
+  console.log('✅ PRODUCTION SEED COMPLETE');
+  console.log('='.repeat(60));
+  console.log('\n📊 SEED SUMMARY:');
+  console.log('   System Settings: 1');
+  console.log('   Currencies: 4 (INR, USD, EUR, GBP)');
+  console.log('   Admin Account: 1');
+  console.log('   Customer Account: 1');
+  console.log('   Categories: 1');
+  console.log('   Subcategories: 1');
+  console.log('   Brands: 1');
+  console.log('   Collections: 1');
+  console.log('   Products: 1');
+  console.log('   Product Variants: 5');
+  console.log('   Product Images: 3');
+  console.log('   Product Attributes: 4');
+  console.log('   Size Guides: 1');
+  console.log('   Homepage Sections: 2');
+  console.log('   Footer Sections: 4');
+  console.log('   Lookbooks: 1');
+  console.log('   Announcements: 1');
+  console.log('   FAQs: 3');
+  console.log('   Page Templates: 1');
+  console.log('   Navigation Menus: 2');
+  console.log('   Coupons: 1');
+  console.log('   Notification Templates: 3');
+  console.log('\n⚠️  IMPORTANT:');
+  console.log('   - Admin password: Admin@123 (CHANGE ON FIRST LOGIN)');
+  console.log('   - Customer email: customer@example.com');
+  console.log('   - Coupon code: WELCOME10 (10% off, min ₹999)');
+  console.log('\n🎉 Platform is now ready for use!');
+  console.log('='.repeat(60) + '\n');
 }
 
 main()

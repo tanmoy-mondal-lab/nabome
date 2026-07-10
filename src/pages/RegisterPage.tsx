@@ -7,9 +7,11 @@ import { TurnstileWidget } from "../components/TurnstileWidget";
 import { turnstileEnabled, turnstileSiteKey } from "../lib/config";
 import { Helmet } from "react-helmet-async";
 import { canonical } from "../lib/seo";
+import { useToast } from "../components/ui/Toast";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { register, error, isLoading } = useAuth();
   const [form, setForm] = useState({
     firstName: "",
@@ -36,6 +38,22 @@ export default function RegisterPage() {
       setValidationError("Password must be at least 8 characters");
       return;
     }
+    if (!/[a-z]/.test(form.password)) {
+      setValidationError("Password must contain at least one lowercase letter");
+      return;
+    }
+    if (!/[A-Z]/.test(form.password)) {
+      setValidationError("Password must contain at least one uppercase letter");
+      return;
+    }
+    if (!/[0-9]/.test(form.password)) {
+      setValidationError("Password must contain at least one number");
+      return;
+    }
+    if (!/[^a-zA-Z0-9]/.test(form.password)) {
+      setValidationError("Password must contain at least one special character");
+      return;
+    }
     if (form.password !== form.confirmPassword) {
       setValidationError("Passwords do not match");
       return;
@@ -47,7 +65,7 @@ export default function RegisterPage() {
 
     const shouldResetTurnstile = turnstileEnabled && !!turnstileToken;
     try {
-      await register({
+      const res = await register({
         email: form.email,
         password: form.password,
         firstName: form.firstName,
@@ -55,6 +73,9 @@ export default function RegisterPage() {
         phone: form.phone || undefined,
         turnstileToken: turnstileToken || undefined,
       });
+      if (res?.accountExists) {
+        toast("Your account already exists. A new verification email has been sent.", "info");
+      }
       void navigate(`/auth/verify-email?email=${encodeURIComponent(form.email)}`);
     } catch {
       // Error set by hook
@@ -125,7 +146,7 @@ export default function RegisterPage() {
               <label htmlFor="password" className="block text-sm font-body text-neutral-700 mb-1">
                 Password *
               </label>
-              <PasswordInput id="password" name="password" value={form.password} onChange={(v) => setForm((p) => ({ ...p, password: v }))} placeholder="Min. 8 characters" required autoComplete="new-password" />
+              <PasswordInput id="password" name="password" value={form.password} onChange={(v) => setForm((p) => ({ ...p, password: v }))} placeholder="Min. 8 chars, upper, lower, number & special char" required autoComplete="new-password" />
             </div>
 
             <div>

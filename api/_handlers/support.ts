@@ -86,11 +86,11 @@ async function handleCreateTicket(ctx: RequestContext, req: Request, env: any): 
 
   const prisma = getPrisma(env);
   const profile = ctx.userId
-    ? await prisma.profile.findUnique({ where: { id: ctx.userId }, select: { firstName: true, lastName: true, email: true } })
+    ? await prisma.profiles.findUnique({ where: { id: ctx.userId }, select: { firstName: true, lastName: true, email: true } })
     : null;
 
   try {
-    const ticket = await prisma.supportTicket.create({
+    const ticket = await prisma.support_tickets.create({
       data: {
         profileId: ctx.userId ?? null,
         orderId: orderId as string | null,
@@ -111,7 +111,7 @@ async function handleCreateTicket(ctx: RequestContext, req: Request, env: any): 
 async function handleListFAQs(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const faqs = await prisma.fAQ.findMany({
+    const faqs = await prisma.faqs.findMany({
       where: { isActive: true },
       orderBy: [{ category: "asc" }, { sortOrder: "asc" }],
     });
@@ -134,7 +134,7 @@ async function handleListTickets(ctx: RequestContext, env: any): Promise<Respons
 
   try {
     const prisma = getPrisma(env);
-    const tickets = await prisma.supportTicket.findMany({
+    const tickets = await prisma.support_tickets.findMany({
       where: { profileId: ctx.userId },
       include: {
         replies: { orderBy: { createdAt: "asc" } },
@@ -153,7 +153,7 @@ async function handleTicketDetail(ctx: RequestContext, ticketId: string, env: an
 
   try {
     const prisma = getPrisma(env);
-    const ticket = await prisma.supportTicket.findFirst({
+    const ticket = await prisma.support_tickets.findFirst({
       where: { id: ticketId, profileId: ctx.userId },
       include: {
         replies: {
@@ -187,12 +187,12 @@ async function handleTicketReply(ctx: RequestContext, ticketId: string, req: Req
 
   try {
     const prisma = getPrisma(env);
-    const ticket = await prisma.supportTicket.findFirst({
+    const ticket = await prisma.support_tickets.findFirst({
       where: { id: ticketId, profileId: ctx.userId },
     });
     if (!ticket) return notFound("Ticket not found");
 
-    const reply = await prisma.supportTicketReply.create({
+    const reply = await prisma.support_ticket_replies.create({
       data: {
         ticketId,
         profileId: ctx.userId,
@@ -231,7 +231,7 @@ async function handleAdminList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [tickets, total] = await Promise.all([
-      prisma.supportTicket.findMany({
+      prisma.support_tickets.findMany({
         where: where as never,
         include: {
           profile: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -242,7 +242,7 @@ async function handleAdminList(req: Request, env: any): Promise<Response> {
         skip,
         take: limit,
       }),
-      prisma.supportTicket.count({ where: where as never }),
+      prisma.support_tickets.count({ where: where as never }),
     ]);
 
     return success({
@@ -257,7 +257,7 @@ async function handleAdminList(req: Request, env: any): Promise<Response> {
 async function handleAdminDetail(ticketId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const ticket = await prisma.supportTicket.findUnique({
+    const ticket = await prisma.support_tickets.findUnique({
       where: { id: ticketId },
       include: {
         profile: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
@@ -296,10 +296,10 @@ async function handleAdminUpdateStatus(_ctx: RequestContext, ticketId: string, r
 
   try {
     const prisma = getPrisma(env);
-    const ticket = await prisma.supportTicket.findUnique({ where: { id: ticketId } });
+    const ticket = await prisma.support_tickets.findUnique({ where: { id: ticketId } });
     if (!ticket) return notFound("Ticket not found");
 
-    const updated = await prisma.supportTicket.update({
+    const updated = await prisma.support_tickets.update({
       where: { id: ticketId },
       data: {
         status: status as "open" | "in_progress" | "resolved" | "closed",
@@ -326,13 +326,13 @@ async function handleAdminAssign(_ctx: RequestContext, ticketId: string, req: Re
 
   try {
     const prisma = getPrisma(env);
-    const ticket = await prisma.supportTicket.findUnique({ where: { id: ticketId } });
+    const ticket = await prisma.support_tickets.findUnique({ where: { id: ticketId } });
     if (!ticket) return notFound("Ticket not found");
 
-    const assignee = await prisma.profile.findUnique({ where: { id: assignedTo as string } });
+    const assignee = await prisma.profiles.findUnique({ where: { id: assignedTo as string } });
     if (!assignee) return badRequest("Assignee not found");
 
-    const updated = await prisma.supportTicket.update({
+    const updated = await prisma.support_tickets.update({
       where: { id: ticketId },
       data: { assignedTo: assignedTo as string },
       include: {
@@ -359,10 +359,10 @@ async function handleAdminReply(ctx: RequestContext, ticketId: string, req: Requ
 
   try {
     const prisma = getPrisma(env);
-    const ticket = await prisma.supportTicket.findUnique({ where: { id: ticketId } });
+    const ticket = await prisma.support_tickets.findUnique({ where: { id: ticketId } });
     if (!ticket) return notFound("Ticket not found");
 
-    const reply = await prisma.supportTicketReply.create({
+    const reply = await prisma.support_ticket_replies.create({
       data: {
         ticketId,
         profileId: ctx.userId,
@@ -380,7 +380,7 @@ async function handleAdminReply(ctx: RequestContext, ticketId: string, req: Requ
 async function handleAdminFaqList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const faqs = await prisma.fAQ.findMany({
+    const faqs = await prisma.faqs.findMany({
       orderBy: [{ category: "asc" }, { sortOrder: "asc" }],
     });
     return success({ faqs });
@@ -404,7 +404,7 @@ async function handleAdminFaqCreate(req: Request, env: any): Promise<Response> {
 
   try {
     const prisma = getPrisma(env);
-    const faq = await prisma.fAQ.create({
+    const faq = await prisma.faqs.create({
       data: {
         question: question as string,
         answer: answer as string,
@@ -441,10 +441,10 @@ async function handleAdminFaqUpdate(faqId: string, req: Request, env: any): Prom
 
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.fAQ.findUnique({ where: { id: faqId } });
+    const existing = await prisma.faqs.findUnique({ where: { id: faqId } });
     if (!existing) return notFound("FAQ not found");
 
-    const updated = await prisma.fAQ.update({
+    const updated = await prisma.faqs.update({
       where: { id: faqId },
       data: updateData as never,
     });
@@ -458,10 +458,10 @@ async function handleAdminFaqUpdate(faqId: string, req: Request, env: any): Prom
 async function handleAdminFaqDelete(faqId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.fAQ.findUnique({ where: { id: faqId } });
+    const existing = await prisma.faqs.findUnique({ where: { id: faqId } });
     if (!existing) return notFound("FAQ not found");
 
-    await prisma.fAQ.delete({ where: { id: faqId } });
+    await prisma.faqs.delete({ where: { id: faqId } });
 
     return success({ message: "FAQ deleted" });
   } catch (err) {

@@ -65,7 +65,7 @@ export class ApiKeyRotationManager {
     const hashedKey = await this.hashKey(key);
 
     try {
-      const apiKey = await this.prisma.apiKey.create({
+      const apiKey = await this.prisma.api_keys.create({
         data: {
           name,
           key: hashedKey,
@@ -92,7 +92,7 @@ export class ApiKeyRotationManager {
   ): Promise<{ newKey: ApiKeyInfo; oldKey: ApiKeyInfo }> {
     try {
       // Get current key
-      const oldKey = await this.prisma.apiKey.findUnique({
+      const oldKey = await this.prisma.api_keys.findUnique({
         where: { id: keyId },
       });
 
@@ -101,7 +101,7 @@ export class ApiKeyRotationManager {
       }
 
       // Deprecate old key
-      await this.prisma.apiKey.update({
+      await this.prisma.api_keys.update({
         where: { id: keyId },
         data: {
           isDeprecated: true,
@@ -116,13 +116,13 @@ export class ApiKeyRotationManager {
       );
 
       // Update version number
-      const newKey = await this.prisma.apiKey.update({
+      const newKey = await this.prisma.api_keys.update({
         where: { id: newKeyData.id },
         data: { version: oldKey.version + 1 },
       });
 
       // Log rotation
-      await this.prisma.userActionLog.create({
+      await this.prisma.user_action_logs.create({
         data: {
           action: "API_KEY_ROTATED",
           entity: "ApiKey",
@@ -151,7 +151,7 @@ export class ApiKeyRotationManager {
     const hashedKey = await this.hashKey(key);
 
     try {
-      const apiKey = await this.prisma.apiKey.findFirst({
+      const apiKey = await this.prisma.api_keys.findFirst({
         where: {
           key: hashedKey,
           isDeprecated: false,
@@ -167,7 +167,7 @@ export class ApiKeyRotationManager {
       }
 
       // Update last used timestamp
-      await this.prisma.apiKey.update({
+      await this.prisma.api_keys.update({
         where: { id: apiKey.id },
         data: { lastUsedAt: new Date() },
       });
@@ -183,7 +183,7 @@ export class ApiKeyRotationManager {
    */
   async revokeApiKey(keyId: string): Promise<void> {
     try {
-      await this.prisma.apiKey.update({
+      await this.prisma.api_keys.update({
         where: { id: keyId },
         data: {
           isDeprecated: true,
@@ -192,7 +192,7 @@ export class ApiKeyRotationManager {
       });
 
       // Log revocation
-      await this.prisma.userActionLog.create({
+      await this.prisma.user_action_logs.create({
         data: {
           action: "API_KEY_REVOKED",
           entity: "ApiKey",
@@ -212,7 +212,7 @@ export class ApiKeyRotationManager {
     cutoffDate.setDate(cutoffDate.getDate() - this.options.deprecationPeriodDays);
 
     try {
-      const result = await this.prisma.apiKey.deleteMany({
+      const result = await this.prisma.api_keys.deleteMany({
         where: {
           isDeprecated: true,
           deprecatedAt: {
@@ -232,7 +232,7 @@ export class ApiKeyRotationManager {
    */
   async getAllApiKeys(): Promise<ApiKeyInfo[]> {
     try {
-      const keys = await this.prisma.apiKey.findMany({
+      const keys = await this.prisma.api_keys.findMany({
         orderBy: { createdAt: "desc" },
       });
 
@@ -253,7 +253,7 @@ export class ApiKeyRotationManager {
     thresholdDate.setDate(thresholdDate.getDate() + daysThreshold);
 
     try {
-      const keys = await this.prisma.apiKey.findMany({
+      const keys = await this.prisma.api_keys.findMany({
         where: {
           isDeprecated: false,
           expiresAt: {
@@ -281,7 +281,7 @@ export class ApiKeyRotationManager {
     }
 
     try {
-      const expiredKeys = await this.prisma.apiKey.findMany({
+      const expiredKeys = await this.prisma.api_keys.findMany({
         where: {
           isDeprecated: false,
           expiresAt: {

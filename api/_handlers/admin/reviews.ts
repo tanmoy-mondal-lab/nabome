@@ -40,7 +40,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [reviews, total] = await Promise.all([
-      prisma.review.findMany({
+      prisma.reviews.findMany({
         where: where as never,
         include: {
           product: { select: { id: true, name: true, slug: true } },
@@ -50,7 +50,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
         skip,
         take: limit,
       }),
-      prisma.review.count({ where: where as never }),
+      prisma.reviews.count({ where: where as never }),
     ]);
 
     return success({
@@ -68,10 +68,10 @@ async function handleApprove(reviewId: string, req: Request, ctx: RequestContext
 
   try {
     const prisma = getPrisma(ctx.env);
-    const review = await prisma.review.findUnique({ where: { id: reviewId } });
+    const review = await prisma.reviews.findUnique({ where: { id: reviewId } });
     if (!review) return notFound("Review not found");
 
-    const updated = await prisma.review.update({
+    const updated = await prisma.reviews.update({
       where: { id: reviewId },
       data: { isApproved: approved ?? true },
       include: {
@@ -96,9 +96,9 @@ async function handleApprove(reviewId: string, req: Request, ctx: RequestContext
 async function handleDelete(reviewId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const review = await prisma.review.findUnique({ where: { id: reviewId } });
+    const review = await prisma.reviews.findUnique({ where: { id: reviewId } });
     if (!review) return notFound("Review not found");
-    await prisma.review.delete({ where: { id: reviewId } });
+    await prisma.reviews.delete({ where: { id: reviewId } });
     logAction(ctx.userId, "admin.reviews.delete", {
       entity: "review",
       entityId: reviewId,

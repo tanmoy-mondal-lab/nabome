@@ -44,7 +44,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [customers, total] = await Promise.all([
-      prisma.profile.findMany({
+      prisma.profiles.findMany({
         where: where as never,
         select: {
           id: true,
@@ -64,7 +64,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
         skip,
         take: limit,
       }),
-      prisma.profile.count({ where: where as never }),
+      prisma.profiles.count({ where: where as never }),
     ]);
 
     return success({
@@ -79,7 +79,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
 async function handleDetail(customerId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const customer = await prisma.profile.findUnique({
+    const customer = await prisma.profiles.findUnique({
       where: { id: customerId },
       select: {
         id: true,
@@ -116,7 +116,7 @@ async function handleDetail(customerId: string, env: any): Promise<Response> {
 
     if (!customer) return notFound("Customer not found");
 
-    const lifetimeValue = await prisma.order.aggregate({
+    const lifetimeValue = await prisma.orders.aggregate({
       _sum: { total: true },
       where: { profileId: customerId, paymentStatus: "paid" },
     });
@@ -137,7 +137,7 @@ async function handleUpdate(customerId: string, req: Request, env: any): Promise
 
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.profile.findUnique({ where: { id: customerId } });
+    const existing = await prisma.profiles.findUnique({ where: { id: customerId } });
     if (!existing) return notFound("Customer not found");
 
     const data: Record<string, unknown> = {};
@@ -147,7 +147,7 @@ async function handleUpdate(customerId: string, req: Request, env: any): Promise
       if (body[f] !== undefined) data[f] = body[f];
     }
 
-    const customer = await prisma.profile.update({
+    const customer = await prisma.profiles.update({
       where: { id: customerId },
       data: data as never,
       select: {

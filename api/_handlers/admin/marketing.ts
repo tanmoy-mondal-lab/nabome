@@ -30,7 +30,7 @@ export async function handleAdminMarketingRequest(
 async function handleAnnouncementsList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const announcements = await prisma.announcementBar.findMany({
+    const announcements = await prisma.announcement_bars.findMany({
       orderBy: { createdAt: "desc" },
     });
     return success({ announcements });
@@ -52,7 +52,7 @@ async function handleCreateAnnouncement(req: Request, ctx: RequestContext): Prom
 
   try {
     const prisma = getPrisma(ctx.env);
-    const announcement = await prisma.announcementBar.create({
+    const announcement = await prisma.announcement_bars.create({
       data: {
         text,
         linkUrl: linkUrl ?? null,
@@ -97,7 +97,7 @@ async function handleUpdateAnnouncement(announcementId: string, req: Request, ct
     if (body.startDate !== undefined) data.startDate = body.startDate ? new Date(body.startDate) : null;
     if (body.endDate !== undefined) data.endDate = body.endDate ? new Date(body.endDate) : null;
 
-    const announcement = await prisma.announcementBar.update({
+    const announcement = await prisma.announcement_bars.update({
       where: { id: announcementId },
       data: data as never,
     });
@@ -115,9 +115,9 @@ async function handleUpdateAnnouncement(announcementId: string, req: Request, ct
 async function handleDeleteAnnouncement(announcementId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const existing = await prisma.announcementBar.findUnique({ where: { id: announcementId } });
+    const existing = await prisma.announcement_bars.findUnique({ where: { id: announcementId } });
     if (!existing) return notFound("Announcement not found");
-    await prisma.announcementBar.delete({ where: { id: announcementId } });
+    await prisma.announcement_bars.delete({ where: { id: announcementId } });
     logAction(ctx.userId, "admin.announcements.delete", {
       entity: "announcement",
       entityId: announcementId,

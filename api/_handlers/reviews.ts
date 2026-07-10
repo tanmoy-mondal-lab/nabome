@@ -38,7 +38,7 @@ async function handleCreate(ctx: RequestContext, req: Request, env: any): Promis
   try {
     const prisma = getPrisma(env);
     // Check if product exists
-    const product = await prisma.product.findUnique({
+    const product = await prisma.products.findUnique({
       where: { id: productId as string },
       select: { id: true },
     });
@@ -46,7 +46,7 @@ async function handleCreate(ctx: RequestContext, req: Request, env: any): Promis
 
     // Check for duplicate review
     if (orderId && typeof orderId === 'string') {
-      const existing = await prisma.review.findUnique({
+      const existing = await prisma.reviews.findUnique({
         where: { productId_profileId_orderId: { productId: productId as string, profileId: ctx.userId, orderId } },
       });
       if (existing) {
@@ -54,7 +54,7 @@ async function handleCreate(ctx: RequestContext, req: Request, env: any): Promis
       }
     }
 
-    const review = await prisma.review.create({
+    const review = await prisma.reviews.create({
       data: {
         productId: productId as string,
         profileId: ctx.userId,

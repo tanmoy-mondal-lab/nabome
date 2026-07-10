@@ -25,12 +25,12 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [items, total] = await Promise.all([
-      prisma.loginAttempt.findMany({
+      prisma.login_attempts.findMany({
         where: where as never,
         include: { profile: { select: { id: true, firstName: true, lastName: true, email: true } } },
         orderBy: { createdAt: "desc" }, skip: (page - 1) * limit, take: limit,
       }),
-      prisma.loginAttempt.count({ where: where as never }),
+      prisma.login_attempts.count({ where: where as never }),
     ]);
     return success({ loginAttempts: items, pagination: { total, page, pageSize: limit, totalPages: Math.ceil(total / limit) } });
   } catch (e) {

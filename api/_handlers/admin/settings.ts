@@ -14,7 +14,7 @@ async function cleanupThemeMedia(existingTheme: unknown, nextTheme: unknown, env
   
   if (toDelete.length > 0) {
     const prisma = getPrisma(env);
-    const mediaAssets = await prisma.mediaAsset.findMany({
+    const mediaAssets = await prisma.media_assets.findMany({
       where: { publicId: { in: toDelete }, entityType: "settings" },
       select: { id: true },
     });
@@ -33,7 +33,7 @@ async function cleanupSeoMedia(existingSeo: unknown, nextSeo: unknown, env: any)
   
   if (toDelete.length > 0) {
     const prisma = getPrisma(env);
-    const mediaAssets = await prisma.mediaAsset.findMany({
+    const mediaAssets = await prisma.media_assets.findMany({
       where: { publicId: { in: toDelete }, entityType: "settings" },
       select: { id: true },
     });
@@ -98,7 +98,7 @@ export async function handleAdminSettingsRequest(
 async function handleGet(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const settings = await prisma.siteSetting.findFirst();
+    const settings = await prisma.site_settings.findFirst();
     return success({ settings });
   } catch (err) {
     return serverError(err);
@@ -110,7 +110,7 @@ async function handleUpdate(req: Request, ctx: RequestContext, env: any): Promis
 
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.siteSetting.findFirst();
+    const existing = await prisma.site_settings.findFirst();
 
     const data: Record<string, unknown> = {};
     const fields = [
@@ -140,7 +140,7 @@ async function handleUpdate(req: Request, ctx: RequestContext, env: any): Promis
     // Handle logo media replacement using MediaService
     if (body.logoPublicId !== undefined && existing?.logoPublicId !== body.logoPublicId) {
       if (existing?.logoPublicId) {
-        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+        const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.logoPublicId, entityType: "settings" },
           select: { id: true },
         });
@@ -154,7 +154,7 @@ async function handleUpdate(req: Request, ctx: RequestContext, env: any): Promis
     // Handle favicon media replacement using MediaService
     if (body.faviconPublicId !== undefined && existing?.faviconPublicId !== body.faviconPublicId) {
       if (existing?.faviconPublicId) {
-        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+        const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.faviconPublicId, entityType: "settings" },
           select: { id: true },
         });
@@ -168,7 +168,7 @@ async function handleUpdate(req: Request, ctx: RequestContext, env: any): Promis
     // Handle OG image media replacement using MediaService
     if (body.ogImagePublicId !== undefined && existing?.ogImagePublicId !== body.ogImagePublicId) {
       if (existing?.ogImagePublicId) {
-        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+        const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.ogImagePublicId, entityType: "settings" },
           select: { id: true },
         });
@@ -187,13 +187,13 @@ async function handleUpdate(req: Request, ctx: RequestContext, env: any): Promis
 
     let settings;
     if (existing) {
-      settings = await prisma.siteSetting.update({
+      settings = await prisma.site_settings.update({
         where: { id: existing.id },
         data: data as never,
       });
     } else {
       const createData = { siteName: body.siteName ?? "নবME", ...data } as never;
-      settings = await prisma.siteSetting.create({ data: createData });
+      settings = await prisma.site_settings.create({ data: createData });
     }
 
     logAction(ctx.userId, "admin.settings.update", {
@@ -211,7 +211,7 @@ async function handleUpdate(req: Request, ctx: RequestContext, env: any): Promis
 async function handleSocialLinksList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const links = await prisma.socialMediaLink.findMany({
+    const links = await prisma.social_media_links.findMany({
       orderBy: { sortOrder: "asc" },
     });
     return success({ links });
@@ -240,7 +240,7 @@ async function handleCreateSocialLink(req: Request, ctx: RequestContext, env: an
 
   try {
     const prisma = getPrisma(env);
-    const link = await prisma.socialMediaLink.create({
+    const link = await prisma.social_media_links.create({
       data: {
         platform,
         url,
@@ -273,7 +273,7 @@ async function handleUpdateSocialLink(linkId: string, req: Request, ctx: Request
       if (body[field] !== undefined) data[field] = body[field];
     }
 
-    const link = await prisma.socialMediaLink.update({
+    const link = await prisma.social_media_links.update({
       where: { id: linkId },
       data: data as never,
     });
@@ -292,7 +292,7 @@ async function handleUpdateSocialLink(linkId: string, req: Request, ctx: Request
 async function handleDeleteSocialLink(linkId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    await prisma.socialMediaLink.delete({ where: { id: linkId } });
+    await prisma.social_media_links.delete({ where: { id: linkId } });
     logAction(ctx.userId, "admin.social_links.delete", {
       entity: "socialMediaLink",
       entityId: linkId,

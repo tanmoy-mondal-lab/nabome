@@ -41,14 +41,14 @@ async function handleGetCart(ctx: RequestContext): Promise<Response> {
     const prisma = getPrisma(ctx.env);
 
     // Clean up expired cart
-    await prisma.cart.deleteMany({
+    await prisma.carts.deleteMany({
       where: {
         profileId: ctx.userId,
         expiresAt: { lt: new Date() },
       },
     });
 
-    const cart = await prisma.cart.findUnique({
+    const cart = await prisma.carts.findUnique({
       where: { profileId: ctx.userId },
       include: {
         items: {
@@ -76,7 +76,7 @@ async function handleGetCart(ctx: RequestContext): Promise<Response> {
 
     // Fetch product data and images in separate queries to avoid deep nesting
     const productIds = [...new Set(cart.items.map(item => item.variant.productId))];
-    const products = await prisma.product.findMany({
+    const products = await prisma.products.findMany({
       where: { id: { in: productIds } },
       select: {
         id: true,
@@ -90,7 +90,7 @@ async function handleGetCart(ctx: RequestContext): Promise<Response> {
 
     const productMap = new Map(products.map(p => [p.id, p]));
 
-    const imageUrls = await prisma.productImage.findMany({
+    const imageUrls = await prisma.product_images.findMany({
       where: {
         productId: { in: productIds },
         isPrimary: true
@@ -154,12 +154,12 @@ async function handleSyncCart(req: Request, ctx: RequestContext): Promise<Respon
     const prisma = getPrisma(ctx.env);
     
     // Get or create cart
-    let cart = await prisma.cart.findUnique({
+    let cart = await prisma.carts.findUnique({
       where: { profileId: ctx.userId }
     });
 
     if (!cart) {
-      cart = await prisma.cart.create({
+      cart = await prisma.carts.create({
         data: { 
           profileId: ctx.userId,
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
@@ -169,12 +169,12 @@ async function handleSyncCart(req: Request, ctx: RequestContext): Promise<Respon
 
     // Atomically replace all items within a transaction
     await prisma.$transaction(async (tx) => {
-      await tx.cartItem.deleteMany({
+      await tx.cart_items.deleteMany({
         where: { cartId: cart.id }
       });
 
       if (items.length > 0) {
-        await tx.cartItem.createMany({
+        await tx.cart_items.createMany({
           data: items.map(item => ({
             cartId: cart.id,
             variantId: item.variantId,
@@ -184,7 +184,7 @@ async function handleSyncCart(req: Request, ctx: RequestContext): Promise<Respon
         });
       }
 
-      await tx.cart.update({
+      await tx.carts.update({
         where: { id: cart.id },
         data: { 
           updatedAt: new Date(),
@@ -221,12 +221,12 @@ async function handleMergeCart(req: Request, ctx: RequestContext): Promise<Respo
     const prisma = getPrisma(ctx.env);
     
     // Get or create cart
-    const cart = await prisma.cart.findUnique({
+    const cart = await prisma.carts.findUnique({
       where: { profileId: ctx.userId },
       include: { items: true }
     });
 
-    const activeCart = cart ?? await prisma.cart.create({
+    const activeCart = cart ?? await prisma.carts.create({
         data: { 
           profileId: ctx.userId,
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days,
@@ -249,12 +249,12 @@ async function handleMergeCart(req: Request, ctx: RequestContext): Promise<Respo
         for (const item of items) {
           const existing = existingVariants.get(item.variantId);
           if (existing) {
-            await tx.cartItem.update({
+            await tx.cart_items.update({
               where: { id: existing.id },
               data: { quantity: existing.quantity + item.quantity }
             });
           } else {
-            await tx.cartItem.create({
+            await tx.cart_items.create({
               data: {
                 cartId: cart.id,
                 variantId: item.variantId,
@@ -265,7 +265,7 @@ async function handleMergeCart(req: Request, ctx: RequestContext): Promise<Respo
         }
 
         // Update cart timestamp
-        await tx.cart.update({
+        await tx.carts.update({
           where: { id: activeCart.id },
           data: { updatedAt: new Date() }
         });
@@ -285,12 +285,12 @@ async function handleClearCart(ctx: RequestContext): Promise<Response> {
 
   try {
     const prisma = getPrisma(ctx.env);
-    const cart = await prisma.cart.findUnique({
+    const cart = await prisma.carts.findUnique({
       where: { profileId: ctx.userId }
     });
 
     if (cart) {
-      await prisma.cartItem.deleteMany({
+      await prisma.cart_items.deleteMany({
         where: { cartId: cart.id }
       });
     }

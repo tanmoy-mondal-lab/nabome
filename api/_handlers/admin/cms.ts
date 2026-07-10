@@ -21,7 +21,7 @@ async function cleanupSectionMedia(existingContent: unknown, nextContent: unknow
   
   if (toDelete.length > 0) {
     const prisma = getPrisma(env);
-    const mediaAssets = await prisma.mediaAsset.findMany({
+    const mediaAssets = await prisma.media_assets.findMany({
       where: { publicId: { in: toDelete }, entityType: "cms" },
       select: { id: true },
     });
@@ -112,7 +112,7 @@ export async function handleAdminCMSRequest(
 async function handlePagesList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const pages = await prisma.staticPage.findMany({
+    const pages = await prisma.static_pages.findMany({
       orderBy: { createdAt: "desc" },
     });
     return success({ pages });
@@ -124,7 +124,7 @@ async function handlePagesList(env: any): Promise<Response> {
 async function handleGetPage(pageId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const page = await prisma.staticPage.findUnique({ where: { id: pageId } });
+    const page = await prisma.static_pages.findUnique({ where: { id: pageId } });
     if (!page) return notFound("Page not found");
     return success({ page });
   } catch (err) {
@@ -143,11 +143,11 @@ async function handleCreatePage(req: Request, ctx: RequestContext, env: any): Pr
   if (!slug) return badRequest("Page slug is required");
 
   const prisma = getPrisma(env);
-  const slugExists = await prisma.staticPage.findUnique({ where: { slug } });
+  const slugExists = await prisma.static_pages.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
-    const page = await prisma.staticPage.create({
+    const page = await prisma.static_pages.create({
       data: {
         title,
         slug: finalSlug,
@@ -176,7 +176,7 @@ async function handleUpdatePage(pageId: string, req: Request, ctx: RequestContex
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.staticPage.findUnique({ where: { id: pageId } });
+    const existing = await prisma.static_pages.findUnique({ where: { id: pageId } });
     if (!existing) return notFound("Page not found");
 
     const data: Record<string, unknown> = {};
@@ -188,7 +188,7 @@ async function handleUpdatePage(pageId: string, req: Request, ctx: RequestContex
       const slug = slugify(String(body.slug));
       if (!slug) return badRequest("Page slug is required");
       if (slug !== existing.slug) {
-        const duplicate = await prisma.staticPage.findUnique({ where: { slug } });
+        const duplicate = await prisma.static_pages.findUnique({ where: { slug } });
         if (duplicate) return conflict(`A page with slug "${slug}" already exists`);
       }
       data.slug = slug;
@@ -202,7 +202,7 @@ async function handleUpdatePage(pageId: string, req: Request, ctx: RequestContex
       data.content = await cleanupSectionMedia(existing.content, body.content, env);
     }
 
-    const page = await prisma.staticPage.update({
+    const page = await prisma.static_pages.update({
       where: { id: pageId },
       data: data as never,
     });
@@ -221,10 +221,10 @@ async function handleUpdatePage(pageId: string, req: Request, ctx: RequestContex
 async function handleDeletePage(pageId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const page = await prisma.staticPage.findUnique({ where: { id: pageId } });
+    const page = await prisma.static_pages.findUnique({ where: { id: pageId } });
     if (!page) return notFound("Page not found");
     if (page.ogImage) {
-      const mediaAsset = await prisma.mediaAsset.findFirst({
+      const mediaAsset = await prisma.media_assets.findFirst({
         where: { publicId: page.ogImage, entityType: "cms", entityId: pageId },
         select: { id: true },
       });
@@ -233,7 +233,7 @@ async function handleDeletePage(pageId: string, req: Request, ctx: RequestContex
       }
     }
     await cleanupSectionMedia(page.content, {}, env);
-    await prisma.staticPage.delete({ where: { id: pageId } });
+    await prisma.static_pages.delete({ where: { id: pageId } });
     await logAction(ctx.userId, "admin.cms.page.delete", {
       entity: "staticPage",
       entityId: pageId,
@@ -250,7 +250,7 @@ async function handleDeletePage(pageId: string, req: Request, ctx: RequestContex
 async function handleHomepageList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const sections = await prisma.homepageSection.findMany({
+    const sections = await prisma.homepage_sections.findMany({
       orderBy: { sortOrder: "asc" },
     });
     return success({ sections });
@@ -267,7 +267,7 @@ async function handleCreateHomeSection(req: Request, ctx: RequestContext, env: a
 
   try {
     const prisma = getPrisma(env);
-    const section = await prisma.homepageSection.create({
+    const section = await prisma.homepage_sections.create({
       data: {
         sectionType,
         title: title ?? null,
@@ -297,7 +297,7 @@ async function handleUpdateHomeSection(sectionId: string, req: Request, ctx: Req
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.homepageSection.findUnique({ where: { id: sectionId } });
+    const existing = await prisma.homepage_sections.findUnique({ where: { id: sectionId } });
     if (!existing) return notFound("Section not found");
 
     const data: Record<string, unknown> = {};
@@ -311,7 +311,7 @@ async function handleUpdateHomeSection(sectionId: string, req: Request, ctx: Req
       data.content = await cleanupSectionMedia(existing.content, body.content, env);
     }
 
-    const section = await prisma.homepageSection.update({
+    const section = await prisma.homepage_sections.update({
       where: { id: sectionId },
       data: data as never,
     });
@@ -330,13 +330,13 @@ async function handleUpdateHomeSection(sectionId: string, req: Request, ctx: Req
 async function handleDeleteHomeSection(sectionId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const section = await prisma.homepageSection.findUnique({ where: { id: sectionId } });
+    const section = await prisma.homepage_sections.findUnique({ where: { id: sectionId } });
     if (!section) return notFound("Section not found");
     // Clean up all media in the section content by comparing with empty (removes everything)
     const cleaned = await cleanupSectionMedia(section.content, {}, env);
     const sectionContent = asRecord(cleaned);
     if (sectionContent?.imagePublicId) {
-      const mediaAsset = await prisma.mediaAsset.findFirst({
+      const mediaAsset = await prisma.media_assets.findFirst({
         where: { publicId: String(sectionContent.imagePublicId), entityType: "cms", entityId: sectionId },
         select: { id: true },
       });
@@ -344,7 +344,7 @@ async function handleDeleteHomeSection(sectionId: string, req: Request, ctx: Req
         await deleteMedia(mediaAsset.id, env);
       }
     }
-    await prisma.homepageSection.delete({ where: { id: sectionId } });
+    await prisma.homepage_sections.delete({ where: { id: sectionId } });
     await logAction(ctx.userId, "admin.cms.homepage.delete", {
       entity: "homepageSection",
       entityId: sectionId,
@@ -366,7 +366,7 @@ async function handleReorderHomeSections(req: Request, env: any): Promise<Respon
     const prisma = getPrisma(env);
     await prisma.$transaction(
       order.map((item: { id: string; sortOrder: number }) =>
-        prisma.homepageSection.update({
+        prisma.homepage_sections.update({
           where: { id: item.id },
           data: { sortOrder: item.sortOrder },
         })
@@ -383,7 +383,7 @@ async function handleReorderHomeSections(req: Request, env: any): Promise<Respon
 async function handleNavigationList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const menus = await prisma.navigationMenu.findMany({
+    const menus = await prisma.navigation_menus.findMany({
       orderBy: { createdAt: "asc" },
     });
     return success({ menus });
@@ -408,14 +408,14 @@ async function handleCreateNavigation(req: Request, ctx: RequestContext, env: an
 
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.navigationMenu.findFirst({
+    const existing = await prisma.navigation_menus.findFirst({
       where: { name, location },
     });
     if (existing) {
       return conflict(`A menu named "${name}" already exists for this location`);
     }
 
-    const menu = await prisma.navigationMenu.create({
+    const menu = await prisma.navigation_menus.create({
       data: {
         name,
         location,
@@ -439,7 +439,7 @@ async function handleUpdateNavigation(menuId: string, req: Request, ctx: Request
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.navigationMenu.findUnique({ where: { id: menuId } });
+    const existing = await prisma.navigation_menus.findUnique({ where: { id: menuId } });
     if (!existing) return notFound("Navigation menu not found");
 
     const data: Record<string, unknown> = {};
@@ -465,14 +465,14 @@ async function handleUpdateNavigation(menuId: string, req: Request, ctx: Request
     // Check duplicate if name or location changed
     const newName = body.name ?? existing.name;
     const newLocation = body.location ?? existing.location;
-    const duplicate = await prisma.navigationMenu.findFirst({
+    const duplicate = await prisma.navigation_menus.findFirst({
       where: { name: newName, location: newLocation, id: { not: menuId } },
     });
     if (duplicate) {
       return conflict(`A menu named "${newName}" already exists for this location`);
     }
 
-    const menu = await prisma.navigationMenu.update({
+    const menu = await prisma.navigation_menus.update({
       where: { id: menuId },
       data: data as never,
     });
@@ -491,10 +491,10 @@ async function handleUpdateNavigation(menuId: string, req: Request, ctx: Request
 async function handleDeleteNavigation(menuId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.navigationMenu.findUnique({ where: { id: menuId } });
+    const existing = await prisma.navigation_menus.findUnique({ where: { id: menuId } });
     if (!existing) return notFound("Navigation menu not found");
 
-    await prisma.navigationMenu.delete({ where: { id: menuId } });
+    await prisma.navigation_menus.delete({ where: { id: menuId } });
     await logAction(ctx.userId, "admin.cms.navigation.delete", {
       entity: "navigationMenu",
       entityId: menuId,
@@ -511,7 +511,7 @@ async function handleDeleteNavigation(menuId: string, req: Request, ctx: Request
 async function handleFooterList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const sections = await prisma.footerSection.findMany({
+    const sections = await prisma.footer_sections.findMany({
       orderBy: [{ column: "asc" }, { sortOrder: "asc" }],
     });
     return success({ sections });
@@ -528,7 +528,7 @@ async function handleCreateFooter(req: Request, ctx: RequestContext, env: any): 
 
   try {
     const prisma = getPrisma(env);
-    const section = await prisma.footerSection.create({
+    const section = await prisma.footer_sections.create({
       data: {
         column: column ?? 1,
         title,
@@ -560,7 +560,7 @@ async function handleUpdateFooter(sectionId: string, req: Request, ctx: RequestC
       if (body[field] !== undefined) data[field] = body[field];
     }
 
-    const section = await prisma.footerSection.update({
+    const section = await prisma.footer_sections.update({
       where: { id: sectionId },
       data: data as never,
     });
@@ -579,7 +579,7 @@ async function handleUpdateFooter(sectionId: string, req: Request, ctx: RequestC
 async function handleDeleteFooter(sectionId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    await prisma.footerSection.delete({ where: { id: sectionId } });
+    await prisma.footer_sections.delete({ where: { id: sectionId } });
     await logAction(ctx.userId, "admin.cms.footer.delete", {
       entity: "footerSection",
       entityId: sectionId,

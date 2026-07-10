@@ -2,6 +2,7 @@ export interface LoginRequest {
     email: string;
     password: string;
     turnstileToken?: string;
+    rememberMe?: boolean;
 }
 export interface RegisterRequest {
     email: string;
@@ -52,12 +53,14 @@ export interface AuthSession {
 export declare const authApi: {
     login: (data: LoginRequest) => Promise<AuthResponse>;
     register: (data: RegisterRequest) => Promise<{
-        user: {
+        user?: {
             id: string;
             email: string;
             firstName: string;
         };
         message: string;
+        emailSent?: boolean;
+        accountExists?: boolean;
     }>;
     logout: () => Promise<{
         message: string;

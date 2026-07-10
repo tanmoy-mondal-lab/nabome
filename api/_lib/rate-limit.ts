@@ -9,18 +9,14 @@ interface RateLimitEntry {
 
 const inMemoryStore = new Map<string, RateLimitEntry>();
 
-const IN_MEMORY_CLEANUP_INTERVAL = 60_000;
-// Cleanup interval for in-memory rate limiting (local development only)
-// In production, Cloudflare KV handles expiration automatically
-if (typeof setInterval !== "undefined") {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, entry] of inMemoryStore) {
-      if (entry.resetAt <= now) {
-        inMemoryStore.delete(key);
-      }
+// Lazy cleanup function - removes expired entries when called
+function cleanupExpiredEntries(): void {
+  const now = Date.now();
+  for (const [key, entry] of inMemoryStore) {
+    if (entry.resetAt <= now) {
+      inMemoryStore.delete(key);
     }
-  }, IN_MEMORY_CLEANUP_INTERVAL);
+  }
 }
 
 export interface RateLimitConfig {
@@ -34,6 +30,7 @@ const DEFAULTS = {
   standard: { windowMs: 10_000, maxRequests: 30, message: "Too many requests. Slow down." },
   admin: { windowMs: 60_000, maxRequests: 60, message: "Too many requests. Slow down." },
   contact: { windowMs: 3_600_000, maxRequests: 3, message: "Too many submissions. Try again later." },
+  resendVerification: { windowMs: 3_600_000, maxRequests: 3, message: "Too many verification requests. Please try again later." },
 };
 
 function getKVBinding(env?: any): any | null {
@@ -107,6 +104,8 @@ export async function checkRateLimit(
     console.warn(
       `[rate-limit] KV unavailable in production — falling back to in-memory rate limiting for key "${key.split(":")[0]}"`
     );
+    // Lazy cleanup of expired entries
+    cleanupExpiredEntries();
     const inMemEntry = inMemoryStore.get(key);
     if (inMemEntry && inMemEntry.resetAt > now) {
       inMemEntry.count += 1;

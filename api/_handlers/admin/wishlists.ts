@@ -21,7 +21,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     // Get all wishlist items grouped by product with counts
-    const allItems = await prisma.wishlistItem.findMany({
+    const allItems = await prisma.wishlist_items.findMany({
       select: {
         variantId: true,
         variant: {

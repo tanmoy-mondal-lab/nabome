@@ -25,7 +25,7 @@ export async function handleCurrencyRequest(
 async function handleList(ctx: RequestContext): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const currencies = await prisma.currency.findMany({ where: { isActive: true } });
+    const currencies = await prisma.currencies.findMany({ where: { isActive: true } });
     return success({ currencies });
   } catch (e) {
     return serverError(e);
@@ -37,8 +37,8 @@ async function handleConvert(req: Request, ctx: RequestContext): Promise<Respons
     const { from, to, amount } = await req.json() as { from: string; to: string; amount: number };
     if (!from || !to || !amount) return badRequest("From, to, and amount required");
     const prisma = getPrisma(ctx.env);
-    const fromCurr = await prisma.currency.findUnique({ where: { code: from.toUpperCase() } });
-    const toCurr = await prisma.currency.findUnique({ where: { code: to.toUpperCase() } });
+    const fromCurr = await prisma.currencies.findUnique({ where: { code: from.toUpperCase() } });
+    const toCurr = await prisma.currencies.findUnique({ where: { code: to.toUpperCase() } });
     if (!fromCurr || !toCurr) return notFound("Currency not found");
     const baseAmount = amount / Number(fromCurr.exchangeRate);
     const converted = baseAmount * Number(toCurr.exchangeRate);
@@ -55,7 +55,7 @@ async function handleConvert(req: Request, ctx: RequestContext): Promise<Respons
 async function handleAdminList(ctx: RequestContext): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const currencies = await prisma.currency.findMany({ orderBy: { code: "asc" } });
+    const currencies = await prisma.currencies.findMany({ orderBy: { code: "asc" } });
     return success({ currencies });
   } catch (e) {
     return serverError(e);
@@ -71,7 +71,7 @@ async function handleAdminUpdate(req: Request, ctx: RequestContext, params: stri
     const data: Record<string, unknown> = {};
     if (exchangeRate !== undefined) data.exchangeRate = exchangeRate;
     if (isActive !== undefined) data.isActive = isActive;
-    const currency = await prisma.currency.update({ where: { code }, data });
+    const currency = await prisma.currencies.update({ where: { code }, data });
     return success({ currency });
   } catch (e) {
     return serverError(e);

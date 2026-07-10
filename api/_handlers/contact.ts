@@ -26,7 +26,7 @@ async function handleContact(req: Request, env: any): Promise<Response> {
 
   try {
     const prisma = getPrisma(env);
-    await prisma.contactSubmission.create({
+    await prisma.contact_submissions.create({
       data: {
         name,
         email,
@@ -53,13 +53,13 @@ async function handleNewsletter(req: Request, env: any): Promise<Response> {
 
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.newsletterSubscriber.findUnique({
+    const existing = await prisma.newsletter_subscribers.findUnique({
       where: { email: parsed.data },
     });
 
     if (existing) {
       if (!existing.isActive) {
-        await prisma.newsletterSubscriber.update({
+        await prisma.newsletter_subscribers.update({
           where: { id: existing.id },
           data: { isActive: true },
         });
@@ -67,7 +67,7 @@ async function handleNewsletter(req: Request, env: any): Promise<Response> {
       return success({ message: "You are already subscribed!" });
     }
 
-    await prisma.newsletterSubscriber.create({
+    await prisma.newsletter_subscribers.create({
       data: { email: parsed.data },
     });
 

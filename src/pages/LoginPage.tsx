@@ -8,7 +8,7 @@ import { turnstileEnabled, turnstileSiteKey } from "../lib/config";
 import { Helmet } from "react-helmet-async";
 import { canonical } from "../lib/seo";
 
-const VERIFICATION_ERROR = "Please verify your email address before logging in";
+const VERIFICATION_ERROR = "Please verify your email before signing in";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -43,9 +43,9 @@ export default function LoginPage() {
     setResending(true);
     try {
       await resendVerification(email);
-      toast("Verification code sent. Please check your inbox.", "success");
+      toast("Verification email sent. Please check your inbox and spam folder.", "success");
     } catch {
-      toast("Failed to send verification email. Try again.", "error");
+      toast("Failed to send verification email. Please try again later.", "error");
     } finally {
       setResending(false);
     }
@@ -60,7 +60,7 @@ export default function LoginPage() {
 
     const shouldResetTurnstile = turnstileEnabled && !!turnstileToken;
     try {
-      const user = await login({ email, password, turnstileToken: turnstileToken || undefined });
+      const user = await login({ email, password, turnstileToken: turnstileToken || undefined, rememberMe });
       toast(`Welcome back, ${user.firstName}`, "success");
         if (user.role === "admin") {
         void navigate("/admin", { replace: true });

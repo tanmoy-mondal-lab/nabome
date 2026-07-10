@@ -24,7 +24,7 @@ export async function handleAdminSubcategoryRequest(
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const subcategories = await prisma.subcategory.findMany({
+    const subcategories = await prisma.subcategories.findMany({
       include: {
         category: { select: { id: true, name: true, slug: true } },
         _count: { select: { products: true } },
@@ -41,10 +41,10 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
   if (!name || !categoryId) return badRequest("Name and categoryId are required");
   const slug = slugify(name);
   const prisma = getPrisma(env);
-  const slugExists = await prisma.subcategory.findUnique({ where: { slug } });
+  const slugExists = await prisma.subcategories.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
   try {
-    const sub = await prisma.subcategory.create({
+    const sub = await prisma.subcategories.create({
       data: { name, slug: finalSlug, categoryId: (toNull(categoryId) ?? categoryId) as string, description: description ?? null, imageUrl: imageUrl ?? null, imagePublicId: imagePublicId ?? null, sortOrder: sortOrder ?? 0 },
     });
     return created(sub);
@@ -55,7 +55,7 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.subcategory.findUnique({ where: { id } });
+    const existing = await prisma.subcategories.findUnique({ where: { id } });
     if (!existing) return notFound("Subcategory not found");
     const data: Record<string, unknown> = {};
     const fields = ["name", "categoryId", "description", "imageUrl", "sortOrder", "isActive"];
@@ -64,7 +64,7 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
     // Handle image media replacement using MediaService
     if (body.imagePublicId !== undefined && existing.imagePublicId !== body.imagePublicId) {
       if (existing.imagePublicId) {
-        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+        const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.imagePublicId, entityType: "categories", entityId: id },
         });
         if (oldMediaAsset) {
@@ -75,12 +75,12 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
     }
     if (body.name) {
       const newSlug = slugify(body.name);
-      const slugExists = await prisma.subcategory.findFirst({
+      const slugExists = await prisma.subcategories.findFirst({
         where: { slug: newSlug, id: { not: id } },
       });
       data.slug = slugExists ? `${newSlug}-${Date.now().toString(36)}` : newSlug;
     }
-    const sub = await prisma.subcategory.update({ where: { id }, data: data as never });
+    const sub = await prisma.subcategories.update({ where: { id }, data: data as never });
     return success(sub);
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Subcategory not found");
@@ -91,7 +91,7 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
 async function handleDelete(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    await prisma.subcategory.update({ where: { id }, data: { isActive: false } });
+    await prisma.subcategories.update({ where: { id }, data: { isActive: false } });
     return success({ message: "Subcategory archived" });
   } catch (err) { return notFound("Subcategory not found"); }
 }

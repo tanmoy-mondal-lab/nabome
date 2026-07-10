@@ -45,11 +45,11 @@ async function handleStats(ctx: RequestContext, _env: any): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
     const [orders, aggregation] = await Promise.all([
-      prisma.order.findMany({
+      prisma.orders.findMany({
         where: { profileId: ctx.userId },
         select: { status: true, total: true },
       }),
-      prisma.order.aggregate({
+      prisma.orders.aggregate({
         where: { profileId: ctx.userId },
         _count: true,
         _sum: { total: true },
@@ -85,7 +85,7 @@ async function handleList(ctx: RequestContext, req: Request, _env: any): Promise
   try {
     const prisma = getPrisma(ctx.env);
     const [orders, total] = await Promise.all([
-      prisma.order.findMany({
+      prisma.orders.findMany({
         where: where as never,
         include: {
           items: true,
@@ -96,7 +96,7 @@ async function handleList(ctx: RequestContext, req: Request, _env: any): Promise
         skip,
         take: limit,
       }),
-      prisma.order.count({ where: where as never }),
+      prisma.orders.count({ where: where as never }),
     ]);
 
     return success({
@@ -115,7 +115,7 @@ async function handleDetail(ctx: RequestContext, orderId: string, _env: any): Pr
 
   try {
     const prisma = getPrisma(ctx.env);
-    const order = await prisma.order.findFirst({
+    const order = await prisma.orders.findFirst({
       where: {
         id: orderId,
         profileId: ctx.userId,
@@ -161,7 +161,7 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
 
   try {
     const prisma = getPrisma(ctx.env);
-    const order = await prisma.order.findFirst({
+    const order = await prisma.orders.findFirst({
       where: { id: orderId, profileId: ctx.userId },
       include: { items: true },
     });
@@ -176,7 +176,7 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
     }
 
     const updated = await prisma.$transaction(async (tx) => {
-      const cancelled = await tx.order.update({
+      const cancelled = await tx.orders.update({
         where: { id: orderId },
         data: {
           status: "cancelled",
@@ -200,7 +200,7 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
       
       if (variantIds.length > 0) {
         // Fetch all variants in one query
-        const variants = await tx.productVariant.findMany({
+        const variants = await tx.product_variants.findMany({
           where: { id: { in: variantIds } },
         });
         
@@ -210,7 +210,7 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
         // Batch update all variant stocks in parallel
         await Promise.all(
           itemsWithVariants.map(item =>
-            tx.productVariant.update({
+            tx.product_variants.update({
               where: { id: item.variantId! },
               data: {
                 stock: { increment: item.quantity },
@@ -222,7 +222,7 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
 
         // Batch create all inventory movements in a single query
         if (itemsWithVariants.length > 0) {
-          await tx.inventoryMovement.createMany({
+          await tx.inventory_movements.createMany({
             data: itemsWithVariants.map(item => {
               const variant = variantMap.get(item.variantId!)!;
               return {
@@ -238,7 +238,7 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
       }
 
       // Create notification
-      await tx.notification.create({
+      await tx.notifications.create({
         data: {
           profileId: ctx.userId!,
           orderId: orderId,
@@ -273,7 +273,7 @@ async function handleTracking(ctx: RequestContext, orderId: string, _env: any): 
 
   try {
     const prisma = getPrisma(ctx.env);
-    const order = await prisma.order.findFirst({
+    const order = await prisma.orders.findFirst({
       where: { id: orderId, profileId: ctx.userId },
       select: {
         id: true,

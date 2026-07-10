@@ -179,7 +179,7 @@ export class MediaIntegrityService {
 
     try {
       // Get all database assets
-      const dbAssets = await this.prisma.mediaAsset.findMany({
+      const dbAssets = await this.prisma.media_assets.findMany({
         where: options.entityType && options.entityId
           ? { entityType: options.entityType as "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users" | "temp", entityId: options.entityId }
           : options.entityType
@@ -483,7 +483,7 @@ export class MediaIntegrityService {
 
     try {
       // Get all unique folders from database
-      const folders = await this.prisma.mediaAsset.findMany({
+      const folders = await this.prisma.media_assets.findMany({
         where: { folder: { not: null } },
         select: { folder: true },
         distinct: ["folder"],
@@ -510,7 +510,7 @@ export class MediaIntegrityService {
         }
 
         // Check if folder is empty (no assets)
-        const assetsInFolder = await this.prisma.mediaAsset.count({
+        const assetsInFolder = await this.prisma.media_assets.count({
           where: { folder },
         });
 
@@ -607,16 +607,16 @@ export class MediaIntegrityService {
     try {
       switch (entityType) {
         case "products":
-          const product = await this.prisma.product.findUnique({ where: { id: entityId } });
+          const product = await this.prisma.products.findUnique({ where: { id: entityId } });
           return !!product;
         case "categories":
-          const category = await this.prisma.category.findUnique({ where: { id: entityId } });
+          const category = await this.prisma.categories.findUnique({ where: { id: entityId } });
           return !!category;
         case "collections":
-          const collection = await this.prisma.collection.findUnique({ where: { id: entityId } });
+          const collection = await this.prisma.collections.findUnique({ where: { id: entityId } });
           return !!collection;
         case "brands":
-          const brand = await this.prisma.brand.findUnique({ where: { id: entityId } });
+          const brand = await this.prisma.brands.findUnique({ where: { id: entityId } });
           return !!brand;
         default:
           // For other entity types, assume they exist for now
@@ -793,7 +793,7 @@ export class MediaIntegrityService {
     if (options.deleteOrphanedRecords && issues.orphanedRecords.length > 0) {
       for (const orphan of issues.orphanedRecords) {
         try {
-          await this.prisma.mediaAsset.delete({
+          await this.prisma.media_assets.delete({
             where: { assetId: orphan.assetId },
           });
           result.assetsRepaired++;
@@ -811,14 +811,14 @@ export class MediaIntegrityService {
     if (options.removeDuplicates && issues.duplicateRecords.length > 0) {
       for (const duplicate of issues.duplicateRecords) {
         try {
-          const duplicates = await this.prisma.mediaAsset.findMany({
+          const duplicates = await this.prisma.media_assets.findMany({
             where: { assetId: duplicate.assetId },
             orderBy: { createdAt: "asc" },
           });
           
           // Delete all except the first one
           for (let i = 1; i < duplicates.length; i++) {
-            await this.prisma.mediaAsset.delete({
+            await this.prisma.media_assets.delete({
               where: { id: duplicates[i].id },
             });
             result.assetsRepaired++;

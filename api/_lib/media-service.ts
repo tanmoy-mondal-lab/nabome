@@ -88,7 +88,7 @@ export async function uploadMedia(options: UploadOptions, env: Env): Promise<Med
   );
 
   try {
-    const asset = await prisma.mediaAsset.create({
+    const asset = await prisma.media_assets.create({
       data: {
         assetId: lifecycleResult.assetId,
         entityType,
@@ -152,7 +152,7 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
   const config = envToCloudinaryConfig(env);
   const prisma = getPrisma(env);
 
-  const oldAsset = await prisma.mediaAsset.findUnique({ where: { id: oldAssetId } });
+  const oldAsset = await prisma.media_assets.findUnique({ where: { id: oldAssetId } });
   if (!oldAsset) throw new Error("Old asset not found");
 
   const oldPublicId = oldAsset.publicId ?? "";
@@ -172,7 +172,7 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
   );
 
   try {
-    const newAsset = await prisma.mediaAsset.create({
+    const newAsset = await prisma.media_assets.create({
       data: {
         assetId: lifecycleResult.assetId,
         entityType,
@@ -195,7 +195,7 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
       },
     });
 
-    await prisma.mediaAsset.delete({ where: { id: oldAssetId } });
+    await prisma.media_assets.delete({ where: { id: oldAssetId } });
 
     return {
       id: newAsset.id,
@@ -225,7 +225,7 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
 
 export async function deleteMedia(assetId: string, env: Env): Promise<void> {
   const prisma = getPrisma(env);
-  const asset = await prisma.mediaAsset.findUnique({ where: { id: assetId } });
+  const asset = await prisma.media_assets.findUnique({ where: { id: assetId } });
   if (!asset) return;
 
   const config = envToCloudinaryConfig(env);
@@ -244,12 +244,12 @@ export async function deleteMedia(assetId: string, env: Env): Promise<void> {
     );
   }
 
-  await prisma.mediaAsset.delete({ where: { id: assetId } });
+  await prisma.media_assets.delete({ where: { id: assetId } });
 }
 
 export async function deleteEntityMedia(entityType: EntityType, entityId: string, slug: string, env: Env): Promise<number> {
   const prisma = getPrisma(env);
-  const assets = await prisma.mediaAsset.findMany({
+  const assets = await prisma.media_assets.findMany({
     where: { entityType: entityType as any, entityId },
     select: { id: true, publicId: true, resourceType: true },
   });
@@ -265,7 +265,7 @@ export async function deleteEntityMedia(entityType: EntityType, entityId: string
     config
   );
 
-  await prisma.mediaAsset.deleteMany({ where: { entityType, entityId } });
+  await prisma.media_assets.deleteMany({ where: { entityType, entityId } });
 
   return deleteResult.deletedCount;
 }
@@ -278,7 +278,7 @@ export async function migrateEntitySlug(
   env: Env
 ): Promise<void> {
   const prisma = getPrisma(env);
-  const assets = await prisma.mediaAsset.findMany({
+  const assets = await prisma.media_assets.findMany({
     where: { entityType, entityId },
   });
 
@@ -314,7 +314,7 @@ export async function migrateEntitySlug(
     const newPublicId = `${newEntityFolder}/${newAssetId}/${asset.originalFilename || "file"}`;
 
     try {
-      await prisma.mediaAsset.update({
+      await prisma.media_assets.update({
         where: { id: asset.id },
         data: {
           folder: newAssetFolder,

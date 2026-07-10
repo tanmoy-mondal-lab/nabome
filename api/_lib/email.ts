@@ -31,36 +31,50 @@ async function sendViaResend(
   html: string,
   replyTo?: string
 ): Promise<EmailSendResult> {
-  try {
-    const res = await fetch(RESEND_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: `NabME <${from}>`,
-        to: [to],
-        subject,
-        html,
-        ...(replyTo ? { reply_to: replyTo } : {}),
-      }),
-    });
+  const maxRetries = 2;
+  let lastError: string | null = null;
 
-    const status = res.status;
-    const body = await res.text();
-
-    if (!res.ok) {
-      const msg = `Resend API error HTTP ${status}: ${body}`;
-      return { success: false, error: msg };
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    if (attempt > 0) {
+      const delay = Math.pow(2, attempt) * 200;
+      await new Promise(r => setTimeout(r, delay));
     }
 
-    const data = JSON.parse(body) as { id: string };
-    return { success: true, messageId: data.id };
-  } catch (err) {
-    const msg = `Network error: ${(err as Error).message}`;
-    return { success: false, error: msg };
+    try {
+      const res = await fetch(RESEND_API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: `NabME <${from}>`,
+          to: [to],
+          subject,
+          html,
+          ...(replyTo ? { reply_to: replyTo } : {}),
+        }),
+      });
+
+      const status = res.status;
+      const body = await res.text();
+
+      if (res.ok) {
+        const data = JSON.parse(body) as { id: string };
+        return { success: true, messageId: data.id };
+      }
+
+      lastError = `Resend API error HTTP ${status}: ${body}`;
+
+      if (status < 500 && status !== 429) {
+        return { success: false, error: lastError };
+      }
+    } catch (err) {
+      lastError = `Network error: ${(err as Error).message}`;
+    }
   }
+
+  return { success: false, error: lastError ?? "Email send failed after retries" };
 }
 
 /**

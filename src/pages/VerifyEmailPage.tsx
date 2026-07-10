@@ -221,7 +221,7 @@ export default function VerifyEmailPage() {
         </button>
 
         <p className="mt-6 text-center text-sm text-neutral-500">
-          Didn't receive the code?{" "}
+          Didn't receive the code? Check your spam folder or{" "}
           <button
             onClick={handleResend}
             disabled={resending}

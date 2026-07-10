@@ -15,7 +15,7 @@ export async function createNotification(
 ): Promise<void> {
   try {
     const prisma = getPrisma(env);
-    await prisma.notification.create({
+    await prisma.notifications.create({
       data: {
         profileId,
         type: type as never,
@@ -28,7 +28,7 @@ export async function createNotification(
     });
 
     if (channel === "email") {
-      const recipient = await prisma.profile.findUnique({
+      const recipient = await prisma.profiles.findUnique({
         where: { id: profileId },
         select: { email: true, firstName: true },
       });
@@ -111,13 +111,13 @@ async function handleList(ctx: RequestContext, req: Request, env: any): Promise<
   try {
     const prisma = getPrisma(env);
     const [notifications, total] = await Promise.all([
-      prisma.notification.findMany({
+      prisma.notifications.findMany({
         where: where as never,
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
-      prisma.notification.count({ where: where as never }),
+      prisma.notifications.count({ where: where as never }),
     ]);
 
     return success({
@@ -134,12 +134,12 @@ async function handleMarkRead(ctx: RequestContext, notificationId: string, env: 
 
   try {
     const prisma = getPrisma(env);
-    const notification = await prisma.notification.findFirst({
+    const notification = await prisma.notifications.findFirst({
       where: { id: notificationId, profileId: ctx.userId },
     });
     if (!notification) return notFound("Notification not found");
 
-    const updated = await prisma.notification.update({
+    const updated = await prisma.notifications.update({
       where: { id: notificationId },
       data: { isRead: true, readAt: new Date() },
     });
@@ -155,7 +155,7 @@ async function handleMarkAllRead(ctx: RequestContext, env: any): Promise<Respons
 
   try {
     const prisma = getPrisma(env);
-    await prisma.notification.updateMany({
+    await prisma.notifications.updateMany({
       where: { profileId: ctx.userId, isRead: false },
       data: { isRead: true, readAt: new Date() },
     });
@@ -171,7 +171,7 @@ async function handleUnreadCount(ctx: RequestContext, env: any): Promise<Respons
 
   try {
     const prisma = getPrisma(env);
-    const count = await prisma.notification.count({
+    const count = await prisma.notifications.count({
       where: { profileId: ctx.userId, isRead: false },
     });
 
@@ -200,7 +200,7 @@ async function handleAdminList(_ctx: RequestContext, req: Request, env: any): Pr
   try {
     const prisma = getPrisma(env);
     const [notifications, total] = await Promise.all([
-      prisma.notification.findMany({
+      prisma.notifications.findMany({
         where: where as never,
         include: {
           profile: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -209,7 +209,7 @@ async function handleAdminList(_ctx: RequestContext, req: Request, env: any): Pr
         skip,
         take: limit,
       }),
-      prisma.notification.count({ where: where as never }),
+      prisma.notifications.count({ where: where as never }),
     ]);
 
     return success({
@@ -224,7 +224,7 @@ async function handleAdminList(_ctx: RequestContext, req: Request, env: any): Pr
 async function handleListTemplates(_ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const templates = await prisma.notificationTemplate.findMany({
+    const templates = await prisma.notification_templates.findMany({
       orderBy: { event: "asc" },
     });
     return success({ templates });
@@ -250,10 +250,10 @@ async function handleUpdateTemplate(_ctx: RequestContext, templateId: string, re
 
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.notificationTemplate.findUnique({ where: { id: templateId } });
+    const existing = await prisma.notification_templates.findUnique({ where: { id: templateId } });
     if (!existing) return notFound("Template not found");
 
-    const updated = await prisma.notificationTemplate.update({
+    const updated = await prisma.notification_templates.update({
       where: { id: templateId },
       data: updateData as never,
     });
@@ -274,7 +274,7 @@ async function handleAdminSend(_ctx: RequestContext, req: Request, env: any): Pr
 
   try {
     const prisma = getPrisma(env);
-    const profile = await prisma.profile.findUnique({ where: { id: profileId } });
+    const profile = await prisma.profiles.findUnique({ where: { id: profileId } });
     if (!profile) return notFound("Profile not found");
 
     await createNotification(profileId, type, title, messageBody ?? null, orderId ?? null, channel ?? "in_app", env);

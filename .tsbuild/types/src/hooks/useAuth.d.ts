@@ -7,12 +7,14 @@ export declare function useAuth(): {
     error: string | null;
     login: (data: LoginRequest) => Promise<import("../lib/api/auth").UserProfile>;
     register: (data: RegisterRequest) => Promise<{
-        user: {
+        user?: {
             id: string;
             email: string;
             firstName: string;
         };
         message: string;
+        emailSent?: boolean;
+        accountExists?: boolean;
     }>;
     logout: () => Promise<void>;
     resendVerification: (email: string, turnstileToken?: string) => Promise<{

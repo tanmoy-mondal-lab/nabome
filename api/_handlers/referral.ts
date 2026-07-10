@@ -35,9 +35,9 @@ async function handleMyCode(_req: Request, ctx: RequestContext): Promise<Respons
   if (!ctx.userId) return unauthorized();
   try {
     const prisma = getPrisma(ctx.env);
-    let code = await prisma.referralCode.findUnique({ where: { profileId: ctx.userId } });
+    let code = await prisma.referral_codes.findUnique({ where: { profileId: ctx.userId } });
     if (!code) {
-      code = await prisma.referralCode.create({
+      code = await prisma.referral_codes.create({
         data: { profileId: ctx.userId, code: generateReferralCode() },
       });
     }
@@ -52,11 +52,11 @@ async function handleClaim(req: Request, ctx: RequestContext): Promise<Response>
     const { code, email } = await req.json() as { code: string; email: string };
     if (!code || !email) return badRequest("Referral code and email required");
     const prisma = getPrisma(ctx.env);
-    const referralCode = await prisma.referralCode.findUnique({ where: { code: code.toUpperCase() } });
+    const referralCode = await prisma.referral_codes.findUnique({ where: { code: code.toUpperCase() } });
     if (!referralCode || !referralCode.isActive) return notFound("Invalid referral code");
-    const existing = await prisma.referral.findFirst({ where: { referrerCodeId: referralCode.id, referredEmail: email } });
+    const existing = await prisma.referrals.findFirst({ where: { referrerCodeId: referralCode.id, referredEmail: email } });
     if (existing) return conflict("Email already referred");
-    await prisma.referral.create({
+    await prisma.referrals.create({
       data: { referrerCodeId: referralCode.id, referredEmail: email, status: "pending" },
     });
     return success({ claimed: true });
@@ -69,9 +69,9 @@ async function handleMyReferrals(_req: Request, ctx: RequestContext): Promise<Re
   if (!ctx.userId) return unauthorized();
   try {
     const prisma = getPrisma(ctx.env);
-    const code = await prisma.referralCode.findUnique({ where: { profileId: ctx.userId } });
+    const code = await prisma.referral_codes.findUnique({ where: { profileId: ctx.userId } });
     if (!code) return success({ referrals: [] });
-    const referrals = await prisma.referral.findMany({
+    const referrals = await prisma.referrals.findMany({
       where: { referrerCodeId: code.id },
       orderBy: { createdAt: "desc" },
     });
@@ -85,9 +85,9 @@ async function handleGenerateCode(_req: Request, ctx: RequestContext): Promise<R
   if (!ctx.userId) return unauthorized();
   try {
     const prisma = getPrisma(ctx.env);
-    const existing = await prisma.referralCode.findUnique({ where: { profileId: ctx.userId } });
+    const existing = await prisma.referral_codes.findUnique({ where: { profileId: ctx.userId } });
     if (existing) return success({ referralCode: existing });
-    const code = await prisma.referralCode.create({
+    const code = await prisma.referral_codes.create({
       data: { profileId: ctx.userId, code: generateReferralCode() },
     });
     return success({ referralCode: code });
@@ -99,7 +99,7 @@ async function handleGenerateCode(_req: Request, ctx: RequestContext): Promise<R
 async function handleAdminList(ctx: RequestContext): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const referrals = await prisma.referral.findMany({
+    const referrals = await prisma.referrals.findMany({
       include: { referrerCode: { include: { profile: { select: { id: true, email: true, firstName: true } } } } },
       orderBy: { createdAt: "desc" },
       take: 100,

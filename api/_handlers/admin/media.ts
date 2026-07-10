@@ -59,16 +59,16 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [assets, total] = await Promise.all([
-      prisma.mediaAsset.findMany({
+      prisma.media_assets.findMany({
         where: where as never,
         orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
-      prisma.mediaAsset.count({ where: where as never }),
+      prisma.media_assets.count({ where: where as never }),
     ]);
 
-    const folders = await prisma.mediaAsset.groupBy({
+    const folders = await prisma.media_assets.groupBy({
       by: ["entityType"],
       _count: true,
     });
@@ -111,7 +111,7 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
 
   try {
     const prisma = getPrisma(env);
-    const asset = await prisma.mediaAsset.create({
+    const asset = await prisma.media_assets.create({
       data: {
         assetId: assetId ?? crypto.randomUUID(),
         entityType: entityType ?? "cms",
@@ -177,7 +177,7 @@ async function handleUpdate(assetId: string, req: Request, env: any): Promise<Re
     if (sortOrder !== undefined) data.sortOrder = sortOrder;
     if (isPrimary !== undefined) data.isPrimary = isPrimary;
 
-    const asset = await prisma.mediaAsset.update({
+    const asset = await prisma.media_assets.update({
       where: { id: assetId },
       data: data as never,
     });

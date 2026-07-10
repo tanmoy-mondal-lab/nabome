@@ -40,7 +40,7 @@ async function handleValidate(req: Request, ctx: RequestContext): Promise<Respon
     const { code } = await req.json() as { code: string };
     if (!code) return badRequest("Gift card code required");
     const prisma = getPrisma(ctx.env);
-    const card = await prisma.giftCard.findUnique({ where: { code: code.toUpperCase() } });
+    const card = await prisma.gift_cards.findUnique({ where: { code: code.toUpperCase() } });
     if (!card) return notFound("Invalid gift card code");
     if (!card.isActive) return badRequest("Gift card is no longer active");
     if (card.expiresAt && card.expiresAt < new Date()) return badRequest("Gift card has expired");
@@ -57,11 +57,11 @@ async function handleRedeem(req: Request, ctx: RequestContext): Promise<Response
     const { code, orderId, amount } = await req.json() as { code: string; orderId: string; amount: number };
     if (!code || !orderId || !amount) return badRequest("Code, order ID, and amount required");
     const prisma = getPrisma(ctx.env);
-    const card = await prisma.giftCard.findUnique({ where: { code: code.toUpperCase() } });
+    const card = await prisma.gift_cards.findUnique({ where: { code: code.toUpperCase() } });
     if (!card) return notFound("Invalid gift card code");
     if (!card.isActive) return badRequest("Gift card is no longer active");
     if (card.currentBalance.lt(amount)) return badRequest("Insufficient gift card balance");
-    await prisma.giftCard.update({
+    await prisma.gift_cards.update({
       where: { id: card.id },
       data: { currentBalance: { decrement: amount }, redeemedById: ctx.userId, orderId },
     });
@@ -75,7 +75,7 @@ async function handleMyCards(_req: Request, ctx: RequestContext): Promise<Respon
   if (!ctx.userId) return unauthorized();
   try {
     const prisma = getPrisma(ctx.env);
-    const cards = await prisma.giftCard.findMany({
+    const cards = await prisma.gift_cards.findMany({
       where: { OR: [{ purchasedById: ctx.userId }, { redeemedById: ctx.userId }] },
       orderBy: { createdAt: "desc" },
     });
@@ -93,7 +93,7 @@ async function handlePurchase(req: Request, ctx: RequestContext): Promise<Respon
     };
     if (!amount || amount < 100) return badRequest("Minimum gift card amount is 100");
     const prisma = getPrisma(ctx.env);
-    const card = await prisma.giftCard.create({
+    const card = await prisma.gift_cards.create({
       data: {
         code: generateGiftCardCode(),
         initialBalance: amount,
@@ -114,7 +114,7 @@ async function handlePurchase(req: Request, ctx: RequestContext): Promise<Respon
 async function handleAdminList(ctx: RequestContext): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const cards = await prisma.giftCard.findMany({
+    const cards = await prisma.gift_cards.findMany({
       orderBy: { createdAt: "desc" },
       take: 100,
     });
@@ -131,7 +131,7 @@ async function handleAdminCreate(req: Request, ctx: RequestContext): Promise<Res
     };
     if (!amount || amount < 100) return badRequest("Minimum gift card amount is 100");
     const prisma = getPrisma(ctx.env);
-    const card = await prisma.giftCard.create({
+    const card = await prisma.gift_cards.create({
       data: {
         code: generateGiftCardCode(),
         initialBalance: amount,

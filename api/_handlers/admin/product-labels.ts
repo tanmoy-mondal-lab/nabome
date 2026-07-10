@@ -31,7 +31,7 @@ export async function handleAdminProductLabelRequest(
 async function handleListLabels(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const labels = await prisma.productLabel.findMany({
+    const labels = await prisma.product_labels.findMany({
       include: { _count: { select: { products: true } } },
       orderBy: { name: "asc" as const },
     });
@@ -45,10 +45,10 @@ async function handleCreateLabel(req: Request, env: any): Promise<Response> {
   if (!name) return badRequest("Label name is required");
   const slug = slugify(name);
   const prisma = getPrisma(env);
-  const slugExists = await prisma.productLabel.findUnique({ where: { slug } });
+  const slugExists = await prisma.product_labels.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
   try {
-    const label = await prisma.productLabel.create({ data: { name, slug: finalSlug, color } });
+    const label = await prisma.product_labels.create({ data: { name, slug: finalSlug, color } });
     return created(label);
   } catch (err) { return serverError(err); }
 }
@@ -60,7 +60,7 @@ async function handleUpdateLabel(id: string, req: Request, env: any): Promise<Re
     const data: Record<string, unknown> = {};
     if (body.name !== undefined) { data.name = body.name; data.slug = slugify(body.name); }
     if (body.color !== undefined) data.color = body.color;
-    const label = await prisma.productLabel.update({ where: { id }, data: data as never });
+    const label = await prisma.product_labels.update({ where: { id }, data: data as never });
     return success(label);
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Label not found");
@@ -71,7 +71,7 @@ async function handleUpdateLabel(id: string, req: Request, env: any): Promise<Re
 async function handleDeleteLabel(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    await prisma.productLabel.delete({ where: { id } });
+    await prisma.product_labels.delete({ where: { id } });
     return success({ message: "Label deleted" });
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Label not found");
@@ -82,7 +82,7 @@ async function handleDeleteLabel(id: string, env: any): Promise<Response> {
 async function handleListTags(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const tags = await prisma.productTag.findMany({
+    const tags = await prisma.product_tags.findMany({
       include: { _count: { select: { products: true } } },
       orderBy: { name: "asc" as const },
     });
@@ -97,7 +97,7 @@ async function handleCreateTag(req: Request, env: any): Promise<Response> {
   const slug = slugify(name);
   try {
     const prisma = getPrisma(env);
-    const tag = await prisma.productTag.upsert({
+    const tag = await prisma.product_tags.upsert({
       where: { slug },
       create: { name, slug },
       update: { name },
@@ -112,7 +112,7 @@ async function handleUpdateTag(id: string, req: Request, env: any): Promise<Resp
     const prisma = getPrisma(env);
     const data: Record<string, unknown> = {};
     if (body.name !== undefined) { data.name = body.name; data.slug = slugify(body.name); }
-    const tag = await prisma.productTag.update({ where: { id }, data: data as never });
+    const tag = await prisma.product_tags.update({ where: { id }, data: data as never });
     return success(tag);
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Tag not found");
@@ -123,7 +123,7 @@ async function handleUpdateTag(id: string, req: Request, env: any): Promise<Resp
 async function handleDeleteTag(id: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    await prisma.productTag.delete({ where: { id } });
+    await prisma.product_tags.delete({ where: { id } });
     return success({ message: "Tag deleted" });
   } catch (err) {
     if (err && typeof err === "object" && "code" in err && err.code === "P2025") return notFound("Tag not found");
@@ -137,9 +137,9 @@ async function handleAssignLabels(productId: string, req: Request, env: any): Pr
   if (!Array.isArray(labelIds)) return badRequest("labelIds array required");
   try {
     const prisma = getPrisma(env);
-    await prisma.productLabelOnProduct.deleteMany({ where: { productId } });
+    await prisma.product_labels_products.deleteMany({ where: { productId } });
     if (labelIds.length > 0) {
-      await prisma.productLabelOnProduct.createMany({
+      await prisma.product_labels_products.createMany({
         data: labelIds.map((labelId: string) => ({ productId, labelId })),
       });
     }
@@ -153,9 +153,9 @@ async function handleAssignTags(productId: string, req: Request, env: any): Prom
   if (!Array.isArray(tagIds)) return badRequest("tagIds array required");
   try {
     const prisma = getPrisma(env);
-    await prisma.productTagOnProduct.deleteMany({ where: { productId } });
+    await prisma.product_tags_products.deleteMany({ where: { productId } });
     if (tagIds.length > 0) {
-      await prisma.productTagOnProduct.createMany({
+      await prisma.product_tags_products.createMany({
         data: tagIds.map((tagId: string) => ({ productId, tagId })),
       });
     }

@@ -77,7 +77,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [orders, total, aggregate] = await Promise.all([
-      prisma.order.findMany({
+      prisma.orders.findMany({
         where: where as never,
         include: {
           items: { take: 3 },
@@ -88,8 +88,8 @@ async function handleList(req: Request, env: any): Promise<Response> {
         skip,
         take: limit,
       }),
-      prisma.order.count({ where: where as never }),
-      prisma.order.aggregate({
+      prisma.orders.count({ where: where as never }),
+      prisma.orders.aggregate({
         where: where as never,
         _sum: { total: true },
         _avg: { total: true },
@@ -118,7 +118,7 @@ async function handleStats(env: any): Promise<Response> {
       "cancelled", "returned", "refunded",
     ];
 
-    const grouped = await prisma.order.groupBy({
+    const grouped = await prisma.orders.groupBy({
       by: ["status"],
       _count: { id: true },
       where: { status: { in: statuses as never } },
@@ -127,8 +127,8 @@ async function handleStats(env: any): Promise<Response> {
     const statusCounts = statuses.map((s) => statusMap.get(s as never) ?? 0);
 
     const [returnRequestCount, refundRequestCount] = await Promise.all([
-      prisma.returnRequest.count(),
-      prisma.refund.count({ where: { status: { not: "completed" } as never } }),
+      prisma.return_requests.count(),
+      prisma.refunds.count({ where: { status: { not: "completed" } as never } }),
     ]);
 
     const today = new Date();
@@ -137,10 +137,10 @@ async function handleStats(env: any): Promise<Response> {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const [todayOrders, todayRevenue] = await Promise.all([
-      prisma.order.count({
+      prisma.orders.count({
         where: { createdAt: { gte: today, lt: tomorrow } },
       }),
-      prisma.order.aggregate({
+      prisma.orders.aggregate({
         where: { createdAt: { gte: today, lt: tomorrow } },
         _sum: { total: true },
       }),
@@ -166,7 +166,7 @@ async function handleStats(env: any): Promise<Response> {
 async function handleDetail(orderId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const order = await prisma.order.findUnique({
+    const order = await prisma.orders.findUnique({
       where: { id: orderId },
       include: {
         ...orderInclude,
@@ -199,7 +199,7 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
 
   try {
     const prisma = getPrisma(env);
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    const order = await prisma.orders.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
 
     // Validate status transition
@@ -221,7 +221,7 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
     )[status];
 
     const updated = await prisma.$transaction(async (tx) => {
-      const updatedOrder = await tx.order.update({
+      const updatedOrder = await tx.orders.update({
         where: { id: orderId },
         data: {
           status: status as never,
@@ -239,7 +239,7 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
 
       // Auto-create notification based on status change
       if (notificationEvent && order.profileId) {
-        await tx.notification.create({
+        await tx.notifications.create({
           data: {
             profileId: order.profileId,
             orderId: orderId,
@@ -254,11 +254,11 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
 
       // If cancelled, restore stock
       if (status === "cancelled") {
-        const items = await tx.orderItem.findMany({ where: { orderId } });
+        const items = await tx.order_items.findMany({ where: { orderId } });
         const variantItems = items.filter((item) => item.variantId);
         if (variantItems.length) {
           const variantIds = variantItems.map((item) => item.variantId!);
-          const variants = await tx.productVariant.findMany({
+          const variants = await tx.product_variants.findMany({
             where: { id: { in: variantIds } },
             select: { id: true, stock: true },
           });
@@ -266,7 +266,7 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
 
           await Promise.all(
             variantItems.map((item) =>
-              tx.productVariant.update({
+              tx.product_variants.update({
                 where: { id: item.variantId! },
                 data: {
                   stock: { increment: item.quantity },
@@ -275,7 +275,7 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
               })
             )
           );
-          await tx.inventoryMovement.createMany({
+          await tx.inventory_movements.createMany({
             data: variantItems.map((item) => {
               const variant = variantMap.get(item.variantId!);
               return {
@@ -342,10 +342,10 @@ async function handleInternalNotes(orderId: string, req: Request, ctx: RequestCo
 
   try {
     const prisma = getPrisma(env);
-    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    const order = await prisma.orders.findUnique({ where: { id: orderId } });
     if (!order) return notFound("Order not found");
 
-    const updated = await prisma.order.update({
+    const updated = await prisma.orders.update({
       where: { id: orderId },
       data: { internalNotes },
       include: orderInclude,
@@ -367,7 +367,7 @@ async function handleInternalNotes(orderId: string, req: Request, ctx: RequestCo
 async function handleTimeline(orderId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const statusHistory = await prisma.orderStatusHistory.findMany({
+    const statusHistory = await prisma.order_status_history.findMany({
       where: { orderId },
       orderBy: { createdAt: "asc" },
       include: { creator: { select: { firstName: true, lastName: true } } },

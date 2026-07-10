@@ -33,7 +33,7 @@ export async function handleAdminCollectionRequest(
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const collections = await prisma.collection.findMany({
+    const collections = await prisma.collections.findMany({
       include: { _count: { select: { products: true } } },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
     });
@@ -51,11 +51,11 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
 
   const prisma = getPrisma(env);
   const slug = slugify(name);
-  const slugExists = await prisma.collection.findUnique({ where: { slug } });
+  const slugExists = await prisma.collections.findUnique({ where: { slug } });
   const finalSlug = slugExists ? `${slug}-${Date.now().toString(36)}` : slug;
 
   try {
-    const collection = await prisma.collection.create({
+    const collection = await prisma.collections.create({
       data: {
         name,
         slug: finalSlug,
@@ -89,7 +89,7 @@ async function handleUpdate(collectionId: string, req: Request, ctx: RequestCont
 
   try {
     const prisma = getPrisma(env);
-    const existing = await prisma.collection.findUnique({ where: { id: collectionId } });
+    const existing = await prisma.collections.findUnique({ where: { id: collectionId } });
     if (!existing) return notFound("Collection not found");
 
     const data: Record<string, unknown> = {};
@@ -103,7 +103,7 @@ async function handleUpdate(collectionId: string, req: Request, ctx: RequestCont
     if (body.heroImagePublicId !== undefined && existing.heroImagePublicId !== body.heroImagePublicId) {
       if (existing.heroImagePublicId) {
         // Find the media asset record for the old hero image
-        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+        const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.heroImagePublicId, entityType: "collections", entityId: collectionId },
         });
         if (oldMediaAsset) {
@@ -115,13 +115,13 @@ async function handleUpdate(collectionId: string, req: Request, ctx: RequestCont
 
     if (body.name && body.name !== existing.name) {
       const newSlug = slugify(body.name);
-      const slugExists = await prisma.collection.findFirst({
+      const slugExists = await prisma.collections.findFirst({
         where: { slug: newSlug, id: { not: collectionId } },
       });
       data.slug = slugExists ? `${newSlug}-${Date.now().toString(36)}` : newSlug;
     }
 
-    const collection = await prisma.collection.update({
+    const collection = await prisma.collections.update({
       where: { id: collectionId },
       data: data as never,
     });
@@ -141,7 +141,7 @@ async function handleUpdate(collectionId: string, req: Request, ctx: RequestCont
 async function handleDelete(collectionId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    await prisma.collection.update({
+    await prisma.collections.update({
       where: { id: collectionId },
       data: { isActive: false },
     });

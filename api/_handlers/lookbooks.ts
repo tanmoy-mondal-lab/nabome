@@ -21,7 +21,7 @@ export async function handleLookbookRequest(
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const lookbooks = await prisma.lookbook.findMany({
+    const lookbooks = await prisma.lookbooks.findMany({
       where: { isActive: true },
       include: { _count: { select: { items: true } } },
       orderBy: { sortOrder: "asc" },
@@ -35,7 +35,7 @@ async function handleList(env: any): Promise<Response> {
 async function handleDetail(slug: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const lookbook = await prisma.lookbook.findFirst({
+    const lookbook = await prisma.lookbooks.findFirst({
       where: { slug, isActive: true },
       include: {
         items: {

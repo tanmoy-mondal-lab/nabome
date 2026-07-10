@@ -9,14 +9,14 @@ import {
   success, badRequest, unauthorized, serverError, created, conflict,
 } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
-import { validateBody, authRegisterSchema, authLoginSchema, forgotPasswordSchema, verifyResetCodeSchema, resetPasswordSchema, changePasswordSchema, verifyEmailSchema } from "../_lib/validate";
+import { validateBody, authRegisterSchema, authLoginSchema, forgotPasswordSchema, verifyResetCodeSchema, resetPasswordSchema, changePasswordSchema, verifyEmailSchema, resendVerificationSchema } from "../_lib/validate";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
 import type { Env } from "../_lib/env";
 import { cleanSecret } from "../_lib/secrets";
 import { hashToken } from "../_lib/token-hash";
 import { getEnv } from "../_lib/env";
-import { verifyTurnstileToken } from "../_lib/turnstile";
+import { withRateLimit, RATE_LIMIT_CONFIG } from "../_lib/rate-limit";
 
 function generateVerificationCode(): string {
   const buf = new Uint8Array(4);
@@ -82,8 +82,50 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
     const parsed = await validateBody(req, authRegisterSchema);
     if ("response" in parsed) return parsed.response;
     const { email, password, firstName, lastName, phone } = parsed.data;
+    const normalizedEmail = email.toLowerCase().trim();
 
     const prisma = getPrisma(ctx.env);
+
+    // Check if profile already exists
+    const existingProfile = await prisma.profiles.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true, emailVerified: true, firstName: true },
+    });
+
+    if (existingProfile) {
+      if (existingProfile.emailVerified) {
+        return conflict("This email is already registered. Please sign in.");
+      }
+
+      // Account exists but not verified — automatically resend verification
+      const verificationToken = generateVerificationCode();
+      const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      await prisma.profiles.update({
+        where: { id: existingProfile.id },
+        data: { verificationToken, verificationTokenExpiresAt },
+      });
+
+      const emailResult = await sendEmailNotification("email_verification", {
+        email: normalizedEmail,
+        firstName: existingProfile.firstName,
+        verificationCode: verificationToken,
+      }, ctx.env, true);
+
+      if (!emailResult.success) {
+        console.error("[AUTH] Failed to resend verification for existing unverified account:", emailResult.error);
+      }
+
+      logAction(existingProfile.id, "auth.resend_verification", {
+        metadata: { email: normalizedEmail, reason: "registration_attempt" },
+      }, ctx.env);
+
+      return success({
+        message: "Your account already exists but has not been verified. A new verification email has been sent.",
+        emailSent: emailResult.success,
+        accountExists: true,
+      });
+    }
 
     let supabase;
     try {
@@ -92,25 +134,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       return serverError(new Error("Registration service unavailable"));
     }
 
-    // Check if profile already exists in database
-    const existingProfile = await prisma.profile.findUnique({
-      where: { email },
-      select: { id: true },
-    });
-    if (existingProfile) {
-      return conflict("An account already exists with this email");
-    }
-
-    // Check if user already exists in Supabase Auth (prevents account takeover)
-    const { data: existingUsers } = await supabase.auth.admin.listUsers();
-    const existingSupabaseUser = existingUsers.users.find(u => u.email === email);
-    if (existingSupabaseUser) {
-      // User exists in Supabase but not in our database - this is a corrupted state
-      // Don't allow registration to prevent account takeover
-      return conflict("An account already exists with this email. Please contact support if you believe this is an error.");
-    }
-
-    // Create user in Supabase Auth (auto-confirmed so they can log in)
+    // Create user in Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -119,6 +143,10 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
     });
 
     if (authError) {
+      const msg = authError.message?.toLowerCase() || "";
+      if (msg.includes("already registered") || msg.includes("already exists")) {
+        return conflict("An account already exists with this email. Please sign in.");
+      }
       return badRequest(authError.message);
     }
 
@@ -126,16 +154,16 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       return serverError(new Error("Failed to create user"));
     }
 
-    // Generate 6-digit email verification code
+    // Generate 6-digit email verification code (24-hour expiry)
     const verificationToken = generateVerificationCode();
-    const verificationTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     // Create profile in database with verification token
     try {
-      await prisma.profile.create({
+      await prisma.profiles.create({
         data: {
           id: authData.user.id,
-          email,
+          email: normalizedEmail,
           role: "customer",
           firstName,
           lastName: lastName ?? null,
@@ -150,23 +178,21 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
     }
 
     logAction(authData.user.id, "auth.register", {
-      metadata: { email, firstName },
-    });
+      metadata: { email: normalizedEmail, firstName },
+    }, ctx.env);
 
-    // Send verification email with 6-digit code
     const emailResult = await sendEmailNotification("email_verification", {
-      email,
+      email: normalizedEmail,
       firstName,
       verificationCode: verificationToken,
-    }, ctx.env);
-    
+    }, ctx.env, true);
+
     if (!emailResult.success) {
       console.error("[AUTH] Failed to send verification email:", emailResult.error);
-      // Still allow registration but warn user about email issue
     }
 
     return created({
-      user: { id: authData.user.id, email, firstName },
+      user: { id: authData.user.id, email: normalizedEmail, firstName },
       message: "Account created successfully. Please verify your email." + (emailResult.success ? "" : " Note: There may be a delay in receiving the verification email."),
       emailSent: emailResult.success,
     });
@@ -183,15 +209,12 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
     if ("response" in parsed) return parsed.response;
     const { email, code } = parsed.data;
 
-    const turnstileCheck = await verifyTurnstileToken(req, ctx);
-    if (turnstileCheck) return turnstileCheck;
-
     const prisma = getPrisma(ctx.env);
     const ipAddress = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "unknown";
     const normalizedEmail = email.toLowerCase().trim();
 
     // Check if this email/code combination is locked out
-    const recentAttempts = await prisma.verificationAttempt.findMany({
+    const recentAttempts = await prisma.verification_attempts.findMany({
       where: {
         email: normalizedEmail,
         code,
@@ -213,7 +236,7 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
     // Lockout after 5 failed attempts
     if (failedAttempts >= 5) {
       const lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
-      await prisma.verificationAttempt.create({
+      await prisma.verification_attempts.create({
         data: {
           email: normalizedEmail,
           code: code as string,
@@ -225,14 +248,14 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
       return badRequest("Too many failed attempts. Please request a new verification code.");
     }
 
-    const profile = await prisma.profile.findFirst({
+    const profile = await prisma.profiles.findFirst({
       where: { email: normalizedEmail, verificationToken: code, emailVerified: false },
       select: { id: true, email: true, verificationTokenExpiresAt: true },
     });
 
     if (!profile) {
       // Record failed attempt
-      await prisma.verificationAttempt.create({
+      await prisma.verification_attempts.create({
         data: {
           profileId: null,
           email: normalizedEmail,
@@ -248,7 +271,7 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
       return badRequest("Verification code has expired. Request a new one.");
     }
 
-    await prisma.profile.update({
+    await prisma.profiles.update({
       where: { id: profile.id },
       data: {
         emailVerified: true,
@@ -258,7 +281,7 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
     });
 
     // Record successful attempt
-    await prisma.verificationAttempt.create({
+    await prisma.verification_attempts.create({
       data: {
         profileId: profile.id,
         email: normalizedEmail,
@@ -282,48 +305,68 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
 
 async function handleResendVerification(req: Request, ctx: RequestContext): Promise<Response> {
   try {
-    const body = await req.json();
-    const { email } = body;
+    const parsed = await validateBody(req, resendVerificationSchema);
+    if ("response" in parsed) return parsed.response;
+    const { email } = parsed.data;
+    const normalizedEmail = email.toLowerCase().trim();
 
-    if (!email) {
-      return badRequest("Email is required");
-    }
+    const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
+
+    // Per-IP rate limit: 3 per hour
+    const ipRateLimitResponse = await withRateLimit(
+      `${clientIp}:resend-verification`,
+      RATE_LIMIT_CONFIG.resendVerification,
+      ctx.env
+    );
+    if (ipRateLimitResponse) return ipRateLimitResponse;
+
+    // Per-email rate limit: 3 per hour
+    const emailRateLimitResponse = await withRateLimit(
+      `email:${normalizedEmail}:resend-verification`,
+      RATE_LIMIT_CONFIG.resendVerification,
+      ctx.env
+    );
+    if (emailRateLimitResponse) return emailRateLimitResponse;
 
     const prisma = getPrisma(ctx.env);
-    const profile = await prisma.profile.findUnique({
-      where: { email },
+    const profile = await prisma.profiles.findUnique({
+      where: { email: normalizedEmail },
       select: { id: true, email: true, firstName: true, emailVerified: true },
     });
 
     if (!profile) {
-      return success({ message: "If an account exists with this email, a verification link has been sent." });
+      return success({ message: "We've sent you a new verification email." });
     }
 
     if (profile.emailVerified) {
-      return success({ message: "Email is already verified." });
+      return success({ message: "This account is already verified." });
     }
 
-    // Generate new 6-digit code
+    // Generate new token and invalidate previous
     const verificationToken = generateVerificationCode();
-    const verificationTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    await prisma.profile.update({
+    await prisma.profiles.update({
       where: { id: profile.id },
       data: { verificationToken, verificationTokenExpiresAt },
     });
 
     const emailResult = await sendEmailNotification("email_verification", {
-      email,
+      email: normalizedEmail,
       firstName: profile.firstName,
       verificationCode: verificationToken,
-    }, ctx.env);
-    
+    }, ctx.env, true);
+
     if (!emailResult.success) {
       console.error("[AUTH] Failed to resend verification email:", emailResult.error);
     }
 
-    return success({ 
-      message: "If an account exists with this email, a verification code has been sent." + (emailResult.success ? "" : " Note: There may be a delay in receiving the verification email."),
+    logAction(profile.id, "auth.resend_verification", {
+      metadata: { email: normalizedEmail, reason: "user_requested" },
+    }, ctx.env);
+
+    return success({
+      message: "We've sent you a new verification email. Please check your inbox and spam folder." + (emailResult.success ? "" : " Note: There may be a delay in receiving the verification email."),
       emailSent: emailResult.success,
     });
   } catch (err) {
@@ -337,14 +380,14 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
   try {
     const parsed = await validateBody(req, authLoginSchema);
     if ("response" in parsed) return parsed.response;
-    const { email, password } = parsed.data;
+    const { email, password, rememberMe } = parsed.data;
 
     const prisma = getPrisma(ctx.env);
     const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
     const userAgent = req.headers.get("user-agent");
 
     // Check IP block status (block after 5 failed attempts for 15 minutes)
-    const recentFailedAttempts = await prisma.loginAttempt.findMany({
+    const recentFailedAttempts = await prisma.login_attempts.findMany({
       where: {
         ipAddress: clientIp,
         success: false,
@@ -362,15 +405,15 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     }
 
     // Check if account exists in Prisma first
-    const existingProfile = await prisma.profile.findUnique({
+    const existingProfile = await prisma.profiles.findUnique({
       where: { email },
-      select: { id: true, emailVerified: true },
+      select: { id: true, emailVerified: true, firstName: true },
     });
 
     if (!existingProfile) {
       // Record failed attempt for non-existent account
       try {
-        await prisma.loginAttempt.create({
+        await prisma.login_attempts.create({
           data: {
             profileId: null,
             email,
@@ -396,7 +439,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
 
     // Record the attempt
     try {
-      await prisma.loginAttempt.create({
+      await prisma.login_attempts.create({
         data: {
           profileId: existingProfile.id,
           email,
@@ -415,11 +458,36 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     }
 
     if (!existingProfile.emailVerified) {
-      return unauthorized("Please verify your email address before logging in. Check your inbox for the verification code.");
+      // Password is correct but email not verified — send new verification email
+      const verificationToken = generateVerificationCode();
+      const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      await prisma.profiles.update({
+        where: { id: existingProfile.id },
+        data: { verificationToken, verificationTokenExpiresAt },
+      });
+
+      const emailResult = await sendEmailNotification("email_verification", {
+        email,
+        firstName: existingProfile.firstName || "there",
+        verificationCode: verificationToken,
+      }, ctx.env, true);
+
+      if (!emailResult.success) {
+        console.error("[AUTH] Failed to send verification email on login:", emailResult.error);
+      }
+
+      logAction(existingProfile.id, "auth.resend_verification", {
+        metadata: { email, reason: "unverified_login_attempt" },
+      }, ctx.env);
+
+      return unauthorized(
+        "Please verify your email before signing in. A new verification email has been sent."
+      );
     }
 
     // Update profile login metadata
-    await prisma.profile.update({
+    await prisma.profiles.update({
       where: { id: data.user.id },
       data: {
         lastLoginAt: new Date(),
@@ -429,13 +497,14 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
 
     // Track session
     const expiresAt = new Date(Date.now() + data.session.expires_in * 1000);
-    const refreshTokenExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const sessionTtlMs = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
+    const refreshTokenExpiresAt = new Date(Date.now() + sessionTtlMs);
     try {
       const [accessTokenHash, refreshTokenHash] = await Promise.all([
         hashToken(data.session.access_token),
         hashToken(data.session.refresh_token),
       ]);
-      await prisma.authSession.create({
+      await prisma.auth_sessions.create({
         data: {
           profileId: data.user.id,
           accessToken: accessTokenHash,
@@ -452,7 +521,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     }
 
     // Fetch full profile
-    const dbProfile = await prisma.profile.findUnique({
+    const dbProfile = await prisma.profiles.findUnique({
       where: { id: data.user.id },
       select: {
         id: true,
@@ -471,7 +540,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     logAction(data.user.id, "auth.login", {
       ipAddress: clientIp,
       userAgent: userAgent,
-    });
+    }, ctx.env);
 
     return success({
       session: {
@@ -508,7 +577,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
 
   // 1. Find the active session with this refresh token
   const refreshTokenHash = await hashToken(refreshToken);
-  const oldSession = await prisma.authSession.findFirst({
+  const oldSession = await prisma.auth_sessions.findFirst({
     where: {
       OR: [
         { refreshToken: refreshTokenHash },
@@ -524,7 +593,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
 
   // 2. Check if refresh token itself is expired
   if (oldSession.refreshTokenExpiresAt && new Date() > oldSession.refreshTokenExpiresAt) {
-    await prisma.authSession.update({
+    await prisma.auth_sessions.update({
       where: { id: oldSession.id },
       data: { isActive: false, revokedAt: new Date() },
     });
@@ -539,7 +608,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
 
   if (sbError || !sbData.session) {
     // Supabase rejected the refresh — revoke the session
-    await prisma.authSession.update({
+    await prisma.auth_sessions.update({
       where: { id: oldSession.id },
       data: { isActive: false, revokedAt: new Date() },
     }).catch(() => {});
@@ -558,7 +627,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
   // 4. Rotate: revoke old session, create new one linked via rotatedFromSessionId
   // If Supabase returned the same refresh token, update the current record in place.
   if (newRefreshTokenHash === refreshTokenHash) {
-    await prisma.authSession.update({
+    await prisma.auth_sessions.update({
       where: { id: oldSession.id },
       data: {
         accessToken: newAccessTokenHash,
@@ -579,7 +648,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
   }
 
   const [newSession] = await prisma.$transaction([
-    prisma.authSession.create({
+    prisma.auth_sessions.create({
       data: {
         profileId: oldSession.profileId,
         accessToken: newAccessTokenHash,
@@ -592,7 +661,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
         rotatedFromSessionId: oldSession.id,
       },
     }),
-    prisma.authSession.update({
+    prisma.auth_sessions.update({
       where: { id: oldSession.id },
       data: { isActive: false, revokedAt: new Date() },
     }),
@@ -602,7 +671,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
     metadata: { rotatedFromSession: oldSession.id, newSessionId: newSession.id },
     ipAddress: clientIp,
     userAgent: userAgent,
-  });
+  }, ctx.env);
 
   return success({
     session: {
@@ -626,7 +695,7 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.slice(7);
     const tokenHash = await hashToken(token);
-    await prisma.authSession.updateMany({
+    await prisma.auth_sessions.updateMany({
       where: {
         profileId: ctx.userId,
         isActive: true,
@@ -648,7 +717,7 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
     // Non-critical
   }
 
-  logAction(ctx.userId, "auth.logout", extractRequestMeta(req));
+  logAction(ctx.userId, "auth.logout", extractRequestMeta(req), ctx.env);
 
   return success({ message: "Logged out successfully" });
 }
@@ -659,7 +728,7 @@ async function handleMe(_req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   const prisma = getPrisma(ctx.env);
-  const profile = await prisma.profile.findUnique({
+  const profile = await prisma.profiles.findUnique({
     where: { id: ctx.userId },
     select: {
       id: true,
@@ -686,7 +755,7 @@ async function handleMe(_req: Request, ctx: RequestContext): Promise<Response> {
   });
 
   if (!profile) return unauthorized("Profile not found");
-  if (!profile.emailVerified) return unauthorized("Please verify your email address before logging in. Check your inbox for the verification link.");
+  if (!profile.emailVerified) return unauthorized("Please verify your email before accessing your account.");
 
   return success({ user: profile });
 }
@@ -717,7 +786,7 @@ async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Respon
 
   const prisma = getPrisma(ctx.env);
   try {
-    const updated = await prisma.profile.update({
+    const updated = await prisma.profiles.update({
       where: { id: ctx.userId },
       data: updateData as never,
       select: {
@@ -764,7 +833,7 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
   const prisma = getPrisma(ctx.env);
 
   // Check new email is not already taken by another profile
-  const existing = await prisma.profile.findUnique({
+  const existing = await prisma.profiles.findUnique({
     where: { email: normalizedEmail },
     select: { id: true },
   });
@@ -778,7 +847,7 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
   const pendingEmailTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   // Store pending email info
-  await prisma.profile.update({
+  await prisma.profiles.update({
     where: { id: ctx.userId },
     data: {
       pendingEmail: normalizedEmail,
@@ -788,7 +857,7 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
   });
 
   // Send verification code to the new email
-  const profile = await prisma.profile.findUnique({
+  const profile = await prisma.profiles.findUnique({
     where: { id: ctx.userId },
     select: { firstName: true, email: true },
   });
@@ -797,7 +866,7 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
     email: normalizedEmail,
     firstName: profile?.firstName || "there",
     verificationCode: pendingEmailToken,
-  }, ctx.env);
+  }, ctx.env, true);
   
   if (!emailResult.success) {
     console.error("[AUTH] Failed to send email change verification:", emailResult.error);
@@ -827,7 +896,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
   }
 
   const prisma = getPrisma(ctx.env);
-  const profile = await prisma.profile.findUnique({
+  const profile = await prisma.profiles.findUnique({
     where: { id: ctx.userId },
     select: {
       id: true,
@@ -872,7 +941,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
   }
 
   // Update email in Prisma profile and clear pending fields
-  await prisma.profile.update({
+  await prisma.profiles.update({
     where: { id: ctx.userId },
     data: {
       email: newEmail,
@@ -884,7 +953,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
 
   logAction(ctx.userId, "auth.email_changed", {
     metadata: { oldEmail: profile.email, newEmail },
-  });
+  }, ctx.env);
 
   return success({ message: "Email updated successfully" });
 }
@@ -896,13 +965,10 @@ async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<
   if ("response" in parsed) return parsed.response;
   const { email } = parsed.data;
 
-  const turnstileCheck = await verifyTurnstileToken(req, ctx);
-  if (turnstileCheck) return turnstileCheck;
-
   const normalizedEmail = email.toLowerCase().trim();
 
   const prisma = getPrisma(ctx.env);
-  const profile = await prisma.profile.findUnique({
+  const profile = await prisma.profiles.findUnique({
     where: { email: normalizedEmail },
     select: { id: true, firstName: true, email: true },
   });
@@ -915,7 +981,7 @@ async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<
   const resetPasswordToken = generateVerificationCode();
   const resetPasswordTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-  await prisma.profile.update({
+  await prisma.profiles.update({
     where: { id: profile.id },
     data: { resetPasswordToken, resetPasswordTokenExpiresAt },
   });
@@ -924,7 +990,7 @@ async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<
     email: normalizedEmail,
     firstName: profile.firstName,
     verificationCode: resetPasswordToken,
-  }, ctx.env);
+  }, ctx.env, true);
   
   if (!emailResult.success) {
     console.error("[AUTH] Failed to send password reset email:", emailResult.error);
@@ -943,16 +1009,13 @@ async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise
   if ("response" in parsed) return parsed.response;
   const { email, code } = parsed.data;
 
-  const turnstileCheck = await verifyTurnstileToken(req, ctx);
-  if (turnstileCheck) return turnstileCheck;
-
   const normalizedEmail = email.toLowerCase().trim();
   const ipAddress = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "unknown";
 
   const prisma = getPrisma(ctx.env);
 
   // Check if this email/code combination is locked out
-  const recentAttempts = await prisma.verificationAttempt.findMany({
+  const recentAttempts = await prisma.verification_attempts.findMany({
     where: {
       email: normalizedEmail,
       code,
@@ -974,7 +1037,7 @@ async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise
   // Lockout after 5 failed attempts
   if (failedAttempts >= 5) {
     const lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
-    await prisma.verificationAttempt.create({
+    await prisma.verification_attempts.create({
       data: {
         email: normalizedEmail,
         code,
@@ -986,14 +1049,14 @@ async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise
     return badRequest("Too many failed attempts. Please request a new verification code.");
   }
 
-  const profile = await prisma.profile.findFirst({
+  const profile = await prisma.profiles.findFirst({
     where: { email: normalizedEmail, resetPasswordToken: code },
     select: { id: true, email: true, resetPasswordTokenExpiresAt: true },
   });
 
   if (!profile) {
     // Record failed attempt
-    await prisma.verificationAttempt.create({
+    await prisma.verification_attempts.create({
       data: {
         profileId: null,
         email: normalizedEmail,
@@ -1010,7 +1073,7 @@ async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise
   }
 
   // Record successful attempt
-  await prisma.verificationAttempt.create({
+  await prisma.verification_attempts.create({
     data: {
       profileId: profile.id,
       email: normalizedEmail,
@@ -1030,16 +1093,13 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
   if ("response" in parsed) return parsed.response;
   const { email, code, password } = parsed.data;
 
-  const turnstileCheck = await verifyTurnstileToken(req, ctx);
-  if (turnstileCheck) return turnstileCheck;
-
   const normalizedEmail = email.toLowerCase().trim();
 
   const prisma = getPrisma(ctx.env);
   
   // Fix race condition by wrapping in transaction to prevent token reuse (R6)
   const profileId = await prisma.$transaction(async (tx) => {
-    const profile = await tx.profile.findFirst({
+    const profile = await tx.profiles.findFirst({
       where: { email: normalizedEmail, resetPasswordToken: code },
       select: { id: true, resetPasswordTokenExpiresAt: true },
     });
@@ -1053,7 +1113,7 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
     }
 
     // Clear reset token immediately to prevent reuse
-    await tx.profile.update({
+    await tx.profiles.update({
       where: { id: profile.id },
       data: {
         resetPasswordToken: null,
@@ -1074,7 +1134,7 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
 
   try {
     await supabase.auth.admin.signOut(profileId);
-    await prisma.authSession.updateMany({
+    await prisma.auth_sessions.updateMany({
       where: { profileId, isActive: true },
       data: { isActive: false },
     }).catch(() => {});
@@ -1107,7 +1167,7 @@ async function handleChangePassword(req: Request, ctx: RequestContext): Promise<
   const supabase = getAdminClient(ctx.env);
 
   // Verify current password by attempting sign in
-  const user = await prisma.profile.findUnique({ where: { id: ctx.userId } });
+  const user = await prisma.profiles.findUnique({ where: { id: ctx.userId } });
   if (!user) return unauthorized();
 
   const anonClient = getAnonClient(ctx.env);
@@ -1129,7 +1189,7 @@ async function handleChangePassword(req: Request, ctx: RequestContext): Promise<
 
   // Invalidate all existing sessions (force re-login)
   await supabase.auth.admin.signOut(ctx.userId);
-  await prisma.authSession.updateMany({
+  await prisma.auth_sessions.updateMany({
     where: { profileId: ctx.userId, isActive: true },
     data: { isActive: false },
   }).catch(() => {});
@@ -1143,7 +1203,7 @@ async function handleSessions(_req: Request, ctx: RequestContext): Promise<Respo
   if (!ctx.userId) return unauthorized();
 
   const prisma = getPrisma(ctx.env);
-  const sessions = await prisma.authSession.findMany({
+  const sessions = await prisma.auth_sessions.findMany({
     where: { profileId: ctx.userId, isActive: true },
     orderBy: { lastActiveAt: "desc" },
     select: {
@@ -1170,7 +1230,7 @@ async function handleDeleteSession(_req: Request, ctx: RequestContext, sessionId
   if (!ctx.userId) return unauthorized();
 
   const prisma = getPrisma(ctx.env);
-  await prisma.authSession.updateMany({
+  await prisma.auth_sessions.updateMany({
     where: { id: sessionId, profileId: ctx.userId },
     data: { isActive: false },
   }).catch(() => {});

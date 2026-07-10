@@ -78,7 +78,7 @@ async function handleSales(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [orders, totalCustomers, paidOrders] = await Promise.all([
-      prisma.order.findMany({
+      prisma.orders.findMany({
         where: {
           paymentStatus: "paid",
           createdAt: { gte: start },
@@ -89,8 +89,8 @@ async function handleSales(req: Request, env: any): Promise<Response> {
         },
         orderBy: { createdAt: "asc" as const },
       }),
-      prisma.profile.count({ where: { role: "customer", createdAt: { gte: start } } }),
-      prisma.order.count({ where: { paymentStatus: "paid", createdAt: { gte: start } } }),
+      prisma.profiles.count({ where: { role: "customer", createdAt: { gte: start } } }),
+      prisma.orders.count({ where: { paymentStatus: "paid", createdAt: { gte: start } } }),
     ]);
 
     const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
@@ -130,7 +130,7 @@ async function handleSales(req: Request, env: any): Promise<Response> {
       .map(([key, count]) => ({ label: formatLabel(new Date(key), groupBy), count }));
 
     // Top products (last 30 days for context)
-    const topProductsRaw = await prisma.orderItem.groupBy({
+    const topProductsRaw = await prisma.order_items.groupBy({
       by: ["productName"],
       _sum: { quantity: true, totalPrice: true },
       where: {
@@ -166,7 +166,7 @@ async function handleProducts(env: any): Promise<Response> {
 
   try {
     const prisma = getPrisma(env);
-    const orderItems = await prisma.orderItem.groupBy({
+    const orderItems = await prisma.order_items.groupBy({
       by: ["productId", "productName"],
       _sum: { quantity: true, totalPrice: true },
       where: {
@@ -186,23 +186,23 @@ async function handleProducts(env: any): Promise<Response> {
       revenue: item._sum.totalPrice ?? 0,
     }));
 
-    const categoryStats = await prisma.product.groupBy({
+    const categoryStats = await prisma.products.groupBy({
       by: ["categoryId"],
       _count: { id: true },
       where: { isActive: true },
     });
 
     // Read low stock threshold from site settings
-    const siteSettings = await prisma.siteSetting.findFirst();
+    const siteSettings = await prisma.site_settings.findFirst();
     const lowStockThreshold = (siteSettings?.preferences as Record<string, unknown> | null)?.lowStockThreshold as number ?? 5;
 
-    const lowStock = await prisma.productVariant.count({
+    const lowStock = await prisma.product_variants.count({
       where: { stock: { lte: lowStockThreshold }, isActive: true },
     });
-    const outOfStock = await prisma.productVariant.count({
+    const outOfStock = await prisma.product_variants.count({
       where: { stock: 0, isActive: true },
     });
-    const inStock = await prisma.productVariant.count({
+    const inStock = await prisma.product_variants.count({
       where: { stock: { gt: lowStockThreshold }, isActive: true },
     });
 
@@ -223,14 +223,14 @@ async function handleCustomers(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [totalCustomers, newCustomersMonth, newCustomers30d, repeatCustomers] = await Promise.all([
-      prisma.profile.count({ where: { role: "customer" } }),
-      prisma.profile.count({
+      prisma.profiles.count({ where: { role: "customer" } }),
+      prisma.profiles.count({
         where: { role: "customer", createdAt: { gte: startOfMonth } },
       }),
-      prisma.profile.count({
+      prisma.profiles.count({
         where: { role: "customer", createdAt: { gte: thirtyDaysAgo } },
       }),
-      prisma.profile.count({
+      prisma.profiles.count({
         where: {
           role: "customer",
           orders: { some: { paymentStatus: "paid" } },
@@ -238,7 +238,7 @@ async function handleCustomers(env: any): Promise<Response> {
       }),
     ]);
 
-    const rawCustomers = await prisma.profile.findMany({
+    const rawCustomers = await prisma.profiles.findMany({
       where: {
         role: "customer",
         createdAt: { gte: thirtyDaysAgo },
@@ -287,7 +287,7 @@ async function handleDeliveryAddresses(req: Request, env: any): Promise<Response
 
   try {
     const prisma = getPrisma(env);
-    const orders = await prisma.order.findMany({
+    const orders = await prisma.orders.findMany({
       where: {
         paymentStatus: "paid",
         shippingAddressId: { not: null },

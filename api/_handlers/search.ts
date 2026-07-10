@@ -148,7 +148,7 @@ async function handleRecentSearches(ctx: RequestContext, env: Env): Promise<Resp
   }
 
   try {
-    const recent = await prisma.searchHistory.findMany({
+    const recent = await prisma.search_history.findMany({
       where: { profileId: ctx.userId },
       orderBy: { searchedAt: "desc" },
       take: 10,
@@ -186,7 +186,7 @@ async function handleSaveSearch(req: Request, ctx: RequestContext, env: Env): Pr
 
   try {
     // Check if this search already exists in recent history
-    const existing = await prisma.searchHistory.findFirst({
+    const existing = await prisma.search_history.findFirst({
       where: {
         profileId: ctx.userId,
         query,
@@ -195,13 +195,13 @@ async function handleSaveSearch(req: Request, ctx: RequestContext, env: Env): Pr
 
     if (existing) {
       // Update the timestamp
-      await prisma.searchHistory.update({
+      await prisma.search_history.update({
         where: { id: existing.id },
         data: { searchedAt: new Date() },
       });
     } else {
       // Create new search history entry
-      await prisma.searchHistory.create({
+      await prisma.search_history.create({
         data: {
           profileId: ctx.userId,
           query,
@@ -209,14 +209,14 @@ async function handleSaveSearch(req: Request, ctx: RequestContext, env: Env): Pr
       });
 
       // Keep only last 20 searches per user
-      const allSearches = await prisma.searchHistory.findMany({
+      const allSearches = await prisma.search_history.findMany({
         where: { profileId: ctx.userId },
         orderBy: { searchedAt: "desc" },
       });
 
       if (allSearches.length > 20) {
         const toDelete = allSearches.slice(20);
-        await prisma.searchHistory.deleteMany({
+        await prisma.search_history.deleteMany({
           where: {
             id: { in: toDelete.map(s => s.id) },
           },
@@ -225,7 +225,7 @@ async function handleSaveSearch(req: Request, ctx: RequestContext, env: Env): Pr
     }
 
     // Also update trending searches
-    await prisma.trendingSearch.upsert({
+    await prisma.trending_searches.upsert({
       where: { query },
       create: {
         query,
@@ -252,7 +252,7 @@ async function handleClearRecentSearches(ctx: RequestContext, env: Env): Promise
   }
 
   try {
-    await prisma.searchHistory.deleteMany({
+    await prisma.search_history.deleteMany({
       where: { profileId: ctx.userId },
     });
 
@@ -266,7 +266,7 @@ async function handleTrendingSearches(env: Env): Promise<Response> {
   const prisma = getPrisma(env);
 
   try {
-    const trending = await prisma.trendingSearch.findMany({
+    const trending = await prisma.trending_searches.findMany({
       where: {
         lastSearchedAt: {
           gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days

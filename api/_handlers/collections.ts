@@ -21,7 +21,7 @@ export async function handleCollectionRequest(
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const collections = await prisma.collection.findMany({
+    const collections = await prisma.collections.findMany({
       where: {
         isActive: true,
         AND: [
@@ -43,7 +43,7 @@ async function handleList(env: any): Promise<Response> {
 async function handleDetail(slug: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const collection = await prisma.collection.findFirst({
+    const collection = await prisma.collections.findFirst({
       where: { slug, isActive: true },
       include: {
         _count: { select: { products: true } },
@@ -53,7 +53,7 @@ async function handleDetail(slug: string, env: any): Promise<Response> {
     if (!collection) return notFound("Collection not found");
 
     // Fetch products separately to avoid deep nesting that breaks Neon adapter
-    const products = await prisma.product.findMany({
+    const products = await prisma.products.findMany({
       where: { collectionId: collection.id, isActive: true },
       select: {
         id: true,

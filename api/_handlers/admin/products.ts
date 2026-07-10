@@ -74,7 +74,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [products, total] = await Promise.all([
-      prisma.product.findMany({
+      prisma.products.findMany({
         where: where as never,
         include: {
           category: { select: { name: true } },
@@ -89,7 +89,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
         skip,
         take: limit,
       }),
-      prisma.product.count({ where: where as never }),
+      prisma.products.count({ where: where as never }),
     ]);
 
     return success({
@@ -138,13 +138,13 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   // Generate unique slug
   let slug = slugify(name);
   if (!slug) slug = `product-${Date.now().toString(36)}`;
-  const existing = await prisma.product.findUnique({ where: { slug } });
+  const existing = await prisma.products.findUnique({ where: { slug } });
   if (existing) {
     slug = `${slug}-${Date.now().toString(36)}`;
   }
 
   try {
-    const product = await prisma.product.create({
+    const product = await prisma.products.create({
       data: {
         name,
         slug,
@@ -199,7 +199,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
 async function handleDetail(productId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const product = await prisma.product.findUnique({
+    const product = await prisma.products.findUnique({
       where: { id: productId },
       include: productInclude,
     });
@@ -220,7 +220,7 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
 
   const prisma = getPrisma(ctx.env);
   try {
-    const existing = await prisma.product.findUnique({ where: { id: productId } });
+    const existing = await prisma.products.findUnique({ where: { id: productId } });
     if (!existing) return notFound("Product not found");
 
     const data: Record<string, unknown> = {};
@@ -254,14 +254,14 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
     if (body.name !== undefined && body.name !== existing.name) {
       let slug = slugify(typeof body.name === "string" ? body.name.trim() : "");
       if (!slug) slug = `product-${Date.now().toString(36)}`;
-      const slugExists = await prisma.product.findFirst({
+      const slugExists = await prisma.products.findFirst({
         where: { slug, id: { not: productId } },
       });
       if (slugExists) slug = `${slug}-${Date.now().toString(36)}`;
       data.slug = slug;
     } else if (body.slug && body.slug !== existing.slug) {
       let slug = slugify(body.slug as string);
-      const slugExists = await prisma.product.findFirst({
+      const slugExists = await prisma.products.findFirst({
         where: { slug, id: { not: productId } },
       });
       if (slugExists) slug = `${slug}-${Date.now().toString(36)}`;
@@ -275,7 +275,7 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
     if (body.sizeChartPublicId !== undefined && existing.sizeChartPublicId !== body.sizeChartPublicId) {
       if (existing.sizeChartPublicId) {
         // Find the media asset record for the old size chart
-        const oldMediaAsset = await prisma.mediaAsset.findFirst({
+        const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.sizeChartPublicId, entityType: "products", entityId: productId },
         });
         if (oldMediaAsset && ctx.env) {
@@ -285,7 +285,7 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
       data.sizeChartPublicId = body.sizeChartPublicId;
     }
 
-    const product = await prisma.product.update({
+    const product = await prisma.products.update({
       where: { id: productId },
       data: data as never,
       include: productInclude,
@@ -315,7 +315,7 @@ async function handleDelete(productId: string, req: Request, ctx: RequestContext
   try {
     const prisma = getPrisma(ctx.env);
     // Soft-delete: only deactivate, preserve images for potential restore
-    await prisma.product.update({
+    await prisma.products.update({
       where: { id: productId },
       data: { isActive: false },
     });
@@ -336,7 +336,7 @@ async function handleDelete(productId: string, req: Request, ctx: RequestContext
 async function handleGetVariants(productId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const product = await prisma.product.findUnique({
+    const product = await prisma.products.findUnique({
       where: { id: productId },
       select: {
         variants: {
@@ -365,7 +365,7 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
 
   const prisma = getPrisma(env);
   try {
-    const existingVariants = await prisma.productVariant.findMany({
+    const existingVariants = await prisma.product_variants.findMany({
       where: { productId },
       select: { id: true, videoPublicId: true },
     });
@@ -397,7 +397,7 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
     // Clean up old videos using MediaService
     const videoIdsToClean = [...new Set([...replacementVideoIds, ...removedVideoIds])];
     if (videoIdsToClean.length > 0) {
-      const mediaAssets = await prisma.mediaAsset.findMany({
+      const mediaAssets = await prisma.media_assets.findMany({
         where: { publicId: { in: videoIdsToClean }, entityType: "products" },
         select: { id: true },
       });
@@ -411,7 +411,7 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
     }
 
     if (removedVariantIds.length > 0) {
-      const removedImages = await prisma.productImage.findMany({
+      const removedImages = await prisma.product_images.findMany({
         where: { productId, variantId: { in: removedVariantIds } },
         select: { publicId: true, type: true },
       });
@@ -421,7 +421,7 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
       // Clean up using MediaService
       const allRemovedIds = [...removedImageIds, ...removedVideoIdsFromImages];
       if (allRemovedIds.length > 0) {
-        const mediaAssets = await prisma.mediaAsset.findMany({
+        const mediaAssets = await prisma.media_assets.findMany({
           where: { publicId: { in: allRemovedIds }, entityType: "products" },
           select: { id: true },
         });
@@ -434,10 +434,10 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
         }
       }
 
-      await prisma.productImage.deleteMany({
+      await prisma.product_images.deleteMany({
         where: { productId, variantId: { in: removedVariantIds } },
       });
-      await prisma.productVariant.deleteMany({
+      await prisma.product_variants.deleteMany({
         where: { productId, id: { in: removedVariantIds } },
       });
     }
@@ -460,12 +460,12 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
           variants.map((variant) => {
             const payload = variantData(variant);
             if (variant.id && !String(variant.id).startsWith("new-")) {
-              return prisma.productVariant.update({
+              return prisma.product_variants.update({
                 where: { id: String(variant.id) },
                 data: payload,
               });
             }
-            return prisma.productVariant.create({
+            return prisma.product_variants.create({
               data: {
                 productId,
                 ...payload,
@@ -502,7 +502,7 @@ async function handleAddImage(productId: string, req: Request, env: any): Promis
   const prisma = getPrisma(env);
   try {
     if (isPrimary) {
-      await prisma.productImage.updateMany({
+      await prisma.product_images.updateMany({
         where: { productId, isPrimary: true },
         data: { isPrimary: false },
       });
@@ -511,7 +511,7 @@ async function handleAddImage(productId: string, req: Request, env: any): Promis
     const resolvedVariantId = toNull(variantId);
 
     if (resolvedVariantId) {
-      const variantExists = await prisma.productVariant.findFirst({
+      const variantExists = await prisma.product_variants.findFirst({
         where: { id: resolvedVariantId, productId },
         select: { id: true },
       });
@@ -520,7 +520,7 @@ async function handleAddImage(productId: string, req: Request, env: any): Promis
       }
     }
 
-    const image = await prisma.productImage.create({
+    const image = await prisma.product_images.create({
       data: {
         productId,
         url: url as string,
@@ -542,11 +542,11 @@ async function handleAddImage(productId: string, req: Request, env: any): Promis
 async function handleDeleteImage(productId: string, imageId: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const image = await prisma.productImage.findFirst({ where: { id: imageId, productId } });
+    const image = await prisma.product_images.findFirst({ where: { id: imageId, productId } });
     if (!image) return success({ message: "Image already removed" });
     if (image.publicId) {
       // Find and delete using MediaService
-      const mediaAsset = await prisma.mediaAsset.findFirst({
+      const mediaAsset = await prisma.media_assets.findFirst({
         where: { publicId: image.publicId, entityType: "products" },
         select: { id: true },
       });
@@ -554,7 +554,7 @@ async function handleDeleteImage(productId: string, imageId: string, env: any): 
         await deleteMedia(mediaAsset.id, env);
       }
     }
-    await prisma.productImage.delete({ where: { id: imageId } });
+    await prisma.product_images.delete({ where: { id: imageId } });
     return success({ message: "Image deleted" });
   } catch (err) {
     return serverError(err);
@@ -566,14 +566,14 @@ async function handleDeleteImage(productId: string, imageId: string, env: any): 
 async function handleDuplicate(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const source = await prisma.product.findUnique({
+    const source = await prisma.products.findUnique({
       where: { id: productId },
       include: { attributes: true, variants: true, productTags: true, productLabels: true },
     });
     if (!source) return notFound("Product not found");
 
     const suffix = `-copy-${Date.now().toString(36)}`;
-    const product = await prisma.product.create({
+    const product = await prisma.products.create({
       data: {
         name: `${source.name} (Copy)`,
         slug: `${source.slug}${suffix}`,
@@ -603,7 +603,7 @@ async function handleDuplicate(productId: string, req: Request, ctx: RequestCont
     // Duplicate variants using createMany (batch operation)
     if (source.variants.length > 0) {
       const timestamp = Date.now().toString(36).toUpperCase();
-      await prisma.productVariant.createMany({
+      await prisma.product_variants.createMany({
         data: source.variants.map((v) => ({
           productId: product.id,
           sku: `${v.sku}-CP${timestamp}`,
@@ -619,13 +619,13 @@ async function handleDuplicate(productId: string, req: Request, ctx: RequestCont
     }
 
     // Duplicate images
-    const sourceImages = await prisma.productImage.findMany({
+    const sourceImages = await prisma.product_images.findMany({
       where: { productId },
       orderBy: { sortOrder: "asc" as const },
     });
     if (sourceImages.length > 0) {
       // Fetch new variants to map old variant IDs to new ones
-      const newVariants = await prisma.productVariant.findMany({
+      const newVariants = await prisma.product_variants.findMany({
         where: { productId: product.id },
         select: { id: true, size: true, color: true },
       });
@@ -636,7 +636,7 @@ async function handleDuplicate(productId: string, req: Request, ctx: RequestCont
         if (newV) variantIdMap.set(oldV.id, newV.id);
       }
 
-      await prisma.productImage.createMany({
+      await prisma.product_images.createMany({
         data: sourceImages.map((img) => ({
           productId: product.id,
           url: img.url,
@@ -652,7 +652,7 @@ async function handleDuplicate(productId: string, req: Request, ctx: RequestCont
 
     // Duplicate attributes
     if (source.attributes.length > 0) {
-      await prisma.productAttribute.createMany({
+      await prisma.product_attributes.createMany({
         data: source.attributes.map((a) => ({ productId: product.id, name: a.name, value: a.value })),
       });
     }
@@ -673,7 +673,7 @@ async function handleDuplicate(productId: string, req: Request, ctx: RequestCont
 async function handleRestore(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const product = await prisma.product.update({
+    const product = await prisma.products.update({
       where: { id: productId },
       data: { isActive: true, publishedAt: new Date() },
     });
@@ -705,7 +705,7 @@ async function handleBulkStatus(req: Request, ctx: RequestContext): Promise<Resp
   if (typeof status !== "boolean") return badRequest("status boolean required");
   try {
     const prisma = getPrisma(ctx.env);
-    const result = await prisma.product.updateMany({
+    const result = await prisma.products.updateMany({
       where: { id: { in: ids } },
       data: { isActive: status, publishedAt: status ? new Date() : undefined },
     });
@@ -732,7 +732,7 @@ async function handleBulkCategory(req: Request, env: any): Promise<Response> {
     if (categoryId !== undefined) data.categoryId = toNull(categoryId);
     if (subcategoryId !== undefined) data.subcategoryId = toNull(subcategoryId);
     if (collectionId !== undefined) data.collectionId = toNull(collectionId);
-    const result = await prisma.product.updateMany({
+    const result = await prisma.products.updateMany({
       where: { id: { in: ids } },
       data: data as never,
     });
@@ -753,7 +753,7 @@ async function handleBulkDelete(req: Request, ctx: RequestContext): Promise<Resp
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
   try {
     const prisma = getPrisma(ctx.env);
-    const result = await prisma.product.updateMany({
+    const result = await prisma.products.updateMany({
       where: { id: { in: ids }, isActive: true },
       data: { isActive: false },
     });
@@ -773,7 +773,7 @@ async function handleBulkDelete(req: Request, ctx: RequestContext): Promise<Resp
 async function handlePermanentDelete(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
     const prisma = getPrisma(ctx.env);
-    const product = await prisma.product.findUnique({
+    const product = await prisma.products.findUnique({
       where: { id: productId },
       select: { id: true, name: true, slug: true, isActive: true, _count: { select: { orderItems: true } } },
     });
@@ -789,7 +789,7 @@ async function handlePermanentDelete(productId: string, req: Request, ctx: Reque
     }
 
     // Delete from DB (cascades handle variants, images, tags, labels, etc.)
-    await prisma.product.delete({ where: { id: productId } });
+    await prisma.products.delete({ where: { id: productId } });
 
     logAction(ctx.userId, "admin.product.permanent_delete", {
       entity: "product",
@@ -812,7 +812,7 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Pro
   try {
     const prisma = getPrisma(ctx.env);
     // Check for order items across all products
-    const orderItemCount = await prisma.orderItem.count({
+    const orderItemCount = await prisma.order_items.count({
       where: { productId: { in: ids } },
     });
     if (orderItemCount > 0) {
@@ -821,7 +821,7 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Pro
 
     // Delete all media for these products using MediaService
     if (ctx.env) {
-      const products = await prisma.product.findMany({
+      const products = await prisma.products.findMany({
         where: { id: { in: ids } },
         select: { id: true, slug: true },
       });
@@ -830,7 +830,7 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Pro
       }
     }
 
-    const result = await prisma.product.deleteMany({ where: { id: { in: ids } } });
+    const result = await prisma.products.deleteMany({ where: { id: { in: ids } } });
 
     logAction(ctx.userId, "admin.product.bulk_permanent_delete", {
       entity: "product",
@@ -860,7 +860,7 @@ async function handleSchedule(productId: string, req: Request, env: any): Promis
     const data: Record<string, unknown> = {};
     if (publishAt) data.scheduledPublishAt = new Date(publishAt as string);
     if (archiveAt) data.scheduledArchiveAt = new Date(archiveAt as string);
-    const product = await prisma.product.update({
+    const product = await prisma.products.update({
       where: { id: productId },
       data: data as never,
     });

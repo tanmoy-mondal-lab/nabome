@@ -18,7 +18,7 @@ export async function handleBrandRequest(
 async function handleList(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const brands = await prisma.brand.findMany({
+    const brands = await prisma.brands.findMany({
       where: { isActive: true },
       select: {
         id: true,
@@ -38,7 +38,7 @@ async function handleList(env: any): Promise<Response> {
 async function handleDetail(slug: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const brand = await prisma.brand.findUnique({
+    const brand = await prisma.brands.findUnique({
       where: { slug, isActive: true },
       select: {
         id: true,

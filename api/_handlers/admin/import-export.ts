@@ -49,7 +49,7 @@ async function handleExportProducts(req: Request, env: any): Promise<Response> {
     const where: Record<string, unknown> = {};
     if (categoryId) where.categoryId = categoryId;
 
-    const products = await prisma.product.findMany({
+    const products = await prisma.products.findMany({
       where: where as never,
       include: {
         variants: true,
@@ -127,7 +127,7 @@ async function handleImportProducts(req: Request, env: any): Promise<Response> {
       }
 
       let slug = String(row.slug ?? slugify(name));
-      const slugExists = await prisma.product.findUnique({ where: { slug } });
+      const slugExists = await prisma.products.findUnique({ where: { slug } });
       if (slugExists) slug = `${slug}-${Date.now().toString(36)}`;
 
       try {
@@ -142,7 +142,7 @@ async function handleImportProducts(req: Request, env: any): Promise<Response> {
         const validGenders = ["men", "women", "unisex"];
         const finalGender = validGenders.includes(gender) ? gender : "unisex";
 
-        const product = await prisma.product.create({
+        const product = await prisma.products.create({
           data: {
             name,
             slug,
@@ -166,7 +166,7 @@ async function handleImportProducts(req: Request, env: any): Promise<Response> {
           for (const vs of variantStrings) {
             const parts = vs.split(":").map((p) => p.trim());
             if (parts.length >= 3) {
-              await prisma.productVariant.create({
+              await prisma.product_variants.create({
                 data: {
                   productId: product.id,
                   sku: parts[0],
@@ -203,7 +203,7 @@ async function handleExportOrders(req: Request, env: any): Promise<Response> {
     const where: Record<string, unknown> = {};
     if (status) where.status = status;
 
-    const orders = await prisma.order.findMany({
+    const orders = await prisma.orders.findMany({
       where: where as never,
       include: {
         items: true,

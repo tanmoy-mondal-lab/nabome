@@ -32,7 +32,7 @@ export async function handleHomepage(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const now = new Date();
-    const sections = await prisma.homepageSection.findMany({
+    const sections = await prisma.homepage_sections.findMany({
       where: {
         isActive: true,
         AND: [
@@ -51,7 +51,7 @@ export async function handleHomepage(env: any): Promise<Response> {
 async function handlePages(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const pages = await prisma.staticPage.findMany({
+    const pages = await prisma.static_pages.findMany({
       where: { isPublished: true },
       select: {
         id: true,
@@ -73,7 +73,7 @@ async function handlePages(env: any): Promise<Response> {
 async function handlePage(slug: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const page = await prisma.staticPage.findFirst({
+    const page = await prisma.static_pages.findFirst({
       where: { slug, isPublished: true },
     });
 
@@ -93,7 +93,7 @@ async function handleNavigation(req: Request, env: any): Promise<Response> {
     if (location && ["header", "footer", "mobile", "sidebar"].includes(location)) {
       where.location = location;
     }
-    const menus = await prisma.navigationMenu.findMany({
+    const menus = await prisma.navigation_menus.findMany({
       where: where as never,
       orderBy: { createdAt: "asc" },
     });
@@ -107,7 +107,7 @@ async function handleAnnouncements(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const now = new Date();
-    const announcements = await prisma.announcementBar.findMany({
+    const announcements = await prisma.announcement_bars.findMany({
       where: {
         isActive: true,
         AND: [
@@ -126,7 +126,7 @@ async function handleAnnouncements(env: any): Promise<Response> {
 async function handleFooter(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const sections = await prisma.footerSection.findMany({
+    const sections = await prisma.footer_sections.findMany({
       where: { isActive: true },
       orderBy: [{ column: "asc" }, { sortOrder: "asc" }],
     });
@@ -139,7 +139,7 @@ async function handleFooter(env: any): Promise<Response> {
 async function handleSocialProof(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const recentOrders = await prisma.order.findMany({
+    const recentOrders = await prisma.orders.findMany({
       where: { paymentStatus: "paid" },
       select: {
         id: true,

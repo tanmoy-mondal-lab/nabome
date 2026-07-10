@@ -22,7 +22,7 @@ async function handleHomepage(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const now = new Date();
-    const sections = await prisma.homepageSection.findMany({
+    const sections = await prisma.homepage_sections.findMany({
       where: {
         isActive: true,
         AND: [
@@ -42,7 +42,7 @@ async function handlePublic(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [settings, socialLinks] = await Promise.all([
-      prisma.siteSetting.findFirst({
+      prisma.site_settings.findFirst({
         select: {
           siteName: true,
           tagline: true,
@@ -63,7 +63,7 @@ async function handlePublic(env: any): Promise<Response> {
           preferences: true,
         },
       }),
-      prisma.socialMediaLink.findMany({
+      prisma.social_media_links.findMany({
         where: { isActive: true },
         orderBy: { sortOrder: "asc" },
         select: { platform: true, label: true, url: true, icon: true },

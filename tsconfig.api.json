@@ -22,6 +22,7 @@
     }
   },
   "include": ["api"],
+  "exclude": ["api/**/__tests__", "api/**/*.test.ts"],
   "references": [
     { "path": "./tsconfig.app.json" }
   ]

@@ -164,14 +164,14 @@ async function handleList(req: Request, env: any): Promise<Response> {
 
   try {
     const [products, total] = await Promise.all([
-      prisma.product.findMany({
+      prisma.products.findMany({
         where: where as never,
         select: productListSelect,
         orderBy,
         skip,
         take: limit,
       }),
-      prisma.product.count({ where: where as never }),
+      prisma.products.count({ where: where as never }),
     ]);
 
     return success({
@@ -191,7 +191,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
 async function handleFeatured(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const products = await prisma.product.findMany({
+    const products = await prisma.products.findMany({
       where: { isActive: true, isFeatured: true },
       select: productListSelect,
       orderBy: { sortOrder: "asc" as const },
@@ -206,7 +206,7 @@ async function handleFeatured(env: any): Promise<Response> {
 async function handleNewArrivals(env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const products = await prisma.product.findMany({
+    const products = await prisma.products.findMany({
       where: { isActive: true, isNew: true },
       select: productListSelect,
       orderBy: { createdAt: "desc" as const },
@@ -226,7 +226,7 @@ async function handleBySlugs(req: Request, env: any): Promise<Response> {
     if (!slugs) return success({ products: [] });
     const slugList = slugs.split(",").map((s) => s.trim()).filter(Boolean);
     if (!slugList.length) return success({ products: [] });
-    const products = await prisma.product.findMany({
+    const products = await prisma.products.findMany({
       where: { slug: { in: slugList }, isActive: true },
       select: productListSelect,
     });
@@ -241,12 +241,12 @@ async function handleBySlugs(req: Request, env: any): Promise<Response> {
 async function handleSimilar(slug: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const product = await prisma.product.findFirst({
+    const product = await prisma.products.findFirst({
       where: { slug, isActive: true },
       select: { id: true, categoryId: true },
     });
     if (!product) return notFound("Product not found");
-    const products = await prisma.product.findMany({
+    const products = await prisma.products.findMany({
       where: {
         isActive: true,
         id: { not: product.id },
@@ -277,7 +277,7 @@ async function handleSearch(req: Request, env: any): Promise<Response> {
 
   try {
     const [products, total] = await Promise.all([
-      prisma.product.findMany({
+      prisma.products.findMany({
         where: {
           isActive: true,
           OR: [
@@ -295,7 +295,7 @@ async function handleSearch(req: Request, env: any): Promise<Response> {
         skip,
         take: limit,
       }),
-      prisma.product.count({
+      prisma.products.count({
         where: {
           isActive: true,
           OR: [
@@ -336,7 +336,7 @@ async function handleAutocomplete(req: Request, env: any): Promise<Response> {
   }
 
   try {
-    const products = await prisma.product.findMany({
+    const products = await prisma.products.findMany({
       where: {
         isActive: true,
         OR: [
@@ -377,7 +377,7 @@ async function handleAutocomplete(req: Request, env: any): Promise<Response> {
 async function handleDetail(slug: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const product = await prisma.product.findFirst({
+    const product = await prisma.products.findFirst({
       where: { slug, isActive: true },
       include: productInclude,
     });
@@ -385,7 +385,7 @@ async function handleDetail(slug: string, env: any): Promise<Response> {
     if (!product) return notFound("Product not found");
 
     // Fetch related products separately to avoid self-referential M2M complexity
-    const relatedRecords = await prisma.relatedProduct.findMany({
+    const relatedRecords = await prisma.related_products.findMany({
       where: { sourceId: product.id },
       include: {
         target: {
@@ -407,14 +407,14 @@ async function handleDetail(slug: string, env: any): Promise<Response> {
 async function handleVariants(slug: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const product = await prisma.product.findFirst({
+    const product = await prisma.products.findFirst({
       where: { slug, isActive: true },
       select: { id: true },
     });
 
     if (!product) return notFound("Product not found");
 
-    const variants = await prisma.productVariant.findMany({
+    const variants = await prisma.product_variants.findMany({
       where: { productId: product.id, isActive: true },
       select: {
         id: true, size: true, color: true, colorHex: true,
@@ -433,14 +433,14 @@ async function handleVariants(slug: string, env: any): Promise<Response> {
 async function handleProductReviews(slug: string, env: any): Promise<Response> {
   try {
     const prisma = getPrisma(env);
-    const product = await prisma.product.findFirst({
+    const product = await prisma.products.findFirst({
       where: { slug, isActive: true },
       select: { id: true },
     });
 
     if (!product) return notFound("Product not found");
 
-    const reviews = await prisma.review.findMany({
+    const reviews = await prisma.reviews.findMany({
       where: { productId: product.id, isApproved: true },
       include: {
         profile: { select: { firstName: true, lastName: true, avatarUrl: true } },
