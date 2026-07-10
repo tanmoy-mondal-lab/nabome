@@ -6,8 +6,22 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Custom plugin to filter admin chunks from modulepreload
+function filterAdminPreload() {
+  return {
+    name: 'filter-admin-preload',
+    transformIndexHtml(html: string) {
+      // Remove modulepreload links for admin chunks
+      return html.replace(
+        /<link rel="modulepreload"[^>]*href="[^"]*admin-[^"]*"[^>]*>/g,
+        ''
+      );
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), filterAdminPreload()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
