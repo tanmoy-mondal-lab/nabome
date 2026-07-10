@@ -18,6 +18,20 @@ export const SECURITY_HEADERS: Record<string, string> = {
 
 const STATIC_HEADER_RULES: Array<{ path: string; headers: Record<string, string> }> = [
   {
+    path: "/robots.txt",
+    headers: { 
+      "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+      "X-Robots-Tag": "index, follow"
+    },
+  },
+  {
+    path: "/sitemap.xml",
+    headers: { 
+      "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+      "X-Robots-Tag": "index, follow"
+    },
+  },
+  {
     path: "/*",
     headers: SECURITY_HEADERS,
   },
@@ -35,14 +49,6 @@ const STATIC_HEADER_RULES: Array<{ path: string; headers: Record<string, string>
   },
   {
     path: "/site.webmanifest",
-    headers: { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" },
-  },
-  {
-    path: "/sitemap.xml",
-    headers: { "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400" },
-  },
-  {
-    path: "/robots.txt",
     headers: { "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800" },
   },
   {

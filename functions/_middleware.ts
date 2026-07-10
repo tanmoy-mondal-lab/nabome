@@ -100,6 +100,29 @@ function noindexPath(pathname: string): boolean {
 }
 
 function injectMeta(html: string, payload: SeoPayload): string {
+  // Remove existing meta tags that we're about to inject to prevent duplicates
+  const metaPatterns = [
+    /<meta name="description"[^>]*>/gi,
+    /<link rel="canonical"[^>]*>/gi,
+    /<meta name="robots"[^>]*>/gi,
+    /<meta property="og:title"[^>]*>/gi,
+    /<meta property="og:description"[^>]*>/gi,
+    /<meta property="og:type"[^>]*>/gi,
+    /<meta property="og:url"[^>]*>/gi,
+    /<meta property="og:site_name"[^>]*>/gi,
+    /<meta property="og:locale"[^>]*>/gi,
+    /<meta property="og:image"[^>]*>/gi,
+    /<meta name="twitter:card"[^>]*>/gi,
+    /<meta name="twitter:title"[^>]*>/gi,
+    /<meta name="twitter:description"[^>]*>/gi,
+    /<meta name="twitter:image"[^>]*>/gi,
+  ];
+
+  let cleanedHtml = html;
+  for (const pattern of metaPatterns) {
+    cleanedHtml = cleanedHtml.replace(pattern, "");
+  }
+
   const tags = [
     `<meta name="description" content="${escapeHtml(payload.description)}" />`,
     `<link rel="canonical" href="${escapeHtml(payload.canonicalUrl)}" />`,
@@ -117,7 +140,7 @@ function injectMeta(html: string, payload: SeoPayload): string {
     `<meta name="twitter:image" content="${escapeHtml(payload.imageUrl)}" />`,
   ].join("\n    ");
 
-  const withTitle = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(payload.title)}</title>`);
+  const withTitle = cleanedHtml.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(payload.title)}</title>`);
 
   // Find the first </head> that is NOT inside a <script> tag
   const headClose = "</head>";
