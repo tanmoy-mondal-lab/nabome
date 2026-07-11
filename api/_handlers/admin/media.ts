@@ -102,6 +102,10 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
     secureUrl, resourceType, originalFilename, displayName, sortOrder, isPrimary,
   } = body;
 
+  if (!altText || typeof altText !== "string" || altText.trim().length === 0) {
+    return badRequest("Alt text is required for accessibility and SEO. Please provide a descriptive alt text for this image.");
+  }
+
   if (!url) return badRequest("URL is required");
   try {
     new URL(url as string);

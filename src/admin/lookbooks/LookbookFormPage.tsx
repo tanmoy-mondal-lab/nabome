@@ -176,13 +176,13 @@ export default function LookbookFormPage() {
                 <label className="block text-xs text-neutral-500 mb-1">Title *</label>
                 <input required value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value, slug: isEdit ? form.slug : e.target.value.toLowerCase().replace(/\s+/g, "-") })}
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
               </div>
               <div>
                 <label className="block text-xs text-neutral-500 mb-1">Slug</label>
                 <input value={form.slug}
                   onChange={(e) => setForm({ ...form, slug: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
               </div>
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -190,7 +190,7 @@ export default function LookbookFormPage() {
                 <label className="block text-xs text-neutral-500 mb-1">Season</label>
                 <select value={form.season}
                   onChange={(e) => setForm({ ...form, season: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500">
+                  className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors">
                   <option value="">Select season</option>
                   <option value="Spring/Summer">Spring/Summer</option>
                   <option value="Fall/Winter">Fall/Winter</option>
@@ -204,13 +204,13 @@ export default function LookbookFormPage() {
                 <label className="block text-xs text-neutral-500 mb-1">Year</label>
                 <input type="number" value={form.year}
                   onChange={(e) => setForm({ ...form, year: Number(e.target.value) })}
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
               </div>
               <div>
                 <label className="block text-xs text-neutral-500 mb-1">Layout</label>
                 <select value={form.layout}
                   onChange={(e) => setForm({ ...form, layout: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500">
+                  className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors">
                   <option value="grid">Grid</option>
                   <option value="masonry">Masonry</option>
                   <option value="carousel">Carousel</option>
@@ -222,19 +222,19 @@ export default function LookbookFormPage() {
               <label className="block text-xs text-neutral-500 mb-1">Description</label>
               <textarea rows={3} value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Story / Narrative</label>
               <textarea rows={6} value={form.story}
                 onChange={(e) => setForm({ ...form, story: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" placeholder="Tell the story behind this collection…" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" placeholder="Tell the story behind this collection…" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Tags (comma separated)</label>
               <input value={form.tags}
                 onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
           </section>
 
@@ -249,10 +249,10 @@ export default function LookbookFormPage() {
                 </button>
                 {showAddItem && (
                   <div className="absolute right-0 top-full mt-2 premium-card rounded-2xl shadow-subtle z-10 w-48 overflow-hidden">
-                    <button onClick={() => addItem("image")} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors">
+                    <button onClick={() => addItem("image")} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors">
                       <Image size={14} /> Image
                     </button>
-                    <button onClick={() => addItem("product")} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors">
+                    <button onClick={() => addItem("product")} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-neutral-700 hover:bg-neutral-50 transition-colors">
                       <Package size={14} /> Product Hotspot
                     </button>
                   </div>
@@ -278,7 +278,7 @@ export default function LookbookFormPage() {
                         </span>
                         <input placeholder="Title" value={item.title}
                           onChange={(e) => updateItem(idx, "title", e.target.value)}
-                          className="flex-1 px-2 py-1 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                          className="flex-1 px-2 py-1 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
                         <button onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-600 p-1 rounded-xl">
                           <X size={12} />
                         </button>
@@ -295,20 +295,20 @@ export default function LookbookFormPage() {
                       {item.type === "text" && (
                         <textarea rows={3} placeholder="Content…" value={item.description ?? ""}
                           onChange={(e) => updateItem(idx, "description", e.target.value)}
-                          className="w-full px-2 py-1 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                          className="w-full px-2 py-1 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
                       )}
                       {item.type === "product" && (
                         <input placeholder="Product ID" value={item.productId ?? ""}
                           onChange={(e) => updateItem(idx, "productId", e.target.value)}
-                          className="w-full px-2 py-1 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                          className="w-full px-2 py-1 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
                       )}
                       <div className="flex gap-2">
                         <input placeholder="Link URL" value={item.linkUrl ?? ""}
                           onChange={(e) => updateItem(idx, "linkUrl", e.target.value)}
-                          className="flex-1 px-2 py-1 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                          className="flex-1 px-2 py-1 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
                         <input placeholder="Link Text" value={item.linkText ?? ""}
                           onChange={(e) => updateItem(idx, "linkText", e.target.value)}
-                          className="w-32 px-2 py-1 text-xs border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                          className="w-32 px-2 py-1 text-xs border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
                       </div>
                     </div>
                   </div>
@@ -326,7 +326,7 @@ export default function LookbookFormPage() {
               <label className="block text-xs text-neutral-500 mb-1">Status</label>
               <select value={form.isActive ? "published" : "draft"}
                 onChange={(e) => setForm({ ...form, isActive: e.target.value === "published" })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500">
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors">
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
               </select>
@@ -349,13 +349,13 @@ export default function LookbookFormPage() {
               <label className="block text-xs text-neutral-500 mb-1">Meta Title</label>
               <input value={form.metaTitle}
                 onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Meta Description</label>
               <textarea rows={3} value={form.metaDescription}
                 onChange={(e) => setForm({ ...form, metaDescription: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
           </section>
 

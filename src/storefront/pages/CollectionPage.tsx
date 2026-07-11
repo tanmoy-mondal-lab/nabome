@@ -1,12 +1,9 @@
 import { useParams, Link } from "react-router-dom";
 import { useQueries } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Helmet } from "react-helmet-async";
 import { api } from "../../lib/api/client";
 import { ProductGrid } from "../components/ProductGrid";
 import { Breadcrumbs } from "../components/Breadcrumbs";
-import { canonical, collectionSchema, breadcrumbSchema } from "../../lib/seo";
-import { img } from "../../lib/seo";
 import type { Product } from "../../types/product";
 
 const fadeUp = {
@@ -56,26 +53,11 @@ export default function CollectionPage() {
     );
   }
 
-  const heroImage = collection.heroImage as string | undefined;
   const description = collection.description as string | undefined;
   const season = collection.season as string | undefined;
 
   return (
     <>
-      <Helmet>
-        <title>{(collection.name as string) ?? "Collection"} — নবME</title>
-        <meta name="description" content={description || `Shop ${(collection.name as string) ?? ""} on নবME`} />
-        <link rel="canonical" href={canonical(`/collections/${slug}`)} />
-        <meta property="og:title" content={`${(collection.name as string) ?? "Collection"} — নবME`} />
-        <meta property="og:description" content={description || ""} />
-        {heroImage && <meta property="og:image" content={img(heroImage)} />}
-        <script type="application/ld+json">{JSON.stringify(collectionSchema({ name: collection.name as string, slug: slug!, description }))}</script>
-        <script type="application/ld+json">{JSON.stringify(breadcrumbSchema([
-          { label: "Home", url: "/" },
-          { label: "Collections", url: "/collections" },
-          { label: collection.name as string, url: `/collections/${slug}` },
-        ]))}</script>
-      </Helmet>
 
       <div className="container-page py-10">
         <Breadcrumbs items={[

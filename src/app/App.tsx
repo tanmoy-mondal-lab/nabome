@@ -8,7 +8,6 @@ import { AuthLoader } from "../components/AuthLoader";
 import { CookieConsent } from "../components/CookieConsent";
 import { PwaInstallPrompt } from "../components/PwaInstallPrompt";
 import { STOREFRONT_ROUTES, AUTH_ROUTES, ADMIN_ROUTES } from "./routes";
-import "../lib/i18n";
 
 const NotFoundPage = lazy(() => import("../pages/NotFoundPage"));
 

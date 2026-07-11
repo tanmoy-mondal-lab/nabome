@@ -198,14 +198,16 @@ export async function authenticate(
     }
   }
 
-  // Optional auth — try to parse token but don't fail if missing
-  if (authHeader?.startsWith("Bearer ")) {
+  // Optional auth — try to parse token but don't fail if missing. Mirror the
+  // required path: prefer the httpOnly access_token cookie, fall back to the
+  // Authorization header.
+  const optionalToken = accessToken || (authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null);
+  if (optionalToken) {
     try {
       const supabase = getSupabaseAdmin(env);
-      const token = authHeader.slice(7);
-      const { data: { user } } = await supabase.auth.getUser(token);
+      const { data: { user } } = await supabase.auth.getUser(optionalToken as string);
       if (user) {
-        const session = await resolveActiveSession(token, user.id, env);
+        const session = await resolveActiveSession(optionalToken as string, user.id, env);
         if (!session) {
           return { ctx: {} };
         }

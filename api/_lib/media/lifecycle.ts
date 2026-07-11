@@ -33,7 +33,7 @@ export async function createMediaAsset(
   const publicId = `${assetFolder}/${originalFilename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
   const resourceType: CloudinaryResourceType = file.type.startsWith("video/") ? "video" : "image";
 
-  const uploadResult = await uploadToCloudinary(file, publicId, assetFolder, resourceType, config);
+  const uploadResult = await uploadToCloudinary(file, publicId, resourceType, config);
 
   return {
     assetId,

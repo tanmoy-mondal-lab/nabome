@@ -11,7 +11,10 @@ import { CartDrawer } from "../components/CartDrawer";
 import { SocialProof } from "../components/SocialProof";
 import { ScrollToTop } from "../components/ScrollToTop";
 import { useSettings } from "../hooks/useSettings";
-import { canonical, ogImageFallback, websiteSchema } from "../../lib/seo";
+import { websiteSchema, organizationSchema } from "../../lib/seo";
+
+const SITE_URL = "https://www.nabome.online";
+const SITE_NAME = "নবME — Premium Fashion";
 import { ErrorBoundary } from "../../components/ErrorBoundary";
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -83,47 +86,28 @@ export function StorefrontLayout() {
   const theme = asRecord(settings?.theme);
   const branding = asRecord(theme.branding);
   const seo = asRecord(settings?.seo);
-  const siteName = settings?.siteName || branding.brandName as string || "নবME";
-  const siteTitle = (seo.globalMetaTitle as string) || `${siteName} — Premium Fashion`;
-  const siteDescription = (seo.globalMetaDescription as string) || "Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design.";
-  const ogImage = (seo.ogImage as string) || settings?.ogImageUrl || ogImageFallback();
   const faviconUrl = settings?.faviconUrl || branding.favicon as string || "";
-  const configuredCanonical = typeof seo.canonicalUrl === "string" ? seo.canonicalUrl.replace(/\/+$/, "") : "";
   const customSchema = parseStructuredData(seo.structuredData);
   const customCss = typeof theme.customCSS === "string" ? theme.customCSS : "";
   const facebookPixelId = seo.facebookPixelId as string | undefined;
   const googleTagManagerId = seo.googleTagManagerId as string | undefined;
-
-  const currentUrl = configuredCanonical
-    ? `${configuredCanonical}${pathname === "/" ? "" : pathname}`
-    : canonical(pathname);
   const ws = useMemo(() => websiteSchema(), []);
+  const orgSchema = useMemo(() => organizationSchema({
+    name: SITE_NAME,
+    url: SITE_URL,
+    logo: branding.logo as string | undefined,
+    description: "Discover নবME — where heritage craftsmanship meets contemporary elegance. Premium fashion for the discerning.",
+  }), [branding.logo]);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
       <ScrollToTopOnNavigate />
       <Helmet>
         <html lang="en" />
-        <meta name="description" content={siteDescription} />
-        <link rel="canonical" href={currentUrl} />
         <link rel="icon" type={faviconUrl.endsWith(".ico") ? "image/x-icon" : "image/svg+xml"} href={faviconUrl || "/favicon.svg"} />
-        <meta name="robots" content="index, follow" />
-
-        <meta property="og:title" content={siteTitle} />
-        <meta property="og:description" content={siteDescription} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={currentUrl} />
-        <meta property="og:site_name" content={siteName} />
-        <meta property="og:locale" content={(settings?.preferences?.locale as string) || "en_IN"} />
-        <meta property="og:image" content={ogImage} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={siteTitle} />
-        <meta name="twitter:description" content={siteDescription} />
-        <meta name="twitter:image" content={ogImage} />
 
         <script type="application/ld+json">{JSON.stringify(ws)}</script>
+        <script type="application/ld+json">{JSON.stringify(orgSchema)}</script>
         {customSchema && <script type="application/ld+json">{JSON.stringify(customSchema)}</script>}
         {facebookPixelId && (
           <script>{`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', ${JSON.stringify(facebookPixelId)});fbq('track', 'PageView');`}</script>

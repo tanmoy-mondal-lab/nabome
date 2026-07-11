@@ -35,6 +35,14 @@ let refreshPromise: Promise<boolean> | null = null;
 const MAX_REFRESH_RETRIES = 2;
 let refreshRetryCount = 0;
 
+// Self-service auth endpoints that return their own user-facing errors.
+// A 401 from these should surface the server's message, not trigger the
+// generic "Session expired" logout flow.
+const SELF_SERVICE_AUTH = /^\/api\/auth\/(login|register|resend-verification|forgot-password|verify-reset-code|reset-password|change-password|update-me|verify-email|verify|send-verification)(\/|$)/;
+function isAuthSelfServiceEndpoint(endpoint: string): boolean {
+  return SELF_SERVICE_AUTH.test(endpoint);
+}
+
 async function attemptTokenRefresh(): Promise<boolean> {
   // Security: Tokens are in httpOnly cookies, no need to send them
   // The server reads refresh token from cookie
@@ -140,60 +148,66 @@ async function request<T>(
   }).finally(() => clearTimeout(timeoutId));
 
   if (response.status === 401) {
-    const { isAuthenticated } = await getAuthStateFromStore();
-    if (!isAuthenticated) {
+    // Self-service auth endpoints (login, register, password reset, email
+    // verification, etc.) return their own user-facing errors from the server
+    // (e.g. "Invalid email or password", "Please verify your email…"). Do not
+    // hijack those with a generic "Session expired" message or force a logout.
+    if (!isAuthSelfServiceEndpoint(cleanEndpoint)) {
+      const { isAuthenticated } = await getAuthStateFromStore();
+      if (!isAuthenticated) {
+        await fireLogout();
+        throw new ApiError("Session expired — please log in again", 401);
+      }
+
+      if (!isRefreshing) {
+        isRefreshing = true;
+        refreshPromise = attemptTokenRefresh();
+      }
+
+      const refreshed = await refreshPromise;
+      isRefreshing = false;
+      refreshPromise = null;
+
+      if (refreshed) {
+        refreshRetryCount = 0;
+        const retryController = new AbortController();
+        const retryResponse = await fetch(url.toString(), {
+          ...fetchOptions,
+          headers,
+          signal: retryController.signal,
+          body:
+            body instanceof FormData
+              ? body
+              : body !== undefined
+                ? JSON.stringify(body)
+                : undefined,
+        });
+
+        if (retryResponse.status === 204) {
+          return null as T;
+        }
+
+        if (!retryResponse.ok) {
+          if (retryResponse.status === 401 && refreshRetryCount < MAX_REFRESH_RETRIES) {
+            refreshRetryCount++;
+            return request<T>(endpoint, { ...options, body, params });
+          }
+          const retryData = await retryResponse.json().catch(() => ({}));
+          throw new ApiError(
+            retryData.error?.message ??
+              `Request failed with status ${retryResponse.status}`,
+            retryResponse.status,
+            retryData.details
+          );
+        }
+        const retryData = await retryResponse.json();
+        return retryData.data ?? retryData;
+      }
+
+      refreshRetryCount = 0;
       await fireLogout();
       throw new ApiError("Session expired — please log in again", 401);
     }
-
-    if (!isRefreshing) {
-      isRefreshing = true;
-      refreshPromise = attemptTokenRefresh();
-    }
-
-    const refreshed = await refreshPromise;
-    isRefreshing = false;
-    refreshPromise = null;
-
-    if (refreshed) {
-      refreshRetryCount = 0;
-      const retryController = new AbortController();
-      const retryResponse = await fetch(url.toString(), {
-        ...fetchOptions,
-        headers,
-        signal: retryController.signal,
-        body:
-          body instanceof FormData
-            ? body
-            : body !== undefined
-              ? JSON.stringify(body)
-              : undefined,
-      });
-
-      if (retryResponse.status === 204) {
-        return null as T;
-      }
-
-      if (!retryResponse.ok) {
-        if (retryResponse.status === 401 && refreshRetryCount < MAX_REFRESH_RETRIES) {
-          refreshRetryCount++;
-          return request<T>(endpoint, { ...options, body, params });
-        }
-        const retryData = await retryResponse.json().catch(() => ({}));
-        throw new ApiError(
-          retryData.error?.message ??
-            `Request failed with status ${retryResponse.status}`,
-          retryResponse.status,
-          retryData.details
-        );
-      }
-      const retryData = await retryResponse.json();
-      return retryData.data ?? retryData;
-    }
-
-    refreshRetryCount = 0;
-    await fireLogout();
-    throw new ApiError("Session expired — please log in again", 401);
   }
 
   if (response.status === 204) {

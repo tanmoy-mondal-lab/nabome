@@ -138,7 +138,7 @@ export default function ReturnsPage() {
   return (
     <div>
       {fetchError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{fetchError}</div>
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{fetchError}</div>
       )}
       <div className="mb-6">
         <h1 className="font-display text-2xl text-neutral-900">Returns & Refunds</h1>
@@ -146,7 +146,7 @@ export default function ReturnsPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {kpiCards.map((kpi) => (
           <StatsCard key={kpi.label} label={kpi.label} value={kpi.value} icon={kpi.icon} />
         ))}

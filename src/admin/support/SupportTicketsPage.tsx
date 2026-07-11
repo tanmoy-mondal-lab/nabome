@@ -89,7 +89,7 @@ export default function SupportTicketsPage() {
   return (
     <div>
       {fetchError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{fetchError}</div>
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{fetchError}</div>
       )}
       <div className="mb-6">
         <h1 className="font-display text-2xl text-neutral-900">Support Tickets</h1>

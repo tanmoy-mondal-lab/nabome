@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../../components/ui/Toast";
 import { adminApi } from "../../lib/api/admin";
+import { slugify } from "../../lib/utils/format";
 import { MediaPicker } from "../common/MediaPicker";
 import {
   useProductDropdowns,
@@ -96,10 +97,6 @@ export default function ProductFormPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
-  const [altTextInput, setAltTextInput] = useState<string | null>(null);
-  const [pendingImages, setPendingImages] = useState<Array<{
-    url: string; publicId: string; variantId?: string;
-  }>>([]);
   const [_initialized, setInitialized] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [validationErrors, setValidationErrors] = useState<FormErrors>({});
@@ -209,66 +206,10 @@ export default function ProductFormPage() {
     [subcategories.data, form.categoryId]
   );
 
-  /* ─── Alt text handlers (queue-based: process one at a time) ─── */
-  const confirmAltText = useCallback(() => {
-    setPendingImages((prev) => {
-      if (prev.length === 0) return prev;
-      const [current] = prev;
-      const imgData = { url: current.url, publicId: current.publicId, altText: altTextInput ?? "", isPrimary: false, sortOrder: 0 };
-
-      if (current.variantId) {
-        void setVariants((prevVariants) => {
-          const vIdx = prevVariants.findIndex((v) => v.id === current.variantId);
-          if (vIdx < 0) return prevVariants;
-          const updated = [...prevVariants];
-          const vImages = [...(updated[vIdx].images ?? [])];
-          imgData.isPrimary = vImages.length === 0;
-          imgData.sortOrder = vImages.length;
-          vImages.push(imgData);
-          updated[vIdx] = { ...updated[vIdx], images: vImages };
-          return updated;
-        });
-      } else {
-        void setImages((prevImages) => {
-          imgData.isPrimary = prevImages.length === 0;
-          imgData.sortOrder = prevImages.length;
-          return [...prevImages, imgData];
-        });
-      }
-      setAltTextInput(null);
-      return prev.slice(1);
-    });
-  }, [altTextInput]);
-
-  const skipAltText = useCallback(() => {
-    setPendingImages((prev) => {
-      if (prev.length === 0) return prev;
-      const [current] = prev;
-      const imgData = { url: current.url, publicId: current.publicId, altText: "", isPrimary: false, sortOrder: 0 };
-
-      if (current.variantId) {
-        void setVariants((prevVariants) => {
-          const vIdx = prevVariants.findIndex((v) => v.id === current.variantId);
-          if (vIdx < 0) return prevVariants;
-          const updated = [...prevVariants];
-          const vImages = [...(updated[vIdx].images ?? [])];
-          imgData.isPrimary = vImages.length === 0;
-          imgData.sortOrder = vImages.length;
-          vImages.push(imgData);
-          updated[vIdx] = { ...updated[vIdx], images: vImages };
-          return updated;
-        });
-      } else {
-        void setImages((prevImages) => {
-          imgData.isPrimary = prevImages.length === 0;
-          imgData.sortOrder = prevImages.length;
-          return [...prevImages, imgData];
-        });
-      }
-      setAltTextInput(null);
-      return prev.slice(1);
-    });
-  }, []);
+  // Slug used to organize uploaded media in Cloudinary (nabome/products/<slug>/...).
+  // Prefer an explicit slug; otherwise derive one from the product name so new uploads
+  // are already filed under the intended product folder.
+  const productSlug = form.slug?.trim() || slugify(form.name || "");
 
   /* ─── Save handler ─── */
   const handleSaveWithRetry = useCallback(
@@ -621,8 +562,8 @@ export default function ProductFormPage() {
     );
   }
 
-  const inputCls = "w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors";
-  const inputErrorCls = "w-full px-3 py-2 text-sm border border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors";
+  const inputCls = "w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors";
+  const inputErrorCls = "w-full px-3 py-2.5 text-sm border border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors";
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-5">
@@ -734,11 +675,7 @@ export default function ProductFormPage() {
             uploadingMedia={uploadingMedia}
             onUploadStart={() => setUploadingMedia(true)}
             onUploadEnd={() => setUploadingMedia(false)}
-            onPendingImage={(data) => {
-              if (data) {
-                setPendingImages((prev) => [...prev, { url: data.url, publicId: data.publicId, variantId: data.variantId }]);
-              }
-            }}
+            productSlug={productSlug}
           />
 
           <MediaManager
@@ -748,12 +685,7 @@ export default function ProductFormPage() {
             onUploadStart={() => setUploadingMedia(true)}
             onUploadEnd={() => setUploadingMedia(false)}
             productName={form.name}
-            onPendingImage={(data) => {
-              if (data) {
-                setPendingImages((prev) => [...prev, { url: data.url, publicId: data.publicId, variantId: data.variantId }]);
-                setAltTextInput("");
-              }
-            }}
+            productSlug={productSlug}
           />
         </div>
 
@@ -897,46 +829,6 @@ export default function ProductFormPage() {
           </Section>
         </div>
       </div>
-
-      {/* Alt Text Modal — queue-based, processes one pending image at a time */}
-      <AnimatePresence>
-        {pendingImages.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl"
-            >
-              <h3 className="font-medium text-sm text-neutral-900 mb-1">
-                Image Alt Text ({pendingImages.length} pending)
-              </h3>
-              <p className="text-xs text-neutral-500 mb-4">Optional — describe this image for accessibility and SEO.</p>
-              <input
-                value={altTextInput ?? ""}
-                onChange={(e) => setAltTextInput(e.target.value)}
-                placeholder="e.g., Blue cotton t-shirt front view"
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500 mb-4"
-                autoFocus
-                onKeyDown={(e) => { if (e.key === "Enter") confirmAltText(); if (e.key === "Escape") skipAltText(); }}
-              />
-              <div className="flex justify-end gap-2">
-                <button onClick={skipAltText} className="px-4 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors">
-                  Skip
-                </button>
-                <button onClick={confirmAltText} className="btn-primary">
-                  Add Image
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

@@ -285,7 +285,7 @@ export default function MediaLibrary() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
           <input type="text" placeholder="Search assets…" value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full pl-10 pr-4 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
         </div>
         <div className="flex items-center gap-2 text-xs text-neutral-500">
           <Folder size={14} />
@@ -394,7 +394,7 @@ export default function MediaLibrary() {
         </div>
         <div className="flex justify-end gap-2 mt-4">
           <button onClick={() => { setUploadModalOpen(false); setUploadQueue([]); }}
-            className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+            className="px-4 py-2.5 text-sm text-neutral-500">Cancel</button>
           <button onClick={confirmUpload}
             className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">
             Upload {uploadQueue.length} file{uploadQueue.length !== 1 ? "s" : ""}
@@ -464,17 +464,17 @@ export default function MediaLibrary() {
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Alt Text</label>
               <input value={editForm.altText} onChange={(e) => setEditForm({ ...editForm, altText: e.target.value })}
-                className={inputClass} />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Display Name</label>
               <input value={editForm.displayName} onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
-                className={inputClass} />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Sort Order</label>
               <input type="number" value={editForm.sortOrder} onChange={(e) => setEditForm({ ...editForm, sortOrder: parseInt(e.target.value) || 0 })}
-                className={inputClass} />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
             </div>
             <div className="flex items-center gap-2">
               <input type="checkbox" id="isPrimary" checked={editForm.isPrimary}
@@ -482,7 +482,7 @@ export default function MediaLibrary() {
               <label htmlFor="isPrimary" className="text-xs text-neutral-500">Primary asset</label>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setEditAsset(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+              <button onClick={() => setEditAsset(null)} className="px-4 py-2.5 text-sm text-neutral-500">Cancel</button>
               <button onClick={saveEdit} className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium">Save</button>
             </div>
           </div>
@@ -500,7 +500,7 @@ export default function MediaLibrary() {
               This will permanently delete the file from Cloudinary and the database.
             </p>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setDeleteConfirmAsset(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+              <button onClick={() => setDeleteConfirmAsset(null)} className="px-4 py-2.5 text-sm text-neutral-500">Cancel</button>
               <button onClick={confirmDelete} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700">
                 Delete
               </button>

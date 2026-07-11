@@ -1,34 +1,19 @@
 import { test, expect } from '@playwright/test';
-import { getAdminCredentials } from './admin-credentials';
-
-const { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } = getAdminCredentials();
+import { loginAsAdmin, navigateToAdminPage } from './admin-auth-helper';
 
 test.describe('Admin - Auth & Dashboard', () => {
   test('admin can login', async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('admin dashboard loads with stats', async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
-    await expect(page).toHaveURL(/.*admin/);
+    await loginAsAdmin(page);
     const stats = page.locator('[class*="stat"], [class*="card"], [data-testid*="stat"]').first();
     await expect(stats).toBeVisible({ timeout: 5000 });
   });
 
   test('admin can logout', async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
 
     const signOutBtn = page.locator('button:has-text("Sign Out"), button:has-text("Logout"), button:has-text("Log out")').first();
     if (await signOutBtn.isVisible()) {
@@ -38,23 +23,13 @@ test.describe('Admin - Auth & Dashboard', () => {
   });
 
   test('admin sidebar has navigation groups', async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
-
+    await loginAsAdmin(page);
     const sidebar = page.locator('[class*="sidebar"], nav, [class*="AdminLayout"] nav').first();
     await expect(sidebar).toBeVisible();
   });
 
   test('admin can view site', async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
-
+    await loginAsAdmin(page);
     const viewSiteBtn = page.locator('a:has-text("View Site"), a[href="/"]').first();
     if (await viewSiteBtn.isVisible().catch(() => false)) {
       await viewSiteBtn.click();
@@ -65,39 +40,30 @@ test.describe('Admin - Auth & Dashboard', () => {
 
 test.describe('Admin - Products Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('products list page loads', async ({ page }) => {
-    await page.goto('/admin/products');
+    await navigateToAdminPage(page, '/admin/products');
     await expect(page).toHaveURL(/.*admin\/products/);
-    await page.waitForTimeout(1000);
   });
 
   test('products page has add product button', async ({ page }) => {
-    await page.goto('/admin/products');
-    await page.waitForTimeout(1000);
+    await navigateToAdminPage(page, '/admin/products');
     const addBtn = page.locator('button:has-text("Add Product"), a:has-text("Add Product"), button:has-text("New Product")').first();
     await expect(addBtn).toBeVisible();
   });
 
   test('admin can open new product form', async ({ page }) => {
-    await page.goto('/admin/products');
-    await page.waitForTimeout(1000);
+    await navigateToAdminPage(page, '/admin/products');
     const addBtn = page.locator('button:has-text("Add Product"), a:has-text("Add Product"), button:has-text("New Product")').first();
     await addBtn.click();
-    await page.waitForTimeout(1000);
     const nameInput = page.locator('input[name="name"], input[placeholder*="name" i]').first();
     await expect(nameInput).toBeVisible({ timeout: 5000 });
   });
 
   test('admin can fill new product form', async ({ page }) => {
-    await page.goto('/admin/products/new');
-    await page.waitForTimeout(1000);
+    await navigateToAdminPage(page, '/admin/products/new');
     const nameInput = page.locator('input[name="name"], input[placeholder*="name" i]').first();
     if (await nameInput.isVisible()) {
       await nameInput.fill('E2E Test Product ' + Date.now());
@@ -109,8 +75,7 @@ test.describe('Admin - Products Management', () => {
   });
 
   test('admin can search products', async ({ page }) => {
-    await page.goto('/admin/products');
-    await page.waitForTimeout(1000);
+    await navigateToAdminPage(page, '/admin/products');
     const searchInput = page.locator('input[placeholder*="search" i], input[type="search"], input[name="search"]').first();
     if (await searchInput.isVisible()) {
       await searchInput.fill('test');
@@ -119,8 +84,7 @@ test.describe('Admin - Products Management', () => {
   });
 
   test('admin can filter products', async ({ page }) => {
-    await page.goto('/admin/products');
-    await page.waitForTimeout(1000);
+    await navigateToAdminPage(page, '/admin/products');
     const filterBtn = page.locator('button:has-text("Filter"), [class*="filter"], select').first();
     if (await filterBtn.isVisible().catch(() => false)) {
       await filterBtn.click();
@@ -131,22 +95,16 @@ test.describe('Admin - Products Management', () => {
 
 test.describe('Admin - Categories Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('categories list page loads', async ({ page }) => {
-    await page.goto('/admin/categories');
+    await navigateToAdminPage(page, '/admin/categories');
     await expect(page).toHaveURL(/.*admin\/categories/);
-    await page.waitForTimeout(1000);
   });
 
   test('categories page has add category button', async ({ page }) => {
-    await page.goto('/admin/categories');
-    await page.waitForTimeout(1000);
+    await navigateToAdminPage(page, '/admin/categories');
     const addBtn = page.locator('button:has-text("Add Category"), a:has-text("Add Category")').first();
     await expect(addBtn).toBeVisible();
   });
@@ -154,22 +112,16 @@ test.describe('Admin - Categories Management', () => {
 
 test.describe('Admin - Orders Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('orders list page loads', async ({ page }) => {
-    await page.goto('/admin/orders');
+    await navigateToAdminPage(page, '/admin/orders');
     await expect(page).toHaveURL(/.*admin\/orders/);
-    await page.waitForTimeout(1000);
   });
 
   test('orders page has filter/search', async ({ page }) => {
-    await page.goto('/admin/orders');
-    await page.waitForTimeout(1000);
+    await navigateToAdminPage(page, '/admin/orders');
     const searchInput = page.locator('input[placeholder*="search" i], input[type="search"]').first();
     if (await searchInput.isVisible().catch(() => false)) {
       await expect(searchInput).toBeVisible();
@@ -179,54 +131,38 @@ test.describe('Admin - Orders Management', () => {
 
 test.describe('Admin - Inventory Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('inventory page loads', async ({ page }) => {
-    await page.goto('/admin/inventory');
+    await navigateToAdminPage(page, '/admin/inventory');
     await expect(page).toHaveURL(/.*admin\/inventory/);
-    await page.waitForTimeout(1000);
   });
 });
 
 test.describe('Admin - Customers', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('customers page loads', async ({ page }) => {
-    await page.goto('/admin/customers');
+    await navigateToAdminPage(page, '/admin/customers');
     await expect(page).toHaveURL(/.*admin\/customers/);
-    await page.waitForTimeout(1000);
   });
 });
 
 test.describe('Admin - Coupons', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('coupons page loads', async ({ page }) => {
-    await page.goto('/admin/coupons');
+    await navigateToAdminPage(page, '/admin/coupons');
     await expect(page).toHaveURL(/.*admin\/coupons/);
-    await page.waitForTimeout(1000);
   });
 
   test('coupons page has add coupon button', async ({ page }) => {
-    await page.goto('/admin/coupons');
-    await page.waitForTimeout(1000);
+    await navigateToAdminPage(page, '/admin/coupons');
     const addBtn = page.locator('button:has-text("Add Coupon"), a:has-text("Add Coupon"), button:has-text("Create")').first();
     if (await addBtn.isVisible().catch(() => false)) {
       await expect(addBtn).toBeVisible();
@@ -236,246 +172,185 @@ test.describe('Admin - Coupons', () => {
 
 test.describe('Admin - Reviews', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('reviews page loads', async ({ page }) => {
-    await page.goto('/admin/reviews');
+    await navigateToAdminPage(page, '/admin/reviews');
     await expect(page).toHaveURL(/.*admin\/reviews/);
-    await page.waitForTimeout(1000);
   });
 });
 
 test.describe('Admin - CMS Pages', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('CMS pages list loads', async ({ page }) => {
-    await page.goto('/admin/cms/pages');
+    await navigateToAdminPage(page, '/admin/cms/pages');
     await expect(page).toHaveURL(/.*admin\/cms\/pages/);
-    await page.waitForTimeout(1000);
   });
 
   test('homepage builder loads', async ({ page }) => {
-    await page.goto('/admin/cms/homepage');
+    await navigateToAdminPage(page, '/admin/cms/homepage');
     await expect(page).toHaveURL(/.*admin\/cms\/homepage/);
-    await page.waitForTimeout(1000);
   });
 
   test('hero builder loads', async ({ page }) => {
-    await page.goto('/admin/cms/hero-builder');
+    await navigateToAdminPage(page, '/admin/cms/hero-builder');
     await expect(page).toHaveURL(/.*admin\/cms\/hero-builder/);
-    await page.waitForTimeout(1000);
   });
 
   test('header builder loads', async ({ page }) => {
-    await page.goto('/admin/cms/header');
+    await navigateToAdminPage(page, '/admin/cms/header');
     await expect(page).toHaveURL(/.*admin\/cms\/header/);
     await expect(page.getByText('Header Builder')).toBeVisible();
-    await page.waitForTimeout(1000);
   });
 
   test('footer builder loads', async ({ page }) => {
-    await page.goto('/admin/cms/footer');
+    await navigateToAdminPage(page, '/admin/cms/footer');
     await expect(page).toHaveURL(/.*admin\/cms\/footer/);
-    await page.waitForTimeout(1000);
   });
 
   test('banners page loads', async ({ page }) => {
-    await page.goto('/admin/cms/banners');
+    await navigateToAdminPage(page, '/admin/cms/banners');
     await expect(page).toHaveURL(/.*admin\/cms\/banners/);
-    await page.waitForTimeout(1000);
   });
 });
 
 test.describe('Admin - Marketing', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('marketing page loads', async ({ page }) => {
-    await page.goto('/admin/marketing');
+    await navigateToAdminPage(page, '/admin/marketing');
     await expect(page).toHaveURL(/.*admin\/marketing/);
-    await page.waitForTimeout(1000);
   });
 
   test('announcements page loads', async ({ page }) => {
-    await page.goto('/admin/announcements');
+    await navigateToAdminPage(page, '/admin/announcements');
     await expect(page).toHaveURL(/.*admin\/announcements/);
-    await page.waitForTimeout(1000);
   });
 });
 
 test.describe('Admin - Analytics', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('analytics page loads', async ({ page }) => {
-    await page.goto('/admin/analytics');
+    await navigateToAdminPage(page, '/admin/analytics');
     await expect(page).toHaveURL(/.*admin\/analytics/);
-    await page.waitForTimeout(1000);
   });
 });
 
 test.describe('Admin - Settings', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('settings page loads', async ({ page }) => {
-    await page.goto('/admin/settings');
+    await navigateToAdminPage(page, '/admin/settings');
     await expect(page).toHaveURL(/.*admin\/settings/);
-    await page.waitForTimeout(1000);
   });
 
   test('SEO settings page loads', async ({ page }) => {
-    await page.goto('/admin/seo');
+    await navigateToAdminPage(page, '/admin/seo');
     await expect(page).toHaveURL(/.*admin\/seo/);
-    await page.waitForTimeout(1000);
   });
 
   test('theme page loads', async ({ page }) => {
-    await page.goto('/admin/theme');
+    await navigateToAdminPage(page, '/admin/theme');
     await expect(page).toHaveURL(/.*admin\/theme/);
-    await page.waitForTimeout(1000);
   });
 });
 
 test.describe('Admin - Support', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('support tickets page loads', async ({ page }) => {
-    await page.goto('/admin/support');
+    await navigateToAdminPage(page, '/admin/support');
     await expect(page).toHaveURL(/.*admin\/support/);
-    await page.waitForTimeout(1000);
   });
 
   test('FAQ page loads', async ({ page }) => {
-    await page.goto('/admin/faq');
+    await navigateToAdminPage(page, '/admin/faq');
     await expect(page).toHaveURL(/.*admin\/faq/);
-    await page.waitForTimeout(1000);
   });
 });
 
 test.describe('Admin - Content Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('lookbooks page loads', async ({ page }) => {
-    await page.goto('/admin/lookbooks');
+    await navigateToAdminPage(page, '/admin/lookbooks');
     await expect(page).toHaveURL(/.*admin\/lookbooks/);
-    await page.waitForTimeout(1000);
   });
 
   test('media library loads', async ({ page }) => {
-    await page.goto('/admin/media');
+    await navigateToAdminPage(page, '/admin/media');
     await expect(page).toHaveURL(/.*admin\/media/);
-    await page.waitForTimeout(1000);
   });
 
   test('brands page loads', async ({ page }) => {
-    await page.goto('/admin/brands');
+    await navigateToAdminPage(page, '/admin/brands');
     await expect(page).toHaveURL(/.*admin\/brands/);
-    await page.waitForTimeout(1000);
   });
 
   test('size guides page loads', async ({ page }) => {
-    await page.goto('/admin/size-guides');
+    await navigateToAdminPage(page, '/admin/size-guides');
     await expect(page).toHaveURL(/.*admin\/size-guides/);
-    await page.waitForTimeout(1000);
   });
 
   test('labels page loads', async ({ page }) => {
-    await page.goto('/admin/labels');
+    await navigateToAdminPage(page, '/admin/labels');
     await expect(page).toHaveURL(/.*admin\/labels/);
-    await page.waitForTimeout(1000);
   });
 
   test('collections page loads', async ({ page }) => {
-    await page.goto('/admin/collections');
+    await navigateToAdminPage(page, '/admin/collections');
     await expect(page).toHaveURL(/.*admin\/collections/);
-    await page.waitForTimeout(1000);
   });
 });
 
 test.describe('Admin - System', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('audit log page loads', async ({ page }) => {
-    await page.goto('/admin/audit-log');
+    await navigateToAdminPage(page, '/admin/audit-log');
     await expect(page).toHaveURL(/.*admin\/audit-log/);
-    await page.waitForTimeout(1000);
   });
 
   test('auth activity sessions page loads', async ({ page }) => {
-    await page.goto('/admin/sessions');
+    await navigateToAdminPage(page, '/admin/sessions');
     await expect(page).toHaveURL(/.*admin\/auth\?tab=sessions/);
     await expect(page.getByRole('button', { name: /active sessions/i })).toBeVisible();
     await expect(page.getByText(/No sessions found|User|Email/i).first()).toBeVisible();
-    await page.waitForTimeout(1000);
   });
 
   test('auth activity login attempts tab loads', async ({ page }) => {
-    await page.goto('/admin/login-attempts');
+    await navigateToAdminPage(page, '/admin/login-attempts');
     await expect(page).toHaveURL(/.*admin\/auth\?tab=attempts/);
     await expect(page.getByRole('button', { name: /login attempts/i })).toBeVisible();
     await expect(page.getByPlaceholder(/search by email/i)).toBeVisible();
-    await page.waitForTimeout(1000);
   });
 
   test('webhooks page loads', async ({ page }) => {
-    await page.goto('/admin/webhooks');
+    await navigateToAdminPage(page, '/admin/webhooks');
     await expect(page).toHaveURL(/.*admin\/webhooks/);
-    await page.waitForTimeout(1000);
   });
 });
 
 test.describe('Admin - Sidebar Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/login');
-    await page.fill('input[name="email"], input[type="email"]', ADMIN_EMAIL);
-    await page.fill('input[name="password"], input[type="password"]', ADMIN_PASSWORD);
-    await page.click('button[type="submit"]');
-    await page.waitForURL(/.*admin/, { timeout: 10000 });
+    await loginAsAdmin(page);
   });
 
   test('sidebar Products group expands', async ({ page }) => {

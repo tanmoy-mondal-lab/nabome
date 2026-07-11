@@ -258,7 +258,7 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
       entityId: orderId,
       metadata: { orderNumber: order.orderNumber, reason: cancellationReason },
       ...extractRequestMeta(req),
-    });
+    }, ctx.env);
 
     return success({ order: updated });
   } catch (err) {

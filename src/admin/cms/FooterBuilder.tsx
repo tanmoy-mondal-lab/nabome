@@ -239,14 +239,14 @@ export default function FooterBuilder() {
                 <label className="block text-xs text-neutral-500 mb-1">Title *</label>
                 <input required value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs text-neutral-500 mb-1">Type</label>
                   <select value={form.contentType}
                     onChange={(e) => setForm({ ...form, contentType: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500">
                     <option value="links">Links</option>
                     <option value="text">Text/About</option>
                     <option value="newsletter">Newsletter</option>
@@ -257,7 +257,7 @@ export default function FooterBuilder() {
                   <label className="block text-xs text-neutral-500 mb-1">Column</label>
                   <input type="number" min={1} max={12} value={form.column}
                     onChange={(e) => setForm({ ...form, column: Number(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
               </div>
 
@@ -267,7 +267,7 @@ export default function FooterBuilder() {
                   <label className="block text-xs text-neutral-500 mb-1">Content</label>
                   <textarea rows={3} value={form.content}
                     onChange={(e) => setForm({ ...form, content: e.target.value })}
-                    className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none" />
+                    className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500" />
                 </div>
               )}
 
@@ -334,7 +334,7 @@ export default function FooterBuilder() {
                 <label className="block text-xs text-neutral-500 mb-1">Label *</label>
                 <input required value={linkForm.label}
                   onChange={(e) => setLinkForm({ ...linkForm, label: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500"
                   placeholder="e.g., About Us"
                 />
               </div>
@@ -342,7 +342,7 @@ export default function FooterBuilder() {
                 <label className="block text-xs text-neutral-500 mb-1">URL *</label>
                 <input required value={linkForm.url}
                   onChange={(e) => setLinkForm({ ...linkForm, url: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500"
                   placeholder="e.g., /about"
                 />
               </div>
@@ -351,7 +351,7 @@ export default function FooterBuilder() {
                 <button 
                   onClick={handleSaveLink}
                   disabled={!linkForm.label || !linkForm.url}
-                  className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium disabled:opacity-50"
+                  className="bg-neutral-900 text-white px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
                 >
                   {editingLink ? "Update" : "Add"}
                 </button>

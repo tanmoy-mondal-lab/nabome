@@ -5,11 +5,7 @@ interface VariantManagerProps {
     uploadingMedia: boolean;
     onUploadStart: () => void;
     onUploadEnd: () => void;
-    onPendingImage: (data: {
-        url: string;
-        publicId: string;
-        variantId: string;
-    } | null) => void;
+    productSlug?: string;
 }
-export declare function VariantManager({ variants, onChange, uploadingMedia, onUploadStart, onUploadEnd, onPendingImage, }: VariantManagerProps): import("react").JSX.Element;
+export declare function VariantManager({ variants, onChange, uploadingMedia, onUploadStart, onUploadEnd, productSlug, }: VariantManagerProps): import("react").JSX.Element;
 export {};

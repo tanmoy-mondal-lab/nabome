@@ -1,11 +1,9 @@
-# API routes are handled by Pages Functions — do not block them
-# SPA fallback: redirect non-asset requests to index.html
-/assets/* /assets/:splat 200
-/images/* /images/:splat 200
-/favicon* /favicon:splat 200
-/site.webmanifest /site.webmanifest 200
-/robots.txt /robots.txt 200
-/sitemap.xml /sitemap.xml 200
-/sw.js /sw.js 200
-/api/* /index.html 200
-/* /index.html 200
+# SPA client-side routing fallback is handled in functions/_middleware.ts.
+#
+# The classic `/* /index.html 200` rule is intentionally NOT used here:
+# current Cloudflare Pages / wrangler versions flag it as an infinite loop
+# and silently drop it ("Parsed 0 valid redirect rules"), which breaks deep
+# links and page refreshes. The middleware serves index.html for unmatched
+# HTML routes instead.
+#
+# Static assets and /api/* are served directly by Pages, so no rules are needed.

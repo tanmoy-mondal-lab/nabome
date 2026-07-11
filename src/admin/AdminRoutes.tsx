@@ -60,10 +60,6 @@ const AbandonedCartsPage = lazyWithRetry(() => import("./abandoned-carts/Abandon
 const AuthActivityPage = lazyWithRetry(() => import("./auth/AuthActivityPage"));
 const AuditLogPage = lazyWithRetry(() => import("./audit-log/AuditLogPage"));
 const WishlistsPage = lazyWithRetry(() => import("./wishlists/WishlistsPage"));
-const LoyaltyAdminPage = lazyWithRetry(() => import("./loyalty/LoyaltyPage"));
-const ReferralsAdminPage = lazyWithRetry(() => import("./referrals/ReferralsPage"));
-const GiftCardsAdminPage = lazyWithRetry(() => import("./gift-cards/GiftCardsAdminPage"));
-const FeatureFlagsPage = lazyWithRetry(() => import("./feature-flags/FeatureFlagsPage"));
 
 function AdminFallback() {
   return (
@@ -175,10 +171,6 @@ export default function AdminRoutes() {
           <Route path="login-attempts" element={<Navigate to="/admin/auth?tab=attempts" replace />} />
           <Route path="audit-log" element={<AuditLogPage />} />
           <Route path="wishlists" element={<WishlistsPage />} />
-          <Route path="loyalty" element={<LoyaltyAdminPage />} />
-          <Route path="referrals" element={<ReferralsAdminPage />} />
-          <Route path="gift-cards" element={<GiftCardsAdminPage />} />
-          <Route path="feature-flags" element={<FeatureFlagsPage />} />
           <Route path="*" element={
             <div className="min-h-[60vh] flex items-center justify-center px-4">
               <div className="text-center max-w-md">

@@ -46,23 +46,12 @@ export default defineConfig({
     assetsInlineLimit: 4096,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          if (id.includes("node_modules")) {
-            // Simple strategy to avoid circular dependencies
-            // Group React ecosystem together
-            if (id.includes("react") || id.includes("react-dom") || id.includes("scheduler")) {
-              return "vendor-react";
-            }
-            // Group large UI libraries separately
-            if (id.includes("framer-motion")) {
-              return "vendor-motion";
-            }
-            // Everything else in a single chunk to avoid circular deps
-            return "vendor-core";
-          }
-          // Don't split admin pages to avoid circular dependencies
-          // Let Rollup handle chunking naturally
-        },
+        // NOTE: Do not manually split the React ecosystem into separate vendor
+        // chunks. Doing so reorders module initialization and causes React 19 to
+        // crash at load with "Cannot set properties of undefined (setting
+        // 'Activity')" because react-dom evaluates before React's shared
+        // internals are ready. Let Rollup determine chunking so init order and
+        // circular dependencies are handled correctly.
         chunkFileNames: "assets/[name]-[hash].js",
         entryFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash][extname]",

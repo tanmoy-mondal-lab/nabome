@@ -111,14 +111,14 @@ export default function AbandonedCartsPage() {
               min="1"
               value={minAge}
               onChange={(e) => setMinAge(e.target.value)}
-              className="w-28 px-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="w-28 px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
             />
           </div>
         </div>
       </div>
 
       {isError && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
           <p className="text-sm text-red-700">Failed to load abandoned carts</p>
           <button onClick={() => void refetch()} className="ml-auto text-sm text-red-600 hover:underline">Retry</button>
@@ -126,11 +126,13 @@ export default function AbandonedCartsPage() {
       )}
 
       {carts.length === 0 && !isLoading ? (
-        <EmptyState
-          icon={ShoppingBag}
-          title="No abandoned carts"
-          description="Carts will appear here when customers leave items in their cart for too long."
-        />
+        <div className="premium-card rounded-2xl">
+          <EmptyState
+            icon={ShoppingBag}
+            title="No abandoned carts"
+            description="Carts will appear here when customers leave items in their cart for too long."
+          />
+        </div>
       ) : (
         <DataTable columns={columns} data={carts} isLoading={isLoading}
           page={page} totalPages={pagination?.totalPages ?? 1} onPageChange={setPage}

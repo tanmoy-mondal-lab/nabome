@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useAuthStore } from "../../stores/auth-store";
@@ -10,7 +10,6 @@ import {
   PackageSearch, RotateCcw, Tag, MessageSquare,
   MessageCircle, Download, Activity, FileJson,
   Target, ShoppingBag, Heart,
-  Award, Share2, Gift, Zap, Flag,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -42,9 +41,6 @@ const NAV_ITEMS = [
   { label: "Lookbooks", icon: BookOpen, href: "/admin/lookbooks" },
   { label: "Media Library", icon: Image, href: "/admin/media" },
   { label: "Coupons", icon: Tag, href: "/admin/coupons" },
-  { label: "Loyalty", icon: Award, href: "/admin/loyalty" },
-  { label: "Referrals", icon: Share2, href: "/admin/referrals" },
-  { label: "Gift Cards", icon: Gift, href: "/admin/gift-cards" },
   { label: "Announcements", icon: Megaphone, href: "/admin/announcements" },
   { label: "Reviews", icon: MessageSquare, href: "/admin/reviews" },
   { label: "SEO", icon: Search, href: "/admin/seo" },
@@ -80,8 +76,6 @@ const NAV_ITEMS = [
     ],
   },
   { label: "Wishlists", icon: Heart, href: "/admin/wishlists" },
-  { label: "Subscriptions", icon: Zap, href: "/admin/subscriptions" },
-  { label: "Feature Flags", icon: Flag, href: "/admin/feature-flags" },
   { label: "Analytics", icon: BarChart4, href: "/admin/analytics" },
   { label: "Settings", icon: Settings, href: "/admin/settings" },
 ];
@@ -94,6 +88,7 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarNavRef = useRef<HTMLDivElement>(null);
   const [expandedMenus, setExpandedMenus] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem("admin-sidebar-expanded");
@@ -109,6 +104,31 @@ export default function AdminLayout() {
       localStorage.setItem("admin-sidebar-expanded", JSON.stringify(expandedMenus));
     } catch { /* non-critical: localStorage might be full */ }
   }, [expandedMenus]);
+
+  // Save scroll position before navigation
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (sidebarNavRef.current) {
+        try {
+          localStorage.setItem("admin-sidebar-scroll", sidebarNavRef.current.scrollTop.toString());
+        } catch { /* non-critical */ }
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  // Restore scroll position after navigation
+  useEffect(() => {
+    if (sidebarNavRef.current) {
+      try {
+        const savedScroll = localStorage.getItem("admin-sidebar-scroll");
+        if (savedScroll) {
+          sidebarNavRef.current.scrollTop = parseInt(savedScroll, 10);
+        }
+      } catch { /* non-critical */ }
+    }
+  }, [location.pathname]);
 
   // Auto-expand parent when child is active
   useEffect(() => {
@@ -183,7 +203,7 @@ export default function AdminLayout() {
           </button>
         </div>
 
-        <nav className="p-4 space-y-0.5 overflow-y-auto h-[calc(100vh-4rem)]">
+        <nav ref={sidebarNavRef} className="p-4 space-y-0.5 overflow-y-auto h-[calc(100vh-4rem)] max-h-[calc(100vh-4rem)] pb-8">
           {NAV_ITEMS.map((item) => {
             if ("children" in item && item.children) {
               const open = expandedMenus.includes(item.label);

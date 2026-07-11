@@ -33,15 +33,20 @@ export function registerServiceWorker(): Promise<void> {
         }
       });
       
-      // Periodic sync for mobile apps (if available)
-      if ((registration as ServiceWorkerRegistration & { periodicSync?: { register: (name: string, options: { minInterval: number }) => void } }).periodicSync) {
-        try {
-          (registration as ServiceWorkerRegistration & { periodicSync: { register: (name: string, options: { minInterval: number }) => void } }).periodicSync.register("content-sync", {
+      // Periodic sync for mobile apps (if available).
+      // Only attempt once the service worker is active — registering against an
+      // installing/waiting worker rejects with an InvalidStateError. The call
+      // returns a Promise, so the rejection must be caught (a try/catch does not
+      // catch async rejections and it surfaces as an uncaught page error).
+      const periodicSync = (registration as ServiceWorkerRegistration & { periodicSync?: { register: (name: string, options: { minInterval: number }) => Promise<void> } }).periodicSync;
+      if (periodicSync && registration.active) {
+        void Promise.resolve(
+          periodicSync.register("content-sync", {
             minInterval: 60 * 60 * 1000 // 1 hour
-          });
-        } catch {
-          // Periodic sync not supported
-        }
+          })
+        ).catch(() => {
+          // Periodic sync not supported / not permitted
+        });
       }
       
       resolve();

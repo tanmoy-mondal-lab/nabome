@@ -34,6 +34,15 @@ export declare function organizationSchema(data: {
         email?: string;
     };
 }): Record<string, unknown>;
+export declare function articleSchema(data: {
+    headline: string;
+    description?: string;
+    image?: string;
+    author?: string;
+    datePublished?: string;
+    dateModified?: string;
+    url: string;
+}): Record<string, unknown>;
 export type ImgOptions = {
     width?: number;
     height?: number;

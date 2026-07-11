@@ -6,7 +6,6 @@ import { PasswordInput } from "../components/PasswordInput";
 import { TurnstileWidget } from "../components/TurnstileWidget";
 import { turnstileEnabled, turnstileSiteKey } from "../lib/config";
 import { Helmet } from "react-helmet-async";
-import { canonical } from "../lib/seo";
 import { useToast } from "../components/ui/Toast";
 
 export default function RegisterPage() {
@@ -94,7 +93,6 @@ export default function RegisterPage() {
       <Helmet>
         <title>Create Account — নবME</title>
         <meta name="robots" content="noindex, nofollow" />
-        <link rel="canonical" href={canonical("/auth/register")} />
       </Helmet>
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">

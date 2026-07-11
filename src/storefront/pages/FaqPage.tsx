@@ -4,7 +4,6 @@ import { Helmet } from "react-helmet-async";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { AlertCircle, ChevronDown, Search, Minus, Plus } from "lucide-react";
 import { cn } from "../../lib/utils/cn";
-import { canonical } from "../../lib/seo";
 import { api } from "../../lib/api/client";
 
 interface FaqItem {
@@ -90,7 +89,6 @@ export default function FaqPage() {
       <Helmet>
         <title>FAQ — নবME</title>
         <meta name="description" content="Frequently asked questions about orders, shipping, returns, and payments at নবME." />
-        <link rel="canonical" href={canonical("/faq")} />
       </Helmet>
       <Breadcrumbs items={[{ label: "Home", href: "/" }, { label: "FAQ" }]} className="mb-8" />
       <div className="max-w-3xl">

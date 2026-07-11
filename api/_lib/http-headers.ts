@@ -8,7 +8,7 @@ export const ALLOWED_ORIGINS = [
 ] as const;
 
 export const SECURITY_HEADERS: Record<string, string> = {
-  "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://checkout.razorpay.com https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cloudflare-insights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.unsplash.com https://images.unsplash.com https://res.cloudinary.com https://www.google-analytics.com; media-src 'self' blob: https://res.cloudinary.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co https://api.razorpay.com https://www.google-analytics.com https://region1.google-analytics.com https://challenges.cloudflare.com https://cloudflare-insights.com https://cloudflareinsights.com https://static.cloudflareinsights.com; frame-src https://checkout.razorpay.com https://api.razorpay.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+  "Content-Security-Policy": "default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://checkout.razorpay.com https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cloudflare-insights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob: https://*.unsplash.com https://images.unsplash.com https://res.cloudinary.com https://www.google-analytics.com; media-src 'self' blob: https://res.cloudinary.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com data:; connect-src 'self' https://*.supabase.co https://api.razorpay.com https://www.google-analytics.com https://region1.google-analytics.com https://challenges.cloudflare.com https://cloudflare-insights.com https://cloudflareinsights.com https://static.cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com https://res.cloudinary.com; frame-src https://checkout.razorpay.com https://api.razorpay.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
@@ -34,6 +34,20 @@ const STATIC_HEADER_RULES: Array<{ path: string; headers: Record<string, string>
   {
     path: "/*",
     headers: SECURITY_HEADERS,
+  },
+  {
+    path: "/assets/*.js",
+    headers: { 
+      "Content-Type": "application/javascript; charset=utf-8",
+      "Cache-Control": "public, max-age=31536000, immutable" 
+    },
+  },
+  {
+    path: "/assets/*.css",
+    headers: { 
+      "Content-Type": "text/css; charset=utf-8",
+      "Cache-Control": "public, max-age=31536000, immutable" 
+    },
   },
   {
     path: "/assets/*",

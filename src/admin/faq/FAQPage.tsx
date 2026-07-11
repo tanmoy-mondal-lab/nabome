@@ -117,7 +117,7 @@ export default function FAQPage() {
     deleteMutation.mutate(id);
   };
 
-  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
+  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors";
 
   const grouped = faqs.reduce<Record<string, FAQItem[]>>((acc, f) => {
     const cat = f.category || "General";
@@ -227,9 +227,9 @@ export default function FAQPage() {
             <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="accent-brand-500" />
             <span className="text-xs text-neutral-600">Active</span>
           </label>
-          <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending} className="btn-primary disabled:opacity-50">
+          <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+            <button onClick={() => setModalOpen(false)} className="border border-neutral-200 px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+            <button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending} className="bg-neutral-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">
               {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save"}
             </button>
           </div>
@@ -239,8 +239,8 @@ export default function FAQPage() {
       <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete FAQ" size="sm">
         <p className="text-sm text-neutral-600 mb-6">Delete this FAQ entry?</p>
         <div className="flex justify-end gap-2">
-          <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-          <button onClick={() => handleDelete(deleteConfirm!)} disabled={deleteMutation.isPending} className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50">
+          <button onClick={() => setDeleteConfirm(null)} className="border border-neutral-200 px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+          <button onClick={() => handleDelete(deleteConfirm!)} disabled={deleteMutation.isPending} className="bg-red-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50">
             {deleteMutation.isPending ? "Deleting..." : "Delete"}
           </button>
         </div>

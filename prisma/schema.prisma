@@ -39,19 +39,13 @@ model profiles {
   sessions                    auth_sessions[]
   cart                        carts?
   couponRedemptions           coupon_redemptions[]
-  purchasedGiftCards          gift_cards[]            @relation("GiftCardPurchaser")
-  redeemedGiftCards           gift_cards[]            @relation("GiftCardRedeemer")
   loginAttempts               login_attempts[]
-  loyaltyPoints               loyalty_points?
   notifications               notifications[]
   orderHistoryEntries         order_status_history[]
   orders                      orders[]
-  referralCode                referral_codes?
-  referredReferrals           referrals[]            @relation("ReferredProfile")
   refunds                     refunds[]              @relation("RefundInitiator")
   returnRequests              return_requests[]
   reviews                     reviews[]
-  subscriptions               subscriptions[]
   supportReplies              support_ticket_replies[]
   assignedTickets             support_tickets[]       @relation("AssignedSupport")
   supportTickets              support_tickets[]
@@ -572,14 +566,12 @@ model orders {
   carrier            String?              @map("carrier") @db.VarChar(100)
   trackingUrl        String?              @map("tracking_url")
   couponRedemption   coupon_redemptions?
-  giftCards          gift_cards[]
   notifications      notifications[]
   items              order_items[]
   statusHistory      order_status_history[]
   billingAddress     addresses?             @relation("BillingAddress", fields: [billingAddressId], references: [id])
   profile            profiles?             @relation(fields: [profileId], references: [id])
   shippingAddress    addresses?             @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
-  referrals          referrals[]
   refunds            refunds[]
   returnRequests     return_requests[]
   supportTickets     support_tickets[]
@@ -1162,182 +1154,6 @@ model faqs {
 
   @@index([category, isActive])
   @@index([sortOrder])
-}
-
-model loyalty_points {
-  id             String               @id @default(uuid()) @db.Uuid
-  profileId      String               @unique @map("profile_id") @db.Uuid
-  points         Int                  @default(0)
-  tier           String               @default("bronze") @db.VarChar(50)
-  lifetimePoints Int                  @default(0) @map("lifetime_points")
-  createdAt      DateTime             @default(now()) @map("created_at")
-  updatedAt      DateTime             @updatedAt @map("updated_at")
-  profile        profiles              @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  transactions   loyalty_transactions[]
-
-  @@index([tier])
-}
-
-model loyalty_transactions {
-  id              String        @id @default(uuid()) @db.Uuid
-  loyaltyPointsId String        @map("loyalty_points_id") @db.Uuid
-  points          Int
-  type            String        @db.VarChar(50)
-  description     String?       @db.VarChar(500)
-  referenceId     String?       @map("reference_id") @db.VarChar(100)
-  referenceType   String?       @map("reference_type") @db.VarChar(50)
-  expiresAt       DateTime?     @map("expires_at") @db.Timestamptz(6)
-  createdAt       DateTime      @default(now()) @map("created_at")
-  loyaltyPoints   loyalty_points @relation(fields: [loyaltyPointsId], references: [id], onDelete: Cascade)
-
-  @@index([loyaltyPointsId])
-  @@index([type])
-  @@index([createdAt])
-}
-
-model loyalty_tiers {
-  id               String   @id @default(uuid()) @db.Uuid
-  name             String   @unique @db.VarChar(50)
-  minPoints        Int      @default(0) @map("min_points")
-  discountPercent  Int      @default(0) @map("discount_percent")
-  freeShipping     Boolean  @default(false) @map("free_shipping")
-  pointsMultiplier Decimal  @default(1) @map("points_multiplier") @db.Decimal(3, 1)
-  badgeColor       String?  @map("badge_color") @db.VarChar(7)
-  description      String?
-  isActive         Boolean  @default(true) @map("is_active")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  @@index([isActive])
-}
-
-model referral_codes {
-  id             String     @id @default(uuid()) @db.Uuid
-  profileId      String     @unique @map("profile_id") @db.Uuid
-  code           String     @unique @db.VarChar(50)
-  totalReferrals Int        @default(0) @map("total_referrals")
-  totalRewards   Decimal    @default(0) @map("total_rewards") @db.Decimal(10, 2)
-  isActive       Boolean    @default(true) @map("is_active")
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
-  profile        profiles    @relation(fields: [profileId], references: [id], onDelete: Cascade)
-  referrals      referrals[]
-
-  @@index([code])
-}
-
-model referrals {
-  id                String       @id @default(uuid()) @db.Uuid
-  referrerCodeId    String       @map("referrer_code_id") @db.Uuid
-  referredEmail     String       @map("referred_email") @db.VarChar(255)
-  referredProfileId String?      @map("referred_profile_id") @db.Uuid
-  status            String       @default("pending") @db.VarChar(50)
-  rewardAmount      Decimal?     @map("reward_amount") @db.Decimal(10, 2)
-  rewardGivenAt     DateTime?    @map("reward_given_at") @db.Timestamptz(6)
-  orderId           String?      @map("order_id") @db.Uuid
-  expiresAt         DateTime?    @map("expires_at") @db.Timestamptz(6)
-  createdAt         DateTime     @default(now()) @map("created_at")
-  updatedAt         DateTime     @updatedAt @map("updated_at")
-  order             orders?       @relation(fields: [orderId], references: [id])
-  referredProfile   profiles?     @relation("ReferredProfile", fields: [referredProfileId], references: [id])
-  referrerCode      referral_codes @relation(fields: [referrerCodeId], references: [id], onDelete: Cascade)
-
-  @@index([referrerCodeId])
-  @@index([referredEmail])
-  @@index([status])
-  @@index([createdAt])
-}
-
-model gift_cards {
-  id             String    @id @default(uuid()) @db.Uuid
-  code           String    @unique @db.VarChar(50)
-  initialBalance Decimal   @map("initial_balance") @db.Decimal(10, 2)
-  currentBalance Decimal   @map("current_balance") @db.Decimal(10, 2)
-  currency       String    @default("INR") @db.VarChar(3)
-  senderName     String?   @map("sender_name") @db.VarChar(200)
-  senderEmail    String?   @map("sender_email") @db.VarChar(255)
-  recipientName  String?   @map("recipient_name") @db.VarChar(200)
-  recipientEmail String?   @map("recipient_email") @db.VarChar(255)
-  message        String?
-  purchasedById  String?   @map("purchased_by_id") @db.Uuid
-  redeemedById   String?   @map("redeemed_by_id") @db.Uuid
-  orderId        String?   @map("order_id") @db.Uuid
-  isActive       Boolean   @default(true) @map("is_active")
-  expiresAt      DateTime? @map("expires_at") @db.Timestamptz(6)
-  redeemedAt     DateTime? @map("redeemed_at") @db.Timestamptz(6)
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-  order          orders?    @relation(fields: [orderId], references: [id])
-  purchasedBy    profiles?  @relation("GiftCardPurchaser", fields: [purchasedById], references: [id])
-  redeemedBy     profiles?  @relation("GiftCardRedeemer", fields: [redeemedById], references: [id])
-
-  @@index([code])
-  @@index([isActive])
-  @@index([expiresAt])
-}
-
-model subscription_plans {
-  id              String         @id @default(uuid()) @db.Uuid
-  name            String         @db.VarChar(200)
-  slug            String         @unique @db.VarChar(200)
-  description     String?
-  price           Decimal        @db.Decimal(10, 2)
-  currency        String         @default("INR") @db.VarChar(3)
-  interval        String         @default("monthly") @db.VarChar(50)
-  trialPeriodDays Int            @default(0) @map("trial_period_days")
-  features        Json?
-  isActive        Boolean        @default(true) @map("is_active")
-  sortOrder       Int            @default(0) @map("sort_order")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-  subscriptions   subscriptions[]
-
-  @@index([isActive])
-  @@index([slug])
-}
-
-model subscriptions {
-  id                     String                @id @default(uuid()) @db.Uuid
-  profileId              String                @map("profile_id") @db.Uuid
-  planId                 String                @map("plan_id") @db.Uuid
-  status                 String                @default("active") @db.VarChar(50)
-  currentPeriodStart     DateTime?             @map("current_period_start") @db.Timestamptz(6)
-  currentPeriodEnd       DateTime?             @map("current_period_end") @db.Timestamptz(6)
-  trialEndsAt            DateTime?             @map("trial_ends_at") @db.Timestamptz(6)
-  cancelledAt            DateTime?             @map("cancelled_at") @db.Timestamptz(6)
-  razorpaySubscriptionId String?               @map("razorpay_subscription_id") @db.VarChar(100)
-  razorpayPlanId         String?               @map("razorpay_plan_id") @db.VarChar(100)
-  paymentMethod          String?               @map("payment_method") @db.VarChar(50)
-  nextBillingAt          DateTime?             @map("next_billing_at") @db.Timestamptz(6)
-  lastPaymentAt          DateTime?             @map("last_payment_at") @db.Timestamptz(6)
-  createdAt              DateTime              @default(now()) @map("created_at")
-  updatedAt              DateTime              @updatedAt @map("updated_at")
-  invoices               subscription_invoices[]
-  plan                   subscription_plans      @relation(fields: [planId], references: [id])
-  profile                profiles               @relation(fields: [profileId], references: [id], onDelete: Cascade)
-
-  @@unique([profileId, planId])
-  @@index([status])
-  @@index([nextBillingAt])
-}
-
-model subscription_invoices {
-  id                String       @id @default(uuid()) @db.Uuid
-  subscriptionId    String       @map("subscription_id") @db.Uuid
-  amount            Decimal      @db.Decimal(10, 2)
-  currency          String       @default("INR") @db.VarChar(3)
-  status            String       @default("pending") @db.VarChar(50)
-  razorpayInvoiceId String?      @map("razorpay_invoice_id") @db.VarChar(100)
-  razorpayPaymentId String?      @map("razorpay_payment_id") @db.VarChar(100)
-  periodStart       DateTime?    @map("period_start") @db.Timestamptz(6)
-  periodEnd         DateTime?    @map("period_end") @db.Timestamptz(6)
-  paidAt            DateTime?    @map("paid_at") @db.Timestamptz(6)
-  createdAt         DateTime     @default(now()) @map("created_at")
-  updatedAt         DateTime     @updatedAt @map("updated_at")
-  subscription      subscriptions @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-
-  @@index([subscriptionId])
-  @@index([status])
 }
 
 model currencies {

@@ -7,6 +7,7 @@ import { logAction, extractRequestMeta } from "../_lib/audit";
 import { cleanSecret } from "../_lib/secrets";
 import type { Env } from "../_lib/env";
 import { authenticate } from "../_lib/auth-middleware";
+import { completeReferralForOrder } from "./referral";
 
 const VALID_PAYMENT_METHODS = ["cod", "card", "upi", "netbanking", "wallet", "razorpay"] as const;
 const DEFAULT_SHIPPING_COST = 99;
@@ -699,6 +700,14 @@ export async function handleCheckoutRequest(
       },
       ...extractRequestMeta(req),
     });
+
+    // Complete any pending referral for this order's email and credit the referrer.
+    try {
+      await completeReferralForOrder(prisma, checkoutEmail, order.id, profileId);
+    } catch (referralErr) {
+      // Never fail checkout because of referral accounting.
+      console.error("Referral completion failed:", referralErr);
+    }
 
     return success({ order, razorpayOrderId: order.razorpayOrderId });
   } catch (err) {

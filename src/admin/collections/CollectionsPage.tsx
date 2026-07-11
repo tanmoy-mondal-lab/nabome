@@ -240,8 +240,8 @@ export default function CollectionsPage() {
             </label>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setModalOpen(false)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
-            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">
+            <button onClick={() => setModalOpen(false)} className="border border-neutral-200 px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+            <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">
               {saveMutation.isPending ? "Saving..." : editItem ? "Update" : "Create"}
             </button>
           </div>
@@ -251,8 +251,8 @@ export default function CollectionsPage() {
         <Modal open={true} title="Delete Collection" onClose={() => setConfirmDelete(null)}>
           <p className="text-sm text-neutral-600">Are you sure you want to delete "{confirmDelete.name}"? This action cannot be undone.</p>
           <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-            <button onClick={() => setConfirmDelete(null)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors">Cancel</button>
-            <button onClick={() => { deleteMutation.mutate(confirmDelete.id); setConfirmDelete(null); }} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">Delete</button>
+            <button onClick={() => setConfirmDelete(null)} className="border border-neutral-200 px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 transition-colors">Cancel</button>
+            <button onClick={() => { deleteMutation.mutate(confirmDelete.id); setConfirmDelete(null); }} className="bg-red-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">Delete</button>
           </div>
         </Modal>
       )}

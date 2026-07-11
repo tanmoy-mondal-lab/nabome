@@ -381,8 +381,8 @@ export default function CouponsPage() {
             <span className="text-xs text-neutral-600">Active</span>
           </label>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setModalOpen(false)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
-            <button onClick={handleSave} disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">
+            <button onClick={() => setModalOpen(false)} className="border border-neutral-200 px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+            <button onClick={handleSave} disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">
               {saveMutation.isPending ? "Saving..." : "Save"}
             </button>
           </div>
@@ -392,8 +392,8 @@ export default function CouponsPage() {
       <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Coupon" size="sm">
         <p className="text-sm text-neutral-600 mb-6">Are you sure you want to delete this coupon? This cannot be undone.</p>
         <div className="flex justify-end gap-2">
-          <button onClick={() => setDeleteConfirm(null)} className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
-          <button onClick={() => handleDelete(deleteConfirm!)} disabled={deleteMutation.isPending} className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50">
+          <button onClick={() => setDeleteConfirm(null)} className="border border-neutral-200 px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+          <button onClick={() => handleDelete(deleteConfirm!)} disabled={deleteMutation.isPending} className="bg-red-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50">
             {deleteMutation.isPending ? "Deleting..." : "Delete"}
           </button>
         </div>

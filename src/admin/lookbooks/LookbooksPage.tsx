@@ -131,13 +131,13 @@ export default function LookbooksPage() {
           <div className="flex justify-end gap-1">
             <button
               onClick={(e) => { e.stopPropagation(); void navigate(`/admin/lookbooks/${l.id}/edit`); }}
-              className="p-2 hover:bg-neutral-100 rounded-xl text-neutral-400 hover:text-neutral-600"
+              className="p-1.5 hover:bg-neutral-100 rounded-lg text-neutral-400 hover:text-neutral-600"
             >
               <Edit3 size={14} />
             </button>
             <button
               onClick={(e) => { e.stopPropagation(); handleDelete(l.id); }}
-              className="p-2 hover:bg-red-50 rounded-xl text-neutral-400 hover:text-red-500"
+              className="p-1.5 hover:bg-red-50 rounded-lg text-neutral-400 hover:text-red-500"
             >
               <Trash2 size={14} />
             </button>

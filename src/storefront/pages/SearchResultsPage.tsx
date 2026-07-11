@@ -5,7 +5,6 @@ import { Search } from "lucide-react";
 import { useSearch } from "../hooks/useProducts";
 import { ProductGrid } from "../components/ProductGrid";
 import { Breadcrumbs } from "../components/Breadcrumbs";
-import { canonical } from "../../lib/seo";
 
 export default function SearchResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -46,7 +45,6 @@ export default function SearchResultsPage() {
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDesc} />
-        <link rel="canonical" href={canonical(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/search')} />
         <meta name="robots" content="noindex, follow" />
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDesc} />

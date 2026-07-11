@@ -223,13 +223,13 @@ export default function SettingsPage() {
               <label className="block text-xs text-neutral-500 mb-1">Store Name</label>
               <input value={form.siteName}
                 onChange={(e) => setForm({ ...form, siteName: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Tagline</label>
               <input value={form.tagline}
                 onChange={(e) => setForm({ ...form, tagline: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <MediaPicker value={form.logoUrl} onChange={(url, publicId) => setForm({ ...form, logoUrl: url, logoPublicId: publicId ?? "" })} label="Logo URL" folder="branding" />
@@ -241,19 +241,19 @@ export default function SettingsPage() {
               <label className="block text-xs text-neutral-500 mb-1">Contact Email</label>
               <input type="email" value={form.contactEmail}
                 onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Contact Phone</label>
               <input value={form.contactPhone}
                 onChange={(e) => setForm({ ...form, contactPhone: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Currency</label>
               <select value={form.currency}
                 onChange={(e) => setForm({ ...form, currency: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors">
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors">
                 <option value="INR">INR (₹)</option>
                 <option value="USD">USD ($)</option>
                 <option value="EUR">EUR (€)</option>
@@ -265,7 +265,7 @@ export default function SettingsPage() {
             <label className="block text-xs text-neutral-500 mb-1">Address</label>
             <textarea rows={2} value={form.address}
               onChange={(e) => setForm({ ...form, address: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+              className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
           </div>
         </section>
 
@@ -277,19 +277,19 @@ export default function SettingsPage() {
               <label className="block text-xs text-neutral-500 mb-1">Tax Rate (%)</label>
               <input type="number" value={form.taxRate}
                 onChange={(e) => setForm({ ...form, taxRate: Number(e.target.value) })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Default Shipping Cost (₹)</label>
               <input type="number" value={form.preferences.shippingCost}
                 onChange={(e) => setForm({ ...form, preferences: { ...form.preferences, shippingCost: Number(e.target.value) } })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Free Shipping Threshold (₹)</label>
               <input type="number" value={form.freeShippingThreshold}
                 onChange={(e) => setForm({ ...form, freeShippingThreshold: Number(e.target.value) })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
@@ -308,13 +308,13 @@ export default function SettingsPage() {
               <label className="block text-xs text-neutral-500 mb-1">Low Stock Threshold</label>
               <input type="number" value={form.preferences.lowStockThreshold}
                 onChange={(e) => setForm({ ...form, preferences: { ...form.preferences, lowStockThreshold: Number(e.target.value) } })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Max Wishlist Items</label>
               <input type="number" value={form.preferences.maxWishlistItems}
                 onChange={(e) => setForm({ ...form, preferences: { ...form.preferences, maxWishlistItems: Number(e.target.value) } })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
           </div>
           <div className="space-y-2">
@@ -341,29 +341,29 @@ export default function SettingsPage() {
               <label className="block text-xs text-neutral-500 mb-1">Newsletter Title</label>
               <input value={form.preferences.newsletterTitle}
                 onChange={(e) => setForm({ ...form, preferences: { ...form.preferences, newsletterTitle: e.target.value } })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Newsletter Subtitle</label>
               <input value={form.preferences.newsletterSubtitle}
                 onChange={(e) => setForm({ ...form, preferences: { ...form.preferences, newsletterSubtitle: e.target.value } })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Promo Bar Text</label>
               <input value={form.preferences.promoText}
                 onChange={(e) => setForm({ ...form, preferences: { ...form.preferences, promoText: e.target.value } })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Promo Tagline</label>
               <input value={form.preferences.promoTagline}
                 onChange={(e) => setForm({ ...form, preferences: { ...form.preferences, promoTagline: e.target.value } })}
-                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
+                className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
             </div>
           </div>
           <div>
-            <label className="block text-xs text-neutral-500 mb-2">Footer Legal Links</label>
+            <label className="block text-xs text-neutral-500 mb-1">Footer Legal Links</label>
             <div className="space-y-2">
               {form.preferences.footerLinks.map((link, index) => (
                 <div key={index} className="flex items-center gap-2">
@@ -375,7 +375,7 @@ export default function SettingsPage() {
                       setForm({ ...form, preferences: { ...form.preferences, footerLinks: newLinks } });
                     }}
                     placeholder="Label"
-                    className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+                    className="flex-1 px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
                   />
                   <input
                     value={link.url}
@@ -385,7 +385,7 @@ export default function SettingsPage() {
                       setForm({ ...form, preferences: { ...form.preferences, footerLinks: newLinks } });
                     }}
                     placeholder="URL (e.g., /privacy, /terms, /faq)"
-                    className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+                    className="flex-1 px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
                   />
                   {link.url && !link.url.startsWith("http") && (
                     <button
@@ -456,11 +456,11 @@ export default function SettingsPage() {
               rows={12}
               value={pageForm.content}
               onChange={(e) => setPageForm({ ...pageForm, content: e.target.value })}
-              className="w-full px-3 py-2 text-sm font-mono border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+              className="w-full px-3 py-2.5 text-sm font-mono border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setEditingSlug(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+            <button onClick={() => setEditingSlug(null)} className="px-4 py-2.5 text-sm text-neutral-500">Cancel</button>
             <button onClick={handleSavePage} disabled={pageSaving} className="btn-primary disabled:opacity-50">
               {pageSaving ? "Saving..." : "Save Page"}
             </button>

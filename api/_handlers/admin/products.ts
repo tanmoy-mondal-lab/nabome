@@ -500,6 +500,19 @@ async function handleAddImage(productId: string, req: Request, env: any): Promis
   if (!url) return badRequest("Image URL is required");
 
   const prisma = getPrisma(env);
+
+  // Alt text is optional — default to the product name for accessibility/SEO when blank.
+  let resolvedAltText: string | null = (typeof altText === "string" && altText.trim().length > 0)
+    ? altText.trim()
+    : null;
+  if (!resolvedAltText) {
+    const product = await prisma.products.findUnique({
+      where: { id: productId },
+      select: { name: true },
+    });
+    resolvedAltText = product?.name?.trim() || "Product image";
+  }
+
   try {
     if (isPrimary) {
       await prisma.product_images.updateMany({
@@ -525,7 +538,7 @@ async function handleAddImage(productId: string, req: Request, env: any): Promis
         productId,
         url: url as string,
         publicId: (publicId as string) ?? null,
-        altText: (altText as string) ?? null,
+        altText: resolvedAltText,
         variantId: resolvedVariantId,
         sortOrder: (sortOrder as number) ?? 0,
         isPrimary: (isPrimary as boolean) ?? false,

@@ -1,6 +1,6 @@
 import type { CloudinaryResourceType, CloudinaryConfig } from "./types";
 export declare function deleteAsset(publicId: string, resourceType: CloudinaryResourceType, config: CloudinaryConfig): Promise<boolean>;
-export declare function uploadToCloudinary(file: File, publicId: string, folder: string, resourceType: CloudinaryResourceType, config: CloudinaryConfig): Promise<{
+export declare function uploadToCloudinary(file: File, publicId: string, resourceType: CloudinaryResourceType, config: CloudinaryConfig): Promise<{
     publicId: string;
     url: string;
     secureUrl: string;

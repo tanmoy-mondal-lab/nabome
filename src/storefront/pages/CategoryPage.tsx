@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "framer-motion";
 import { Grid3X3, List, SlidersHorizontal, X, RefreshCw } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -10,7 +9,6 @@ import { Breadcrumbs } from "../components/Breadcrumbs";
 import { ProductGrid } from "../components/ProductGrid";
 import { formatPrice } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
-import { canonical, img } from "../../lib/seo";
 import type { Product } from "../../types/product";
 
 interface Subcategory {
@@ -233,9 +231,6 @@ export default function CategoryPage() {
   if (catError) {
     return (
       <div className="container-page py-20 text-center">
-        <Helmet>
-          <title>Category Not Found — নবME</title>
-        </Helmet>
         <div className="w-16 h-16 mx-auto mb-6 bg-neutral-100 rounded-full flex items-center justify-center">
           <RefreshCw className="w-6 h-6 text-neutral-400" />
         </div>
@@ -250,18 +245,6 @@ export default function CategoryPage() {
 
   return (
     <>
-      <Helmet>
-        <title>{category ? `${category.name} — নবME` : "Loading — নবME"}</title>
-        <meta
-          name="description"
-          content={category?.description || `Explore our curated ${category?.name || ""} collection at নবME. Premium fashion for the discerning.`}
-        />
-        <link rel="canonical" href={canonical(`/categories/${slug}`)} />
-        <meta property="og:title" content={`${category?.name || "Category"} — নবME`} />
-        <meta property="og:description" content={category?.description || `Browse ${category?.name || ""} at নবME`} />
-        <meta property="og:url" content={canonical(`/categories/${slug}`)} />
-        {heroImage && <meta property="og:image" content={img(heroImage, { width: 1200 })} />}
-      </Helmet>
 
       {/* ═══════════════════════════════════════════
           HERO SECTION — Full-bleed luxury banner

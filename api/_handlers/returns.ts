@@ -301,39 +301,102 @@ async function handleReceive(returnId: string, ctx: RequestContext, env: any): P
     const returnRequest = await prisma.return_requests.findUnique({
       where: { id: returnId },
       include: {
-        order: { select: { orderNumber: true, profileId: true, total: true } },
+        order: {
+          select: { orderNumber: true, profileId: true, total: true },
+          include: { items: true },
+        },
       },
     });
 
     if (!returnRequest) return notFound("Return request not found");
     if (returnRequest.status !== "approved") return badRequest("Can only receive approved returns");
 
-    const [updated] = await prisma.$transaction([
-      prisma.return_requests.update({
+    // Compute the refund amount from the actually returned item(s) — never the
+    // whole order total (which includes shipping + tax). Refund the item
+    // subtotal only.
+    const orderItems = returnRequest.order.items || [];
+    const returnedItems = returnRequest.orderItemId
+      ? orderItems.filter((i: any) => i.id === returnRequest.orderItemId)
+      : orderItems;
+    if (returnedItems.length === 0) return badRequest("No items found to refund");
+
+    const refundAmount = returnedItems.reduce(
+      (sum: number, i: any) => sum + Number(i.totalPrice),
+      0
+    );
+    const wholeOrderReturned =
+      !returnRequest.orderItemId || returnedItems.length === orderItems.length;
+
+    const [updated] = await prisma.$transaction(async (tx) => {
+      const rr = await tx.return_requests.update({
         where: { id: returnId },
         data: {
           status: "item_received",
           itemReceivedAt: new Date(),
         },
-      }),
-      prisma.refunds.create({
+      });
+
+      await tx.refunds.create({
         data: {
           returnRequestId: returnId,
           orderId: returnRequest.orderId,
-          amount: returnRequest.order.total,
-          type: "full",
+          amount: refundAmount,
+          type: wholeOrderReturned ? "full" : "partial",
           status: "pending",
           initiatedBy: ctx.userId,
         },
-      }),
-    ]);
+      });
+
+      // Restore stock for the returned variant(s).
+      const variantsToRestore = returnedItems
+        .filter((i: any) => i.variantId)
+        .map((i: any) => ({ variantId: i.variantId, quantity: i.quantity }));
+      if (variantsToRestore.length > 0) {
+        const variantIds = variantsToRestore.map((v: any) => v.variantId);
+        const variants = await tx.product_variants.findMany({ where: { id: { in: variantIds } } });
+        const variantMap = new Map(variants.map((v: any) => [v.id, v]));
+        await Promise.all(
+          variantsToRestore.map((v: any) =>
+            tx.product_variants.update({
+              where: { id: v.variantId },
+              data: { stock: { increment: v.quantity }, reservedStock: { decrement: v.quantity } },
+            })
+          )
+        );
+        await tx.inventory_movements.createMany({
+          data: variantsToRestore.map((v: any) => {
+            const variant = variantMap.get(v.variantId)!;
+            return {
+              variantId: v.variantId,
+              quantityChange: v.quantity,
+              stockAfter: variant.stock + v.quantity,
+              reason: "return",
+              referenceId: returnRequest.order.orderNumber,
+            };
+          }),
+        });
+        // Mark the order items as returned.
+        await Promise.all(
+          returnedItems
+            .filter((i: any) => i.variantId)
+            .map((i: any) =>
+              tx.order_items.update({
+                where: { id: i.id },
+                data: { isReturned: true, returnQuantity: i.quantity },
+              })
+            )
+        );
+      }
+
+      return [rr];
+    });
 
     await createNotification(
       returnRequest.order.profileId!,
       returnRequest.orderId,
       "refund_processed",
       "Item Received",
-      `We've received your return for order ${returnRequest.order.orderNumber}. Refund will be processed soon.`,
+      `We've received your return for order ${returnRequest.order.orderNumber}. Refund of ₹${refundAmount} will be processed soon.`,
       env
     );
 

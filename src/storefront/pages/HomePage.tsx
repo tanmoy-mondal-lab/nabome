@@ -8,7 +8,6 @@ import { useProductListing } from "../hooks/useProducts";
 import SectionRenderer from "../sections/SectionRenderer";
 import { RecentlyViewed } from "../components/RecentlyViewed";
 import { ProductCard } from "../components/ProductCard";
-import { canonical } from "../../lib/seo";
 import { formatPrice } from "../../lib/utils/format";
 import type { Product } from "../../types/product";
 
@@ -52,7 +51,6 @@ export default function HomePage() {
       <>
         <Helmet>
           <meta name="description" content={(settings.siteDescription as string) || "Discover premium fashion at নবME"} />
-          <link rel="canonical" href={canonical("/")} />
           <meta property="og:title" content={`${(settings.siteName as string) || "নবME"} — Premium Fashion`} />
           <meta property="og:description" content={(settings.siteDescription as string) || ""} />
           {typeof settings.siteLogo === "string" && settings.siteLogo && <meta property="og:image" content={settings.siteLogo} />}
@@ -203,8 +201,6 @@ export default function HomePage() {
     <>
       <Helmet>
         <meta name="description" content={(settings.siteDescription as string) || "Discover premium fashion at নবME"} />
-        <link rel="canonical" href={canonical("/")} />
-        {/* websiteSchema is already injected in Layout — no duplicate needed */}
         <meta property="og:title" content={`${(settings.siteName as string) || "নবME"} — Premium Fashion`} />
         <meta property="og:description" content={(settings.siteDescription as string) || ""} />
         {typeof settings.siteLogo === "string" && settings.siteLogo && <meta property="og:image" content={settings.siteLogo} />}

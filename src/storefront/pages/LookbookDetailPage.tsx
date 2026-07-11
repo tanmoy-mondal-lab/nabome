@@ -9,7 +9,7 @@ import { SafeImage } from "../../components/SafeImage";
 import { useCartStore } from "../stores/cart-store";
 import { useAuthStore } from "../../stores/auth-store";
 import { Helmet } from "react-helmet-async";
-import { canonical } from "../../lib/seo";
+import { articleSchema, breadcrumbSchema } from "../../lib/seo";
 import type { Product, ProductVariant } from "../../types/product";
 
 export default function LookbookDetailPage() {
@@ -76,12 +76,22 @@ export default function LookbookDetailPage() {
       <Helmet>
         <title>{lookbookName} — নবME</title>
         <meta name="description" content={story ? (story as string).slice(0, 160) : `View the ${lookbookName} lookbook on নবME.`} />
-        <link rel="canonical" href={canonical(`/lookbooks/${slug}`)} />
         <meta name="robots" content="index, follow" />
         <meta property="og:title" content={`${lookbookName} — নবME`} />
         <meta property="og:description" content={story ? (story as string).slice(0, 200) : `View the ${lookbookName} lookbook on নবME.`} />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={canonical(`/lookbooks/${slug}`)} />
+        <script type="application/ld+json">{JSON.stringify(articleSchema({
+          headline: lookbookName,
+          description: story as string | undefined,
+          image: lookbook.coverImageUrl as string | undefined,
+          author: "নবME",
+          url: `https://www.nabome.online/lookbooks/${slug}`,
+        }))}</script>
+        <script type="application/ld+json">{JSON.stringify(breadcrumbSchema([
+          { label: "Home", url: "/" },
+          { label: "Lookbooks", url: "/lookbooks" },
+          { label: lookbookName },
+        ]))}</script>
       </Helmet>
       <Breadcrumbs items={[
         { label: "Lookbooks", href: "/lookbooks" },

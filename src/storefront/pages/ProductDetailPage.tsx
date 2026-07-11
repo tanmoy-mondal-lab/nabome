@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import { motion } from "framer-motion";
 import { Heart, ShoppingBag, Shield, Truck, RotateCcw, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,8 +23,7 @@ import { useCartStore } from "../stores/cart-store";
 import { useWishlist } from "../hooks/useWishlist";
 import { addRecentlyViewed } from "../lib/recommendations";
 import { cn } from "../../lib/utils/cn";
-import { canonical, productSchema, breadcrumbSchema } from "../../lib/seo";
-import { img } from "../../lib/seo";
+import { canonical } from "../../lib/seo";
 import { useSettings } from "../hooks/useSettings";
 import { formatPrice } from "../../lib/utils/format";
 
@@ -164,39 +162,10 @@ export default function ProductDetailPage() {
   const averageRating = reviewStats?.stats?.averageRating ?? 0;
 
   const freeShippingThreshold = Number(settingsData?.preferences?.freeShippingThreshold ?? 500);
-  const locale = (settingsData?.preferences?.locale as string) || "en_IN";
   const sizeGuideData = product.sizeGuide;
 
   return (
     <div className="bg-white">
-      <Helmet>
-        <meta name="description" content={product.description?.slice(0, 160)} />
-        <link rel="canonical" href={canonical(`/products/${slug}`)} />
-        <meta name="robots" content="index, follow" />
-
-        <meta property="og:title" content={`${product.name} — নবME`} />
-        <meta property="og:description" content={product.description?.slice(0, 200)} />
-        <meta property="og:type" content="product" />
-        <meta property="og:url" content={canonical(`/products/${slug}`)} />
-        <meta property="og:site_name" content="নবME" />
-        <meta property="og:locale" content={locale} />
-        {product.images?.[0] && (
-          <meta property="og:image" content={img(product.images[0].url, { width: 1200, height: 630 })} />
-        )}
-
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${product.name} — নবME`} />
-        <meta name="twitter:description" content={product.description?.slice(0, 160)} />
-        {product.images?.[0] && (
-          <meta name="twitter:image" content={img(product.images[0].url, { width: 1200, height: 630 })} />
-        )}
-
-        <script type="application/ld+json">{JSON.stringify(productSchema(product))}</script>
-        <script type="application/ld+json">{JSON.stringify(breadcrumbSchema([
-          ...(category ? [{ label: category.name, url: `/products?category=${category.slug || ""}` }] : []),
-          { label: product.name },
-        ]))}</script>
-      </Helmet>
 
       <div className="container-page pt-8 pb-24">
         <Breadcrumbs items={[

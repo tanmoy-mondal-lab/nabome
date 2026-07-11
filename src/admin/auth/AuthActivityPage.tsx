@@ -182,7 +182,7 @@ function SessionsTab() {
               key={String(val)}
               onClick={() => { setIsActive(val); setPage(1); }}
               className={cn(
-                "px-3 py-2 text-sm rounded-xl border font-medium transition-colors",
+                "px-3 py-2 text-sm rounded-lg border font-medium transition-colors",
                 isActive === val
                   ? "bg-neutral-900 text-white border-neutral-900"
                   : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"
@@ -222,9 +222,9 @@ function SessionsTab() {
           </div>
         </div>
         <div className="flex justify-end gap-2 mt-6">
-          <button onClick={() => setRevokeConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+          <button onClick={() => setRevokeConfirm(null)} className="border border-neutral-200 px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
           <button onClick={() => revokeConfirm && revokeMutation.mutate(revokeConfirm.id)} disabled={revokeMutation.isPending}
-            className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50">
+            className="bg-red-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50">
             {revokeMutation.isPending ? "Revoking..." : "Revoke"}
           </button>
         </div>
@@ -262,7 +262,7 @@ function LoginAttemptsTab() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
           <input type="text" placeholder="Search by email..." value={emailFilter}
             onChange={(e) => { setEmailFilter(e.target.value); setPage(1); }}
-            className="w-full pl-10 pr-4 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full pl-10 pr-4 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" />
         </div>
         {(["", "true", "false"] as const).map((v) => (
           <button key={v} onClick={() => { setSuccessFilter(v); setPage(1); }}
@@ -296,7 +296,7 @@ function LoginAttemptsTab() {
               <thead>
                 <tr className="border-b border-neutral-200 bg-neutral-50">
                   <th className="text-left px-4 py-3 font-medium text-neutral-600">Email</th>
-                  <th className="text-left px-4 py-3 font-medium textneutral-600">Status</th>
+                  <th className="text-left px-4 py-3 font-medium text-neutral-600">Status</th>
                   <th className="text-left px-4 py-3 font-medium text-neutral-600">IP Address</th>
                   <th className="text-left px-4 py-3 font-medium text-neutral-600">User Agent</th>
                   <th className="text-left px-4 py-3 font-medium text-neutral-600">Failure Reason</th>

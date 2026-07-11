@@ -5,7 +5,7 @@ import { api } from "../../lib/api/client";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { SafeImage } from "../../components/SafeImage";
 import { Helmet } from "react-helmet-async";
-import { canonical } from "../../lib/seo";
+import { collectionSchema, breadcrumbSchema } from "../../lib/seo";
 
 export default function LookbookPage() {
   const { data: res, isLoading: loading, isError } = useQuery({
@@ -22,9 +22,18 @@ export default function LookbookPage() {
       <Helmet>
         <title>Lookbooks — নবME</title>
         <meta name="description" content="Browse our curated lookbooks on নবME." />
-        <link rel="canonical" href={canonical("/lookbooks")} />
         <meta property="og:title" content="Lookbooks — নবME" />
         <meta property="og:description" content="Browse our curated lookbooks on নবME." />
+        <script type="application/ld+json">{JSON.stringify(collectionSchema({
+          name: "Lookbooks",
+          slug: "lookbooks",
+          description: "Curated fashion stories and seasonal collections",
+          numberOfItems: lookbooks.length,
+        }))}</script>
+        <script type="application/ld+json">{JSON.stringify(breadcrumbSchema([
+          { label: "Home", url: "/" },
+          { label: "Lookbooks" },
+        ]))}</script>
       </Helmet>
       <Breadcrumbs items={[{ label: "Lookbooks" }]} className="mb-6" />
       <h1 className="text-3xl md:text-4xl font-display text-neutral-900 mb-2">Lookbooks</h1>

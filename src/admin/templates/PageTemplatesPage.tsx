@@ -125,12 +125,12 @@ export default function PageTemplatesPage() {
       )}
 
       {templates.length === 0 ? (
-        <div className="bg-white border border-neutral-200 rounded">
+        <div className="premium-card rounded-2xl">
           <EmptyState icon={FileJson} title="No templates yet"
             action={<button onClick={openCreate} className="btn-primary">Create Template</button>} />
         </div>
       ) : (
-        <div className="bg-white border border-neutral-200 rounded overflow-hidden">
+        <div className="premium-card rounded-2xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-neutral-200 bg-neutral-50">

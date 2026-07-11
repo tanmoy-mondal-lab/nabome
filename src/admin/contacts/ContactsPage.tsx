@@ -204,7 +204,7 @@ export default function ContactsPage() {
             </div>
             <div>
               <label className="block text-xs text-neutral-500 mb-1">Message</label>
-              <p className="text-sm text-neutral-600 whitespace-pre-wrap bg-neutral-50 rounded-xl p-3 border border-neutral-200">
+              <p className="text-sm text-neutral-600 whitespace-pre-wrap bg-neutral-50 rounded-lg p-3 border border-neutral-200">
                 {detailItem.message}
               </p>
             </div>
@@ -221,9 +221,9 @@ export default function ContactsPage() {
       <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Submission" size="sm">
         <p className="text-sm text-neutral-600 mb-6">Delete this contact submission?</p>
         <div className="flex justify-end gap-2">
-          <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+          <button onClick={() => setDeleteConfirm(null)} className="border border-neutral-200 px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
           <button onClick={() => deleteMutation.mutate(deleteConfirm!)} disabled={deleteMutation.isPending}
-            className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50">
+            className="bg-red-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50">
             {deleteMutation.isPending ? "Deleting..." : "Delete"}
           </button>
         </div>

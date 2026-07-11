@@ -141,8 +141,8 @@ export default function LabelsPage() {
           <div className="text-[10px] text-neutral-400">Slug is auto-generated from name</div>
         </div>
         <div className="flex justify-end gap-2 pt-4 border-t mt-4">
-          <button onClick={() => setShowModal(false)} type="button" className="border border-neutral-200 px-4 py-2 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
-          <button onClick={handleSave} type="button" disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">{saveMutation.isPending ? "Saving..." : "Save"}</button>
+          <button onClick={() => setShowModal(false)} type="button" className="border border-neutral-200 px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+          <button onClick={handleSave} type="button" disabled={saveMutation.isPending} className="bg-neutral-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">{saveMutation.isPending ? "Saving..." : "Save"}</button>
         </div>
       </Modal>
     </div>

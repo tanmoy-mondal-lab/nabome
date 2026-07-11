@@ -6,9 +6,8 @@ import { useToast } from "../components/ui/Toast";
 import { TurnstileWidget } from "../components/TurnstileWidget";
 import { turnstileEnabled, turnstileSiteKey } from "../lib/config";
 import { Helmet } from "react-helmet-async";
-import { canonical } from "../lib/seo";
 
-const VERIFICATION_ERROR = "Please verify your email before signing in";
+const VERIFICATION_ERROR = "Your email has not been verified";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -82,7 +81,6 @@ export default function LoginPage() {
       <Helmet>
         <title>Sign In — নবME</title>
         <meta name="robots" content="noindex, nofollow" />
-        <link rel="canonical" href={canonical("/auth/login")} />
       </Helmet>
       {/* Left panel — form */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
@@ -99,13 +97,21 @@ export default function LoginPage() {
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded">
               <p className="text-sm text-red-700">{displayError}</p>
               {needsVerification && (
-                <button
-                  onClick={handleResend}
-                  disabled={resending}
-                  className="mt-2 text-xs text-brand-600 hover:text-brand-700 underline disabled:opacity-50"
-                >
-                  {resending ? "Sending…" : "Resend verification code"}
-                </button>
+                <div className="mt-3 flex flex-col items-start gap-2">
+                  <button
+                    onClick={handleResend}
+                    disabled={resending}
+                    className="text-xs text-brand-600 hover:text-brand-700 underline disabled:opacity-50"
+                  >
+                    {resending ? "Sending…" : "Resend verification code"}
+                  </button>
+                  <Link
+                    to={`/auth/verify-email?email=${encodeURIComponent(email)}`}
+                    className="text-xs text-brand-600 hover:text-brand-700 underline"
+                  >
+                    Verify email now
+                  </Link>
+                </div>
               )}
             </div>
           )}

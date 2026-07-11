@@ -58,7 +58,7 @@ export default function ImportExportPage() {
           <p className="text-xs text-neutral-500 mb-4">Download your data as CSV for analysis or backup.</p>
           <div className="space-y-3">
             <button onClick={() => handleExport("products")} disabled={exporting !== null}
-              className="w-full flex items-center justify-between px-4 py-3 border border-neutral-200 rounded text-sm hover:bg-neutral-50 disabled:opacity-50">
+              className="w-full flex items-center justify-between px-4 py-3 border border-neutral-200 rounded-lg text-sm hover:bg-neutral-50 disabled:opacity-50">
               <span className="font-medium text-neutral-700">Export Products</span>
               {exporting === "products" ? (
                 <RefreshCw size={14} className="animate-spin text-neutral-400" />
@@ -67,7 +67,7 @@ export default function ImportExportPage() {
               )}
             </button>
             <button onClick={() => handleExport("orders")} disabled={exporting !== null}
-              className="w-full flex items-center justify-between px-4 py-3 border border-neutral-200 rounded text-sm hover:bg-neutral-50 disabled:opacity-50">
+              className="w-full flex items-center justify-between px-4 py-3 border border-neutral-200 rounded-lg text-sm hover:bg-neutral-50 disabled:opacity-50">
               <span className="font-medium text-neutral-700">Export Orders</span>
               {exporting === "orders" ? (
                 <RefreshCw size={14} className="animate-spin text-neutral-400" />
@@ -84,7 +84,7 @@ export default function ImportExportPage() {
             <h2 className="font-medium text-sm text-neutral-900">Import</h2>
           </div>
           <p className="text-xs text-neutral-500 mb-4">Import products from a CSV file. The file must match the export format.</p>
-          <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded p-8 cursor-pointer hover:bg-neutral-50 transition-colors ${importing ? "opacity-50 pointer-events-none" : "border-neutral-300"}`}>
+          <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-8 cursor-pointer hover:bg-neutral-50 transition-colors ${importing ? "opacity-50 pointer-events-none" : "border-neutral-300"}`}>
             <input type="file" accept=".csv" onChange={handleImport} className="hidden" disabled={importing} />
             {importing ? (
               <>
@@ -100,7 +100,7 @@ export default function ImportExportPage() {
             )}
           </label>
           {importResult && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
               <p className="font-medium">Import complete</p>
               <p>{importResult.imported} imported, {importResult.skipped} skipped</p>
               {importResult.errors.length > 0 && (

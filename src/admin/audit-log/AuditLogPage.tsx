@@ -95,7 +95,7 @@ export default function AuditLogPage() {
               value={actionFilter}
               onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
               placeholder="Filter by action..."
-              className="pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 w-44"
+              className="pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors w-44"
             />
           </div>
           <div className="relative">
@@ -104,7 +104,7 @@ export default function AuditLogPage() {
               value={entityFilter}
               onChange={(e) => { setEntityFilter(e.target.value); setPage(1); }}
               placeholder="Filter by entity..."
-              className="pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-brand-500 w-44"
+              className="pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors w-44"
             />
           </div>
         </div>
@@ -119,7 +119,9 @@ export default function AuditLogPage() {
       )}
 
       {logs.length === 0 && !isLoading ? (
-        <EmptyState icon={ClipboardList} title="No audit log entries" description={actionFilter || entityFilter ? "Try different filters" : undefined} />
+        <div className="premium-card rounded-2xl">
+          <EmptyState icon={ClipboardList} title="No audit log entries" description={actionFilter || entityFilter ? "Try different filters" : undefined} />
+        </div>
       ) : (
         <DataTable columns={columns} data={logs} isLoading={isLoading}
           page={page} totalPages={pagination?.totalPages ?? 1} onPageChange={setPage}
@@ -127,7 +129,7 @@ export default function AuditLogPage() {
       )}
 
       <Modal open={!!metadataModal} onClose={() => setMetadataModal(null)} title="Metadata Details" size="lg">
-        <pre className="text-xs bg-neutral-50 border border-neutral-200 rounded-xl p-4 overflow-auto max-h-96 text-neutral-800 font-mono leading-relaxed">
+        <pre className="text-xs bg-neutral-50 border border-neutral-200 rounded-lg p-4 overflow-auto max-h-96 text-neutral-800 font-mono leading-relaxed">
           {JSON.stringify(metadataModal?.metadata, null, 2)}
         </pre>
       </Modal>

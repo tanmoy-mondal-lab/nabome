@@ -10,7 +10,6 @@ import { Breadcrumbs } from "../components/Breadcrumbs";
 import { SafeImage } from "../../components/SafeImage";
 import { formatPrice } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
-import { canonical } from "../../lib/seo";
 import type { Product } from "../../types/product";
 
 const SORT_OPTIONS = [
@@ -298,7 +297,6 @@ export default function ProductListingPage() {
       <Helmet>
         <title>{q ? `Search: "${q}" — নবME` : "Collections — নবME"}</title>
         <meta name="description" content={q ? `Search results for "${q}" on নবME.` : "Browse our curated collections at নবME."} />
-        <link rel="canonical" href={canonical("/products")} />
       </Helmet>
 
       <div

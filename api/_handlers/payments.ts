@@ -194,6 +194,40 @@ async function handleVerify(req: Request, ctx: RequestContext, env: any): Promis
   }
 }
 
+async function releaseReservedInventory(
+  tx: any,
+  order: { id: string; orderNumber: string; items: Array<{ variantId: string | null; quantity: number }> }
+): Promise<void> {
+  const orderItems = (order.items || []).filter((i) => i.variantId) as Array<{ variantId: string; quantity: number }>;
+  const variantIds = orderItems.map((i) => i.variantId);
+  if (variantIds.length === 0) return;
+  const variants = (await tx.product_variants.findMany({ where: { id: { in: variantIds } } })) as Array<{ id: string; stock: number }>;
+  const variantMap = new Map<string, { id: string; stock: number }>(variants.map((v) => [v.id, v]));
+  const items = orderItems.filter((i) => variantMap.has(i.variantId));
+  await Promise.all(
+    items.map((item) =>
+      tx.product_variants.update({
+        where: { id: item.variantId },
+        data: { stock: { increment: item.quantity }, reservedStock: { decrement: item.quantity } },
+      })
+    )
+  );
+  if (items.length > 0) {
+    await tx.inventory_movements.createMany({
+      data: items.map((item) => {
+        const variant = variantMap.get(item.variantId)!;
+        return {
+          variantId: item.variantId,
+          quantityChange: item.quantity,
+          stockAfter: variant.stock + item.quantity,
+          reason: "payment_failed",
+          referenceId: order.orderNumber,
+        };
+      }),
+    });
+  }
+}
+
 async function handleFailed(req: Request, ctx: RequestContext, env: any): Promise<Response> {
   try {
     const parsed = await validateBody(req, paymentFailedSchema);
@@ -202,7 +236,10 @@ async function handleFailed(req: Request, ctx: RequestContext, env: any): Promis
 
     const prisma = getPrisma(env);
 
-    const order = await prisma.orders.findUnique({ where: { id: orderId } });
+    const order = await prisma.orders.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
     if (!order) return notFound("Order not found");
     if (order.razorpayOrderId !== razorpayOrderId) {
       return badRequest("Payment order does not match this order");
@@ -224,6 +261,9 @@ async function handleFailed(req: Request, ctx: RequestContext, env: any): Promis
         where: { id: orderId },
         data: { paymentStatus: "failed" },
       });
+
+      // Release stock that was reserved when the order was placed.
+      await releaseReservedInventory(tx, order);
 
       if (order.profileId) {
         await tx.notifications.create({
@@ -555,6 +595,11 @@ async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: any }
   const order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env);
   if (!order) throw new Error(`Order not found for razorpay_order_id: ${razorpayOrderId}`);
 
+  const orderWithItems = await prisma.orders.findUnique({
+    where: { id: order.id },
+    include: { items: true },
+  });
+
   const result = await prisma.$transaction(async (tx) => {
     const current = await tx.orders.findUnique({ where: { id: order.id } });
     if (!current || current.paymentStatus === "failed") return { status: "already_processed", orderId: order.id };
@@ -563,6 +608,9 @@ async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: any }
       where: { id: order.id },
       data: { paymentStatus: "failed" },
     });
+
+    // Release stock that was reserved when the order was placed.
+    if (orderWithItems) await releaseReservedInventory(tx, orderWithItems);
 
     if (order.profileId) {
       await tx.notifications.create({
@@ -642,12 +690,19 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }
       rrId = rr.id;
     }
 
+    const allRefunds = await tx.refunds.findMany({
+      where: { orderId: order.id, status: "completed" },
+    });
+    const otherRefunded = allRefunds.reduce((sum, r) => sum + Number(r.amount), 0);
+    const orderTotal = Number(order.total);
+    const isFullRefund = otherRefunded + Number(refundAmount) >= orderTotal;
+
     const refundRecord = await tx.refunds.create({
       data: {
         returnRequestId: rrId,
         orderId: order.id,
         amount: refundAmount,
-        type: "partial",
+        type: isFullRefund ? "full" : "partial",
         status: refundStatus === "processed" ? "completed" : "processing",
         paymentMethod: "razorpay",
         transactionId: refundId,
@@ -655,14 +710,6 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }
         notes: `Refund initiated via Razorpay. Refund ID: ${refundId}`,
       },
     });
-
-    const allRefunds = await tx.refunds.findMany({
-      where: { orderId: order.id, status: "completed", id: { not: refundRecord.id } },
-    });
-    // Only add current refund amount if it's already completed (not the one we just created)
-    const totalRefunded = allRefunds.reduce((sum, r) => sum + Number(r.amount), 0) + (refundStatus === "processed" ? Number(refundAmount) : 0);
-    const orderTotal = Number(order.total);
-    const isFullRefund = totalRefunded >= orderTotal;
 
     await tx.orders.update({
       where: { id: order.id },

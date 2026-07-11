@@ -81,7 +81,7 @@ export function MediaPicker({
           placeholder={placeholder}
           className="flex-1 px-3 py-2.5 text-sm border-0 bg-transparent focus:outline-none focus:ring-0"
         />
-        <div className="flex items-center gap-1.5 pr-2">
+        <div className="flex items-center gap-1.5 pr-2 shrink-0">
           {value && preview && (
             <div className="relative w-8 h-8 bg-neutral-100 rounded-md overflow-hidden shrink-0 group">
               {broken ? (

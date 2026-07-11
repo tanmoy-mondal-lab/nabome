@@ -12,8 +12,8 @@ interface MediaManagerProps {
   uploadingMedia: boolean;
   onUploadStart: () => void;
   onUploadEnd: () => void;
-  onPendingImage: (data: { url: string; publicId: string; variantId?: string } | null) => void;
   productName?: string;
+  productSlug?: string;
 }
 
 export function MediaManager({
@@ -22,8 +22,8 @@ export function MediaManager({
   uploadingMedia,
   onUploadStart,
   onUploadEnd,
-  onPendingImage,
   productName = "Product",
+  productSlug,
 }: MediaManagerProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -33,9 +33,12 @@ export function MediaManager({
   function addImage(file: File) {
     onUploadStart();
     adminApi
-      .uploadFile(file, "products")
+      .uploadFile(file, "products", productSlug)
       .then((res) => {
-        onPendingImage({ url: res.url, publicId: res.publicId });
+        onChange([
+          ...images,
+          { url: res.url, publicId: res.publicId, isPrimary: images.length === 0, sortOrder: images.length, type: "image" },
+        ]);
       })
       .catch((err) => {
         const msg = err instanceof Error ? err.message : "Upload failed";

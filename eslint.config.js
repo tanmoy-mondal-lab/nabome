@@ -49,6 +49,7 @@ export default tseslint.config(
             "scripts/update-razorpay-secrets.ts",
             "scripts/verify-cloudinary.ts",
             "scripts/verify-database.ts",
+            "scripts/reconcile-orphan-users.ts",
             "prisma/seed/*.ts",
           ],
           maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 50,

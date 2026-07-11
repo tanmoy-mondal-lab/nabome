@@ -117,7 +117,7 @@ export default function CampaignsPage() {
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
-  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
+  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors";
 
   if (loading) {
     return (
@@ -179,8 +179,8 @@ export default function CampaignsPage() {
                   <td className="px-4 py-3"><StatusBadge status={c.isActive ? "active" : "inactive"} /></td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => openEdit(c)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded"><Edit3 size={14} /></button>
-                      <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 text-red-400 hover:text-red-600 rounded"><Trash2 size={14} /></button>
+                      <button onClick={() => openEdit(c)} className="p-1.5 text-neutral-400 hover:text-neutral-600 rounded-lg"><Edit3 size={14} /></button>
+                      <button onClick={() => setDeleteConfirm(c.id)} className="p-1.5 text-red-400 hover:text-red-600 rounded-lg"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -224,9 +224,9 @@ export default function CampaignsPage() {
             <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="accent-brand-500" />
             <span className="text-xs text-neutral-600">Active</span>
           </label>
-          <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
-            <button onClick={handleSave} disabled={isSaving} className="btn-primary disabled:opacity-50">
+          <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+            <button onClick={() => setModalOpen(false)} className="border border-neutral-200 px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
+            <button onClick={handleSave} disabled={isSaving} className="bg-neutral-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">
               {isSaving ? "Saving..." : "Save"}
             </button>
           </div>
@@ -236,11 +236,11 @@ export default function CampaignsPage() {
       <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Campaign" size="sm">
         <p className="text-sm text-neutral-600 mb-6">Delete this campaign?</p>
         <div className="flex justify-end gap-2">
-          <button onClick={() => setDeleteConfirm(null)} className="px-4 py-2 text-sm text-neutral-500">Cancel</button>
+          <button onClick={() => setDeleteConfirm(null)} className="border border-neutral-200 px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
           <button
             onClick={() => handleDelete(deleteConfirm!)}
             disabled={deleteMutation.isPending}
-            className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-medium disabled:opacity-50"
+            className="bg-red-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
           >
             {deleteMutation.isPending ? "Deleting..." : "Delete"}
           </button>

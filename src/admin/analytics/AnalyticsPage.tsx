@@ -72,7 +72,7 @@ export default function AnalyticsPage() {
           <p className="text-sm text-neutral-500 mt-1">Sales and delivery insights</p>
         </div>
         <select value={period} onChange={(e) => setPeriod(e.target.value)}
-          className="px-3 py-2 text-sm border border-neutral-200 rounded bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+          className="px-3 py-2 text-sm border border-neutral-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors">
           <option value="7d">Last 7 days</option>
           <option value="30d">Last 30 days</option>
           <option value="90d">Last 90 days</option>

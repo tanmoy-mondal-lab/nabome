@@ -4,7 +4,7 @@
 // Handles session restore via API call and auto-refresh
 // ─────────────────────────────────────────────────────────────
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth-store";
 import { authApi, type LoginRequest, type RegisterRequest } from "../lib/api/auth";
@@ -13,35 +13,48 @@ import { useCartStore } from "../storefront/stores/cart-store";
 import { useCartSync } from "../storefront/hooks/useCartSync";
 
 export function useAuth() {
-  const store = useAuthStore();
+  // Select only the primitives/actions we need so the hook does not
+  // re-run effects on every unrelated state change.
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const setUser = useAuthStore((s) => s.setUser);
+  const setLoading = useAuthStore((s) => s.setLoading);
+  const clearAuth = useAuthStore((s) => s.clearAuth);
+
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const { items } = useCartStore();
   const { mergeGuestCartOnServer, hydrateServerCart } = useCartSync(items);
 
-  // ── Restore session on mount using cookies ──
+  // ── Restore session on mount using cookies (runs exactly once) ──
+  const restored = useRef(false);
   useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
     const restoreSession = async () => {
       try {
         const res = await authApi.me();
-        store.setAuth(res.user);
+        setAuth(res.user);
       } catch {
-        store.setLoading(false);
+        setLoading(false);
       }
     };
     restoreSession();
-  }, [store]);
+  }, [setAuth, setLoading]);
 
   // ── Listen for forced logout from API client (session expired) ──
   useEffect(() => {
     const handleForceLogout = () => {
-      store.clearAuth();
+      clearAuth();
       useCartStore.getState().switchUser();
       queryClient.removeQueries({ queryKey: ["auth"] });
     };
     window.addEventListener("auth:logout", handleForceLogout);
     return () => window.removeEventListener("auth:logout", handleForceLogout);
-  }, [store, queryClient]);
+  }, [clearAuth, queryClient]);
 
   // ── Proactive refresh timer ──
   // Uses API refresh endpoint which sets new cookies automatically
@@ -50,17 +63,22 @@ export function useAuth() {
       try {
         await authApi.refresh();
       } catch {
-        store.clearAuth();
+        useAuthStore.getState().clearAuth();
         useCartStore.getState().switchUser();
         if (typeof window !== "undefined") {
-          window.location.href = "/auth/login";
+          // Only redirect if we're not already on an auth page, otherwise we
+          // would pointlessly reload the login/register screen every interval.
+          const onAuthPage = window.location.pathname.startsWith("/auth");
+          if (!onAuthPage) {
+            window.location.href = "/auth/login";
+          }
         }
       }
     };
 
     const refreshTimer = setInterval(checkAndRefresh, 30_000);
     return () => clearInterval(refreshTimer);
-  }, [store]);
+  }, []);
 
   const login = useCallback(
     async (data: LoginRequest) => {
@@ -68,7 +86,7 @@ export function useAuth() {
       try {
         const guestCartItems = useCartStore.getState().items;
         const res = await authApi.login(data);
-        store.setAuth(res.user);
+        setAuth(res.user);
         if (guestCartItems.length > 0) {
           await mergeGuestCartOnServer(guestCartItems);
         } else {
@@ -81,7 +99,7 @@ export function useAuth() {
         throw err;
       }
     },
-    [store, mergeGuestCartOnServer, hydrateServerCart]
+    [setAuth, mergeGuestCartOnServer, hydrateServerCart]
   );
 
   const register = useCallback(
@@ -105,10 +123,10 @@ export function useAuth() {
     } catch {
       // Proceed even if API call fails
     }
-    store.clearAuth();
+    clearAuth();
     useCartStore.getState().switchUser();
     queryClient.removeQueries({ queryKey: ["auth"] });
-  }, [store, queryClient]);
+  }, [clearAuth, queryClient]);
 
   const resendVerification = useCallback(async (email: string, turnstileToken?: string) => {
     setError(null);
@@ -170,7 +188,7 @@ export function useAuth() {
       setError(null);
       try {
         const res = await authApi.updateMe(data);
-        store.setUser(res.user);
+        setUser(res.user);
         return res.user;
       } catch (err) {
         const message = err instanceof ApiError ? err.message : "Failed to update profile";
@@ -178,14 +196,14 @@ export function useAuth() {
         throw err;
       }
     },
-    [store]
+    [setUser]
   );
 
   return {
-    user: store.user,
-    isAuthenticated: store.isAuthenticated,
-    isAdmin: store.isAdmin,
-    isLoading: store.isLoading,
+    user,
+    isAuthenticated,
+    isAdmin,
+    isLoading,
     error,
 
     login,

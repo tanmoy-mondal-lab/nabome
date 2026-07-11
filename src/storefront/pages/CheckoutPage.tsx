@@ -19,7 +19,6 @@ import { useRazorpay } from "../../lib/razorpay/use-razorpay";
 import { useSettings } from "../hooks/useSettings";
 import { api } from "../../lib/api/client";
 import { Helmet } from "react-helmet-async";
-import { canonical } from "../../lib/seo";
 import { AddressForm, EMPTY_SHIPPING, validateAddress, type ShippingFormState } from "../components/checkout/AddressForm";
 import { OrderSummary } from "../components/checkout/OrderSummary";
 
@@ -322,7 +321,6 @@ export default function CheckoutPage() {
           <title>Checkout — নবME</title>
           <meta name="description" content="Complete your purchase on নবME." />
           <meta name="robots" content="noindex, nofollow" />
-          <link rel="canonical" href={canonical("/checkout")} />
           <meta property="og:title" content="Checkout — নবME" />
           <meta property="og:description" content="Complete your purchase on নবME." />
         </Helmet>
@@ -350,7 +348,6 @@ export default function CheckoutPage() {
           <title>Checkout — নবME</title>
           <meta name="description" content="Complete your purchase on নবME." />
           <meta name="robots" content="noindex, nofollow" />
-          <link rel="canonical" href={canonical("/checkout")} />
           <meta property="og:title" content="Checkout — নবME" />
           <meta property="og:description" content="Complete your purchase on নবME." />
         </Helmet>
@@ -443,7 +440,6 @@ export default function CheckoutPage() {
         <title>Checkout — নবME</title>
         <meta name="description" content="Complete your purchase on নবME." />
         <meta name="robots" content="noindex, nofollow" />
-        <link rel="canonical" href={canonical("/checkout")} />
         <meta property="og:title" content="Checkout — নবME" />
         <meta property="og:description" content="Complete your purchase on নবME." />
       </Helmet>

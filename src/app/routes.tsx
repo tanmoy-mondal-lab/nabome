@@ -38,10 +38,6 @@ const DashboardSettings = lazy(() => import("../storefront/pages/SettingsPage"))
 const DashboardSupport = lazy(() => import("../storefront/pages/SupportTicketsPage"));
 const DashboardReturnRequest = lazy(() => import("../storefront/pages/ReturnRequestPage"));
 const DashboardOrderTracking = lazy(() => import("../storefront/pages/OrderTrackingPage"));
-const DashboardLoyalty = lazy(() => import("../storefront/pages/account/LoyaltyPage"));
-const DashboardReferral = lazy(() => import("../storefront/pages/account/ReferralPage"));
-const DashboardGiftCards = lazy(() => import("../storefront/pages/account/GiftCardsPage"));
-const DashboardSubscription = lazy(() => import("../storefront/pages/account/SubscriptionPage"));
 
 const RB = (el: ReactNode) => <ErrorBoundary>{el}</ErrorBoundary>;
 
@@ -74,10 +70,6 @@ export const STOREFRONT_ROUTES = (
     <Route path="account/notifications" element={<ErrorBoundary><ProtectedRoute><DashboardNotifications /></ProtectedRoute></ErrorBoundary>} />
     <Route path="account/settings" element={<ErrorBoundary><ProtectedRoute><DashboardSettings /></ProtectedRoute></ErrorBoundary>} />
     <Route path="account/support" element={<ErrorBoundary><ProtectedRoute><DashboardSupport /></ProtectedRoute></ErrorBoundary>} />
-    <Route path="account/loyalty" element={<ErrorBoundary><ProtectedRoute><DashboardLoyalty /></ProtectedRoute></ErrorBoundary>} />
-    <Route path="account/referral" element={<ErrorBoundary><ProtectedRoute><DashboardReferral /></ProtectedRoute></ErrorBoundary>} />
-    <Route path="account/gift-cards" element={<ErrorBoundary><ProtectedRoute><DashboardGiftCards /></ProtectedRoute></ErrorBoundary>} />
-    <Route path="account/subscriptions" element={<ErrorBoundary><ProtectedRoute><DashboardSubscription /></ProtectedRoute></ErrorBoundary>} />
 
     <Route path=":slug" element={RB(<StaticPage />)} />
   </Route>

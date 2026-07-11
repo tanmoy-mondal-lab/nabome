@@ -97,11 +97,11 @@ export default function SearchIndexPage() {
             {building ? "Building…" : "Rebuild Index"}
           </button>
         </div>
-        <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+        <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-4">
           Note: The search index is in-memory and resets on server restart. Build the index after each deployment.
         </p>
         {buildResult && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+          <div className="p-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-700">
             <p className="font-medium">Index rebuilt successfully</p>
             <p>{buildResult.indexed} items indexed</p>
             {Object.entries(buildResult.types).length > 0 && (

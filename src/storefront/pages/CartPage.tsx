@@ -12,7 +12,6 @@ import { cn } from "../../lib/utils/cn";
 import { useSettings } from "../hooks/useSettings";
 import { api } from "../../lib/api/client";
 import { Helmet } from "react-helmet-async";
-import { canonical } from "../../lib/seo";
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -72,7 +71,6 @@ export default function CartPage() {
         <Helmet>
           <title>Shopping Cart — নবME</title>
           <meta name="description" content="View your shopping cart on নবME." />
-          <link rel="canonical" href={canonical("/cart")} />
           <meta property="og:title" content="Shopping Cart — নবME" />
           <meta property="og:description" content="View your shopping cart on নবME." />
           <meta name="robots" content="noindex, nofollow" />
@@ -119,7 +117,6 @@ export default function CartPage() {
       <Helmet>
         <title>Shopping Cart — নবME</title>
         <meta name="description" content="View your shopping cart on নবME." />
-        <link rel="canonical" href={canonical("/cart")} />
         <meta property="og:title" content="Shopping Cart — নবME" />
         <meta property="og:description" content="View your shopping cart on নবME." />
         <meta name="robots" content="noindex, nofollow" />

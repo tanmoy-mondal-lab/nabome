@@ -12,7 +12,7 @@ interface VariantManagerProps {
   uploadingMedia: boolean;
   onUploadStart: () => void;
   onUploadEnd: () => void;
-  onPendingImage: (data: { url: string; publicId: string; variantId: string } | null) => void;
+  productSlug?: string;
 }
 
 const SIZES = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "One Size"];
@@ -23,7 +23,7 @@ export function VariantManager({
   uploadingMedia,
   onUploadStart,
   onUploadEnd,
-  onPendingImage,
+  productSlug,
 }: VariantManagerProps) {
   const { toast } = useToast();
   const [expandedVariant, setExpandedVariant] = useState<string | null>(null);
@@ -69,8 +69,20 @@ export function VariantManager({
     async (variantId: string, file: File) => {
       onUploadStart();
       try {
-        const res = await adminApi.uploadFile(file, "products");
-        onPendingImage({ url: res.url, publicId: res.publicId, variantId });
+        const res = await adminApi.uploadFile(file, "products", productSlug);
+        const idx = variants.findIndex((v) => v.id === variantId);
+        if (idx >= 0) {
+          const updated = [...variants];
+          const vImages = [...(updated[idx].images ?? [])];
+          updated[idx] = {
+            ...updated[idx],
+            images: [
+              ...vImages,
+              { url: res.url, publicId: res.publicId, isPrimary: vImages.length === 0, sortOrder: vImages.length, type: "image" },
+            ],
+          };
+          onChange(updated);
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Image upload failed";
         toast(`${msg} — try again`, "error");
@@ -80,7 +92,7 @@ export function VariantManager({
         if (ref) ref.value = "";
       }
     },
-    [onUploadStart, onUploadEnd, onPendingImage, toast]
+    [variants, onChange, productSlug, onUploadStart, onUploadEnd, toast]
   );
 
   const handleVariantVideoUpload = useCallback(

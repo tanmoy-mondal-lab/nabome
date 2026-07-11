@@ -188,7 +188,10 @@ export const useCartStore = create<CartState>()(
       discountAmount: () => {
         const sub = get().subtotal();
         if (!get().discountType) return 0;
-        const raw = get().discountType === "percentage" ? sub * (get().discount / 100) : get().discount;
+        // The /api/coupons/validate endpoint returns `discount` as an absolute
+        // rupee amount (already computed for percentage coupons), so treat it
+        // as absolute regardless of discountType.
+        const raw = Math.min(sub, Math.max(0, get().discount));
         return Math.round(raw * 100) / 100;
       },
 

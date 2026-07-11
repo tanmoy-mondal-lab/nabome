@@ -6,9 +6,10 @@
 import { createClient } from "@supabase/supabase-js";
 import { getPrisma } from "../_lib/prisma";
 import {
-  success, badRequest, unauthorized, serverError, created, conflict,
+  success, badRequest, unauthorized, serverError, created, conflict, error,
 } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
+import { ErrorCode } from "../_lib/types";
 import { validateBody, authRegisterSchema, authLoginSchema, forgotPasswordSchema, verifyResetCodeSchema, resetPasswordSchema, changePasswordSchema, verifyEmailSchema, resendVerificationSchema } from "../_lib/validate";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
@@ -87,18 +88,83 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
 
     const prisma = getPrisma(ctx.env);
 
-    // Check if profile already exists
+    // Check if a local profile already exists for this email.
     const existingProfile = await prisma.profiles.findUnique({
       where: { email: normalizedEmail },
-      select: { id: true, emailVerified: true, firstName: true },
+      select: { id: true, emailVerified: true, firstName: true, preferences: true },
     });
 
     if (existingProfile) {
-      if (existingProfile.emailVerified) {
-        return conflict("This email is already registered. Please sign in.");
+      const isGuest =
+        (existingProfile.preferences as Record<string, unknown> | null)?.guest === true;
+
+      // A profile created by guest checkout has no Supabase Auth user. Convert
+      // it into a full account (reusing the same profile id so existing guest
+      // orders stay linked) instead of telling the user to "log in".
+      if (isGuest) {
+        let supabase;
+        try {
+          supabase = getAdminClient(ctx.env);
+        } catch {
+          return serverError(new Error("Registration service unavailable"));
+        }
+
+        const { data: createdUser, error: authError } = await supabase.auth.admin.createUser({
+          id: existingProfile.id,
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { role: "customer", first_name: firstName },
+        });
+
+        if (authError) return badRequest(authError.message);
+        if (!createdUser.user) return serverError(new Error("Failed to create user"));
+
+        const verificationToken = generateVerificationCode();
+        const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+        await prisma.profiles.update({
+          where: { id: existingProfile.id },
+          data: {
+            firstName,
+            lastName: lastName ?? null,
+            phone: phone ?? null,
+            emailVerified: false,
+            verificationToken,
+            verificationTokenExpiresAt,
+            preferences: { ...(existingProfile.preferences as object ?? {}), guest: false },
+          },
+        });
+
+        logAction(existingProfile.id, "auth.register_guest_convert", {
+          metadata: { email: normalizedEmail, firstName },
+        }, ctx.env);
+
+        const emailResult = await sendEmailNotification("email_verification", {
+          email: normalizedEmail,
+          firstName,
+          verificationCode: verificationToken,
+        }, ctx.env, true);
+
+        if (!emailResult.success) {
+          console.error("[AUTH] Failed to send verification email (guest convert):", emailResult.error);
+        }
+
+        return created({
+          user: { id: existingProfile.id, email: normalizedEmail, firstName },
+          message: emailResult.success
+            ? "Account created successfully. A verification email has been sent."
+            : "Account created successfully. We couldn't send the verification email. Please try again.",
+          emailSent: emailResult.success,
+        });
       }
 
-      // Account exists but not verified — automatically resend verification
+      if (existingProfile.emailVerified) {
+        return conflict("An account with this email already exists. Please log in.");
+      }
+
+      // Account exists but not verified — issue a fresh token and resend the
+      // verification email. Never ask the user to create another account.
       const verificationToken = generateVerificationCode();
       const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
@@ -122,12 +188,17 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       }, ctx.env);
 
       return success({
-        message: "Your account already exists but has not been verified. A new verification email has been sent.",
+        message: emailResult.success
+          ? "Your account exists but your email has not been verified. We have sent you a new verification email."
+          : "Your account exists but your email has not been verified. We couldn't send the verification email. Please try again.",
         emailSent: emailResult.success,
         accountExists: true,
       });
     }
 
+    // No local profile exists. Check whether a Supabase Auth user already
+    // exists for this email (e.g. a previous registration created the auth
+    // user but the profile row was never written — an "orphaned" user).
     let supabase;
     try {
       supabase = getAdminClient(ctx.env);
@@ -135,20 +206,92 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       return serverError(new Error("Registration service unavailable"));
     }
 
-    // Create user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const orphanId = await findSupabaseUserByEmail(supabase, normalizedEmail);
+
+    if (orphanId) {
+      // Reuse the existing auth user: set its password and create the missing
+      // profile row linked to it. Deleting + recreating races Supabase's
+      // eventual consistency, so we link to the existing user instead.
+      const { error: updateError } = await supabase.auth.admin.updateUserById(orphanId, {
+        password,
+        email_confirm: true,
+        user_metadata: { role: "customer", first_name: firstName },
+      });
+      if (updateError) return badRequest(updateError.message);
+
+      const verificationToken = generateVerificationCode();
+      const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      try {
+        await prisma.profiles.create({
+          data: {
+            id: orphanId,
+            email: normalizedEmail,
+            role: "customer",
+            firstName,
+            lastName: lastName ?? null,
+            phone: phone ?? null,
+            verificationToken,
+            verificationTokenExpiresAt,
+          },
+        });
+      } catch (err) {
+        // Profile is keyed by the Supabase user id, so a repeated attempt is
+        // naturally idempotent. Log but continue — the auth password is set.
+        console.error("[AUTH] Profile create failed on orphan recovery:", err);
+      }
+
+      logAction(orphanId, "auth.register_orphan_recover", {
+        metadata: { email: normalizedEmail, firstName },
+      }, ctx.env);
+
+      const emailResult = await sendEmailNotification("email_verification", {
+        email: normalizedEmail,
+        firstName,
+        verificationCode: verificationToken,
+      }, ctx.env, true);
+
+      if (!emailResult.success) {
+        console.error("[AUTH] Failed to send verification email (orphan recover):", emailResult.error);
+      }
+
+      return created({
+        user: { id: orphanId, email: normalizedEmail, firstName },
+        message: emailResult.success
+          ? "Account created successfully. A verification email has been sent."
+          : "Account created successfully. We couldn't send the verification email. Please try again.",
+        emailSent: emailResult.success,
+      });
+    }
+
+    // Normal path: no auth user and no profile — create both.
+    const { data: createdUser, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
       user_metadata: { role: "customer", first_name: firstName },
     });
+    let authData = createdUser;
 
     if (authError) {
       const msg = authError.message?.toLowerCase() || "";
-      if (msg.includes("already registered") || msg.includes("already exists")) {
-        return conflict("An account already exists with this email. Please sign in.");
+      if (msg.includes("already been registered") || msg.includes("already registered") || msg.includes("already exists")) {
+        // Extremely unlikely after the pre-check above, but recover just in case
+        // the list call missed a user created in the same instant.
+        const fallbackId = await findSupabaseUserByEmail(supabase, normalizedEmail);
+        if (fallbackId) {
+          await supabase.auth.admin.updateUserById(fallbackId, {
+            password,
+            email_confirm: true,
+            user_metadata: { role: "customer", first_name: firstName },
+          }).catch(() => {});
+          authData = { user: { id: fallbackId } } as unknown as typeof createdUser;
+        } else {
+          return badRequest(authError.message);
+        }
+      } else {
+        return badRequest(authError.message);
       }
-      return badRequest(authError.message);
     }
 
     if (!authData.user) {
@@ -175,6 +318,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       });
     } catch (err) {
       await supabase.auth.admin.deleteUser(authData.user.id).catch(() => {});
+      console.error("[AUTH] Profile create failed, rolled back Supabase user:", err);
       return serverError(err);
     }
 
@@ -194,7 +338,9 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
 
     return created({
       user: { id: authData.user.id, email: normalizedEmail, firstName },
-      message: "Account created successfully. Please verify your email." + (emailResult.success ? "" : " Note: There may be a delay in receiving the verification email."),
+      message: emailResult.success
+        ? "Account created successfully. A verification email has been sent."
+        : "Account created successfully. We couldn't send the verification email. Please try again.",
       emailSent: emailResult.success,
     });
   } catch (err) {
@@ -214,11 +360,12 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
     const ipAddress = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "unknown";
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if this email/code combination is locked out
+    // Check if this email is locked out. Lockout must count attempts by email
+    // (and IP), NOT by the submitted code — otherwise a brute-forcer who sends
+    // a different code each request would never trip the limit.
     const recentAttempts = await prisma.verification_attempts.findMany({
       where: {
         email: normalizedEmail,
-        code,
         createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) }, // Last 10 minutes
       },
       orderBy: { createdAt: "desc" },
@@ -250,8 +397,8 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
     }
 
     const profile = await prisma.profiles.findFirst({
-      where: { email: normalizedEmail, verificationToken: code, emailVerified: false },
-      select: { id: true, email: true, verificationTokenExpiresAt: true },
+      where: { email: normalizedEmail, verificationToken: code },
+      select: { id: true, email: true, firstName: true, emailVerified: true, verificationTokenExpiresAt: true },
     });
 
     if (!profile) {
@@ -268,8 +415,46 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
       return badRequest("Invalid verification code");
     }
 
+    if (profile.emailVerified) {
+      // Token matches but the account is already verified (e.g. the link was
+      // clicked more than once). Do not error — just confirm the state.
+      return success({ message: "Your email has already been verified." });
+    }
+
     if (profile.verificationTokenExpiresAt && profile.verificationTokenExpiresAt < new Date()) {
-      return badRequest("Verification code has expired. Request a new one.");
+      // Auto-issue a fresh token and send a new verification email so the user
+      // is never stuck with an expired code.
+      const newToken = generateVerificationCode();
+      const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      await prisma.profiles.update({
+        where: { id: profile.id },
+        data: { verificationToken: newToken, verificationTokenExpiresAt: newExpiry },
+      });
+
+      const emailResult = await sendEmailNotification("email_verification", {
+        email: normalizedEmail,
+        firstName: profile.firstName,
+        verificationCode: newToken,
+      }, ctx.env, true).catch(() => ({ success: false, error: "email_failed" as const }));
+
+      // Record the expired attempt as a failure for lockout accounting.
+      await prisma.verification_attempts.create({
+        data: {
+          profileId: profile.id,
+          email: normalizedEmail,
+          code: code as string,
+          ipAddress,
+          success: false,
+        },
+      }).catch(() => {});
+
+      if (!emailResult.success) {
+        console.error("[AUTH] Failed to resend verification after expired code:", emailResult.error);
+        return badRequest("Your verification code has expired. We couldn't send a new verification email. Please try again.");
+      }
+
+      return badRequest("Your verification code has expired. We've sent you a new verification email.");
     }
 
     await prisma.profiles.update({
@@ -296,7 +481,7 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
       metadata: { email: profile.email },
     }, ctx.env);
 
-    return success({ message: "Email verified successfully" });
+    return success({ message: "Your email has been verified successfully. You can now log in." });
   } catch (err) {
     return serverError(err);
   }
@@ -367,7 +552,9 @@ async function handleResendVerification(req: Request, ctx: RequestContext): Prom
     }, ctx.env);
 
     return success({
-      message: "We've sent you a new verification email. Please check your inbox and spam folder." + (emailResult.success ? "" : " Note: There may be a delay in receiving the verification email."),
+      message: emailResult.success
+        ? "We've sent you a new verification email."
+        : "We couldn't send the verification email. Please try again.",
       emailSent: emailResult.success,
     });
   } catch (err) {
@@ -382,6 +569,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     const parsed = await validateBody(req, authLoginSchema);
     if ("response" in parsed) return parsed.response;
     const { email, password, rememberMe } = parsed.data;
+    const normalizedEmail = String(email).trim().toLowerCase();
 
     const prisma = getPrisma(ctx.env);
     const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
@@ -407,7 +595,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
 
     // Check if account exists in Prisma first
     const existingProfile = await prisma.profiles.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
       select: { id: true, emailVerified: true, firstName: true },
     });
 
@@ -417,7 +605,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
         await prisma.login_attempts.create({
           data: {
             profileId: null,
-            email,
+            email: normalizedEmail,
             ipAddress: clientIp,
             userAgent: userAgent ?? null,
             success: false,
@@ -427,14 +615,14 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
       } catch {
         // Non-critical
       }
-      return unauthorized("Invalid email or password");
+      return unauthorized("No account found with this email.");
     }
 
     const supabase = getAnonClient(ctx.env);
 
     // Attempt login
     const { data, error: authError } = await supabase.auth.signInWithPassword({
-      email,
+      email: normalizedEmail,
       password,
     });
 
@@ -443,7 +631,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
       await prisma.login_attempts.create({
         data: {
           profileId: existingProfile.id,
-          email,
+          email: normalizedEmail,
           ipAddress: clientIp,
           userAgent: userAgent ?? null,
           success: !authError,
@@ -455,11 +643,12 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     }
 
     if (authError || !data.session) {
-      return unauthorized("Invalid email or password");
+      return unauthorized("Incorrect password.");
     }
 
     if (!existingProfile.emailVerified) {
-      // Password is correct but email not verified — send new verification email
+      // Password is correct but email not verified — issue a fresh token
+      // (invalidating any previous unused one) and send a new verification email.
       const verificationToken = generateVerificationCode();
       const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
@@ -482,8 +671,20 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
         metadata: { email, reason: "unverified_login_attempt" },
       }, ctx.env);
 
-      return unauthorized(
-        "Please verify your email before signing in. A new verification email has been sent."
+      if (!emailResult.success) {
+        return error(
+          ErrorCode.UNAUTHORIZED,
+          "We couldn't send the verification email. Please try again.",
+          401,
+          { needsVerification: true, email }
+        );
+      }
+
+      return error(
+        ErrorCode.UNAUTHORIZED,
+        "Your email has not been verified. We've sent you a new verification email. Please verify your email before logging in.",
+        401,
+        { needsVerification: true, email }
       );
     }
 
@@ -690,11 +891,13 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
 
   const prisma = getPrisma(ctx.env);
 
-  // Revoke the specific session for this access token (with audit trail)
-  const authHeader = req.headers.get("Authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    const tokenHash = await hashToken(token);
+  // Revoke the specific session for this access token (with audit trail).
+  // The app authenticates via httpOnly cookies, so read the access token
+  // from the cookie (the Authorization header is not sent by the client).
+  const cookies = parseCookies(req.headers.get("cookie") ?? "");
+  const accessToken = cookies[COOKIE_CONFIG.ACCESS_TOKEN.name];
+  if (accessToken) {
+    const tokenHash = await hashToken(accessToken);
     await prisma.auth_sessions.updateMany({
       where: {
         profileId: ctx.userId,
@@ -702,7 +905,7 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
         OR: [
           { accessToken: tokenHash },
           // One-time compatibility for sessions created before token hashing.
-          { accessToken: token },
+          { accessToken },
         ],
       },
       data: { isActive: false, revokedAt: new Date() },
@@ -1019,11 +1222,11 @@ async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise
 
   const prisma = getPrisma(ctx.env);
 
-  // Check if this email/code combination is locked out
+  // Check if this email is locked out. Count attempts by email (not by the
+  // submitted code) so a brute-forcer can't bypass the limit with new codes.
   const recentAttempts = await prisma.verification_attempts.findMany({
     where: {
       email: normalizedEmail,
-      code,
       createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) }, // Last 10 minutes
     },
     orderBy: { createdAt: "desc" },
@@ -1244,6 +1447,31 @@ async function handleDeleteSession(_req: Request, ctx: RequestContext, sessionId
 }
 
 // ─── HELPERS ───
+
+async function findSupabaseUserByEmail(
+  supabase: ReturnType<typeof getAdminClient>,
+  email: string
+): Promise<string | null> {
+  // Supabase admin API has no direct "get user by email", so paginate the
+  // user list and match on the normalized email.
+  try {
+    let page = 1;
+    const perPage = 1000;
+    while (true) {
+      const { data, error: listError } = await supabase.auth.admin.listUsers({ page, perPage });
+      if (listError) return null;
+      const found = data.users.find(
+        (u) => u.email?.toLowerCase() === email.toLowerCase()
+      );
+      if (found) return found.id;
+      if (data.users.length < perPage) break;
+      page++;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
 
 function parseDevice(userAgent: string | null): string {
   if (!userAgent) return "Unknown";

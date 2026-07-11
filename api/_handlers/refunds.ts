@@ -248,7 +248,7 @@ async function handleComplete(refundId: string, _ctx: RequestContext, env: any):
         where: { id: refund.orderId },
         data: {
           paymentStatus,
-          refundedAt: new Date(),
+          ...(paymentStatus === "refunded" ? { refundedAt: new Date() } : {}),
         },
       }),
       ...(refund.returnRequestId ? [

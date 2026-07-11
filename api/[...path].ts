@@ -153,12 +153,7 @@ import { handlePaymentRequest, handleAdminWebhookRequest } from "./_handlers/pay
 import { handleNotificationRequest } from "./_handlers/notifications";
 import { handleSupportRequest } from "./_handlers/support";
 import { handleInvoiceRequest } from "./_handlers/invoices";
-import { handleLoyaltyRequest } from "./_handlers/loyalty";
-import { handleReferralRequest } from "./_handlers/referral";
-import { handleGiftCardRequest } from "./_handlers/gift-cards";
-import { handleSubscriptionRequest } from "./_handlers/subscriptions";
-import { handleCurrencyRequest } from "./_handlers/currencies";
-import { handleAdminFeatureFlagRequest } from "./_handlers/admin/feature-flags";
+import { handleDataExportRequest, handleDataDeleteRequest } from "./_handlers/data-export";
 import { handleDashboardRequest as handleCustomerDashboardRequest } from "./_handlers/dashboard";
 import { handleAdminCampaignRequest } from "./_handlers/admin/campaigns";
 import { handleAdminCouponRedemptionRequest } from "./_handlers/admin/coupon-redemptions";
@@ -266,7 +261,7 @@ route("GET", "/api/products/:slug/similar", (req, ctx, p) => handleProductReques
 
 // Search routes
 route("GET", "/api/search/suggestions", (req, ctx) => handleSearchRequest(req, ctx, [], "suggestions"));
-route("GET", "/api/search/recent", (req, ctx) => handleSearchRequest(req, ctx, [], "recent"));
+route("GET", "/api/search/recent", (req, ctx) => handleSearchRequest(req, ctx, [], "recent"), { auth: true });
 route("GET", "/api/search/trending", (req, ctx) => handleSearchRequest(req, ctx, [], "trending"));
 route("POST", "/api/search/save", (req, ctx) => handleSearchRequest(req, ctx, [], "save"), { auth: true });
 route("POST", "/api/search/clear", (req, ctx) => handleSearchRequest(req, ctx, [], "clear"), { auth: true });
@@ -571,6 +566,10 @@ route("PUT", "/api/notifications/read-all", (req, ctx) => handleNotificationRequ
 route("GET", "/api/notifications/unread-count", (req, ctx) => handleNotificationRequest(req, ctx, [], "unreadCount"), { auth: true });
 route("PUT", "/api/notifications/:id/read", (req, ctx, p) => handleNotificationRequest(req, ctx, p, "read"), { auth: true });
 
+// GDPR — account data export / delete
+route("POST", "/api/account/export", (req, ctx) => handleDataExportRequest(req, ctx), { auth: true });
+route("POST", "/api/account/delete", (req, ctx) => handleDataDeleteRequest(req, ctx), { auth: true });
+
 // Dashboard
 route("GET", "/api/dashboard", (req, ctx) => handleCustomerDashboardRequest(req, ctx, [], "overview"), { auth: true });
 route("GET", "/api/profile", (req, ctx) => handleCustomerDashboardRequest(req, ctx, [], "profile"), { auth: true });
@@ -583,43 +582,6 @@ route("GET", "/api/support", (req, ctx) => handleSupportRequest(req, ctx, [], "l
 route("GET", "/api/support/:id", (req, ctx, p) => handleSupportRequest(req, ctx, p, "ticketDetail"), { auth: true });
 route("POST", "/api/support/:id/reply", (req, ctx, p) => handleSupportRequest(req, ctx, p, "ticketReply"), { auth: true });
 route("GET", "/api/faq", (req, ctx) => handleSupportRequest(req, ctx, [], "faq"));
-
-// Loyalty
-route("GET", "/api/loyalty/points", (req, ctx) => handleLoyaltyRequest(req, ctx, [], "points"), { auth: true });
-route("GET", "/api/loyalty/transactions", (req, ctx) => handleLoyaltyRequest(req, ctx, [], "transactions"), { auth: true });
-route("POST", "/api/loyalty/redeem", (req, ctx) => handleLoyaltyRequest(req, ctx, [], "redeem"), { auth: true });
-route("GET", "/api/admin/loyalty", (req, ctx) => handleLoyaltyRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
-route("POST", "/api/admin/loyalty/adjust", (req, ctx) => handleLoyaltyRequest(req, ctx, [], "adminAdjust"), { auth: true, admin: true });
-
-// Referral
-route("GET", "/api/referral/my-code", (req, ctx) => handleReferralRequest(req, ctx, [], "myCode"), { auth: true });
-route("POST", "/api/referral/claim", (req, ctx) => handleReferralRequest(req, ctx, [], "claim"));
-route("GET", "/api/referral/my-referrals", (req, ctx) => handleReferralRequest(req, ctx, [], "myReferrals"), { auth: true });
-route("POST", "/api/referral/generate-code", (req, ctx) => handleReferralRequest(req, ctx, [], "generateCode"), { auth: true });
-route("GET", "/api/admin/referrals", (req, ctx) => handleReferralRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
-
-// Gift Cards
-route("POST", "/api/gift-cards/validate", (req, ctx) => handleGiftCardRequest(req, ctx, [], "validate"));
-route("POST", "/api/gift-cards/redeem", (req, ctx) => handleGiftCardRequest(req, ctx, [], "redeem"), { auth: true });
-route("GET", "/api/gift-cards/my-cards", (req, ctx) => handleGiftCardRequest(req, ctx, [], "myCards"), { auth: true });
-route("POST", "/api/gift-cards/purchase", (req, ctx) => handleGiftCardRequest(req, ctx, [], "purchase"), { auth: true });
-route("GET", "/api/admin/gift-cards", (req, ctx) => handleGiftCardRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
-route("POST", "/api/admin/gift-cards", (req, ctx) => handleGiftCardRequest(req, ctx, [], "adminCreate"), { auth: true, admin: true });
-
-// Subscriptions
-route("GET", "/api/subscriptions/plans", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "plans"));
-route("GET", "/api/subscriptions/my", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "mySubscription"), { auth: true });
-route("POST", "/api/subscriptions/create", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "create"), { auth: true });
-route("POST", "/api/subscriptions/cancel", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "cancel"), { auth: true });
-route("GET", "/api/subscriptions/invoices", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "invoices"), { auth: true });
-route("GET", "/api/admin/subscriptions/plans", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "adminPlans"), { auth: true, admin: true });
-route("POST", "/api/admin/subscriptions/plans", (req, ctx) => handleSubscriptionRequest(req, ctx, [], "adminCreatePlan"), { auth: true, admin: true });
-
-// Currencies
-route("GET", "/api/currencies", (req, ctx) => handleCurrencyRequest(req, ctx, [], "list"));
-route("POST", "/api/currencies/convert", (req, ctx) => handleCurrencyRequest(req, ctx, [], "convert"));
-route("GET", "/api/admin/currencies", (req, ctx) => handleCurrencyRequest(req, ctx, [], "adminList"), { auth: true, admin: true });
-route("PUT", "/api/admin/currencies/:code", (req, ctx, p) => handleCurrencyRequest(req, ctx, p, "adminUpdate"), { auth: true, admin: true });
 
 // --- ADMIN ROUTES ---
 
@@ -680,10 +642,6 @@ route("DELETE", "/api/admin/sessions/:id", (req, ctx, p) => handleAdminSessionRe
 
 // ─── Login Attempts ───
 route("GET", "/api/admin/login-attempts", (req, ctx) => handleAdminLoginAttemptRequest(req, ctx, [], "list"), { auth: true, admin: true });
-
-// ─── Feature Flags ───
-route("GET", "/api/admin/feature-flags", (req, ctx) => handleAdminFeatureFlagRequest(req, ctx, [], "list"), { auth: true, admin: true });
-route("POST", "/api/admin/feature-flags", (req, ctx) => handleAdminFeatureFlagRequest(req, ctx, [], "toggle"), { auth: true, admin: true });
 
 // ─── Router ───
 

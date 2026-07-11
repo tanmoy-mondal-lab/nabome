@@ -8,10 +8,12 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
+  globalSetup: './e2e/auth.setup.ts',
   use: {
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
   projects: [
     {
@@ -28,11 +30,6 @@ export default defineConfig({
     },
   ],
   webServer: [
-    {
-      command: 'npm run api:dev',
-      url: 'http://localhost:8788/api/health',
-      reuseExistingServer: !process.env.CI,
-    },
     {
       command: 'npm run dev',
       url: 'http://localhost:5173',

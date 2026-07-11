@@ -2,7 +2,6 @@ import { useParams, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet-async";
 import { Breadcrumbs } from "../components/Breadcrumbs";
-import { canonical } from "../../lib/seo";
 import { api } from "../../lib/api/client";
 import SectionRenderer from "../sections/SectionRenderer";
 import { sanitizeHTML } from "../../lib/sanitize-html";
@@ -108,7 +107,6 @@ export function StaticPage() {
       <Helmet>
         <title>{data.metaTitle || `${data.title} — নবME`}</title>
         {data.metaDesc && <meta name="description" content={data.metaDesc} />}
-        <link rel="canonical" href={canonical(`/${data.slug}`)} />
       </Helmet>
       {parsed ? (
         <div>

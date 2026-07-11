@@ -7,7 +7,7 @@ import { checkRateLimit, getRateLimitKey } from "../_lib/rate-limit";
 const UPLOAD_RATE_LIMIT = { maxRequests: 20, windowMs: 60_000 };
 
 const VALID_ENTITY_TYPES = [
-  "settings", "homepage", "products", "categories", "collections",
+  "settings", "homepage", "products", "product-videos", "categories", "collections",
   "brands", "labels", "lookbooks", "blogs", "cms", "sellers", "users",
 ] as const;
 

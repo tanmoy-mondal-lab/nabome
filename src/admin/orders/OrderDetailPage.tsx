@@ -159,7 +159,7 @@ export default function OrderDetailPage() {
   return (
     <div>
       {/* Back button */}
-      <button onClick={() => navigate("/admin/orders")} className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 mb-4">
+      <button onClick={() => navigate("/admin/orders")} className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-700 mb-6">
         <ArrowLeft size={14} /> Back to Orders
       </button>
 
@@ -237,7 +237,7 @@ export default function OrderDetailPage() {
                 <select
                   value={order.status}
                   onChange={(e) => handleStatusChange(e.target.value)}
-                  className="w-full max-w-xs px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+                  className="w-full max-w-xs px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
                 >
                   {ALL_STATUSES.map((s) => (
                     <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
@@ -250,7 +250,7 @@ export default function OrderDetailPage() {
                   value={statusNote}
                   onChange={(e) => setStatusNote(e.target.value)}
                   placeholder="Reason for status change…"
-                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+                  className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
                 />
               </div>
             </div>
@@ -286,7 +286,7 @@ export default function OrderDetailPage() {
               onChange={(e) => setInternalNote(e.target.value)}
               rows={3}
               placeholder="Add internal notes about this order…"
-              className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors resize-none"
+              className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors resize-none"
             />
             <button
               onClick={handleSaveNote}

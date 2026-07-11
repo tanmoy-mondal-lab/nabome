@@ -10,6 +10,9 @@ interface SeoPayload {
   siteName: string;
   locale: string;
   robots: "index, follow" | "noindex, nofollow";
+  jsonLd?: Record<string, unknown>[];
+  prevUrl?: string;
+  nextUrl?: string;
 }
 
 const DEFAULT_SITE_URL = "https://www.nabome.online";
@@ -100,6 +103,129 @@ function noindexPath(pathname: string): boolean {
   ].some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
+function generateWebsiteSchema(siteUrl: string, siteName: string): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: siteName,
+    url: siteUrl,
+    description: "Discover নবME — where heritage craftsmanship meets contemporary elegance. Premium fashion for the discerning.",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${siteUrl}/search?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+}
+
+function generateOrganizationSchema(siteUrl: string, siteName: string): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: siteName,
+    url: siteUrl,
+    logo: `${siteUrl}/favicon.svg`,
+    description: "Premium fashion destination celebrating the intersection of traditional craftsmanship and contemporary design.",
+    sameAs: [],
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer service",
+      email: "support@nabome.online",
+    },
+  };
+}
+
+function generateProductSchema(product: any, siteUrl: string): Record<string, unknown> {
+  const images = product.images || [];
+  const variants = product.variants || [];
+  const offers = variants.map((v: any) => ({
+    "@type": "Offer",
+    sku: v.sku || undefined,
+    price: Number(product.basePrice || 0) + Number(v.priceAdjustment || 0),
+    priceCurrency: "INR",
+    availability: v.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+    url: `${siteUrl}/products/${product.slug}`,
+  }));
+
+  const schema: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description?.slice(0, 5000),
+    sku: variants[0]?.sku || undefined,
+    image: images.map((i: any) => i.url),
+    brand: product.brand ? { "@type": "Brand", name: product.brand.name } : undefined,
+    offers: {
+      "@type": "AggregateOffer",
+      priceCurrency: "INR",
+      lowPrice: Number(product.basePrice || 0),
+      highPrice: variants.reduce((max: number, v: any) => Math.max(max, Number(product.basePrice || 0) + Number(v.priceAdjustment || 0)), 0),
+      offerCount: offers.length,
+      offers: offers.slice(0, 5),
+    },
+  };
+
+  Object.keys(schema).forEach((k) => schema[k] === undefined && delete schema[k]);
+  return schema;
+}
+
+function generateBreadcrumbSchema(items: { label: string; url?: string }[], siteUrl: string): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.label,
+      ...(item.url ? { item: `${siteUrl}${item.url}` } : {}),
+    })),
+  };
+}
+
+function generateCollectionSchema(collection: any, numberOfItems: number, siteUrl: string): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: collection.name,
+    description: collection.description?.slice(0, 5000),
+    url: `${siteUrl}/collections/${collection.slug}`,
+    ...(collection.imageUrl || collection.heroImageUrl ? { image: collection.imageUrl || collection.heroImageUrl } : {}),
+    ...(numberOfItems > 0 ? { numberOfItems } : {}),
+  };
+}
+
+function generateArticleSchema(article: any, siteUrl: string): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.name || article.title,
+    description: article.description?.slice(0, 5000),
+    url: `${siteUrl}/lookbooks/${article.slug}`,
+    image: article.coverImageUrl || article.imageUrl,
+    author: { "@type": "Organization", name: "নবME" },
+    datePublished: article.createdAt,
+    dateModified: article.updatedAt,
+  };
+}
+
+function generateFAQSchema(faqs: { question: string; answer: string }[]): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map(faq => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
+  };
+}
+
 function injectMeta(html: string, payload: SeoPayload): string {
   // Remove existing meta tags that we're about to inject to prevent duplicates
   const metaPatterns = [
@@ -117,6 +243,9 @@ function injectMeta(html: string, payload: SeoPayload): string {
     /<meta name="twitter:title"[^>]*>/gi,
     /<meta name="twitter:description"[^>]*>/gi,
     /<meta name="twitter:image"[^>]*>/gi,
+    /<link rel="prev"[^>]*>/gi,
+    /<link rel="next"[^>]*>/gi,
+    /<script type="application\/ld\+json"[^>]*>[\s\S]*?<\/script>/gi,
   ];
 
   let cleanedHtml = html;
@@ -139,6 +268,9 @@ function injectMeta(html: string, payload: SeoPayload): string {
     `<meta name="twitter:title" content="${escapeHtml(payload.title)}" />`,
     `<meta name="twitter:description" content="${escapeHtml(payload.description)}" />`,
     `<meta name="twitter:image" content="${escapeHtml(payload.imageUrl)}" />`,
+    ...(payload.prevUrl ? [`<link rel="prev" href="${escapeHtml(payload.prevUrl)}" />`] : []),
+    ...(payload.nextUrl ? [`<link rel="next" href="${escapeHtml(payload.nextUrl)}" />`] : []),
+    ...(payload.jsonLd?.map(schema => `<script type="application/ld+json">${JSON.stringify(schema)}</script>`) || []),
   ].join("\n    ");
 
   const withTitle = cleanedHtml.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(payload.title)}</title>`);
@@ -167,9 +299,14 @@ function injectMeta(html: string, payload: SeoPayload): string {
 
 async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
   const url = new URL(request.url);
-  const cacheKey = url.pathname;
+  const cacheKey = url.pathname + url.search;
   const cached = cachedSeo.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.payload;
+
+  // Handle pagination
+  const page = parseInt(url.searchParams.get("page") || "1");
+  const prevPage = page > 1 ? page - 1 : null;
+  const nextPage = page + 1;
 
   const prisma = getPrisma(env);
   const settings = await prisma.site_settings.findFirst({
@@ -192,13 +329,21 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
   const payload: SeoPayload = {
     title: globalTitle,
     description: globalDescription,
-    canonicalUrl: `${canonicalBase}${pathname === "/" ? "" : pathname}`,
+    canonicalUrl: `${canonicalBase}${pathname === "/" ? "" : pathname}${page > 1 ? `?page=${page}` : ""}`,
     imageUrl: fallbackImage,
     type: "website",
     siteName,
     locale: text(preferences.locale, "en_IN"),
     robots: noindexPath(pathname) ? "noindex, nofollow" : "index, follow",
+    jsonLd: [generateWebsiteSchema(canonicalBase, siteName), generateOrganizationSchema(canonicalBase, siteName)],
   };
+
+  // Only add pagination for paginated listing pages
+  const paginatedPaths = ["/products", "/categories", "/collections", "/lookbooks"];
+  if (paginatedPaths.some(p => pathname === p || pathname.startsWith(`${p}/`)) && page > 0) {
+    payload.prevUrl = prevPage ? `${canonicalBase}${pathname === "/" ? "" : pathname}?page=${prevPage}` : undefined;
+    payload.nextUrl = `${canonicalBase}${pathname === "/" ? "" : pathname}?page=${nextPage}`;
+  }
 
   if (payload.robots === "index, follow") {
     const parts = pathname.split("/").filter(Boolean);
@@ -211,10 +356,22 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
           shortDescription: true,
           metaTitle: true,
           metaDesc: true,
+          slug: true,
+          basePrice: true,
           images: {
             orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }],
             take: 1,
             select: { url: true },
+          },
+          brand: {
+            select: { name: true },
+          },
+          category: {
+            select: { name: true, slug: true },
+          },
+          variants: {
+            select: { sku: true, priceAdjustment: true, stock: true },
+            take: 10,
           },
         },
       });
@@ -223,42 +380,103 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
         payload.description = truncate(text(product.metaDesc, text(product.shortDescription, stripHtml(text(product.description, globalDescription)))), 160);
         payload.imageUrl = absoluteUrl(product.images[0]?.url ?? fallbackImage, canonicalBase);
         payload.type = "product";
+        payload.jsonLd = [
+          generateWebsiteSchema(canonicalBase, siteName),
+          generateOrganizationSchema(canonicalBase, siteName),
+          generateProductSchema(product, canonicalBase),
+          generateBreadcrumbSchema([
+            { label: "Home", url: "/" },
+            ...(product.category ? [{ label: product.category.name, url: `/products?category=${product.category.slug}` }] : []),
+            { label: product.name },
+          ], canonicalBase),
+        ];
+      }
+    } else if (parts[0] === "categories" && parts[1]) {
+      const category = await prisma.categories.findFirst({
+        where: { slug: parts[1], isActive: true },
+        select: { name: true, description: true, metaTitle: true, metaDesc: true, imageUrl: true, slug: true },
+      });
+      if (category) {
+        payload.title = text(category.metaTitle, `${category.name} — ${siteName}`);
+        payload.description = truncate(text(category.metaDesc, text(category.description, globalDescription)), 160);
+        payload.imageUrl = absoluteUrl(text(category.imageUrl, fallbackImage), canonicalBase);
+        payload.jsonLd = [
+          generateWebsiteSchema(canonicalBase, siteName),
+          generateOrganizationSchema(canonicalBase, siteName),
+          generateCollectionSchema(category, 0, canonicalBase),
+          generateBreadcrumbSchema([
+            { label: "Home", url: "/" },
+            { label: category.name, url: `/categories/${category.slug}` },
+          ], canonicalBase),
+        ];
       }
     } else if (parts[0] === "collections" && parts[1]) {
       const collection = await prisma.collections.findFirst({
         where: { slug: parts[1], isActive: true },
-        select: { name: true, description: true, metaTitle: true, metaDesc: true, heroImageUrl: true },
+        select: { name: true, description: true, metaTitle: true, metaDesc: true, heroImageUrl: true, slug: true },
       });
       if (collection) {
         payload.title = text(collection.metaTitle, `${collection.name} — ${siteName}`);
         payload.description = truncate(text(collection.metaDesc, text(collection.description, globalDescription)), 160);
         payload.imageUrl = absoluteUrl(text(collection.heroImageUrl, fallbackImage), canonicalBase);
+        payload.jsonLd = [
+          generateWebsiteSchema(canonicalBase, siteName),
+          generateOrganizationSchema(canonicalBase, siteName),
+          generateCollectionSchema(collection, 0, canonicalBase),
+          generateBreadcrumbSchema([
+            { label: "Home", url: "/" },
+            { label: "Collections", url: "/collections" },
+            { label: collection.name, url: `/collections/${collection.slug}` },
+          ], canonicalBase),
+        ];
       }
     } else if (parts[0] === "lookbooks" && parts[1]) {
       const lookbook = await prisma.lookbooks.findFirst({
         where: { slug: parts[1], isActive: true },
-        select: { name: true, description: true, metaTitle: true, metaDesc: true, coverImageUrl: true },
+        select: { name: true, description: true, metaTitle: true, metaDesc: true, coverImageUrl: true, slug: true, createdAt: true, updatedAt: true },
       });
       if (lookbook) {
         payload.title = text(lookbook.metaTitle, `${lookbook.name} — ${siteName}`);
         payload.description = truncate(text(lookbook.metaDesc, text(lookbook.description, globalDescription)), 160);
         payload.imageUrl = absoluteUrl(text(lookbook.coverImageUrl, fallbackImage), canonicalBase);
         payload.type = "article";
+        payload.jsonLd = [
+          generateWebsiteSchema(canonicalBase, siteName),
+          generateOrganizationSchema(canonicalBase, siteName),
+          generateArticleSchema(lookbook, canonicalBase),
+          generateBreadcrumbSchema([
+            { label: "Home", url: "/" },
+            { label: "Lookbooks", url: "/lookbooks" },
+            { label: lookbook.name, url: `/lookbooks/${lookbook.slug}` },
+          ], canonicalBase),
+        ];
       }
-    } else if (parts.length === 1 && !["products", "collections", "lookbooks", "search"].includes(parts[0])) {
+    } else if (parts.length === 1 && !["products", "categories", "collections", "lookbooks", "search", "faq"].includes(parts[0])) {
       const page = await prisma.static_pages.findFirst({
         where: { slug: parts[0], isPublished: true },
-        select: { title: true, metaTitle: true, metaDesc: true, ogImage: true },
+        select: { title: true, metaTitle: true, metaDesc: true, ogImage: true, slug: true },
       });
       if (page) {
         payload.title = text(page.metaTitle, `${page.title} — ${siteName}`);
         payload.description = truncate(text(page.metaDesc, globalDescription), 160);
         payload.imageUrl = absoluteUrl(text(page.ogImage, fallbackImage), canonicalBase);
         payload.type = "article";
+        payload.jsonLd = [
+          generateWebsiteSchema(canonicalBase, siteName),
+          generateOrganizationSchema(canonicalBase, siteName),
+          generateArticleSchema({ name: page.title, description: page.metaDesc, slug: page.slug, imageUrl: page.ogImage }, canonicalBase),
+          generateBreadcrumbSchema([
+            { label: "Home", url: "/" },
+            { label: page.title, url: `/${page.slug}` },
+          ], canonicalBase),
+        ];
       }
     } else if (pathname === "/products") {
       payload.title = `Shop Products — ${siteName}`;
       payload.description = "Browse premium fashion products, new arrivals, and curated essentials.";
+    } else if (pathname === "/categories") {
+      payload.title = `Categories — ${siteName}`;
+      payload.description = "Browse fashion categories including kurtas, sarees, lehengas, and more at নবME.";
     } else if (pathname === "/collections") {
       payload.title = `Collections — ${siteName}`;
       payload.description = "Explore curated fashion collections from নবME.";
@@ -267,8 +485,37 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
       payload.description = "Browse editorial lookbooks and styling stories from নবME.";
       payload.type = "article";
     } else if (pathname === "/search") {
-      payload.title = `Search — ${siteName}`;
-      payload.description = "Search products, collections, and editorial content from নবME.";
+      const searchQuery = url.searchParams.get("q");
+      if (searchQuery) {
+        payload.title = `Search Results for "${searchQuery}" — ${siteName}`;
+        payload.description = `Search results for "${searchQuery}" on নবME — premium fashion.`;
+      } else {
+        payload.title = `Search — ${siteName}`;
+        payload.description = "Search products, collections, and editorial content from নবME.";
+      }
+    } else if (pathname === "/") {
+      // Homepage specific metadata
+      payload.title = text(seo.homepageTitle, `${siteName} — Premium Fashion Marketplace`);
+      payload.description = text(seo.homepageDescription, "Discover নবME — where heritage craftsmanship meets contemporary elegance. Premium fashion destination celebrating traditional artistry and modern design.");
+      payload.imageUrl = absoluteUrl(text(seo.homepageImage, text(settings?.ogImageUrl, "/og-image.svg")), canonicalBase);
+      payload.jsonLd = [
+        generateWebsiteSchema(canonicalBase, siteName),
+        generateOrganizationSchema(canonicalBase, siteName),
+      ];
+    } else if (pathname === "/faq") {
+      payload.title = `FAQ — ${siteName}`;
+      payload.description = "Frequently asked questions about orders, shipping, returns, and payments at নবME.";
+      payload.type = "article";
+      payload.jsonLd = [
+        generateWebsiteSchema(canonicalBase, siteName),
+        generateOrganizationSchema(canonicalBase, siteName),
+        generateFAQSchema([
+          { question: "What are your shipping options?", answer: "We offer free shipping on orders above ₹500. Standard delivery takes 5-7 business days." },
+          { question: "What is your return policy?", answer: "We accept returns within 30 days of delivery. Items must be unworn with original tags attached." },
+          { question: "How do I track my order?", answer: "You can track your order using the tracking number sent to your email after dispatch." },
+          { question: "What payment methods do you accept?", answer: "We accept all major credit cards, debit cards, UPI, and net banking." },
+        ]),
+      ];
     }
   }
 
@@ -278,15 +525,51 @@ async function getSeoPayload(request: Request, env: Env): Promise<SeoPayload> {
 }
 
 export const onRequest = async (context: { request: Request; next: () => Promise<Response>; env: Env }) => {
-  const response = await context.next();
+  const url = new URL(context.request.url);
+  
+  // Canonical URL redirects
+  const pathname = url.pathname;
+  const searchParams = url.searchParams.toString();
+  const queryString = searchParams ? `?${searchParams}` : "";
+  
+  // Remove trailing slashes (except for root)
+  const canonicalPathname = pathname !== "/" ? pathname.replace(/\/+$/, "") : pathname;
+  
+  // Redirect to canonical URL if needed
+  if (canonicalPathname !== pathname) {
+    const canonicalUrl = `${url.origin}${canonicalPathname}${queryString}`;
+    return Response.redirect(canonicalUrl, 301);
+  }
+  
+  // Force lowercase for paths (except for dynamic segments that might be case-sensitive)
+  // For now, we'll skip this as slugs might be case-sensitive
+  
+  let response = await context.next();
   
   // Additional safeguard: check request path to ensure we only process HTML pages
-  const url = new URL(context.request.url);
   if (ASSET_EXTENSIONS.test(url.pathname)) return response;
   if (url.pathname.startsWith("/api/")) return response;
   if (url.pathname === "/robots.txt" || url.pathname === "/sitemap.xml") return response;
   
   if (!isHtmlRequest(context.request)) return response;
+
+  // SPA fallback: current Cloudflare Pages / wrangler versions flag the
+  // `/* /index.html 200` rule as an infinite loop and drop it, so deep-link
+  // navigations and page refreshes would otherwise return 404. Serve index.html
+  // for unmatched HTML routes so client-side routing can take over.
+  if (response.status === 404) {
+    const indexRequest = new Request(new URL("/index.html", url.origin), {
+      headers: context.request.headers,
+    });
+    const indexResponse = await context.next(indexRequest);
+    if (indexResponse.ok) {
+      response = new Response(indexResponse.body, {
+        status: 200,
+        statusText: "OK",
+        headers: indexResponse.headers,
+      });
+    }
+  }
   
   const contentType = response.headers.get("Content-Type") ?? "";
   if (!contentType.includes("text/html")) return response;
@@ -296,9 +579,11 @@ export const onRequest = async (context: { request: Request; next: () => Promise
     const payload = await getSeoPayload(context.request, context.env as unknown as Env);
     const responseHeaders = new Headers(response.headers);
     
-    // Preserve compression headers for better performance
-    // Only delete content-length since we're modifying the body
+    // We are rewriting the body, so drop headers that describe the original
+    // (now stale) encoding/length. Leaving content-encoding causes the browser
+    // to fail decoding the uncompressed body (ERR_CONTENT_DECODING_FAILED).
     responseHeaders.delete("content-length");
+    responseHeaders.delete("content-encoding");
     
     // Add cache-control headers to reduce server load
     const url = new URL(context.request.url);
@@ -313,6 +598,7 @@ export const onRequest = async (context: { request: Request; next: () => Promise
   } catch (error) {
     const fallbackHeaders = new Headers(response.headers);
     fallbackHeaders.delete("content-length");
+    fallbackHeaders.delete("content-encoding");
     // Add cache-control even on error to reduce server load
     fallbackHeaders.set("cache-control", "public, max-age=300, s-maxage=600, stale-while-revalidate=1200");
     return new Response(html, {

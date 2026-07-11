@@ -57,13 +57,13 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <div className="mb-10">
+      <div className="mb-6">
         <h1 className="font-display text-display-1 text-neutral-900">Dashboard</h1>
         <p className="text-sm text-neutral-500 mt-2">Overview of your store performance</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatsCard
           label="Total Products"
           value={stats?.totalProducts ?? 0}
@@ -94,7 +94,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Alerts */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
         {Number(stats?.lowStockVariants) > 0 && (
         <div className="premium-card rounded-2xl p-4 bg-amber-50/70 border-amber-200 flex items-center gap-3">
           <TrendingDown size={18} className="text-amber-600 shrink-0" />
@@ -114,7 +114,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Orders by Status + Recent Orders */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Orders by Status */}
         <div className="premium-card rounded-2xl p-6">
           <div className="flex items-center justify-between mb-5">

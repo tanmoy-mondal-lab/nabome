@@ -1,16 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { loginAsAdmin, navigateToAdminPage } from './admin-auth-helper';
 
 test.describe('Admin Workflows - Product Management', () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to admin login
-    await page.goto('/admin');
-    // Login with admin credentials (would need to be configured in test setup)
-    await page.waitForTimeout(1000);
+    await loginAsAdmin(page);
   });
 
   test('admin can create a new product', async ({ page }) => {
-    await page.goto('/admin/products/new');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/products/new');
 
     // Fill in product details
     const nameInput = page.locator('input[name="name"], input[placeholder*="name"]').first();
@@ -31,13 +28,11 @@ test.describe('Admin Workflows - Product Management', () => {
   });
 
   test('admin can edit existing product', async ({ page }) => {
-    await page.goto('/admin/products');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/products');
 
     const editBtn = page.locator('button:has-text("Edit"), a:has-text("Edit")').first();
     if (await editBtn.isVisible()) {
       await editBtn.click();
-      await page.waitForTimeout(500);
 
       const nameInput = page.locator('input[name="name"]').first();
       if (await nameInput.isVisible()) {
@@ -53,8 +48,7 @@ test.describe('Admin Workflows - Product Management', () => {
   });
 
   test('admin can delete product with confirmation', async ({ page }) => {
-    await page.goto('/admin/products');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/products');
 
     const deleteBtn = page.locator('button:has-text("Delete"), button[aria-label*="delete"]').first();
     if (await deleteBtn.isVisible()) {
@@ -70,13 +64,11 @@ test.describe('Admin Workflows - Product Management', () => {
   });
 
   test('admin can manage product variants', async ({ page }) => {
-    await page.goto('/admin/products');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/products');
 
     const editBtn = page.locator('button:has-text("Edit"), a:has-text("Edit")').first();
     if (await editBtn.isVisible()) {
       await editBtn.click();
-      await page.waitForTimeout(500);
 
       const variantsTab = page.locator('button:has-text("Variants"), [data-tab="variants"]').first();
       if (await variantsTab.isVisible()) {
@@ -93,13 +85,11 @@ test.describe('Admin Workflows - Product Management', () => {
   });
 
   test('admin can upload product images', async ({ page }) => {
-    await page.goto('/admin/products');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/products');
 
     const editBtn = page.locator('button:has-text("Edit"), a:has-text("Edit")').first();
     if (await editBtn.isVisible()) {
       await editBtn.click();
-      await page.waitForTimeout(500);
 
       const imagesTab = page.locator('button:has-text("Images"), [data-tab="images"]').first();
       if (await imagesTab.isVisible()) {
@@ -119,13 +109,11 @@ test.describe('Admin Workflows - Product Management', () => {
 
 test.describe('Admin Workflows - Category Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/admin');
-    await page.waitForTimeout(1000);
+    await loginAsAdmin(page);
   });
 
   test('admin can create category', async ({ page }) => {
-    await page.goto('/admin/categories');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/categories');
 
     const createBtn = page.locator('button:has-text("Create"), button:has-text("Add")').first();
     if (await createBtn.isVisible()) {
@@ -146,8 +134,7 @@ test.describe('Admin Workflows - Category Management', () => {
   });
 
   test('admin can reorder categories', async ({ page }) => {
-    await page.goto('/admin/categories');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/categories');
 
     const categoryItems = page.locator('[class*="category-item"], [data-testid="category-item"]');
     const count = await categoryItems.count();
@@ -167,13 +154,11 @@ test.describe('Admin Workflows - Category Management', () => {
 
 test.describe('Admin Workflows - Order Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/admin');
-    await page.waitForTimeout(1000);
+    await loginAsAdmin(page);
   });
 
   test('admin can view orders list', async ({ page }) => {
-    await page.goto('/admin/orders');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/orders');
 
     const orderItems = page.locator('[class*="order-item"], [data-testid="order-item"], tr');
     const count = await orderItems.count();
@@ -181,8 +166,7 @@ test.describe('Admin Workflows - Order Management', () => {
   });
 
   test('admin can view order details', async ({ page }) => {
-    await page.goto('/admin/orders');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/orders');
 
     const viewBtn = page.locator('button:has-text("View"), a:has-text("View")').first();
     if (await viewBtn.isVisible()) {
@@ -194,8 +178,7 @@ test.describe('Admin Workflows - Order Management', () => {
   });
 
   test('admin can update order status', async ({ page }) => {
-    await page.goto('/admin/orders');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/orders');
 
     const viewBtn = page.locator('button:has-text("View"), a:has-text("View")').first();
     if (await viewBtn.isVisible()) {
@@ -219,13 +202,11 @@ test.describe('Admin Workflows - Order Management', () => {
 
 test.describe('Admin Workflows - Customer Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/admin');
-    await page.waitForTimeout(1000);
+    await loginAsAdmin(page);
   });
 
   test('admin can view customers list', async ({ page }) => {
-    await page.goto('/admin/customers');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/customers');
 
     const customerItems = page.locator('[class*="customer-item"], [data-testid="customer-item"], tr');
     const count = await customerItems.count();
@@ -233,8 +214,7 @@ test.describe('Admin Workflows - Customer Management', () => {
   });
 
   test('admin can view customer details', async ({ page }) => {
-    await page.goto('/admin/customers');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/customers');
 
     const viewBtn = page.locator('button:has-text("View"), a:has-text("View")').first();
     if (await viewBtn.isVisible()) {
@@ -248,13 +228,11 @@ test.describe('Admin Workflows - Customer Management', () => {
 
 test.describe('Admin Workflows - CMS Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/admin');
-    await page.waitForTimeout(1000);
+    await loginAsAdmin(page);
   });
 
   test('admin can edit homepage content', async ({ page }) => {
-    await page.goto('/admin/cms/homepage');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/cms/homepage');
 
     const heroSection = page.locator('[data-section="hero"], [class*="hero-section"]').first();
     if (await heroSection.isVisible()) {
@@ -278,8 +256,7 @@ test.describe('Admin Workflows - CMS Management', () => {
   });
 
   test('admin can manage navigation menu', async ({ page }) => {
-    await page.goto('/admin/cms/navigation');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/cms/navigation');
 
     const navItems = page.locator('[class*="nav-item"], [data-testid="nav-item"]');
     const count = await navItems.count();
@@ -289,13 +266,11 @@ test.describe('Admin Workflows - CMS Management', () => {
 
 test.describe('Admin Workflows - Analytics Dashboard', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/admin');
-    await page.waitForTimeout(1000);
+    await loginAsAdmin(page);
   });
 
   test('admin can view dashboard metrics', async ({ page }) => {
-    await page.goto('/admin/dashboard');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/dashboard');
 
     const metrics = page.locator('[class*="metric"], [data-testid="metric"], [class*="stat"]');
     const count = await metrics.count();
@@ -303,8 +278,7 @@ test.describe('Admin Workflows - Analytics Dashboard', () => {
   });
 
   test('admin can view sales chart', async ({ page }) => {
-    await page.goto('/admin/dashboard');
-    await page.waitForTimeout(500);
+    await navigateToAdminPage(page, '/admin/dashboard');
 
     const chart = page.locator('[class*="chart"], [data-testid="chart"], canvas');
     const isVisible = await chart.first().isVisible().catch(() => false);

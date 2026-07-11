@@ -10,7 +10,6 @@ import { SafeImage } from "../../components/SafeImage";
 import { formatPrice } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import { Helmet } from "react-helmet-async";
-import { canonical } from "../../lib/seo";
 
 export default function WishlistPage() {
   const [loading, setLoading] = useState(true);
@@ -43,7 +42,6 @@ export default function WishlistPage() {
         <Helmet>
           <title>My Wishlist — নবME</title>
           <meta name="description" content="View your wishlist on নবME." />
-          <link rel="canonical" href={canonical("/account/wishlist")} />
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
         <Breadcrumbs items={[{ label: "My Wishlist" }]} className="mb-10" />
@@ -72,7 +70,6 @@ export default function WishlistPage() {
         <Helmet>
           <title>My Wishlist — নবME</title>
           <meta name="description" content="View your wishlist on নবME." />
-          <link rel="canonical" href={canonical("/account/wishlist")} />
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
         <Breadcrumbs items={[{ label: "My Wishlist" }]} className="mb-10" />
@@ -90,7 +87,6 @@ export default function WishlistPage() {
         <Helmet>
           <title>My Wishlist — নবME</title>
           <meta name="description" content="View your wishlist on নবME." />
-          <link rel="canonical" href={canonical("/account/wishlist")} />
           <meta name="robots" content="noindex, nofollow" />
         </Helmet>
         <Breadcrumbs items={[{ label: "My Wishlist" }]} className="mb-10" />
@@ -118,7 +114,6 @@ export default function WishlistPage() {
       <Helmet>
         <title>My Wishlist — নবME</title>
         <meta name="description" content="View your wishlist on নবME." />
-        <link rel="canonical" href={canonical("/account/wishlist")} />
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
       <div className="container-page pt-10 pb-28">

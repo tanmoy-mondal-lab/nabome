@@ -149,6 +149,29 @@ export function organizationSchema(data: {
   return schema;
 }
 
+export function articleSchema(data: {
+  headline: string;
+  description?: string;
+  image?: string;
+  author?: string;
+  datePublished?: string;
+  dateModified?: string;
+  url: string;
+}): Record<string, unknown> {
+  const schema: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: data.headline,
+    description: data.description,
+    url: data.url,
+  };
+  if (data.image) schema.image = data.image;
+  if (data.author) schema.author = { "@type": "Organization", name: data.author };
+  if (data.datePublished) schema.datePublished = data.datePublished;
+  if (data.dateModified) schema.dateModified = data.dateModified;
+  return schema;
+}
+
 export type ImgOptions = {
   width?: number;
   height?: number;

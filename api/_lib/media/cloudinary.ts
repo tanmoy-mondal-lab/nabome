@@ -67,7 +67,6 @@ export async function deleteAsset(
 export async function uploadToCloudinary(
   file: File,
   publicId: string,
-  folder: string,
   resourceType: CloudinaryResourceType,
   config: CloudinaryConfig
 ): Promise<{
@@ -83,10 +82,11 @@ export async function uploadToCloudinary(
   validateCloudinaryConfig(config);
 
   const timestamp = Math.round(Date.now() / 1000);
+  // public_id already contains the full folder path (e.g. nabome/products/slug/assetId/file),
+  // so we must NOT also pass `folder` — doing both double-nests the path in Cloudinary.
   const uploadParams: Record<string, string> = {
     timestamp: String(timestamp),
     public_id: publicId,
-    folder,
     resource_type: resourceType,
   };
 
@@ -98,7 +98,6 @@ export async function uploadToCloudinary(
   formData.append("timestamp", String(timestamp));
   formData.append("signature", signature);
   formData.append("public_id", publicId);
-  formData.append("folder", folder);
   formData.append("resource_type", resourceType);
 
   const res = await fetch(

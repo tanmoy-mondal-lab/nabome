@@ -55,7 +55,7 @@ export function Modal({ open, onClose, title, children, size = "md" }: ModalProp
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 bg-white/90 backdrop-blur-sm">
           <h2 id={titleId} className="font-display text-lg text-neutral-900">{title}</h2>
-          <button onClick={onClose} aria-label="Close modal" className="p-2 rounded-full text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors">
+          <button onClick={onClose} aria-label="Close modal" className="p-2 rounded-full text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors flex items-center justify-center">
             <X size={18} />
           </button>
         </div>
