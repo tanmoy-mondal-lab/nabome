@@ -50,6 +50,7 @@ export function setCookie(
 ): Response {
   const nodeEnv = env?.NODE_ENV ?? (typeof process !== "undefined" ? process.env?.NODE_ENV : undefined);
   const cfPages = env?.CF_PAGES ?? (typeof process !== "undefined" ? process.env?.CF_PAGES : undefined);
+  // For local development, allow non-secure cookies. In production, always use Secure.
   const isSecure = options.secure && (nodeEnv === "production" || cfPages !== undefined);
   
   const cookieString = [
@@ -63,8 +64,40 @@ export function setCookie(
     .filter(Boolean)
     .join("; ");
 
-  response.headers.append("Set-Cookie", cookieString);
-  return response;
+  // Clone the response to make headers mutable
+  const newResponse = new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: new Headers(response.headers),
+  });
+  
+  newResponse.headers.append("Set-Cookie", cookieString);
+  return newResponse;
+}
+
+/**
+ * Build a cookie string without setting it (for batch setting)
+ */
+export function buildCookieString(
+  name: string,
+  value: string,
+  options: CookieOptions,
+  env?: any
+): string {
+  const nodeEnv = env?.NODE_ENV ?? (typeof process !== "undefined" ? process.env?.NODE_ENV : undefined);
+  const cfPages = env?.CF_PAGES ?? (typeof process !== "undefined" ? process.env?.CF_PAGES : undefined);
+  const isSecure = options.secure && (nodeEnv === "production" || cfPages !== undefined);
+  
+  return [
+    `${name}=${value}`,
+    `Path=${options.path}`,
+    `Max-Age=${options.maxAge}`,
+    `SameSite=${options.sameSite}`,
+    isSecure ? "Secure" : "",
+    options.httpOnly ? "HttpOnly" : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
 }
 
 /**

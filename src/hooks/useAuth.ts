@@ -60,17 +60,27 @@ export function useAuth() {
   // Uses API refresh endpoint which sets new cookies automatically
   useEffect(() => {
     const checkAndRefresh = async () => {
+      // Nothing to refresh if we're not authenticated.
+      if (!useAuthStore.getState().isAuthenticated) return;
       try {
         await authApi.refresh();
-      } catch {
-        useAuthStore.getState().clearAuth();
-        useCartStore.getState().switchUser();
-        if (typeof window !== "undefined") {
-          // Only redirect if we're not already on an auth page, otherwise we
-          // would pointlessly reload the login/register screen every interval.
-          const onAuthPage = window.location.pathname.startsWith("/auth");
-          if (!onAuthPage) {
-            window.location.href = "/auth/login";
+      } catch (err) {
+        // A genuine auth failure (session revoked/expired) should end the
+        // session. Transient errors — network blip, 5xx, gateway/Cloudflare
+        // hiccup, rate limit, momentary DB issue — must NOT log the user out.
+        // In that case we simply try again on the next tick and keep the
+        // existing session intact.
+        const isAuthFailure = err instanceof ApiError && err.status === 401;
+        if (isAuthFailure) {
+          useAuthStore.getState().clearAuth();
+          useCartStore.getState().switchUser();
+          if (typeof window !== "undefined") {
+            // Only redirect if we're not already on an auth page, otherwise we
+            // would pointlessly reload the login/register screen every interval.
+            const onAuthPage = window.location.pathname.startsWith("/auth");
+            if (!onAuthPage) {
+              window.location.href = "/auth/login";
+            }
           }
         }
       }

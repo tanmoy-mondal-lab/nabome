@@ -9,30 +9,19 @@ import { getPrisma } from "../../_lib/prisma";
 import { handleAdminSessionRequest } from "../admin/sessions";
 import { handleAdminLoginAttemptRequest } from "../admin/login-attempts";
 
-const mockPrisma = createMockPrisma() as ReturnType<typeof createMockPrisma> & {
-  authSession: {
-    findMany: ReturnType<typeof vi.fn>;
-    findUnique: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
-    count: ReturnType<typeof vi.fn>;
-  };
-  loginAttempt: {
-    findMany: ReturnType<typeof vi.fn>;
-    count: ReturnType<typeof vi.fn>;
-  };
-};
+const mockPrisma = createMockPrisma();
 
-mockPrisma.authSession = {
+mockPrisma.auth_sessions = {
   findMany: vi.fn().mockResolvedValue([]),
   findUnique: vi.fn().mockResolvedValue(null),
   update: vi.fn().mockResolvedValue({}),
   count: vi.fn().mockResolvedValue(0),
-};
+} as any;
 
-mockPrisma.loginAttempt = {
+mockPrisma.login_attempts = {
   findMany: vi.fn().mockResolvedValue([]),
   count: vi.fn().mockResolvedValue(0),
-};
+} as any;
 
 vi.mocked(getPrisma).mockReturnValue(mockPrisma as never);
 
@@ -43,7 +32,7 @@ describe("admin auth activity handlers", () => {
   });
 
   it("lists admin sessions for the activity page", async () => {
-    mockPrisma.authSession.findMany.mockResolvedValueOnce([
+    mockPrisma.auth_sessions.findMany.mockResolvedValueOnce([
       {
         id: "session-1",
         profileId: "profile-1",
@@ -63,7 +52,7 @@ describe("admin auth activity handlers", () => {
         },
       },
     ]);
-    mockPrisma.authSession.count.mockResolvedValueOnce(1);
+    mockPrisma.auth_sessions.count.mockResolvedValueOnce(1);
 
     const req = makeRequest("GET", "/api/admin/sessions?page=1&limit=15");
     const ctx = makeContext("admin-1");
@@ -78,8 +67,8 @@ describe("admin auth activity handlers", () => {
   });
 
   it("revokes an admin session", async () => {
-    mockPrisma.authSession.findUnique.mockResolvedValueOnce({ id: "session-1" });
-    mockPrisma.authSession.update.mockResolvedValueOnce({ id: "session-1" });
+    mockPrisma.auth_sessions.findUnique.mockResolvedValueOnce({ id: "session-1" });
+    mockPrisma.auth_sessions.update.mockResolvedValueOnce({ id: "session-1" });
 
     const req = makeRequest("DELETE", "/api/admin/sessions/session-1");
     const ctx = makeContext("admin-1");
@@ -90,7 +79,7 @@ describe("admin auth activity handlers", () => {
 
     expect(res.status).toBe(200);
     expect(body.data.message).toBe("Session revoked");
-    expect(mockPrisma.authSession.update).toHaveBeenCalledWith(
+    expect(mockPrisma.auth_sessions.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "session-1" },
         data: expect.objectContaining({ isActive: false, revokedAt: expect.any(Date) }),
@@ -99,7 +88,7 @@ describe("admin auth activity handlers", () => {
   });
 
   it("lists login attempts with pagination", async () => {
-    mockPrisma.loginAttempt.findMany.mockResolvedValueOnce([
+    mockPrisma.login_attempts.findMany.mockResolvedValueOnce([
       {
         id: "attempt-1",
         email: "user@example.com",
@@ -116,7 +105,7 @@ describe("admin auth activity handlers", () => {
         },
       },
     ]);
-    mockPrisma.loginAttempt.count.mockResolvedValueOnce(1);
+    mockPrisma.login_attempts.count.mockResolvedValueOnce(1);
 
     const req = makeRequest("GET", "/api/admin/login-attempts?page=1&limit=25");
     const ctx = makeContext("admin-1");

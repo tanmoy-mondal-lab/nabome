@@ -10,7 +10,7 @@ export default defineConfig({
   reporter: 'html',
   globalSetup: './e2e/auth.setup.ts',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: process.env.BASE_URL || 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -28,8 +28,29 @@ export default defineConfig({
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
     },
+    {
+      name: 'edge',
+      use: { ...devices['Desktop Edge'] },
+      testMatch: /(regression-verification|production-smoke)\.spec\.ts/,
+    },
+    {
+      name: 'mobile-chrome',
+      use: { ...devices['Pixel 5'] },
+      testMatch: /(regression-verification|production-smoke)\.spec\.ts/,
+    },
+    {
+      name: 'tablet-chrome',
+      use: { ...devices['iPad Mini'] },
+      testMatch: /(regression-verification|production-smoke)\.spec\.ts/,
+    },
+    {
+      // Fast, deployment-gating suite: only the smoke spec, chromium only.
+      name: 'smoke',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /production-smoke\.spec\.ts/,
+    },
   ],
-  webServer: [
+  webServer: process.env.BASE_URL ? undefined : [
     {
       command: 'npm run dev',
       url: 'http://localhost:5173',

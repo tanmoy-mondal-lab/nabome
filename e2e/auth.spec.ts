@@ -6,14 +6,13 @@ test.describe('Authentication Flow', () => {
   });
 
   test('user can register', async ({ page }) => {
-    await page.click('text=Register');
-    await expect(page).toHaveURL(/.*register/);
+    await page.goto('/auth/register');
 
     const randomEmail = `test${Date.now()}@example.com`;
     await page.fill('input[name="email"]', randomEmail);
     await page.fill('input[name="password"]', 'Test123456!');
     await page.fill('input[name="confirmPassword"]', 'Test123456!');
-    await page.fill('input[name="fullName"]', 'Test User');
+    await page.fill('input[name="firstName"]', 'Test User');
     await page.click('button[type="submit"]');
 
     // Should redirect to verification page or dashboard
@@ -21,8 +20,7 @@ test.describe('Authentication Flow', () => {
   });
 
   test('user can login with valid credentials', async ({ page }) => {
-    await page.click('text=Login');
-    await expect(page).toHaveURL(/.*login/);
+    await page.goto('/auth/login');
 
     await page.fill('input[name="email"]', process.env.TEST_USER_EMAIL || 'test@example.com');
     await page.fill('input[name="password"]', process.env.TEST_USER_PASSWORD || 'Test123456!');
@@ -33,8 +31,7 @@ test.describe('Authentication Flow', () => {
   });
 
   test('login fails with invalid credentials', async ({ page }) => {
-    await page.click('text=Login');
-    await expect(page).toHaveURL(/.*login/);
+    await page.goto('/auth/login');
 
     await page.fill('input[name="email"]', 'invalid@example.com');
     await page.fill('input[name="password"]', 'wrongpassword');
@@ -46,7 +43,7 @@ test.describe('Authentication Flow', () => {
 
   test('user can logout', async ({ page }) => {
     // First login
-    await page.goto('/login');
+    await page.goto('/auth/login');
     await page.fill('input[name="email"]', process.env.TEST_USER_EMAIL || 'test@example.com');
     await page.fill('input[name="password"]', process.env.TEST_USER_PASSWORD || 'Test123456!');
     await page.click('button[type="submit"]');

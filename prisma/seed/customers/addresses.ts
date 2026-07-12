@@ -18,9 +18,9 @@ export async function seedCustomerAddresses(customerId: string) {
     { id: addressId },
     {
       id: addressId,
-      profile_id: customerId,
+      profileId: customerId,
       label: 'Home',
-      full_name: `${CUSTOMER_CREDENTIALS.firstName} ${CUSTOMER_CREDENTIALS.lastName}`,
+      fullName: `${CUSTOMER_CREDENTIALS.firstName} ${CUSTOMER_CREDENTIALS.lastName}`,
       phone: CUSTOMER_CREDENTIALS.phone,
       line1: '123, Fashion Street',
       line2: 'Andheri West',
@@ -29,10 +29,10 @@ export async function seedCustomerAddresses(customerId: string) {
       state: 'Maharashtra',
       pincode: '400058',
       country: 'India',
-      is_default: true,
-      is_billing_default: true,
-      address_type: 'shipping',
-      updated_at: new Date(),
+      isDefault: true,
+      isBillingDefault: true,
+      addressType: 'shipping',
+      updatedAt: new Date(),
     },
     'CustomerAddress'
   );

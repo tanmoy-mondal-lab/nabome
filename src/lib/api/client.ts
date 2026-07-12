@@ -43,27 +43,51 @@ function isAuthSelfServiceEndpoint(endpoint: string): boolean {
   return SELF_SERVICE_AUTH.test(endpoint);
 }
 
+// Read the CSRF double-submit token from the cookie jar so it can be sent as
+// the X-CSRF-Token header on state-changing requests.
+function readCsrfToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith("csrf_token="));
+  return match ? match.split("=")[1] ?? null : null;
+}
+
 async function attemptTokenRefresh(): Promise<boolean> {
   // Security: Tokens are in httpOnly cookies, no need to send them
   // The server reads refresh token from cookie
+  const csrfToken = readCsrfToken();
   try {
     const res = await fetch(`${BASE_URL}/auth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        // The refresh endpoint requires CSRF protection (it is not exempt),
+        // so the token must be included here just like a normal request.
+        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
       },
-      // CSRF token is added automatically by the request function
     });
 
-    if (!res.ok) {
+    // Genuine authentication failure: the refresh token is invalid, revoked,
+    // or expired. The session is truly over — log the user out.
+    if (res.status === 401) {
       await fireLogout();
+      return false;
+    }
+
+    // Any other non-2xx response (5xx, 502/503/504 gateway errors, 429 rate
+    // limit, a transient Cloudflare/DB/Supabase blip, or a momentary network
+    // failure) is NOT a reason to log the user out. Return false so the
+    // original request fails gracefully; the user keeps their session and the
+    // next request can retry the refresh once the hiccup is over.
+    if (!res.ok) {
       return false;
     }
 
     // Server sets new cookies automatically, no need to update store
     return true;
   } catch {
-    await fireLogout();
+    // Network error / timeout / blocked request — transient. Do NOT log out.
     return false;
   }
 }
@@ -205,7 +229,10 @@ async function request<T>(
       }
 
       refreshRetryCount = 0;
-      await fireLogout();
+      // If the refresh genuinely failed due to an invalid session,
+      // attemptTokenRefresh has already fired the logout above. For transient
+      // failures (5xx / network / rate limit) we must NOT log the user out —
+      // just surface the error so this single request fails.
       throw new ApiError("Session expired — please log in again", 401);
     }
   }

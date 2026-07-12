@@ -24,6 +24,27 @@ function getCloudinaryConfig(env?: Env) {
   };
 }
 
+/**
+ * Reconstructs the new Cloudinary public_id for a moved asset.
+ *
+ * The stored DB `assetId` column for admin-uploaded assets actually contains the
+ * full public_id (e.g. "media-library/sub/<assetId>/file.png"), so naively
+ * prefixing it with the destination folder produced a doubly-nested path. Instead
+ * we keep every path segment after the asset's current folder and re-prefix it
+ * with the destination folder.
+ */
+function buildMovedPublicId(asset: { publicId?: string | null; folder?: string | null }, newFolder: string): string {
+  const oldPublicId = asset.publicId || "";
+  const oldFolder = asset.folder || "";
+  let suffix: string;
+  if (oldFolder && oldPublicId.startsWith(`${oldFolder}/`)) {
+    suffix = oldPublicId.slice(oldFolder.length + 1);
+  } else {
+    suffix = oldPublicId.split("/").slice(1).join("/");
+  }
+  return `${newFolder}/${suffix}`;
+}
+
 export async function handleAdminMediaUploadRequest(
   req: Request,
   ctx: RequestContext
@@ -54,7 +75,8 @@ export async function handleAdminMediaUploadRequest(
 
     const config = getCloudinaryConfig(ctx.env);
     const assetId = generateAssetId();
-    const publicId = `${folder}/${assetId}/${file.name}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const publicId = `${folder}/${assetId}/${safeName}`;
 
     // Upload to Cloudinary
     const uploadResult = await uploadToCloudinary(
@@ -153,14 +175,12 @@ export async function handleAdminMediaMoveRequest(
     }
 
     const config = getCloudinaryConfig(ctx.env);
-    const oldPublicId = asset.publicId || "";
-    const filename = oldPublicId.split('/').pop() || asset.originalFilename || "file";
-    const newPublicId = `${newFolder}/${asset.assetId}/${filename}`;
+    const newPublicId = buildMovedPublicId(asset, newFolder);
 
     // Move in Cloudinary
     const { moveResource } = await import("../../_lib/media/folders");
     await moveResource(
-      oldPublicId,
+      asset.publicId || "",
       newPublicId,
       (asset.resourceType ?? "image") as "image" | "video" | "raw",
       config
@@ -172,14 +192,8 @@ export async function handleAdminMediaMoveRequest(
       data: {
         folder: newFolder,
         publicId: newPublicId,
-        url: asset.url?.replace(
-          encodeURIComponent(oldPublicId),
-          encodeURIComponent(newPublicId)
-        ) ?? asset.url,
-        secureUrl: asset.secureUrl?.replace(
-          encodeURIComponent(oldPublicId),
-          encodeURIComponent(newPublicId)
-        ) ?? asset.secureUrl,
+        url: asset.url?.replace(asset.publicId || "", newPublicId) ?? asset.url,
+        secureUrl: asset.secureUrl?.replace(asset.publicId || "", newPublicId) ?? asset.secureUrl,
       },
     });
 
@@ -216,13 +230,34 @@ export async function handleAdminMediaBulkDeleteRequest(
 
   try {
     const { deleteMedia } = await import("../../_lib/media-service");
+    const { isAssetInUse } = await import("../../_lib/media/usage.service");
     const config = getCloudinaryConfig(ctx.env);
 
     let deleted = 0;
     let failed = 0;
+    let skippedInUse = 0;
 
     for (const assetId of assetIds) {
       try {
+        const prisma = getPrisma(ctx.env);
+        const asset = await prisma.media_assets.findUnique({
+          where: { id: assetId },
+          select: { id: true, publicId: true },
+        });
+
+        if (!asset) {
+          failed++;
+          continue;
+        }
+
+        // Integrity guard: never hard-delete an asset that is still referenced
+        // by products, categories, settings, etc. (mirrors single-delete behavior).
+        if (await isAssetInUse(prisma, asset.publicId)) {
+          skippedInUse++;
+          failed++;
+          continue;
+        }
+
         await deleteMedia(assetId, { ...ctx.env, ...config } as Env);
         deleted++;
       } catch (err) {
@@ -233,9 +268,10 @@ export async function handleAdminMediaBulkDeleteRequest(
 
     return success({
       success: true,
-      message: `Deleted ${deleted} assets, ${failed} failed`,
+      message: `Deleted ${deleted} assets, ${failed} failed${skippedInUse ? ` (${skippedInUse} skipped: in use)` : ""}`,
       deleted,
       failed,
+      skippedInUse,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -287,8 +323,7 @@ export async function handleAdminMediaBulkMoveRequest(
         }
 
         const oldPublicId = asset.publicId || "";
-        const filename = oldPublicId.split('/').pop() || asset.originalFilename || "file";
-        const newPublicId = `${newFolder}/${asset.assetId}/${filename}`;
+        const newPublicId = buildMovedPublicId(asset, newFolder);
 
         await moveResource(
           oldPublicId,
@@ -302,14 +337,8 @@ export async function handleAdminMediaBulkMoveRequest(
           data: {
             folder: newFolder,
             publicId: newPublicId,
-            url: asset.url?.replace(
-              encodeURIComponent(oldPublicId),
-              encodeURIComponent(newPublicId)
-            ) ?? asset.url,
-            secureUrl: asset.secureUrl?.replace(
-              encodeURIComponent(oldPublicId),
-              encodeURIComponent(newPublicId)
-            ) ?? asset.secureUrl,
+            url: asset.url?.replace(oldPublicId, newPublicId) ?? asset.url,
+            secureUrl: asset.secureUrl?.replace(oldPublicId, newPublicId) ?? asset.secureUrl,
           },
         });
 

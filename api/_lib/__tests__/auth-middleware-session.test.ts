@@ -15,7 +15,7 @@ vi.mock("@supabase/supabase-js", () => ({
 
 vi.mock("../prisma", () => ({
   getPrisma: vi.fn(() => ({
-    authSession: {
+    auth_sessions: {
       findFirst: mockFindFirst,
       update: vi.fn().mockResolvedValue({}),
     },

@@ -48,6 +48,30 @@ function formatSize(bytes: number): string {
 
 const TYPE_ACCEPT = "image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx";
 
+function getCloudNameFromUrl(url?: string): string {
+  const match = (url || "").match(/res\.cloudinary\.com\/([^/]+)\//);
+  return match ? match[1] : "";
+}
+
+function buildBreadcrumbs(path: string): { name: string; path: string }[] {
+  const crumbs = [{ name: "Media Library", path: "" }];
+  if (!path) return crumbs;
+  const parts = path.split("/");
+  let acc = "";
+  parts.forEach((part) => {
+    acc = acc ? `${acc}/${part}` : part;
+    crumbs.push({ name: part, path: acc });
+  });
+  return crumbs;
+}
+
+function isDirectChildOfFolder(publicId: string, folderPath: string): boolean {
+  if (!publicId.startsWith(`${folderPath}/`)) return false;
+  const rest = publicId.slice(folderPath.length + 1);
+  const segments = rest.split("/").filter(Boolean);
+  return segments.length <= 2;
+}
+
 function generateCloudinaryUrls(publicId: string, cloudName: string, resourceType: string) {
   const baseUrl = `https://res.cloudinary.com/${cloudName}`;
   
@@ -84,6 +108,11 @@ export default function MediaLibraryNew() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [dragOver, setDragOver] = useState(false);
+
+  // Pagination (cursor-based) for large libraries
+  const [extraResources, setExtraResources] = useState<CloudinaryResource[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | undefined>();
+  const [loadingMore, setLoadingMore] = useState(false);
   
   // Modal states
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
@@ -170,7 +199,13 @@ export default function MediaLibraryNew() {
   });
   
   const folders = folderContents?.folders || [];
-  const resources = folderContents?.resources || [];
+  const resources = [...(folderContents?.resources || []), ...extraResources];
+
+  // Reset accumulated pages whenever the base folder listing changes (new folder, refetch).
+  useEffect(() => {
+    setExtraResources([]);
+    setNextCursor(folderContents?.nextCursor);
+  }, [folderContents]);
   
   // Build folder tree structure
   const buildFolderTree = (folderList: { path: string; name: string }[]): any[] => {
@@ -307,9 +342,9 @@ export default function MediaLibraryNew() {
   });
   
   // Handlers
-  const handleNavigateToFolder = useCallback((path: string, name: string) => {
+  const handleNavigateToFolder = useCallback((path: string) => {
     setCurrentPath(path);
-    setBreadcrumbs(prev => [...prev, { name, path }]);
+    setBreadcrumbs(buildBreadcrumbs(path));
     setSelectedItems(new Set());
   }, []);
   
@@ -386,6 +421,24 @@ export default function MediaLibraryNew() {
       setSelectedItems(new Set(resources.map(r => r.public_id)));
     }
   }, [selectedItems.size, resources]);
+
+  const handleLoadMore = useCallback(async () => {
+    if (!nextCursor) return;
+    setLoadingMore(true);
+    try {
+      const res = await adminApi.getMediaFolderContents(currentPath || "media-library", {
+        maxResults: 100,
+        nextCursor,
+      });
+      setExtraResources(prev => [...prev, ...(res.resources || [])]);
+      setNextCursor(res.nextCursor);
+    } catch (err) {
+      console.error("Load more failed:", err);
+      toast("Failed to load more assets", "error");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [nextCursor, currentPath, toast]);
   
   const handleCopyUrl = useCallback((url: string) => {
     void navigator.clipboard.writeText(url);
@@ -413,7 +466,7 @@ export default function MediaLibraryNew() {
   // Context menu handlers
   const handleFolderContextMenu = useCallback((e: React.MouseEvent, folder: any) => {
     e.preventDefault();
-    const folderAssets = resources.filter(r => r.public_id.startsWith(folder.path));
+    const folderAssets = resources.filter(r => isDirectChildOfFolder(r.public_id, folder.path));
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
@@ -584,16 +637,23 @@ export default function MediaLibraryNew() {
         return;
       }
       
-      // Arrow navigation
-      if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      // Arrow navigation (focus only — selection via Space / checkbox)
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
         e.preventDefault();
-        const direction = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
-        const newIndex = Math.max(0, Math.min(allItems.length - 1, focusedIndex + direction));
-        setFocusedIndex(newIndex);
-        
-        // Select the focused item
-        if (newIndex >= 0 && newIndex < allItems.length) {
-          const item = allItems[newIndex];
+        setFocusedIndex((prev) => Math.max(0, Math.min(allItems.length - 1, prev + 1)));
+        return;
+      }
+      if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        setFocusedIndex((prev) => Math.max(0, Math.min(allItems.length - 1, prev - 1)));
+        return;
+      }
+
+      // Space: toggle selection of the focused item
+      if (e.key === " " || e.key === "Spacebar") {
+        e.preventDefault();
+        if (focusedIndex >= 0 && focusedIndex < allItems.length) {
+          const item = allItems[focusedIndex];
           if ("public_id" in item) {
             handleSelectItem(item.public_id);
           }
@@ -606,7 +666,7 @@ export default function MediaLibraryNew() {
         e.preventDefault();
         const item = allItems[focusedIndex];
         if ("path" in item) {
-          handleNavigateToFolder(item.path, item.name);
+          handleNavigateToFolder(item.path);
         } else if ("public_id" in item) {
           setPreviewItem(item as any);
         }
@@ -714,7 +774,7 @@ export default function MediaLibraryNew() {
           <FolderTree
             folders={folderTreeNodes}
             currentPath={currentPath}
-            onNavigate={(path) => handleNavigateToFolder(path, path.split("/").pop() || path)}
+            onNavigate={(path) => handleNavigateToFolder(path)}
           />
         </div>
         
@@ -855,20 +915,20 @@ export default function MediaLibraryNew() {
               <div className="mb-6">
                 <h3 className="text-sm font-medium text-neutral-700 mb-3">Folders</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                  {folders.map((folder) => (
+                  {folders.map((folder, folderIndex) => (
                     <div
                       key={folder.path}
                       draggable
                       onDragStart={(e) => handleDragStart(e, "folder", folder.path)}
                       onDragEnd={handleDragEnd}
-                      onDoubleClick={() => handleNavigateToFolder(folder.path, folder.name)}
+                      onDoubleClick={() => handleNavigateToFolder(folder.path)}
                       onContextMenu={(e) => handleFolderContextMenu(e, folder)}
                       onDragOver={(e) => handleDragOverFolder(e, folder.path)}
                       onDragLeave={handleDragLeaveFolder}
                       onDrop={(e) => handleDropOnFolder(e, folder.path)}
                       className={`group relative bg-white border rounded-lg p-4 cursor-pointer hover:border-brand-300 hover:shadow-sm transition-all ${
                         dragOverFolder === folder.path ? "border-brand-500 ring-2 ring-brand-200" : "border-neutral-200"
-                      }`}
+                      } ${focusedIndex === folderIndex ? "ring-2 ring-brand-400" : ""}`}
                     >
                       <div className="flex items-center gap-3">
                         <FolderOpen size={24} className="text-brand-500" />
@@ -923,9 +983,10 @@ export default function MediaLibraryNew() {
                 <h3 className="text-sm font-medium text-neutral-700 mb-3">Files</h3>
                 {viewMode === "grid" ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                    {filteredResources.map((resource) => {
+                    {filteredResources.map((resource, resourceIndex) => {
                       const Icon = FILE_ICONS[resource.resource_type] || File;
                       const isSelected = selectedItems.has(resource.public_id);
+                      const isFocused = focusedIndex === folders.length + resourceIndex;
                       
                       return (
                         <div
@@ -936,7 +997,7 @@ export default function MediaLibraryNew() {
                           onContextMenu={(e) => handleAssetContextMenu(e, resource)}
                           className={`group relative bg-white border rounded-lg overflow-hidden transition-all ${
                             isSelected ? "border-brand-500 ring-2 ring-brand-200" : "border-neutral-200 hover:border-neutral-300"
-                          }`}
+                          } ${isFocused ? "ring-2 ring-brand-400" : ""}`}
                         >
                           {/* Selection checkbox */}
                           <button
@@ -1043,9 +1104,10 @@ export default function MediaLibraryNew() {
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredResources.map((resource) => {
+                        {filteredResources.map((resource, resourceIndex) => {
                           const isSelected = selectedItems.has(resource.public_id);
                           const Icon = FILE_ICONS[resource.resource_type] || File;
+                          const isFocused = focusedIndex === folders.length + resourceIndex;
                           
                           return (
                             <tr
@@ -1053,7 +1115,7 @@ export default function MediaLibraryNew() {
                               onContextMenu={(e) => handleAssetContextMenu(e, resource)}
                               className={`border-b border-neutral-100 hover:bg-neutral-50 transition-colors ${
                                 isSelected ? "bg-brand-50" : ""
-                              }`}
+                              } ${isFocused ? "ring-2 ring-inset ring-brand-400" : ""}`}
                             >
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-3">
@@ -1101,6 +1163,18 @@ export default function MediaLibraryNew() {
                         })}
                       </tbody>
                     </table>
+                  </div>
+                )}
+
+                {nextCursor && (
+                  <div className="flex justify-center mt-6">
+                    <button
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      className="px-6 py-2.5 text-sm font-medium text-neutral-700 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors disabled:opacity-50"
+                    >
+                      {loadingMore ? "Loading\u2026" : "Load more assets"}
+                    </button>
                   </div>
                 )}
               </div>
@@ -1445,7 +1519,7 @@ export default function MediaLibraryNew() {
               {Object.entries(
                 generateCloudinaryUrls(
                   linkGeneratorItem.public_id,
-                  "your-cloud-name",
+                  getCloudNameFromUrl(linkGeneratorItem.secure_url || linkGeneratorItem.url),
                   linkGeneratorItem.resource_type
                 )
               ).map(([key, url]) => (

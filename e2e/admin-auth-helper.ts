@@ -28,15 +28,15 @@ export async function loginAsAdmin(page: Page): Promise<void> {
 
   // Fill in credentials using stable locators
   await page.getByLabel(/email/i).fill(ADMIN_EMAIL);
-  await page.getByLabel(/password/i).fill(ADMIN_PASSWORD);
+  await page.locator('input[name="password"]').fill(ADMIN_PASSWORD);
 
   // Submit login form
   await page.getByRole('button', { name: /login|sign in/i }).click();
 
   // Verify successful authentication by checking for admin-specific UI
   // Instead of just checking URL, verify actual admin elements are visible
-  await expect(page.getByRole('navigation')).toBeVisible({ timeout: 10000 });
-  await expect(page.getByText(/dashboard/i)).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('nav')).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('link', { name: /dashboard/i }).or(page.getByText('Dashboard')).first()).toBeVisible({ timeout: 5000 });
   
   // Verify we're on an admin page
   await expect(page).toHaveURL(/\/admin/);

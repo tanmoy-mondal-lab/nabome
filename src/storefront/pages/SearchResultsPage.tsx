@@ -108,9 +108,11 @@ export default function SearchResultsPage() {
         </div>
       ) : products.length > 0 ? (
         <>
-          <ProductGrid products={products} onQuickView={(product) => setQuickViewProduct(product)} />
+          <div data-testid="search-results">
+            <ProductGrid products={products} onQuickView={(product) => setQuickViewProduct(product)} />
+          </div>
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-3 mt-10">
+            <div data-testid="pagination" className="flex justify-center items-center gap-3 mt-10">
               <button
                 onClick={() => goToPage(currentPage - 1)}
                 disabled={currentPage <= 1}

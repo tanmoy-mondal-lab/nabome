@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth-store";
 import { authApi } from "../lib/api/auth";
+import { ApiError } from "../lib/api/client";
 import { useCartStore } from "../storefront/stores/cart-store";
 import { useCartSync } from "../storefront/hooks/useCartSync";
 
@@ -32,9 +33,14 @@ export function AuthLoader() {
         setUser(res.user);
         await mergeGuestCartOnServer();
         invalidateCustomerCaches(queryClient);
-      } catch {
-        clearAuth();
-        useCartStore.getState().switchUser();
+      } catch (err) {
+        // Only treat a genuine auth failure as "not logged in". Transient
+        // errors (network blip, 5xx) must not clear an otherwise valid session
+        // on a flaky page load.
+        if (err instanceof ApiError && err.status === 401) {
+          clearAuth();
+          useCartStore.getState().switchUser();
+        }
       }
       setLoading(false);
     };

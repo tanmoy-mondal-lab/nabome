@@ -18,7 +18,7 @@ import { cleanSecret } from "../_lib/secrets";
 import { hashToken } from "../_lib/token-hash";
 import { getEnv } from "../_lib/env";
 import { withRateLimit, RATE_LIMIT_CONFIG } from "../_lib/rate-limit";
-import { setCookie, clearCookie, parseCookies, COOKIE_CONFIG } from "../_lib/cookies";
+import { setCookie, clearCookie, parseCookies, COOKIE_CONFIG, buildCookieString } from "../_lib/cookies";
 
 function generateVerificationCode(): string {
   const buf = new Uint8Array(4);
@@ -745,13 +745,35 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     }, ctx.env);
 
     // Security: Set httpOnly cookies instead of returning tokens in response
-    const response = success({
-      user: dbProfile,
-      message: "Login successful",
-    });
+    const body = {
+      success: true,
+      data: {
+        user: dbProfile,
+        message: "Login successful",
+      },
+      timestamp: new Date().toISOString(),
+    };
 
-    setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, data.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env);
-    setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, data.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env);
+    const accessTokenCookie = buildCookieString(
+      COOKIE_CONFIG.ACCESS_TOKEN.name,
+      data.session.access_token,
+      COOKIE_CONFIG.ACCESS_TOKEN,
+      ctx.env
+    );
+    const refreshTokenCookie = buildCookieString(
+      COOKIE_CONFIG.REFRESH_TOKEN.name,
+      data.session.refresh_token,
+      COOKIE_CONFIG.REFRESH_TOKEN,
+      ctx.env
+    );
+
+    const response = new Response(JSON.stringify(body), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Set-Cookie": [accessTokenCookie, refreshTokenCookie].join(", "),
+      },
+    });
 
     return response;
   } catch (err) {

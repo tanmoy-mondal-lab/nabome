@@ -20,13 +20,13 @@ export async function seedCustomer() {
     {
       id: customerId,
       email: CUSTOMER_CREDENTIALS.email,
-      first_name: CUSTOMER_CREDENTIALS.firstName,
-      last_name: CUSTOMER_CREDENTIALS.lastName,
+      firstName: CUSTOMER_CREDENTIALS.firstName,
+      lastName: CUSTOMER_CREDENTIALS.lastName,
       phone: CUSTOMER_CREDENTIALS.phone,
       role: 'customer',
-      is_active: true,
-      email_verified: true,
-      marketing_opt_in: true,
+      isActive: true,
+      emailVerified: true,
+      marketingOptIn: true,
       preferences: {
         language: 'en',
         currency: 'INR',
@@ -36,12 +36,12 @@ export async function seedCustomer() {
           inApp: true,
         },
       },
-      notification_preferences: {
+      notificationPreferences: {
         order_updates: true,
         promotions: true,
         newsletter: true,
       },
-      updated_at: new Date(),
+      updatedAt: new Date(),
     },
     'Customer'
   );
@@ -52,27 +52,32 @@ export async function seedCustomer() {
     where: { id: cartId },
     create: {
       id: cartId,
-      profile_id: customer.id,
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      updated_at: new Date(),
+      profileId: customer.id,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      updatedAt: new Date(),
     },
     update: {},
   });
 
-  // Initialize loyalty points
-  const loyaltyPointsId = '00000000-0000-0000-0000-000000000005';
-  const loyaltyPoints = await prisma.loyalty_points.upsert({
-    where: { id: loyaltyPointsId },
-    create: {
-      id: loyaltyPointsId,
-      profile_id: customer.id,
-      points: 0,
-      tier: 'bronze',
-      lifetime_points: 0,
-      updated_at: new Date(),
-    },
-    update: {},
-  });
+  // Initialize loyalty points (skip if model doesn't exist)
+  let loyaltyPoints = null;
+  try {
+    const loyaltyPointsId = '00000000-0000-0000-0000-000000000005';
+    loyaltyPoints = await prisma.loyalty_points.upsert({
+      where: { id: loyaltyPointsId },
+      create: {
+        id: loyaltyPointsId,
+        profileId: customer.id,
+        points: 0,
+        tier: 'bronze',
+        lifetimePoints: 0,
+        updatedAt: new Date(),
+      },
+      update: {},
+    });
+  } catch (err) {
+    console.log('⚠️  Loyalty points model not found, skipping');
+  }
 
   console.log(`📧 Customer email: ${CUSTOMER_CREDENTIALS.email}`);
 

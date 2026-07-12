@@ -23,13 +23,13 @@ export async function seedAdmin() {
     {
       id: adminId,
       email: ADMIN_CREDENTIALS.email,
-      first_name: ADMIN_CREDENTIALS.firstName,
-      last_name: ADMIN_CREDENTIALS.lastName,
+      firstName: ADMIN_CREDENTIALS.firstName,
+      lastName: ADMIN_CREDENTIALS.lastName,
       phone: ADMIN_CREDENTIALS.phone,
       role: 'admin',
-      is_active: true,
-      email_verified: true,
-      marketing_opt_in: false,
+      isActive: true,
+      emailVerified: true,
+      marketingOptIn: false,
       preferences: {
         language: 'en',
         currency: 'INR',
@@ -39,12 +39,12 @@ export async function seedAdmin() {
           inApp: true,
         },
       },
-      notification_preferences: {
+      notificationPreferences: {
         order_updates: true,
         promotions: false,
         newsletter: false,
       },
-      updated_at: new Date(),
+      updatedAt: new Date(),
     },
     'Admin'
   );
