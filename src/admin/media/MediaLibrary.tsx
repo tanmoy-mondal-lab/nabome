@@ -80,11 +80,16 @@ export default function MediaLibrary() {
       const params: Record<string, string | number | undefined> = {};
       if (search) params.search = search;
       if (selectedEntityType !== "all") params.entityType = selectedEntityType;
-      const res = await adminApi.getMedia(params);
-      return {
-        assets: res.assets ?? [],
-        entityTypes: res.folders ?? [],
-      };
+      try {
+        const res = await adminApi.getMedia(params);
+        return {
+          assets: res.assets ?? [],
+          entityTypes: res.folders ?? [],
+        };
+      } catch (err) {
+        console.error("Media library fetch error:", err);
+        throw err;
+      }
     },
   });
 
@@ -217,8 +222,6 @@ export default function MediaLibrary() {
     void doUpload(uploadQueue);
   };
 
-  const inputClass = "w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500";
-
   return (
     <div ref={dropRef}>
       {/* Header */}
@@ -302,8 +305,17 @@ export default function MediaLibrary() {
       {/* Assets grid */}
       {mediaError ? (
         <div className="flex items-center justify-center h-64">
-          <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle border border-red-200 bg-red-50">
+          <div className="premium-card rounded-2xl px-6 py-5 flex flex-col items-center gap-3 shadow-subtle border border-red-200 bg-red-50">
             <span className="text-sm text-red-600">Failed to load media. Please try again.</span>
+            <span className="text-xs text-red-500">
+              {mediaError instanceof Error ? mediaError.message : "Unknown error"}
+            </span>
+            <button 
+              onClick={() => void queryClient.invalidateQueries({ queryKey: ["admin", "media"] })}
+              className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200"
+            >
+              Retry
+            </button>
           </div>
         </div>
       ) : loading ? (

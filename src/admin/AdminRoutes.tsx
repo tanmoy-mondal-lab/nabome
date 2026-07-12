@@ -29,7 +29,7 @@ const HomepageBuilder = lazyWithRetry(() => import("./cms/HomepageBuilder"));
 const FooterBuilder = lazyWithRetry(() => import("./cms/FooterBuilder"));
 const HeroBuilder = lazyWithRetry(() => import("./cms/HeroBuilder"));
 const HeaderBuilder = lazyWithRetry(() => import("./cms/HeaderBuilder"));
-const MediaLibrary = lazyWithRetry(() => import("./media/MediaLibrary"));
+const MediaLibrary = lazyWithRetry(() => import("./media/MediaLibraryNew"));
 const MediaHealth = lazyWithRetry(() => import("./media/MediaHealth"));
 const SEOPage = lazyWithRetry(() => import("./seo/SEOPage"));
 const ThemeBuilder = lazyWithRetry(() => import("./theme/ThemeBuilder"));

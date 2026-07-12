@@ -876,6 +876,12 @@ model media_assets {
   caption          String?      @db.VarChar(1000)
   tags             String[]     @default([])
   metadata         Json?        // Additional flexible metadata for future use
+  deletedAt        DateTime?    @map("deleted_at") @db.Timestamptz(6)
+  deletedBy        String?      @map("deleted_by") @db.Uuid
+  deletedReason    String?      @map("deleted_reason") @db.VarChar(500)
+  usageCache       Json?        @map("usage_cache") // Cached usage information for performance
+  usageCacheValid  Boolean      @default(false) @map("usage_cache_valid") // Whether cache is valid
+  usageCacheAt     DateTime?    @map("usage_cache_at") @db.Timestamptz(6) // Last cache update
   createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -888,6 +894,25 @@ model media_assets {
   @@index([isPrimary])
   @@index([createdAt])
   @@index([entityType, entityId, isPrimary])
+  @@index([deletedAt])
+  @@index([usageCacheValid])
+}
+
+model media_audit_logs {
+  id          String   @id @default(uuid()) @db.Uuid
+  assetId     String   @map("asset_id") @db.VarChar(100)
+  action      String   @db.VarChar(50) // upload, rename, move, restore, delete, permanent_delete, folder_create, folder_rename, folder_delete, bulk_move
+  performedBy String   @map("performed_by") @db.Uuid
+  metadata    Json?    // Additional context (old values, new values, reason, etc.)
+  ipAddress   String?  @map("ip_address") @db.VarChar(45)
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([assetId])
+  @@index([action])
+  @@index([performedBy])
+  @@index([createdAt])
+  @@index([assetId, action])
 }
 
 model site_settings {

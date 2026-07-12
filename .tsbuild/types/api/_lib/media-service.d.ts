@@ -40,5 +40,7 @@ export interface ReplaceOptions {
 export declare function uploadMedia(options: UploadOptions, env: Env): Promise<MediaResult>;
 export declare function replaceMedia(options: ReplaceOptions, env: Env): Promise<MediaResult>;
 export declare function deleteMedia(assetId: string, env: Env): Promise<void>;
+export declare function softDeleteMedia(assetId: string, deletedBy: string, reason: string, env: Env): Promise<void>;
+export declare function restoreMedia(assetId: string, env: Env): Promise<void>;
 export declare function deleteEntityMedia(entityType: EntityType, entityId: string, slug: string, env: Env): Promise<number>;
 export declare function migrateEntitySlug(entityType: EntityType, oldSlug: string, newSlug: string, entityId: string, env: Env): Promise<void>;

@@ -14,7 +14,8 @@ export type EntityType =
   | "blogs"
   | "cms"
   | "sellers"
-  | "users";
+  | "users"
+  | "media-library";
 
 export interface CloudinaryConfig {
   cloudName: string;

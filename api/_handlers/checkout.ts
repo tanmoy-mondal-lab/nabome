@@ -703,7 +703,9 @@ export async function handleCheckoutRequest(
 
     // Complete any pending referral for this order's email and credit the referrer.
     try {
-      await completeReferralForOrder(prisma, checkoutEmail, order.id, profileId);
+      if (profileId) {
+        await completeReferralForOrder(prisma, checkoutEmail, order.id, profileId);
+      }
     } catch (referralErr) {
       // Never fail checkout because of referral accounting.
       console.error("Referral completion failed:", referralErr);

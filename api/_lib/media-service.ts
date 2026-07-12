@@ -91,7 +91,7 @@ export async function uploadMedia(options: UploadOptions, env: Env): Promise<Med
     const asset = await prisma.media_assets.create({
       data: {
         assetId: lifecycleResult.assetId,
-        entityType,
+        entityType: entityType as any,
         entityId,
         url: lifecycleResult.url,
         secureUrl: lifecycleResult.secureUrl,
@@ -175,7 +175,7 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
     const newAsset = await prisma.media_assets.create({
       data: {
         assetId: lifecycleResult.assetId,
-        entityType,
+        entityType: entityType as any,
         entityId,
         url: lifecycleResult.url,
         secureUrl: lifecycleResult.secureUrl,
@@ -244,7 +244,32 @@ export async function deleteMedia(assetId: string, env: Env): Promise<void> {
     );
   }
 
+  // Permanent delete from database
   await prisma.media_assets.delete({ where: { id: assetId } });
+}
+
+export async function softDeleteMedia(assetId: string, deletedBy: string, reason: string, env: Env): Promise<void> {
+  const prisma = getPrisma(env);
+  await prisma.media_assets.update({
+    where: { id: assetId },
+    data: {
+      deletedAt: new Date() as any,
+      deletedBy,
+      deletedReason: reason,
+    },
+  });
+}
+
+export async function restoreMedia(assetId: string, env: Env): Promise<void> {
+  const prisma = getPrisma(env);
+  await prisma.media_assets.update({
+    where: { id: assetId },
+    data: {
+      deletedAt: null as any,
+      deletedBy: null,
+      deletedReason: null,
+    },
+  });
 }
 
 export async function deleteEntityMedia(entityType: EntityType, entityId: string, slug: string, env: Env): Promise<number> {
@@ -265,7 +290,7 @@ export async function deleteEntityMedia(entityType: EntityType, entityId: string
     config
   );
 
-  await prisma.media_assets.deleteMany({ where: { entityType, entityId } });
+  await prisma.media_assets.deleteMany({ where: { entityType: entityType as any, entityId } });
 
   return deleteResult.deletedCount;
 }
@@ -279,7 +304,7 @@ export async function migrateEntitySlug(
 ): Promise<void> {
   const prisma = getPrisma(env);
   const assets = await prisma.media_assets.findMany({
-    where: { entityType, entityId },
+    where: { entityType: entityType as any, entityId },
   });
 
   if (assets.length === 0) return;

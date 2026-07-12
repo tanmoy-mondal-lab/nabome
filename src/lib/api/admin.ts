@@ -158,6 +158,32 @@ export const adminApi = {
   updateMedia: (id: string, data: { altText?: string; displayName?: string; folder?: string; tags?: string[]; sortOrder?: number; isPrimary?: boolean }) =>
     api.put(`/admin/media/${id}`, data),
   deleteMedia: (id: string) => api.delete(`/admin/media/${id}`),
+  
+  // Media folder management
+  getMediaFolders: () => api.get<{ folders: Array<{ path: string; name: string }> }>("/admin/media-folders"),
+  getMediaFolderContents: (path: string, params?: { maxResults?: number; nextCursor?: string; resourceType?: "image" | "video" | "raw" }) =>
+    api.get<{ folders: Array<{ path: string; name: string }>; resources: Array<{ public_id: string; resource_type: string; format: string; bytes: number; width: number | null; height: number | null; url: string; secure_url: string; created_at: string; filename: string; metadata: any }>; nextCursor?: string }>("/admin/media-folders/contents", { params: { path, ...params } }),
+  createMediaFolder: (path: string) => api.post("/admin/media-folders", { path }),
+  renameMediaFolder: (oldPath: string, newPath: string) => api.put("/admin/media-folders/rename", { oldPath, newPath }),
+  deleteMediaFolder: (path: string) => api.delete(`/admin/media-folders?path=${encodeURIComponent(path)}`),
+  moveMediaFolder: (oldPath: string, newPath: string) => api.put("/admin/media-folders/move", { oldPath, newPath }),
+  getMediaStorageInfo: () => api.get<{ totalFiles: number; totalImages: number; totalVideos: number; totalRaw: number; usedStorage: number }>("/admin/media-folders/storage"),
+  
+  // Media upload with folder support
+  uploadMediaToFolder: (file: File, folder: string, options?: { altText?: string; displayName?: string; tags?: string[] }) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", folder);
+    if (options?.altText) formData.append("altText", options.altText);
+    if (options?.displayName) formData.append("displayName", options.displayName);
+    if (options?.tags) formData.append("tags", JSON.stringify(options.tags));
+    return api.post("/admin/media/upload", formData);
+  },
+  
+  // Media move and bulk operations
+  moveMedia: (assetId: string, newFolder: string) => api.put(`/admin/media/${assetId}/move`, { assetId, newFolder }),
+  bulkDeleteMedia: (assetIds: string[]) => api.post("/admin/media/bulk-delete", { assetIds }),
+  bulkMoveMedia: (assetIds: string[], newFolder: string) => api.post("/admin/media/bulk-move", { assetIds, newFolder }),
 
   // Contact Submissions
   getContactSubmissions: (params?: Record<string, string | undefined>) =>

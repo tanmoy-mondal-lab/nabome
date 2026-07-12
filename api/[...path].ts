@@ -132,6 +132,8 @@ import { handleAdminAnalyticsRequest } from "./_handlers/admin/analytics";
 import { handleAdminSettingsRequest } from "./_handlers/admin/settings";
 import { handleAdminMarketingRequest } from "./_handlers/admin/marketing";
 import { handleAdminMediaRequest } from "./_handlers/admin/media";
+import { handleAdminMediaFoldersRequest } from "./_handlers/admin/media-folders";
+import { handleAdminMediaUploadRequest, handleAdminMediaMoveRequest, handleAdminMediaBulkDeleteRequest, handleAdminMediaBulkMoveRequest } from "./_handlers/admin/media-upload";
 import { handleAdminContactRequest } from "./_handlers/admin/contacts";
 import { handleAdminTemplateRequest } from "./_handlers/admin/templates";
 import { handleAdminImportExportRequest } from "./_handlers/admin/import-export";
@@ -473,6 +475,21 @@ route("GET", "/api/admin/media", (req, ctx) => handleAdminMediaRequest(req, ctx,
 route("POST", "/api/admin/media", (req, ctx) => handleAdminMediaRequest(req, ctx, [], "create"), { auth: true, admin: true });
 route("PUT", "/api/admin/media/:id", (req, ctx, p) => handleAdminMediaRequest(req, ctx, p, "update"), { auth: true, admin: true });
 route("DELETE", "/api/admin/media/:id", (req, ctx, p) => handleAdminMediaRequest(req, ctx, p, "delete"), { auth: true, admin: true });
+
+// Media folder management routes
+route("GET", "/api/admin/media-folders", (req, ctx) => handleAdminMediaFoldersRequest(req, ctx, [], "list"), { auth: true, admin: true });
+route("GET", "/api/admin/media-folders/contents", (req, ctx) => handleAdminMediaFoldersRequest(req, ctx, [], "contents"), { auth: true, admin: true });
+route("POST", "/api/admin/media-folders", (req, ctx) => handleAdminMediaFoldersRequest(req, ctx, [], "create"), { auth: true, admin: true });
+route("PUT", "/api/admin/media-folders/rename", (req, ctx) => handleAdminMediaFoldersRequest(req, ctx, [], "rename"), { auth: true, admin: true });
+route("DELETE", "/api/admin/media-folders", (req, ctx) => handleAdminMediaFoldersRequest(req, ctx, [], "delete"), { auth: true, admin: true });
+route("PUT", "/api/admin/media-folders/move", (req, ctx) => handleAdminMediaFoldersRequest(req, ctx, [], "move"), { auth: true, admin: true });
+route("GET", "/api/admin/media-folders/storage", (req, ctx) => handleAdminMediaFoldersRequest(req, ctx, [], "storage"), { auth: true, admin: true });
+
+// Media upload and bulk operations routes
+route("POST", "/api/admin/media/upload", handleAdminMediaUploadRequest, { auth: true, admin: true });
+route("PUT", "/api/admin/media/:id/move", handleAdminMediaMoveRequest, { auth: true, admin: true });
+route("POST", "/api/admin/media/bulk-delete", handleAdminMediaBulkDeleteRequest, { auth: true, admin: true });
+route("POST", "/api/admin/media/bulk-move", handleAdminMediaBulkMoveRequest, { auth: true, admin: true });
 
 route("GET", "/api/admin/contact-submissions", (req, ctx) => handleAdminContactRequest(req, ctx, [], "list"), { auth: true, admin: true });
 route("PUT", "/api/admin/contact-submissions/:id/read", (req, ctx, p) => handleAdminContactRequest(req, ctx, p, "markRead"), { auth: true, admin: true });

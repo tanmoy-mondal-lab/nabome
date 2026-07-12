@@ -1,8 +1,9 @@
-import type { RequestContext } from "../_lib/types";
-export declare function handleReferralRequest(req: Request, ctx: RequestContext, _params: string[], action: string): Promise<Response>;
 /**
- * Completes any pending referral tied to the given order email, credits the
- * referrer (counters + loyalty points), and links the order. Called from the
- * checkout/payment flow once an order has been placed.
+ * Completes a pending referral for an order and credits the referrer.
+ * This is called after a successful checkout to process referral rewards.
+ *
+ * NOTE: This is a stub implementation. The referral model is not currently
+ * in the schema. This function exists to prevent import errors in checkout.ts.
+ * TODO: Implement proper referral system when the model is added to schema.
  */
-export declare function completeReferralForOrder(prisma: any, email: string, orderId: string, profileId: string | null): Promise<void>;
+export declare function completeReferralForOrder(_prisma: unknown, checkoutEmail: string, orderId: string, _profileId: string): Promise<void>;

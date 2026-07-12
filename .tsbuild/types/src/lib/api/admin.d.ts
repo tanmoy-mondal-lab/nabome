@@ -246,6 +246,55 @@ export declare const adminApi: {
         isPrimary?: boolean;
     }) => Promise<unknown>;
     deleteMedia: (id: string) => Promise<unknown>;
+    getMediaFolders: () => Promise<{
+        folders: Array<{
+            path: string;
+            name: string;
+        }>;
+    }>;
+    getMediaFolderContents: (path: string, params?: {
+        maxResults?: number;
+        nextCursor?: string;
+        resourceType?: "image" | "video" | "raw";
+    }) => Promise<{
+        folders: Array<{
+            path: string;
+            name: string;
+        }>;
+        resources: Array<{
+            public_id: string;
+            resource_type: string;
+            format: string;
+            bytes: number;
+            width: number | null;
+            height: number | null;
+            url: string;
+            secure_url: string;
+            created_at: string;
+            filename: string;
+            metadata: any;
+        }>;
+        nextCursor?: string;
+    }>;
+    createMediaFolder: (path: string) => Promise<unknown>;
+    renameMediaFolder: (oldPath: string, newPath: string) => Promise<unknown>;
+    deleteMediaFolder: (path: string) => Promise<unknown>;
+    moveMediaFolder: (oldPath: string, newPath: string) => Promise<unknown>;
+    getMediaStorageInfo: () => Promise<{
+        totalFiles: number;
+        totalImages: number;
+        totalVideos: number;
+        totalRaw: number;
+        usedStorage: number;
+    }>;
+    uploadMediaToFolder: (file: File, folder: string, options?: {
+        altText?: string;
+        displayName?: string;
+        tags?: string[];
+    }) => Promise<unknown>;
+    moveMedia: (assetId: string, newFolder: string) => Promise<unknown>;
+    bulkDeleteMedia: (assetIds: string[]) => Promise<unknown>;
+    bulkMoveMedia: (assetIds: string[], newFolder: string) => Promise<unknown>;
     getContactSubmissions: (params?: Record<string, string | undefined>) => Promise<{
         submissions: Array<{
             id: string;

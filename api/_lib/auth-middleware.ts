@@ -60,7 +60,6 @@ async function resolveActiveSession(
   const prisma = getPrisma(env);
   const tokenHash = await hashToken(token);
   const now = new Date();
-  const idleTimeout = 2 * 60 * 60 * 1000; // 2 hours idle timeout
 
   const session = await prisma.auth_sessions.findFirst({
     where: {
@@ -88,9 +87,13 @@ async function resolveActiveSession(
     return null;
   }
 
-  // Check idle timeout (2 hours of inactivity)
+  // Check idle timeout (8 hours for admin, 2 hours for customers)
+  const adminIdleTimeout = 8 * 60 * 60 * 1000; // 8 hours for admin users
+  const customerIdleTimeout = 2 * 60 * 60 * 1000; // 2 hours for customers
+  const effectiveIdleTimeout = session.profile?.role === "admin" ? adminIdleTimeout : customerIdleTimeout;
+  
   const timeSinceLastActive = now.getTime() - session.lastActiveAt.getTime();
-  if (timeSinceLastActive > idleTimeout) {
+  if (timeSinceLastActive > effectiveIdleTimeout) {
     // Revoke session due to inactivity
     await prisma.auth_sessions.update({
       where: { id: session.id },
