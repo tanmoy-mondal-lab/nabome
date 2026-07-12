@@ -1,8 +1,10 @@
 import { useParams, Link } from "react-router-dom";
 import { useQueries } from "@tanstack/react-query";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { api } from "../../lib/api/client";
 import { ProductGrid } from "../components/ProductGrid";
+import { QuickViewModal } from "../components/QuickViewModal";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import type { Product } from "../../types/product";
 
@@ -13,6 +15,7 @@ const fadeUp = {
 
 export default function CollectionPage() {
   const { slug } = useParams<{ slug: string }>();
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
 
   const [colRes, prodRes] = useQueries({
     queries: [
@@ -77,9 +80,13 @@ export default function CollectionPage() {
             <Link to="/products" className="text-brand-500 hover:underline mt-3 inline-block">Browse all products</Link>
           </div>
         ) : (
-          <ProductGrid products={products} />
+          <ProductGrid products={products} onQuickView={(product) => setQuickViewProduct(product)} />
         )}
       </div>
+
+      {quickViewProduct && (
+        <QuickViewModal isOpen product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
+      )}
     </>
   );
 }

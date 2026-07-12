@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X, ShoppingBag, Trash2, Plus, Minus, AlertCircle } from "lucide-react";
 import { useCart } from "../hooks/useCart";
+import { useSettings } from "../hooks/useSettings";
 import { useUIStore } from "../stores/ui-store";
 import { SafeImage } from "../../components/SafeImage";
 import { formatPrice } from "../../lib/utils/format";
@@ -10,9 +11,19 @@ import { formatPrice } from "../../lib/utils/format";
 export function CartDrawer() {
   const navigate = useNavigate();
   const { isCartOpen, closeCart } = useUIStore();
-  const { items, removeItem, updateQuantity, subtotal, total: _total } = useCart();
+  const { items, removeItem, updateQuantity, subtotal, discountAmount, couponCode } = useCart();
+  const { data: settings } = useSettings();
   const prefersReducedMotion = useReducedMotion();
   const [syncError, _setSyncError] = useState<string | null>(null);
+
+  const freeShippingThreshold = Number(settings?.preferences?.freeShippingThreshold ?? 500);
+  const shippingCost = Number(settings?.preferences?.shippingCost ?? 99);
+  const taxRate = Number(settings?.preferences?.taxRate ?? 5);
+
+  const shipping = subtotal >= freeShippingThreshold ? 0 : shippingCost;
+  const discountedSubtotal = Math.max(0, subtotal - discountAmount);
+  const tax = Math.round(discountedSubtotal * taxRate) / 100;
+  const finalTotal = discountedSubtotal + shipping + tax;
 
   // Calculate total quantity (sum of all item quantities) to match header
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -168,7 +179,28 @@ export function CartDrawer() {
                     <span className="text-neutral-500">Subtotal</span>
                     <span className="font-medium text-neutral-900">{formatPrice(subtotal)}</span>
                   </div>
-                  <p className="text-[10px] text-neutral-400">Taxes and shipping calculated at checkout</p>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>
+                        Discount {couponCode && <span className="opacity-70 text-xs">({couponCode})</span>}
+                      </span>
+                      <span className="font-medium">-{formatPrice(discountAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-neutral-500">Shipping</span>
+                    <span className="font-medium text-neutral-900">
+                      {shipping === 0 ? <span className="text-green-600">Free</span> : formatPrice(shipping)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-neutral-500">Tax ({taxRate}%)</span>
+                    <span className="font-medium text-neutral-900">{formatPrice(tax)}</span>
+                  </div>
+                  <div className="border-t border-neutral-100 pt-4 flex justify-between">
+                    <span className="text-sm font-semibold tracking-wide text-neutral-900">Total</span>
+                    <span className="text-sm font-semibold text-neutral-900">{formatPrice(finalTotal)}</span>
+                  </div>
                   <button onClick={handleCheckout} className="w-full btn-primary justify-center">
                     Proceed to Checkout
                   </button>

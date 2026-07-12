@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { motion, AnimatePresence } from "framer-motion";
 import { Grid3X3, List, SlidersHorizontal, X, RefreshCw } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 import { ProductGrid } from "../components/ProductGrid";
+import { QuickViewModal } from "../components/QuickViewModal";
 import { Breadcrumbs } from "../components/Breadcrumbs";
-import { SafeImage } from "../../components/SafeImage";
-import { formatPrice } from "../../lib/utils/format";
 import { cn } from "../../lib/utils/cn";
 import type { Product } from "../../types/product";
 
@@ -27,20 +26,6 @@ interface CategoryOption {
   subcategories?: { id: string; name: string; slug: string; categoryId: string }[];
 }
 
-type ProductRecord = Record<string, unknown>;
-
-function asString(value: unknown): string {
-  return typeof value === "string" ? value : "";
-}
-
-function asRecord(value: unknown): ProductRecord | undefined {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as ProductRecord : undefined;
-}
-
-function asArray<T>(value: unknown): T[] {
-  return Array.isArray(value) ? value as T[] : [];
-}
-
 function ProductCardSkeleton() {
   return (
     <div className="rounded-2xl overflow-hidden bg-white">
@@ -51,88 +36,6 @@ function ProductCardSkeleton() {
         <div className="h-3.5 w-20 rounded bg-luxe-ivory animate-pulse" />
       </div>
     </div>
-  );
-}
-
-function MobileProductCard({ product, index }: { product: ProductRecord; index: number }) {
-  const name = asString(product.name) || "Product";
-  const slug = asString(product.slug);
-  const basePrice = Number(product.basePrice ?? 0);
-  const salePrice = product.salePrice != null ? Number(product.salePrice) : null;
-  const price = salePrice && salePrice > 0 ? salePrice : basePrice;
-  const compareAtPrice = product.compareAtPrice != null ? Number(product.compareAtPrice) : null;
-  const images = asArray<{ url: string }>(product.images);
-  const primaryImage = images[0]?.url || "/placeholder.svg";
-  const gender = asString(product.gender);
-  const brandName = asString(asRecord(product.brand)?.name);
-  const categoryName = asString(asRecord(product.category)?.name);
-  const collectionName = asString(asRecord(product.collection)?.name);
-  const labels = asArray<{ label?: ProductRecord }>(product.productLabels);
-  const labelName = asString(asRecord(labels[0]?.label)?.name);
-  const promoBadge = compareAtPrice && compareAtPrice > price
-    ? `${Math.round((1 - price / compareAtPrice) * 100)}% OFF`
-    : product.isNew
-      ? "New"
-      : "";
-  const eyebrow = [brandName, gender].filter(Boolean).join(" · ") || labelName || [categoryName, collectionName].filter(Boolean).join(" · ");
-
-  return (
-    <motion.article
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.16) }}
-      className="md:hidden"
-    >
-      <Link
-        to={`/products/${slug}`}
-        className="group block overflow-hidden rounded-2xl bg-white"
-        aria-label={name}
-      >
-        <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-luxe-ivory via-white to-neutral-50">
-          <SafeImage
-            src={primaryImage}
-            alt={name}
-            responsive
-            priority={index < 4}
-            className="h-full w-full object-cover transition-transform duration-700 ease-luxe-out group-hover:scale-[1.03]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-transparent" />
-          {promoBadge && (
-            <span className="absolute top-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-semibold tracking-[0.15em] text-neutral-700 shadow-subtle">
-              {promoBadge}
-            </span>
-          )}
-          {images.length > 1 && (
-            <span className="absolute bottom-2 right-2 rounded-full bg-white/80 px-2 py-0.5 text-[8px] uppercase tracking-[0.15em] text-neutral-600">
-              {images.length}
-            </span>
-          )}
-        </div>
-
-        <div className="p-2.5 space-y-1.5">
-          {eyebrow && (
-            <p className="text-[9px] tracking-[0.12em] text-neutral-400 line-clamp-1 uppercase">
-              {eyebrow}
-            </p>
-          )}
-
-          <h2 className="text-[13px] font-medium leading-4 tracking-[-0.01em] text-neutral-900 line-clamp-1">
-            {name}
-          </h2>
-
-          <div className="flex items-baseline gap-x-1.5">
-            <span className="text-[13px] font-medium text-neutral-900">
-              {formatPrice(price)}
-            </span>
-            {compareAtPrice && compareAtPrice > price && (
-              <span className="text-[10px] text-neutral-400 line-through">
-                {formatPrice(compareAtPrice)}
-              </span>
-            )}
-          </div>
-        </div>
-      </Link>
-    </motion.article>
   );
 }
 
@@ -156,6 +59,7 @@ export default function ProductListingPage() {
   // Pull-to-refresh state
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const touchStartY = useRef(0);
   const isPulling = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -650,16 +554,7 @@ export default function ProductListingPage() {
                 ))}
               </div>
             ) : products.length > 0 ? (
-              <>
-                <div className="grid grid-cols-2 gap-3 md:hidden">
-                  {products.map((product, index) => (
-                    <MobileProductCard key={product.id as string} product={product as unknown as ProductRecord} index={index} />
-                  ))}
-                </div>
-                <div className="hidden md:block">
-                  <ProductGrid products={products} view={view} />
-                </div>
-              </>
+              <ProductGrid products={products} view={view} onQuickView={(product) => setQuickViewProduct(product)} />
             ) : (
               <div className="text-center py-20">
                 <div className="w-16 h-16 mx-auto mb-4 bg-neutral-100 rounded-full flex items-center justify-center">
@@ -689,6 +584,9 @@ export default function ProductListingPage() {
         </div>
       </div>
 
+      {quickViewProduct && (
+        <QuickViewModal isOpen product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
+      )}
     </>
   );
 }

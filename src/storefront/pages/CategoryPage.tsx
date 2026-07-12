@@ -7,7 +7,7 @@ import { api } from "../../lib/api/client";
 import { SafeImage } from "../../components/SafeImage";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { ProductGrid } from "../components/ProductGrid";
-import { formatPrice } from "../../lib/utils/format";
+import { QuickViewModal } from "../components/QuickViewModal";
 import { cn } from "../../lib/utils/cn";
 import type { Product } from "../../types/product";
 
@@ -39,18 +39,6 @@ const SORT_OPTIONS = [
   { value: "price_asc", label: "Price: Low to High" },
   { value: "price_desc", label: "Price: High to Low" },
 ];
-
-type ProductRecord = Record<string, unknown>;
-
-function asString(v: unknown): string {
-  return typeof v === "string" ? v : "";
-}
-function asRecord(v: unknown): ProductRecord | undefined {
-  return v && typeof v === "object" && !Array.isArray(v) ? (v as ProductRecord) : undefined;
-}
-function asArray<T>(v: unknown): T[] {
-  return Array.isArray(v) ? (v as T[]) : [];
-}
 
 function SubcategoryCard({ sub, index, categorySlug }: { sub: Subcategory; index: number; categorySlug: string }) {
   return (
@@ -95,81 +83,12 @@ function SubcategoryCard({ sub, index, categorySlug }: { sub: Subcategory; index
   );
 }
 
-function MobileProductCard({ product, index }: { product: ProductRecord; index: number }) {
-  const name = asString(product.name) || "Product";
-  const slug = asString(product.slug);
-  const basePrice = Number(product.basePrice ?? 0);
-  const salePrice = product.salePrice != null ? Number(product.salePrice) : null;
-  const price = salePrice && salePrice > 0 ? salePrice : basePrice;
-  const compareAtPrice = product.compareAtPrice != null ? Number(product.compareAtPrice) : null;
-  const images = asArray<{ url: string }>(product.images);
-  const primaryImage = images[0]?.url || "/placeholder.svg";
-  const gender = asString(product.gender);
-  const brandName = asString(asRecord(product.brand)?.name);
-  const categoryName = asString(asRecord(product.category)?.name);
-  const labels = asArray<{ label?: ProductRecord }>(product.productLabels);
-  const labelName = asString(asRecord(labels[0]?.label)?.name);
-  const promoBadge =
-    compareAtPrice && compareAtPrice > price
-      ? `${Math.round((1 - price / compareAtPrice) * 100)}% OFF`
-      : product.isNew
-        ? "New"
-        : "";
-  const eyebrow =
-    [brandName, gender].filter(Boolean).join(" · ") ||
-    labelName ||
-    [categoryName].filter(Boolean).join(" · ");
-
-  return (
-    <motion.article
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: Math.min(index * 0.04, 0.16) }}
-      className="md:hidden"
-    >
-      <Link to={`/products/${slug}`} className="group block overflow-hidden rounded-2xl bg-white">
-        <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-luxe-ivory via-white to-neutral-50">
-          <SafeImage
-            src={primaryImage}
-            alt={name}
-            responsive
-            premium
-            priority={index < 4}
-            className="h-full w-full object-cover transition-transform duration-700 ease-luxe-out group-hover:scale-[1.03]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/5 via-transparent to-transparent" />
-          {promoBadge && (
-            <span className="absolute top-2 left-2 rounded-full bg-white/90 px-2 py-0.5 text-[9px] font-semibold tracking-[0.15em] text-neutral-700 shadow-subtle">
-              {promoBadge}
-            </span>
-          )}
-        </div>
-        <div className="p-2.5 space-y-1.5">
-          {eyebrow && (
-            <p className="text-[9px] tracking-[0.12em] text-neutral-400 line-clamp-1 uppercase">
-              {eyebrow}
-            </p>
-          )}
-          <h2 className="text-[13px] font-medium leading-4 tracking-[-0.01em] text-neutral-900 line-clamp-1">
-            {name}
-          </h2>
-          <div className="flex items-baseline gap-x-1.5">
-            <span className="text-[13px] font-medium text-neutral-900">{formatPrice(price)}</span>
-            {compareAtPrice && compareAtPrice > price && (
-              <span className="text-[10px] text-neutral-400 line-through">{formatPrice(compareAtPrice)}</span>
-            )}
-          </div>
-        </div>
-      </Link>
-    </motion.article>
-  );
-}
-
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
 
   const page = parseInt(searchParams.get("page") || "1");
   const sort = searchParams.get("sort") || "newest";
@@ -179,6 +98,7 @@ export default function CategoryPage() {
   const maxPrice = searchParams.get("maxPrice") || "";
   const size = searchParams.get("size") || "";
   const color = searchParams.get("color") || "";
+  const brand = searchParams.get("brand") || "";
 
   const { data: categoryRes, isLoading: catLoading, error: catError } = useQuery({
     queryKey: ["category", slug],
@@ -198,6 +118,7 @@ export default function CategoryPage() {
     gender: gender || undefined,
     size: size || undefined,
     color: color || undefined,
+    brand: brand || undefined,
   };
   if (minPrice) productParams.minPrice = minPrice;
   if (maxPrice) productParams.maxPrice = maxPrice;
@@ -217,6 +138,31 @@ export default function CategoryPage() {
   const products = prodRes?.products ?? [];
   const total = prodRes?.pagination?.total ?? prodRes?.total ?? 0;
   const totalPages = prodRes?.pagination?.totalPages ?? prodRes?.totalPages ?? 1;
+
+  const { data: brandsData } = useQuery({
+    queryKey: ["brands"],
+    queryFn: () => api.get<{ brands: { id: string; name: string; slug: string }[] }>("/api/brands"),
+    staleTime: 1000 * 60 * 10,
+  });
+  const brands = brandsData?.brands ?? [];
+  const commonColors = [
+    { hex: "#000000", name: "Black" },
+    { hex: "#FFFFFF", name: "White" },
+    { hex: "#808080", name: "Grey" },
+    { hex: "#8B4513", name: "Brown" },
+    { hex: "#0000FF", name: "Blue" },
+    { hex: "#FF0000", name: "Red" },
+    { hex: "#008000", name: "Green" },
+    { hex: "#FFC0CB", name: "Pink" },
+    { hex: "#FFA500", name: "Orange" },
+    { hex: "#800080", name: "Purple" },
+    { hex: "#FFD700", name: "Gold" },
+    { hex: "#C0C0C0", name: "Silver" },
+    { hex: "#FFFF00", name: "Yellow" },
+    { hex: "#00FFFF", name: "Teal" },
+    { hex: "#000080", name: "Navy" },
+  ];
+  const commonSizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
 
   function updateParam(key: string, value: string) {
     const next = new URLSearchParams(searchParams);
@@ -389,7 +335,7 @@ export default function CategoryPage() {
                 aria-label={showFilters ? "Close filters" : "Open filters"}
               >
                 <SlidersHorizontal size={15} /> Filters
-                {(subcategory || gender) && (
+                {(subcategory || gender || brand || size || color) && (
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-500" />
                 )}
               </button>
@@ -442,6 +388,33 @@ export default function CategoryPage() {
               {subcategory} <X size={11} />
             </button>
           )}
+          {brand && (
+            <button
+              onClick={() => updateParam("brand", "")}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0"
+              aria-label={`Remove brand filter: ${brand}`}
+            >
+              Brand: {brand} <X size={11} />
+            </button>
+          )}
+          {size && (
+            <button
+              onClick={() => updateParam("size", "")}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0"
+              aria-label={`Remove size filter: ${size}`}
+            >
+              Size: {size} <X size={11} />
+            </button>
+          )}
+          {color && (
+            <button
+              onClick={() => updateParam("color", "")}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-medium bg-neutral-100 rounded-full hover:bg-neutral-200 transition-colors whitespace-nowrap shrink-0"
+              aria-label={`Remove color filter: ${color}`}
+            >
+              Color: {color} <X size={11} />
+            </button>
+          )}
         </div>
 
         <div className="flex gap-10">
@@ -485,6 +458,29 @@ export default function CategoryPage() {
                     <option value="Men">Men</option>
                     <option value="Women">Women</option>
                     <option value="Unisex">Unisex</option>
+                  </select>
+                </div>
+                {brands.length > 0 && (
+                  <div>
+                    <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Brand</label>
+                    <select value={searchParams.get("brand") || ""} onChange={(e) => updateParam("brand", e.target.value)} className="select-field text-sm">
+                      <option value="">All</option>
+                      {brands.map((b: { id: string; name: string; slug: string }) => <option key={b.id} value={b.slug}>{b.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Size</label>
+                  <select value={size} onChange={(e) => updateParam("size", e.target.value)} className="select-field text-sm">
+                    <option value="">All</option>
+                    {commonSizes.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Color</label>
+                  <select value={color} onChange={(e) => updateParam("color", e.target.value)} className="select-field text-sm">
+                    <option value="">All</option>
+                    {commonColors.map((c) => <option key={c.hex} value={c.name}>{c.name}</option>)}
                   </select>
                 </div>
               </div>
@@ -550,6 +546,29 @@ export default function CategoryPage() {
                         <option value="Unisex">Unisex</option>
                       </select>
                     </div>
+                    {brands.length > 0 && (
+                      <div>
+                        <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Brand</label>
+                        <select value={searchParams.get("brand") || ""} onChange={(e) => updateParam("brand", e.target.value)} className="select-field text-sm">
+                          <option value="">All</option>
+                          {brands.map((b: { id: string; name: string; slug: string }) => <option key={b.id} value={b.slug}>{b.name}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Size</label>
+                      <select value={size} onChange={(e) => updateParam("size", e.target.value)} className="select-field text-sm">
+                        <option value="">All</option>
+                        {commonSizes.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 mb-2 block">Color</label>
+                      <select value={color} onChange={(e) => updateParam("color", e.target.value)} className="select-field text-sm">
+                        <option value="">All</option>
+                        {commonColors.map((c) => <option key={c.hex} value={c.name}>{c.name}</option>)}
+                      </select>
+                    </div>
                   </div>
                   <div className="px-5 py-4 border-t border-neutral-100">
                     <button
@@ -591,16 +610,7 @@ export default function CategoryPage() {
                 ))}
               </div>
             ) : products.length > 0 ? (
-              <>
-                <div className="grid grid-cols-2 gap-3 md:hidden">
-                  {products.map((product, index) => (
-                    <MobileProductCard key={(product as Product).id} product={product as unknown as ProductRecord} index={index} />
-                  ))}
-                </div>
-                <div className="hidden md:block">
-                  <ProductGrid products={products} view={view} />
-                </div>
-              </>
+              <ProductGrid products={products} view={view} onQuickView={(product) => setQuickViewProduct(product)} />
             ) : (
               <div className="text-center py-20">
                 <div className="w-16 h-16 mx-auto mb-4 bg-neutral-100 rounded-full flex items-center justify-center">
@@ -642,6 +652,10 @@ export default function CategoryPage() {
           </div>
         </div>
       </section>
+
+      {quickViewProduct && (
+        <QuickViewModal isOpen product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
+      )}
     </>
   );
 }

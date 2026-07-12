@@ -74,6 +74,7 @@ export function Header() {
 
   const brandName = settings?.siteName || themeBranding?.brandName || "নবME";
   const logoUrl = settings?.logoUrl || themeBranding?.logo;
+  const logoMobile = themeBranding?.logoMobile;
 
   // Brand flip animation state
   const [brandFlipIndex, setBrandFlipIndex] = useState(0);
@@ -237,7 +238,9 @@ export function Header() {
                 <Menu className="w-5 h-5" />
               </button>
               <Link to="/" className="block">
-                {logoUrl ? (
+                {logoMobile ? (
+                  <img src={logoMobile} alt={brandName} className="h-8 w-auto" />
+                ) : logoUrl ? (
                   <img src={logoUrl} alt={brandName} className="h-8 w-auto" />
                 ) : (
                   <span className="font-display text-lg tracking-[0.3em] text-neutral-900">{brandName}</span>

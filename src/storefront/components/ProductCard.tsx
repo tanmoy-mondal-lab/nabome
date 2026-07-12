@@ -229,6 +229,16 @@ export function ProductCard({ product, onQuickView, view = "grid" }: ProductCard
         <Link to={`/products/${slug}`} className="block md:text-sm text-sm md:font-medium font-semibold text-neutral-900 hover:text-brand-600 transition-colors line-clamp-2 md:line-clamp-1 md:tracking-wide leading-snug">{name}</Link>
         <PriceDisplay price={price} compareAtPrice={compareAtPrice} size="sm" className="mt-1.5" />
 
+        {/* Mobile: condensed color swatches */}
+        {colorEntries.length > 1 && (
+          <div className="md:hidden flex gap-1.5 mt-2">
+            {colorEntries.slice(0, 5).map((entry, i) => (
+              <span key={i} className="w-2.5 h-2.5 rounded-full ring-1 ring-neutral-200" style={{ backgroundColor: entry.hex }} aria-label={`Color: ${entry.name || `option ${i + 1}`}`} />
+            ))}
+            {colorEntries.length > 5 && <span className="text-[10px] text-neutral-400 ml-0.5">+{colorEntries.length - 5}</span>}
+          </div>
+        )}
+
         {/* Desktop: color swatches below name */}
         {colorEntries.length > 1 && (
           <div className="hidden md:flex gap-1.5 mt-2">

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { X, ChevronRight, Heart, User, ShoppingBag, Instagram, Youtube, Twitter, Facebook, Linkedin, Bookmark, Music2, MessageCircle, Globe } from "lucide-react";
+import { X, ChevronRight, Heart, User, ShoppingBag, Package, MapPin, Settings, Headset, Bell, ShieldCheck, Instagram, Youtube, Twitter, Facebook, Linkedin, Bookmark, Music2, MessageCircle, Globe } from "lucide-react";
+import { api } from "../../lib/api/client";
 import { useUIStore } from "../stores/ui-store";
 import { useAuthStore } from "../../stores/auth-store";
 import { useSettings } from "../hooks/useSettings";
@@ -23,8 +25,10 @@ const SOCIAL_ICONS: Record<string, typeof Instagram> = {
 
 export function MobileNav() {
   const { isMobileMenuOpen, closeMobileMenu } = useUIStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isAdmin } = useAuthStore();
   const { data: settings } = useSettings();
+  const themeBranding = settings?.theme?.branding;
+  const logoMobile = themeBranding?.logoMobile;
   const [expanded, setExpanded] = useState<string[]>([]);
   const navRef = useFocusTrap<HTMLElement>(isMobileMenuOpen, closeMobileMenu);
   const prefersReducedMotion = useReducedMotion();
@@ -38,8 +42,16 @@ export function MobileNav() {
     return () => { document.body.style.overflow = ''; };
   }, [isMobileMenuOpen]);
 
-  const { data: navItems = [] } = useNavigation("mobile");
+  const { data: navItems = [] } = useNavigation("header");
   const visibleNavItems = (navItems ?? []).filter((item) => item.isVisible !== false);
+
+  const { data: notifData } = useQuery({
+    queryKey: ["notifications", "unread-count"],
+    queryFn: () => api.get<{ count: number }>("/api/notifications/unread-count", { credentials: "include" }),
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 2,
+  });
+  const notifCount = notifData?.count ?? 0;
 
   const toggleExpand = (label: string) => {
     setExpanded((prev) => prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]);
@@ -70,9 +82,13 @@ export function MobileNav() {
             tabIndex={-1}
           >
             <div className="flex items-center justify-between px-6 h-16 border-b border-white/10">
-              <span className="font-display text-2xl tracking-[0.2em] text-white">
-                {settings?.siteName || "নবME"}
-              </span>
+              {logoMobile ? (
+                <img src={logoMobile} alt={settings?.siteName || "নবME"} className="h-8 w-auto max-w-[200px] object-contain" />
+              ) : (
+                <span className="font-display text-2xl tracking-[0.2em] text-white">
+                  {settings?.siteName || "নবME"}
+                </span>
+              )}
               <button
                 onClick={closeMobileMenu}
                 aria-label="Close mobile navigation"
@@ -82,7 +98,7 @@ export function MobileNav() {
               </button>
             </div>
 
-            <nav className="p-6 overflow-y-auto h-[calc(100vh-4rem)] pb-[env(safe-area-inset-bottom,0px)]">
+            <nav className="p-6 overflow-y-auto h-[calc(100dvh-4rem)] pb-[env(safe-area-inset-bottom,0px)]">
               {/* Quick Actions Section */}
               <div className="mb-6 pb-6 border-b border-white/10">
                 <div className="grid grid-cols-2 gap-3">
@@ -90,7 +106,7 @@ export function MobileNav() {
                     <ShoppingBag className="w-6 h-6 text-white/70 mb-2" />
                     <span className="text-xs text-white/80">Shop</span>
                   </Link>
-                  <Link to="/wishlist" onClick={closeMobileMenu} className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-200" aria-label="View wishlist">
+                  <Link to={isAuthenticated ? "/account/wishlist" : "/auth/login"} onClick={closeMobileMenu} className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-200" aria-label="View wishlist">
                     <Heart className="w-6 h-6 text-white/70 mb-2" />
                     <span className="text-xs text-white/80">Wishlist</span>
                   </Link>
@@ -237,6 +253,12 @@ export function MobileNav() {
                   <Link to="/shipping-returns" onClick={closeMobileMenu} className="block px-4 py-3 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200 text-sm">
                     Shipping & Returns
                   </Link>
+                  <Link to="/privacy" onClick={closeMobileMenu} className="block px-4 py-3 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200 text-sm">
+                    Privacy Policy
+                  </Link>
+                  <Link to="/terms" onClick={closeMobileMenu} className="block px-4 py-3 text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200 text-sm">
+                    Terms of Service
+                  </Link>
                 </div>
               </div>
 
@@ -252,12 +274,57 @@ export function MobileNav() {
                   <span className="text-sm tracking-wide">{isAuthenticated ? "My Account" : "Sign In"}</span>
                 </Link>
                 <Link
+                  to={isAuthenticated ? "/account/orders" : "/auth/login"}
+                  onClick={closeMobileMenu}
+                  className="flex items-center gap-4 px-4 py-3.5 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
+                >
+                  <Package className="w-5 h-5" />
+                  <span className="text-sm tracking-wide">Orders</span>
+                </Link>
+                <Link
+                  to={isAuthenticated ? "/account/addresses" : "/auth/login"}
+                  onClick={closeMobileMenu}
+                  className="flex items-center gap-4 px-4 py-3.5 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
+                >
+                  <MapPin className="w-5 h-5" />
+                  <span className="text-sm tracking-wide">Addresses</span>
+                </Link>
+                <Link
+                  to={isAuthenticated ? "/account/notifications" : "/auth/login"}
+                  onClick={closeMobileMenu}
+                  className="relative flex items-center gap-4 px-4 py-3.5 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
+                >
+                  <Bell className="w-5 h-5" />
+                  <span className="text-sm tracking-wide">Notifications</span>
+                  {notifCount > 0 && (
+                    <span className="absolute left-9 top-2.5 min-w-[16px] h-[16px] px-1 bg-brand-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center">
+                      {notifCount > 9 ? "9+" : notifCount}
+                    </span>
+                  )}
+                </Link>
+                <Link
                   to={isAuthenticated ? "/account/wishlist" : "/auth/login"}
                   onClick={closeMobileMenu}
                   className="flex items-center gap-4 px-4 py-3.5 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
                 >
                   <Heart className="w-5 h-5" />
                   <span className="text-sm tracking-wide">Wishlist</span>
+                </Link>
+                <Link
+                  to={isAuthenticated ? "/account/settings" : "/auth/login"}
+                  onClick={closeMobileMenu}
+                  className="flex items-center gap-4 px-4 py-3.5 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
+                >
+                  <Settings className="w-5 h-5" />
+                  <span className="text-sm tracking-wide">Settings</span>
+                </Link>
+                <Link
+                  to={isAuthenticated ? "/account/support" : "/auth/login"}
+                  onClick={closeMobileMenu}
+                  className="flex items-center gap-4 px-4 py-3.5 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
+                >
+                  <Headset className="w-5 h-5" />
+                  <span className="text-sm tracking-wide">Support</span>
                 </Link>
                 <Link
                   to="/cart"
@@ -267,6 +334,16 @@ export function MobileNav() {
                   <ShoppingBag className="w-5 h-5" />
                   <span className="text-sm tracking-wide">Cart</span>
                 </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={closeMobileMenu}
+                    className="flex items-center gap-4 px-4 py-3.5 text-white/80 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
+                  >
+                    <ShieldCheck className="w-5 h-5" />
+                    <span className="text-sm tracking-wide">Admin</span>
+                  </Link>
+                )}
               </div>
 
               <div className="mt-8 px-4">

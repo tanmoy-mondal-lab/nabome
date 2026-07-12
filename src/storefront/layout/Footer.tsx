@@ -131,10 +131,11 @@ export function Footer() {
           {/* Contact Column */}
           {footerConfig?.showContact !== false && <div className="col-span-2 md:col-span-1">
             <h4 className="md:text-[10px] md:tracking-[0.2em] md:text-white/60 md:font-normal text-xs uppercase tracking-[0.15em] text-white font-medium mb-5">Contact</h4>
-            <div className="space-y-3 md:text-[13px] md:text-white/40 text-sm text-neutral-400">
-              <p>{settings?.contactEmail || "hello@nabome.online"}</p>
-              <p>{settings?.contactPhone || "+91 1800 123 4567"}</p>
-            </div>
+           <div className="space-y-3 md:text-[13px] md:text-white/40 text-sm text-neutral-400">
+               <p>{settings?.contactEmail || "hello@nabome.online"}</p>
+               <p>{settings?.contactPhone || "+91 1800 123 4567"}</p>
+               <Link to="/contact" className="inline-block text-neutral-400 hover:text-white transition-colors">Contact Us</Link>
+             </div>
           </div>}
         </div>
       </div>
@@ -142,10 +143,10 @@ export function Footer() {
       {/* Bottom Bar */}
       <div className="border-t border-white/10">
         <div className="container-wide py-6 md:py-8 flex flex-col items-center md:flex-row md:items-center md:justify-between gap-4 text-center md:text-left">
-          <p className="md:text-[11px] md:text-white/30 text-xs text-neutral-600">
+          <p className="md:text-[11px] md:text-white/30 text-xs text-neutral-400">
             &copy; {new Date().getFullYear()} {settings?.siteName || "নবME"}. All rights reserved.
           </p>
-          {footerConfig?.showPolicyLinks !== false && <div className="flex flex-wrap justify-center md:flex-nowrap items-center gap-4 md:gap-8 md:text-[11px] md:text-white/30 text-xs text-neutral-500">
+          {footerConfig?.showPolicyLinks !== false && <div className="flex flex-wrap justify-center md:flex-nowrap items-center gap-4 md:gap-8 md:text-[11px] md:text-white/30 text-xs text-neutral-400">
             {(() => {
               const footerLinks = settings?.preferences?.footerLinks as { label: string; url: string }[] | undefined;
               const policyLinks = policyPages.map((p) => ({ label: p.title, url: `/${p.slug}` }));
@@ -156,7 +157,7 @@ export function Footer() {
             })()}
           </div>}
           <button onClick={scrollToTop}
-            className="md:gap-2 md:text-[11px] md:text-white/30 md:hover:text-white/60 flex items-center gap-1.5 text-xs text-neutral-500 hover:text-white transition-colors"
+            className="md:gap-2 md:text-[11px] md:text-white/30 md:hover:text-white/60 flex items-center gap-1.5 text-xs text-neutral-400 hover:text-white transition-colors"
             aria-label="Scroll to top"
           >
             Back to top <ArrowUp className="w-3 h-3" />

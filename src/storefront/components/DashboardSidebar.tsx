@@ -24,7 +24,7 @@ export function DashboardSidebar() {
       {/* Mobile toggle button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed bottom-20 right-4 z-30 bg-neutral-900 text-white p-3 rounded-full shadow-elevated"
+        className="lg:hidden fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 z-30 bg-neutral-900 text-white p-3 rounded-full shadow-elevated"
         aria-label="Open account menu"
       >
         <Menu className="w-5 h-5" />

@@ -53,7 +53,7 @@ export function PwaInstallPrompt() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: "spring", stiffness: 200, damping: 25 }}
-          className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 shadow-lg p-4 md:p-5"
+          className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 shadow-lg p-4 md:p-5 md:bottom-0 bottom-[calc(60px+env(safe-area-inset-bottom,0px))]"
         >
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">

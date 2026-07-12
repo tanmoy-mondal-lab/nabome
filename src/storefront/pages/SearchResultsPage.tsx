@@ -4,12 +4,15 @@ import { Helmet } from "react-helmet-async";
 import { Search } from "lucide-react";
 import { useSearch } from "../hooks/useProducts";
 import { ProductGrid } from "../components/ProductGrid";
+import { QuickViewModal } from "../components/QuickViewModal";
 import { Breadcrumbs } from "../components/Breadcrumbs";
+import type { Product } from "../../types/product";
 
 export default function SearchResultsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const q = searchParams.get("q") || "";
   const [searchTerm, setSearchTerm] = useState(q);
+  const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
 
   const currentPage = parseInt(searchParams.get("page") || "1", 10);
   const { data: searchRes, isLoading: loading, error: queryError, refetch } = useSearch(q, currentPage);
@@ -105,7 +108,7 @@ export default function SearchResultsPage() {
         </div>
       ) : products.length > 0 ? (
         <>
-          <ProductGrid products={products} />
+          <ProductGrid products={products} onQuickView={(product) => setQuickViewProduct(product)} />
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-3 mt-10">
               <button
@@ -143,6 +146,10 @@ export default function SearchResultsPage() {
           <Search size={48} className="mx-auto text-neutral-300 mb-4" />
           <p className="text-neutral-500 text-lg">Enter a search term to find products</p>
         </div>
+      )}
+
+      {quickViewProduct && (
+        <QuickViewModal isOpen product={quickViewProduct} onClose={() => setQuickViewProduct(null)} />
       )}
     </div>
   );
