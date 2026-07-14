@@ -8,6 +8,8 @@
 // Example: api.get('/products') → GET /api/products
 // The client adds the /api prefix automatically.
 
+import { useAuthStore } from "../../stores/auth-store";
+
 const BASE_URL = "/api";
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
@@ -92,9 +94,8 @@ async function attemptTokenRefresh(): Promise<boolean> {
   }
 }
 
-async function getAuthStateFromStore(): Promise<{ isAuthenticated: boolean }> {
+function getAuthStateFromStore(): { isAuthenticated: boolean } {
   try {
-    const { useAuthStore } = await import("../../stores/auth-store");
     const state = useAuthStore.getState();
     return { isAuthenticated: state.isAuthenticated };
   } catch {
@@ -102,9 +103,8 @@ async function getAuthStateFromStore(): Promise<{ isAuthenticated: boolean }> {
   }
 }
 
-async function fireLogout(): Promise<void> {
+function fireLogout(): void {
   try {
-    const { useAuthStore } = await import("../../stores/auth-store");
     useAuthStore.getState().clearAuth();
   } catch {
     // Store not available

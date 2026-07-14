@@ -19,6 +19,7 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "prisma:reset": "prisma migrate reset --force",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed/index.ts",
     "api:dev": "tsx watch scripts/api-dev-server.ts",
     "typecheck": "tsc -b",

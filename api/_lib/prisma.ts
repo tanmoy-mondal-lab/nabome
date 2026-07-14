@@ -12,11 +12,11 @@ const globalForPrisma = globalThis as unknown as {
 neonConfig.poolQueryViaFetch = true;
 
 function getDatabaseUrl(env?: Env): string {
-  // Use provided env, or fall back to process.env for local development
   const effectiveEnv = env || getEnv();
-  // Prefer Hyperdrive connection string when available (Cloudflare Pages with Hyperdrive binding)
-  // Hyperdrive disabled temporarily — causing 530 errors on Prisma model queries.
-  // Using direct pooled connection instead.
+  const hyperdriveUrl = effectiveEnv.HYPERDRIVE?.connectionString
+    ? cleanSecret(effectiveEnv.HYPERDRIVE.connectionString)
+    : null;
+  if (hyperdriveUrl) return hyperdriveUrl;
   const url = cleanSecret(effectiveEnv.DATABASE_URL_POOLED) ||
     cleanSecret(effectiveEnv.DATABASE_URL);
   if (!url) {
