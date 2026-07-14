@@ -109,27 +109,17 @@ export async function listFolderContents(
 ): Promise<FolderContents> {
   validateCloudinaryConfig(config);
 
-  const timestamp = Math.round(Date.now() / 1000);
-  const params: Record<string, string> = {
-    timestamp: String(timestamp),
-    prefix: folderPath,
-    max_results: String(options?.maxResults ?? 100),
-  };
+  const expression = options?.resourceType
+    ? `${options.resourceType}:* AND folder:"${folderPath}"`
+    : `folder:"${folderPath}"`;
 
-  if (options?.nextCursor) {
-    params.next_cursor = options.nextCursor;
-  }
+  const body = JSON.stringify({
+    expression,
+    max_results: options?.maxResults ?? 100,
+    ...(options?.nextCursor ? { next_cursor: options.nextCursor } : {}),
+  });
 
-  if (options?.resourceType) {
-    params.resource_type = options.resourceType;
-  }
-
-  const signature = await generateSignature(params, config.apiSecret);
-  params.signature = signature;
-  params.api_key = config.apiKey;
-
-  const body = new URLSearchParams(params);
-
+  const auth = btoa(`${config.apiKey}:${config.apiSecret}`);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), CLOUDINARY_API_TIMEOUT);
 
@@ -138,7 +128,10 @@ export async function listFolderContents(
       `https://api.cloudinary.com/v1_1/${config.cloudName}/resources/search`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Basic ${auth}`,
+        },
         body,
         signal: controller.signal,
       }

@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -14,13 +15,13 @@ export async function handleAdminAnalyticsRequest(
 
   switch (action) {
     case "sales":
-      return handleSales(req, ctx.env);
+      return handleSales(req, ctx.env!);
     case "products":
-      return handleProducts(ctx.env);
+      return handleProducts(ctx.env!);
     case "customers":
-      return handleCustomers(ctx.env);
+      return handleCustomers(ctx.env!);
     case "deliveryAddresses":
-      return handleDeliveryAddresses(req, ctx.env);
+      return handleDeliveryAddresses(req, ctx.env!);
     default:
       return badRequest("Unknown action");
   }
@@ -69,7 +70,7 @@ function getPeriodKey(date: Date, groupBy: string): string {
   }
 }
 
-async function handleSales(req: Request, env: any): Promise<Response> {
+async function handleSales(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const periodParam = url.searchParams.get("period") ?? "30d";
   const { days, groupBy } = parsePeriod(periodParam);
@@ -161,7 +162,7 @@ async function handleSales(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleProducts(env: any): Promise<Response> {
+async function handleProducts(env: Env): Promise<Response> {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   try {
@@ -216,7 +217,7 @@ async function handleProducts(env: any): Promise<Response> {
   }
 }
 
-async function handleCustomers(env: any): Promise<Response> {
+async function handleCustomers(env: Env): Promise<Response> {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
@@ -279,7 +280,7 @@ async function handleCustomers(env: any): Promise<Response> {
   }
 }
 
-async function handleDeliveryAddresses(req: Request, env: any): Promise<Response> {
+async function handleDeliveryAddresses(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const periodParam = url.searchParams.get("period") ?? "30d";
   const { days } = parsePeriod(periodParam);

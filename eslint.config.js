@@ -57,6 +57,7 @@ export default tseslint.config(
             "scripts/fix-prisma-names.mjs",
             "scripts/list-profiles.ts",
             "scripts/list-supabase-users.ts",
+            "scripts/update-test-admin.ts",
             "prisma/seed/*.ts",
             "prisma/seed/admin/*.ts",
             "prisma/seed/cms/*.ts",

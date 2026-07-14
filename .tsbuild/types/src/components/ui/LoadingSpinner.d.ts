@@ -9,7 +9,7 @@ interface LoadingStateProps {
     fallback?: React.ReactNode;
     size?: "sm" | "md" | "lg";
 }
-export declare function LoadingState({ isLoading, children, fallback, size }: LoadingStateProps): string | number | bigint | true | import("react").JSX.Element | Iterable<import("react").ReactNode> | Promise<string | number | bigint | boolean | import("react").ReactPortal | import("react").ReactElement<unknown, string | import("react").JSXElementConstructor<any>> | Iterable<import("react").ReactNode> | null | undefined>;
+export declare function LoadingState({ isLoading, children, fallback, size }: LoadingStateProps): string | number | bigint | true | Iterable<import("react").ReactNode> | Promise<string | number | bigint | boolean | import("react").ReactPortal | import("react").ReactElement<unknown, string | import("react").JSXElementConstructor<any>> | Iterable<import("react").ReactNode> | null | undefined> | import("react").JSX.Element;
 interface FullPageLoadingProps {
     message?: string;
 }

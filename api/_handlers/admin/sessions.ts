@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -7,13 +8,13 @@ export async function handleAdminSessionRequest(req: Request, ctx: RequestContex
   const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
   switch (action) {
-    case "list": return handleList(req, ctx.env);
-    case "revoke": return handleRevoke(params[0], ctx.env);
+    case "list": return handleList(req, ctx.env!);
+    case "revoke": return handleRevoke(params[0], ctx.env!);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request, env: any): Promise<Response> {
+async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
   const limit = Math.max(1, parseInt(url.searchParams.get("limit") ?? "25") || 25);
@@ -51,7 +52,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleRevoke(sessionId: string, env: any): Promise<Response> {
+async function handleRevoke(sessionId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const session = await prisma.auth_sessions.findUnique({ where: { id: sessionId } });

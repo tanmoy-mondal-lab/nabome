@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -15,7 +16,7 @@ export async function handleAdminMarketingRequest(
 
   switch (action) {
     case "announcements":
-      return handleAnnouncementsList(ctx.env);
+      return handleAnnouncementsList(ctx.env!);
     case "createAnnouncement":
       return handleCreateAnnouncement(req, ctx);
     case "updateAnnouncement":
@@ -27,7 +28,7 @@ export async function handleAdminMarketingRequest(
   }
 }
 
-async function handleAnnouncementsList(env: any): Promise<Response> {
+async function handleAnnouncementsList(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const announcements = await prisma.announcement_bars.findMany({
@@ -51,7 +52,7 @@ async function handleCreateAnnouncement(req: Request, ctx: RequestContext): Prom
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const announcement = await prisma.announcement_bars.create({
       data: {
         text,
@@ -88,7 +89,7 @@ async function handleUpdateAnnouncement(announcementId: string, req: Request, ct
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const data: Record<string, unknown> = {};
     const fields = ["text", "linkUrl", "linkText", "bgColor", "textColor", "position", "isActive"];
     for (const field of fields) {
@@ -114,7 +115,7 @@ async function handleUpdateAnnouncement(announcementId: string, req: Request, ct
 
 async function handleDeleteAnnouncement(announcementId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const existing = await prisma.announcement_bars.findUnique({ where: { id: announcementId } });
     if (!existing) return notFound("Announcement not found");
     await prisma.announcement_bars.delete({ where: { id: announcementId } });

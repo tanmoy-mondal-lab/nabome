@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
@@ -10,25 +11,25 @@ export async function handleCMSRequest(
 ): Promise<Response> {
   switch (action) {
     case "homepage":
-      return handleHomepage(ctx.env);
+      return handleHomepage(ctx.env!);
     case "pages":
-      return handlePages(ctx.env);
+      return handlePages(ctx.env!);
     case "page":
-      return handlePage(params[0], ctx.env);
+      return handlePage(params[0], ctx.env!);
     case "navigation":
-      return handleNavigation(req, ctx.env);
+      return handleNavigation(req, ctx.env!);
     case "announcements":
-      return handleAnnouncements(ctx.env);
+      return handleAnnouncements(ctx.env!);
     case "footer":
-      return handleFooter(ctx.env);
+      return handleFooter(ctx.env!);
     case "socialProof":
-      return handleSocialProof(ctx.env);
+      return handleSocialProof(ctx.env!);
     default:
       return badRequest("Unknown action");
   }
 }
 
-export async function handleHomepage(env: any): Promise<Response> {
+export async function handleHomepage(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const now = new Date();
@@ -48,7 +49,7 @@ export async function handleHomepage(env: any): Promise<Response> {
   }
 }
 
-async function handlePages(env: any): Promise<Response> {
+async function handlePages(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const pages = await prisma.static_pages.findMany({
@@ -70,7 +71,7 @@ async function handlePages(env: any): Promise<Response> {
   }
 }
 
-async function handlePage(slug: string, env: any): Promise<Response> {
+async function handlePage(slug: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const page = await prisma.static_pages.findFirst({
@@ -84,7 +85,7 @@ async function handlePage(slug: string, env: any): Promise<Response> {
   }
 }
 
-async function handleNavigation(req: Request, env: any): Promise<Response> {
+async function handleNavigation(req: Request, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const url = new URL(req.url);
@@ -103,7 +104,7 @@ async function handleNavigation(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleAnnouncements(env: any): Promise<Response> {
+async function handleAnnouncements(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const now = new Date();
@@ -123,7 +124,7 @@ async function handleAnnouncements(env: any): Promise<Response> {
   }
 }
 
-async function handleFooter(env: any): Promise<Response> {
+async function handleFooter(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const sections = await prisma.footer_sections.findMany({
@@ -136,7 +137,7 @@ async function handleFooter(env: any): Promise<Response> {
   }
 }
 
-async function handleSocialProof(env: any): Promise<Response> {
+async function handleSocialProof(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const recentOrders = await prisma.orders.findMany({

@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError, created } from "../_lib/response";
 import { requireAdmin } from "../_lib/auth-middleware";
@@ -20,58 +21,58 @@ export async function handleSupportRequest(
 
   // Public
   if (action === "createTicket") {
-    if (method === "POST") return handleCreateTicket(ctx, req, ctx.env);
+    if (method === "POST") return handleCreateTicket(ctx, req, ctx.env!);
   }
   if (action === "faq") {
-    if (method === "GET") return handleListFAQs(ctx.env);
+    if (method === "GET") return handleListFAQs(ctx.env!);
   }
 
   // Customer
   if (action === "listTickets") {
-    if (method === "GET") return handleListTickets(ctx, ctx.env);
+    if (method === "GET") return handleListTickets(ctx, ctx.env!);
   }
   if (action === "ticketDetail") {
-    if (method === "GET") return handleTicketDetail(ctx, params[0], ctx.env);
+    if (method === "GET") return handleTicketDetail(ctx, params[0], ctx.env!);
   }
   if (action === "ticketReply") {
-    if (method === "POST") return handleTicketReply(ctx, params[0], req, ctx.env);
+    if (method === "POST") return handleTicketReply(ctx, params[0], req, ctx.env!);
   }
 
   // Admin support
   if (action === "adminList") {
-    if (method === "GET") return handleAdminList(req, ctx.env);
+    if (method === "GET") return handleAdminList(req, ctx.env!);
   }
   if (action === "adminDetail") {
-    if (method === "GET") return handleAdminDetail(params[0], ctx.env);
+    if (method === "GET") return handleAdminDetail(params[0], ctx.env!);
   }
   if (action === "adminUpdateStatus") {
-    if (method === "PUT") return handleAdminUpdateStatus(ctx, params[0], req, ctx.env);
+    if (method === "PUT") return handleAdminUpdateStatus(ctx, params[0], req, ctx.env!);
   }
   if (action === "adminAssign") {
-    if (method === "PUT") return handleAdminAssign(ctx, params[0], req, ctx.env);
+    if (method === "PUT") return handleAdminAssign(ctx, params[0], req, ctx.env!);
   }
   if (action === "adminReply") {
-    if (method === "POST") return handleAdminReply(ctx, params[0], req, ctx.env);
+    if (method === "POST") return handleAdminReply(ctx, params[0], req, ctx.env!);
   }
 
   // Admin FAQ
   if (action === "adminFaqList") {
-    if (method === "GET") return handleAdminFaqList(ctx.env);
+    if (method === "GET") return handleAdminFaqList(ctx.env!);
   }
   if (action === "adminFaqCreate") {
-    if (method === "POST") return handleAdminFaqCreate(req, ctx.env);
+    if (method === "POST") return handleAdminFaqCreate(req, ctx.env!);
   }
   if (action === "adminFaqUpdate") {
-    if (method === "PUT") return handleAdminFaqUpdate(params[0], req, ctx.env);
+    if (method === "PUT") return handleAdminFaqUpdate(params[0], req, ctx.env!);
   }
   if (action === "adminFaqDelete") {
-    if (method === "DELETE") return handleAdminFaqDelete(params[0], ctx.env);
+    if (method === "DELETE") return handleAdminFaqDelete(params[0], ctx.env!);
   }
 
   return notFound();
 }
 
-async function handleCreateTicket(ctx: RequestContext, req: Request, env: any): Promise<Response> {
+async function handleCreateTicket(ctx: RequestContext, req: Request, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -108,7 +109,7 @@ async function handleCreateTicket(ctx: RequestContext, req: Request, env: any): 
   }
 }
 
-async function handleListFAQs(env: any): Promise<Response> {
+async function handleListFAQs(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const faqs = await prisma.faqs.findMany({
@@ -129,7 +130,7 @@ async function handleListFAQs(env: any): Promise<Response> {
   }
 }
 
-async function handleListTickets(ctx: RequestContext, env: any): Promise<Response> {
+async function handleListTickets(ctx: RequestContext, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
@@ -148,7 +149,7 @@ async function handleListTickets(ctx: RequestContext, env: any): Promise<Respons
   }
 }
 
-async function handleTicketDetail(ctx: RequestContext, ticketId: string, env: any): Promise<Response> {
+async function handleTicketDetail(ctx: RequestContext, ticketId: string, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
@@ -172,7 +173,7 @@ async function handleTicketDetail(ctx: RequestContext, ticketId: string, env: an
   }
 }
 
-async function handleTicketReply(ctx: RequestContext, ticketId: string, req: Request, env: any): Promise<Response> {
+async function handleTicketReply(ctx: RequestContext, ticketId: string, req: Request, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   let body: Record<string, unknown>;
@@ -207,7 +208,7 @@ async function handleTicketReply(ctx: RequestContext, ticketId: string, req: Req
   }
 }
 
-async function handleAdminList(req: Request, env: any): Promise<Response> {
+async function handleAdminList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -254,7 +255,7 @@ async function handleAdminList(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleAdminDetail(ticketId: string, env: any): Promise<Response> {
+async function handleAdminDetail(ticketId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const ticket = await prisma.support_tickets.findUnique({
@@ -278,7 +279,7 @@ async function handleAdminDetail(ticketId: string, env: any): Promise<Response> 
   }
 }
 
-async function handleAdminUpdateStatus(_ctx: RequestContext, ticketId: string, req: Request, env: any): Promise<Response> {
+async function handleAdminUpdateStatus(_ctx: RequestContext, ticketId: string, req: Request, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -313,7 +314,7 @@ async function handleAdminUpdateStatus(_ctx: RequestContext, ticketId: string, r
   }
 }
 
-async function handleAdminAssign(_ctx: RequestContext, ticketId: string, req: Request, env: any): Promise<Response> {
+async function handleAdminAssign(_ctx: RequestContext, ticketId: string, req: Request, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -346,7 +347,7 @@ async function handleAdminAssign(_ctx: RequestContext, ticketId: string, req: Re
   }
 }
 
-async function handleAdminReply(ctx: RequestContext, ticketId: string, req: Request, env: any): Promise<Response> {
+async function handleAdminReply(ctx: RequestContext, ticketId: string, req: Request, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -377,7 +378,7 @@ async function handleAdminReply(ctx: RequestContext, ticketId: string, req: Requ
   }
 }
 
-async function handleAdminFaqList(env: any): Promise<Response> {
+async function handleAdminFaqList(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const faqs = await prisma.faqs.findMany({
@@ -389,7 +390,7 @@ async function handleAdminFaqList(env: any): Promise<Response> {
   }
 }
 
-async function handleAdminFaqCreate(req: Request, env: any): Promise<Response> {
+async function handleAdminFaqCreate(req: Request, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -419,7 +420,7 @@ async function handleAdminFaqCreate(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleAdminFaqUpdate(faqId: string, req: Request, env: any): Promise<Response> {
+async function handleAdminFaqUpdate(faqId: string, req: Request, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -455,7 +456,7 @@ async function handleAdminFaqUpdate(faqId: string, req: Request, env: any): Prom
   }
 }
 
-async function handleAdminFaqDelete(faqId: string, env: any): Promise<Response> {
+async function handleAdminFaqDelete(faqId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const existing = await prisma.faqs.findUnique({ where: { id: faqId } });

@@ -12,7 +12,7 @@ export async function handleDataExportRequest(
   req: Request,
   ctx: RequestContext
 ): Promise<Response> {
-  const authResult = await authenticate(req, { required: true }, ctx.env);
+  const authResult = await authenticate(req, { required: true }, ctx.env!);
   if (authResult instanceof Response) return authResult;
   
   const profileId = authResult.ctx.userId;
@@ -22,7 +22,7 @@ export async function handleDataExportRequest(
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
 
     if (!profileId) {
       return unauthorized("User not authenticated");
@@ -298,7 +298,7 @@ export async function handleDataDeleteRequest(
   req: Request,
   ctx: RequestContext
 ): Promise<Response> {
-  const authResult = await authenticate(req, { required: true }, ctx.env);
+  const authResult = await authenticate(req, { required: true }, ctx.env!);
   if (authResult instanceof Response) return authResult;
   
   const profileId = authResult.ctx.userId;
@@ -315,7 +315,7 @@ export async function handleDataDeleteRequest(
       return badRequest("Confirmation required. Please send confirmation: 'DELETE_MY_DATA'");
     }
 
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
 
     if (!profileId) {
       return unauthorized("User not authenticated");

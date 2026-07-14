@@ -86,7 +86,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
     const { email, password, firstName, lastName, phone } = parsed.data;
     const normalizedEmail = email.toLowerCase().trim();
 
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
 
     // Check if a local profile already exists for this email.
     const existingProfile = await prisma.profiles.findUnique({
@@ -104,7 +104,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       if (isGuest) {
         let supabase;
         try {
-          supabase = getAdminClient(ctx.env);
+          supabase = getAdminClient(ctx.env!);
         } catch {
           return serverError(new Error("Registration service unavailable"));
         }
@@ -138,13 +138,13 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
 
         logAction(existingProfile.id, "auth.register_guest_convert", {
           metadata: { email: normalizedEmail, firstName },
-        }, ctx.env);
+        }, ctx.env!);
 
         const emailResult = await sendEmailNotification("email_verification", {
           email: normalizedEmail,
           firstName,
           verificationCode: verificationToken,
-        }, ctx.env, true);
+        }, ctx.env!, true);
 
         if (!emailResult.success) {
           console.error("[AUTH] Failed to send verification email (guest convert):", emailResult.error);
@@ -177,7 +177,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
         email: normalizedEmail,
         firstName: existingProfile.firstName,
         verificationCode: verificationToken,
-      }, ctx.env, true);
+      }, ctx.env!, true);
 
       if (!emailResult.success) {
         console.error("[AUTH] Failed to resend verification for existing unverified account:", emailResult.error);
@@ -185,7 +185,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
 
       logAction(existingProfile.id, "auth.resend_verification", {
         metadata: { email: normalizedEmail, reason: "registration_attempt" },
-      }, ctx.env);
+      }, ctx.env!);
 
       return success({
         message: emailResult.success
@@ -201,7 +201,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
     // user but the profile row was never written — an "orphaned" user).
     let supabase;
     try {
-      supabase = getAdminClient(ctx.env);
+      supabase = getAdminClient(ctx.env!);
     } catch {
       return serverError(new Error("Registration service unavailable"));
     }
@@ -243,13 +243,13 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
 
       logAction(orphanId, "auth.register_orphan_recover", {
         metadata: { email: normalizedEmail, firstName },
-      }, ctx.env);
+      }, ctx.env!);
 
       const emailResult = await sendEmailNotification("email_verification", {
         email: normalizedEmail,
         firstName,
         verificationCode: verificationToken,
-      }, ctx.env, true);
+      }, ctx.env!, true);
 
       if (!emailResult.success) {
         console.error("[AUTH] Failed to send verification email (orphan recover):", emailResult.error);
@@ -324,13 +324,13 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
 
     logAction(authData.user.id, "auth.register", {
       metadata: { email: normalizedEmail, firstName },
-    }, ctx.env);
+    }, ctx.env!);
 
     const emailResult = await sendEmailNotification("email_verification", {
       email: normalizedEmail,
       firstName,
       verificationCode: verificationToken,
-    }, ctx.env, true);
+    }, ctx.env!, true);
 
     if (!emailResult.success) {
       console.error("[AUTH] Failed to send verification email:", emailResult.error);
@@ -356,7 +356,7 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
     if ("response" in parsed) return parsed.response;
     const { email, code } = parsed.data;
 
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const ipAddress = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "unknown";
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -436,7 +436,7 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
         email: normalizedEmail,
         firstName: profile.firstName,
         verificationCode: newToken,
-      }, ctx.env, true).catch(() => ({ success: false, error: "email_failed" as const }));
+      }, ctx.env!, true).catch(() => ({ success: false, error: "email_failed" as const }));
 
       // Record the expired attempt as a failure for lockout accounting.
       await prisma.verification_attempts.create({
@@ -479,7 +479,7 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
 
     logAction(profile.id, "auth.email_verified", {
       metadata: { email: profile.email },
-    }, ctx.env);
+    }, ctx.env!);
 
     return success({ message: "Your email has been verified successfully. You can now log in." });
   } catch (err) {
@@ -514,7 +514,7 @@ async function handleResendVerification(req: Request, ctx: RequestContext): Prom
     );
     if (emailRateLimitResponse) return emailRateLimitResponse;
 
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const profile = await prisma.profiles.findUnique({
       where: { email: normalizedEmail },
       select: { id: true, email: true, firstName: true, emailVerified: true },
@@ -541,7 +541,7 @@ async function handleResendVerification(req: Request, ctx: RequestContext): Prom
       email: normalizedEmail,
       firstName: profile.firstName,
       verificationCode: verificationToken,
-    }, ctx.env, true);
+    }, ctx.env!, true);
 
     if (!emailResult.success) {
       console.error("[AUTH] Failed to resend verification email:", emailResult.error);
@@ -549,7 +549,7 @@ async function handleResendVerification(req: Request, ctx: RequestContext): Prom
 
     logAction(profile.id, "auth.resend_verification", {
       metadata: { email: normalizedEmail, reason: "user_requested" },
-    }, ctx.env);
+    }, ctx.env!);
 
     return success({
       message: emailResult.success
@@ -571,7 +571,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     const { email, password, rememberMe } = parsed.data;
     const normalizedEmail = String(email).trim().toLowerCase();
 
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
     const userAgent = req.headers.get("user-agent");
 
@@ -618,7 +618,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
       return unauthorized("No account found with this email.");
     }
 
-    const supabase = getAnonClient(ctx.env);
+    const supabase = getAnonClient(ctx.env!);
 
     // Attempt login
     const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -661,7 +661,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
         email,
         firstName: existingProfile.firstName || "there",
         verificationCode: verificationToken,
-      }, ctx.env, true);
+      }, ctx.env!, true);
 
       if (!emailResult.success) {
         console.error("[AUTH] Failed to send verification email on login:", emailResult.error);
@@ -669,7 +669,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
 
       logAction(existingProfile.id, "auth.resend_verification", {
         metadata: { email, reason: "unverified_login_attempt" },
-      }, ctx.env);
+      }, ctx.env!);
 
       if (!emailResult.success) {
         return error(
@@ -742,7 +742,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     logAction(data.user.id, "auth.login", {
       ipAddress: clientIp,
       userAgent: userAgent,
-    }, ctx.env);
+    }, ctx.env!);
 
     // Security: Set httpOnly cookies instead of returning tokens in response
     const body = {
@@ -795,7 +795,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
     return unauthorized("Refresh token not found in cookies");
   }
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
 
   // 1. Find the active session with this refresh token
   const refreshTokenHash = await hashToken(refreshToken);
@@ -823,7 +823,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
   }
 
   // 3. Call Supabase to exchange refresh token for new session tokens
-  const supabase = getAnonClient(ctx.env);
+  const supabase = getAnonClient(ctx.env!);
   const { data: sbData, error: sbError } = await supabase.auth.refreshSession({
     refresh_token: refreshToken,
   });
@@ -859,7 +859,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
         lastActiveAt: new Date(),
       },
     });
-    return success({
+    let response = success({
       session: {
         accessToken: sbData.session.access_token,
         refreshToken: sbData.session.refresh_token,
@@ -867,6 +867,9 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
         expiresIn: sbData.session.expires_in,
       },
     });
+    response = setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, sbData.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env!);
+    response = setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, sbData.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env!);
+    return response;
   }
 
   const [newSession] = await prisma.$transaction([
@@ -893,15 +896,15 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
     metadata: { rotatedFromSession: oldSession.id, newSessionId: newSession.id },
     ipAddress: clientIp,
     userAgent: userAgent,
-  }, ctx.env);
+  }, ctx.env!);
 
   // Security: Set httpOnly cookies for new tokens
-  const response = success({
+  let response = success({
     message: "Token refreshed successfully",
   });
 
-  setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, sbData.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env);
-  setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, sbData.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env);
+  response = setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, sbData.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env!);
+  response = setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, sbData.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env!);
 
   return response;
 }
@@ -911,7 +914,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
 async function handleLogout(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
 
   // Revoke the specific session for this access token (with audit trail).
   // The app authenticates via httpOnly cookies, so read the access token
@@ -936,13 +939,13 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
 
   // Invalidate all Supabase sessions for this user
   try {
-    const supabase = getAdminClient(ctx.env);
+    const supabase = getAdminClient(ctx.env!);
     await supabase.auth.admin.signOut(ctx.userId);
   } catch {
     // Non-critical
   }
 
-  logAction(ctx.userId, "auth.logout", extractRequestMeta(req), ctx.env);
+  logAction(ctx.userId, "auth.logout", extractRequestMeta(req), ctx.env!);
 
   // Security: Clear httpOnly cookies
   const response = success({ message: "Logged out successfully" });
@@ -957,7 +960,7 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
 async function handleMe(_req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
   const profile = await prisma.profiles.findUnique({
     where: { id: ctx.userId },
     select: {
@@ -1014,7 +1017,7 @@ async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Respon
     return badRequest("No valid fields to update");
   }
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
   try {
     const updated = await prisma.profiles.update({
       where: { id: ctx.userId },
@@ -1060,7 +1063,7 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
 
   const normalizedEmail = newEmail.toLowerCase().trim();
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
 
   // Check new email is not already taken by another profile
   const existing = await prisma.profiles.findUnique({
@@ -1096,7 +1099,7 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
     email: normalizedEmail,
     firstName: profile?.firstName || "there",
     verificationCode: pendingEmailToken,
-  }, ctx.env, true);
+  }, ctx.env!, true);
   
   if (!emailResult.success) {
     console.error("[AUTH] Failed to send email change verification:", emailResult.error);
@@ -1125,7 +1128,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
     return badRequest("Verification code must be a 6-digit number");
   }
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
   const profile = await prisma.profiles.findUnique({
     where: { id: ctx.userId },
     select: {
@@ -1157,7 +1160,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
 
   // Update email in Supabase Auth
   try {
-    const supabase = getAdminClient(ctx.env);
+    const supabase = getAdminClient(ctx.env!);
     const { error: supabaseError } = await supabase.auth.admin.updateUserById(ctx.userId, {
       email: newEmail,
       email_confirm: true,
@@ -1183,7 +1186,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
 
   logAction(ctx.userId, "auth.email_changed", {
     metadata: { oldEmail: profile.email, newEmail },
-  }, ctx.env);
+  }, ctx.env!);
 
   return success({ message: "Email updated successfully" });
 }
@@ -1197,7 +1200,7 @@ async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<
 
   const normalizedEmail = email.toLowerCase().trim();
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
   const profile = await prisma.profiles.findUnique({
     where: { email: normalizedEmail },
     select: { id: true, firstName: true, email: true },
@@ -1220,7 +1223,7 @@ async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<
     email: normalizedEmail,
     firstName: profile.firstName,
     verificationCode: resetPasswordToken,
-  }, ctx.env, true);
+  }, ctx.env!, true);
   
   if (!emailResult.success) {
     console.error("[AUTH] Failed to send password reset email:", emailResult.error);
@@ -1242,7 +1245,7 @@ async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise
   const normalizedEmail = email.toLowerCase().trim();
   const ipAddress = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "unknown";
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
 
   // Check if this email is locked out. Count attempts by email (not by the
   // submitted code) so a brute-forcer can't bypass the limit with new codes.
@@ -1325,7 +1328,7 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
 
   const normalizedEmail = email.toLowerCase().trim();
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
   
   // Fix race condition by wrapping in transaction to prevent token reuse (R6)
   const profileId = await prisma.$transaction(async (tx) => {
@@ -1355,7 +1358,7 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
   });
 
   // Update password via Supabase admin API (outside transaction due to external API)
-  const supabase = getAdminClient(ctx.env);
+  const supabase = getAdminClient(ctx.env!);
   const { error: updateError } = await supabase.auth.admin.updateUserById(profileId, {
     password,
   });
@@ -1375,7 +1378,7 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
   logAction(null, "auth.password_reset", {
     metadata: { email: normalizedEmail },
     ...extractRequestMeta(req),
-  }, ctx.env);
+  }, ctx.env!);
 
   return success({ message: "Password updated successfully" });
 }
@@ -1393,14 +1396,14 @@ async function handleChangePassword(req: Request, ctx: RequestContext): Promise<
     return badRequest("New password must be different from current password");
   }
 
-  const prisma = getPrisma(ctx.env);
-  const supabase = getAdminClient(ctx.env);
+  const prisma = getPrisma(ctx.env!);
+  const supabase = getAdminClient(ctx.env!);
 
   // Verify current password by attempting sign in
   const user = await prisma.profiles.findUnique({ where: { id: ctx.userId } });
   if (!user) return unauthorized();
 
-  const anonClient = getAnonClient(ctx.env);
+  const anonClient = getAnonClient(ctx.env!);
   const { error: verifyError } = await anonClient.auth.signInWithPassword({
     email: user.email,
     password: currentPassword as string,
@@ -1432,7 +1435,7 @@ async function handleChangePassword(req: Request, ctx: RequestContext): Promise<
 async function handleSessions(_req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
   const sessions = await prisma.auth_sessions.findMany({
     where: { profileId: ctx.userId, isActive: true },
     orderBy: { lastActiveAt: "desc" },
@@ -1459,7 +1462,7 @@ async function handleSessions(_req: Request, ctx: RequestContext): Promise<Respo
 async function handleDeleteSession(_req: Request, ctx: RequestContext, sessionId: string): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
   await prisma.auth_sessions.updateMany({
     where: { id: sessionId, profileId: ctx.userId },
     data: { isActive: false },

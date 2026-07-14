@@ -29,13 +29,13 @@ export async function handleMediaIntegrityRequest(
 
   switch (action) {
     case "health":
-      return handleHealthCheck(req, ctx.env);
+      return handleHealthCheck(req, ctx.env!);
     case "scan":
-      return handleScan(req, ctx.env, params[0]);
+      return handleScan(req, ctx.env!, params[0]);
     case "history":
-      return handleHistory(req, ctx.env);
+      return handleHistory(req, ctx.env!);
     case "repair":
-      return handleRepair(req, ctx.env, ctx);
+      return handleRepair(req, ctx.env!, ctx);
     default:
       return badRequest("Unknown action");
   }

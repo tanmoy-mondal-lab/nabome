@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -14,13 +15,13 @@ export async function handleDashboardRequest(
 
   switch (action) {
     case "overview":
-      return handleOverview(ctx.env);
+      return handleOverview(ctx.env!);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleOverview(env: any): Promise<Response> {
+async function handleOverview(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const now = new Date();

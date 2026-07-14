@@ -102,7 +102,7 @@ export function HeroCarousel({ slides, interval = 7000 }: HeroCarouselProps) {
           ) : s.posterUrl ? (
             <SafeImage
               src={s.posterUrl}
-              alt=""
+              alt={slide.title || "Hero background"}
               aria-hidden="true"
               className="w-full h-full object-cover"
               priority={i === 0}

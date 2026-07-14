@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -15,7 +16,7 @@ export async function handleAdminReviewRequest(
 
   switch (action) {
     case "list":
-      return handleList(req, ctx.env);
+      return handleList(req, ctx.env!);
     case "approve":
       return handleApprove(params[0], req, ctx);
     case "delete":
@@ -25,7 +26,7 @@ export async function handleAdminReviewRequest(
   }
 }
 
-async function handleList(req: Request, env: any): Promise<Response> {
+async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -67,7 +68,7 @@ async function handleApprove(reviewId: string, req: Request, ctx: RequestContext
   const { approved } = body;
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const review = await prisma.reviews.findUnique({ where: { id: reviewId } });
     if (!review) return notFound("Review not found");
 
@@ -95,7 +96,7 @@ async function handleApprove(reviewId: string, req: Request, ctx: RequestContext
 
 async function handleDelete(reviewId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const review = await prisma.reviews.findUnique({ where: { id: reviewId } });
     if (!review) return notFound("Review not found");
     await prisma.reviews.delete({ where: { id: reviewId } });

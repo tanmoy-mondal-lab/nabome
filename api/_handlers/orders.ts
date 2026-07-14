@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, notFound, badRequest, unauthorized, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
@@ -14,36 +15,36 @@ export async function handleOrderRequest(
 
   // GET /api/orders — list customer orders
   if (method === "GET" && !params.length && (!action || action === "list")) {
-    return handleList(ctx, req, ctx.env);
+    return handleList(ctx, req, ctx.env!);
   }
 
   // GET /api/orders/stats — customer order statistics
   if (method === "GET" && action === "stats") {
-    return handleStats(ctx, ctx.env);
+    return handleStats(ctx, ctx.env!);
   }
 
   // GET /api/orders/:id
   if (method === "GET" && params.length && action === "detail") {
-    return handleDetail(ctx, params[0], ctx.env);
+    return handleDetail(ctx, params[0], ctx.env!);
   }
 
   // POST /api/orders/:id/cancel
   if (method === "POST" && params.length && action === "cancel") {
-    return handleCancel(req, ctx, params[0], ctx.env);
+    return handleCancel(req, ctx, params[0], ctx.env!);
   }
 
   // GET /api/orders/:id/tracking
   if (method === "GET" && params.length && action === "tracking") {
-    return handleTracking(ctx, params[0], ctx.env);
+    return handleTracking(ctx, params[0], ctx.env!);
   }
 
   return notFound();
 }
 
-async function handleStats(ctx: RequestContext, _env: any): Promise<Response> {
+async function handleStats(ctx: RequestContext, _env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const [orders, aggregation] = await Promise.all([
       prisma.orders.findMany({
         where: { profileId: ctx.userId },
@@ -67,7 +68,7 @@ async function handleStats(ctx: RequestContext, _env: any): Promise<Response> {
   }
 }
 
-async function handleList(ctx: RequestContext, req: Request, _env: any): Promise<Response> {
+async function handleList(ctx: RequestContext, req: Request, _env: Env): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
   }
@@ -83,7 +84,7 @@ async function handleList(ctx: RequestContext, req: Request, _env: any): Promise
   const skip = (page - 1) * limit;
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const [orders, total] = await Promise.all([
       prisma.orders.findMany({
         where: where as never,
@@ -108,13 +109,13 @@ async function handleList(ctx: RequestContext, req: Request, _env: any): Promise
   }
 }
 
-async function handleDetail(ctx: RequestContext, orderId: string, _env: any): Promise<Response> {
+async function handleDetail(ctx: RequestContext, orderId: string, _env: Env): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const order = await prisma.orders.findFirst({
       where: {
         id: orderId,
@@ -146,7 +147,7 @@ async function handleDetail(ctx: RequestContext, orderId: string, _env: any): Pr
   }
 }
 
-async function handleCancel(req: Request, ctx: RequestContext, orderId: string, _env: any): Promise<Response> {
+async function handleCancel(req: Request, ctx: RequestContext, orderId: string, _env: Env): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
   }
@@ -160,7 +161,7 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const order = await prisma.orders.findFirst({
       where: { id: orderId, profileId: ctx.userId },
       include: { items: true },
@@ -258,7 +259,7 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
       entityId: orderId,
       metadata: { orderNumber: order.orderNumber, reason: cancellationReason },
       ...extractRequestMeta(req),
-    }, ctx.env);
+    }, ctx.env!);
 
     return success({ order: updated });
   } catch (err) {
@@ -266,13 +267,13 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
   }
 }
 
-async function handleTracking(ctx: RequestContext, orderId: string, _env: any): Promise<Response> {
+async function handleTracking(ctx: RequestContext, orderId: string, _env: Env): Promise<Response> {
   if (!ctx.userId) {
     return unauthorized();
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const order = await prisma.orders.findFirst({
       where: { id: orderId, profileId: ctx.userId },
       select: {

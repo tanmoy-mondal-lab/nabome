@@ -1,7 +1,9 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { optionalAuth } from "../_lib/auth-middleware";
+import { withIdempotency } from "../_lib/idempotency";
 
 export async function handleCouponRequest(
   req: Request,
@@ -10,14 +12,18 @@ export async function handleCouponRequest(
   action: string
 ): Promise<Response> {
   switch (action) {
-    case "validate":
-      return handleValidate(ctx, req, ctx.env);
+    case "validate": {
+      const idempotencyKey = req.headers.get("Idempotency-Key");
+      return withIdempotency(idempotencyKey, ctx.env!, () =>
+        handleValidate(ctx, req, ctx.env!)
+      );
+    }
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleValidate(ctx: RequestContext, req: Request, env: any): Promise<Response> {
+async function handleValidate(ctx: RequestContext, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { code, subtotal, gender } = body;
 

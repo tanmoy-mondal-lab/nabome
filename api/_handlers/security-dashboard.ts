@@ -16,7 +16,7 @@ export async function handleSecurityDashboardRequest(
   const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
 
   switch (action) {
     case "overview":

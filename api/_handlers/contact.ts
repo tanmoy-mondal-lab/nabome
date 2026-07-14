@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
@@ -11,15 +12,15 @@ export async function handleContactRequest(
 ): Promise<Response> {
   switch (action) {
     case "contact":
-      return handleContact(req, ctx.env);
+      return handleContact(req, ctx.env!);
     case "newsletter":
-      return handleNewsletter(req, ctx.env);
+      return handleNewsletter(req, ctx.env!);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleContact(req: Request, env: any): Promise<Response> {
+async function handleContact(req: Request, env: Env): Promise<Response> {
   const parsed = await validateBody(req, contactSchema);
   if ("response" in parsed) return parsed.response;
   const { name, email, phone, subject, message } = parsed.data;
@@ -44,7 +45,7 @@ async function handleContact(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleNewsletter(req: Request, env: any): Promise<Response> {
+async function handleNewsletter(req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const email = body?.email;
 

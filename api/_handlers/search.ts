@@ -9,19 +9,19 @@ export async function handleSearchRequest(
   _params: string[],
   action: string
 ): Promise<Response> {
-  if (!ctx.env) return serverError("Environment not available");
+  if (!ctx.env!) return serverError("Environment not available");
 
   switch (action) {
     case "suggestions":
-      return handleSuggestions(req, ctx.env);
+      return handleSuggestions(req, ctx.env!);
     case "recent":
-      return handleRecentSearches(ctx, ctx.env);
+      return handleRecentSearches(ctx, ctx.env!);
     case "trending":
-      return handleTrendingSearches(ctx.env);
+      return handleTrendingSearches(ctx.env!);
     case "save":
-      return handleSaveSearch(req, ctx, ctx.env);
+      return handleSaveSearch(req, ctx, ctx.env!);
     case "clear":
-      return handleClearRecentSearches(ctx, ctx.env);
+      return handleClearRecentSearches(ctx, ctx.env!);
     default:
       return badRequest("Unknown search action");
   }

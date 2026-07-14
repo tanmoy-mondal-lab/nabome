@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -15,11 +16,11 @@ export async function handleAdminImportExportRequest(
 
   switch (action) {
     case "exportProducts":
-      return handleExportProducts(req, ctx.env);
+      return handleExportProducts(req, ctx.env!);
     case "importProducts":
-      return handleImportProducts(req, ctx.env);
+      return handleImportProducts(req, ctx.env!);
     case "exportOrders":
-      return handleExportOrders(req, ctx.env);
+      return handleExportOrders(req, ctx.env!);
     default:
       return badRequest("Unknown action");
   }
@@ -39,7 +40,7 @@ function toCSV(headers: string[], rows: string[][]): string {
   return [headerLine, ...dataLines].join("\n");
 }
 
-async function handleExportProducts(req: Request, env: any): Promise<Response> {
+async function handleExportProducts(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const format = url.searchParams.get("format") ?? "csv";
   const categoryId = url.searchParams.get("categoryId");
@@ -92,7 +93,7 @@ async function handleExportProducts(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleImportProducts(req: Request, env: any): Promise<Response> {
+async function handleImportProducts(req: Request, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const contentType = req.headers.get("content-type") ?? "";
@@ -193,7 +194,7 @@ async function handleImportProducts(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleExportOrders(req: Request, env: any): Promise<Response> {
+async function handleExportOrders(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const format = url.searchParams.get("format") ?? "csv";
   const status = url.searchParams.get("status");

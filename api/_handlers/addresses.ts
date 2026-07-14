@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, error, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
@@ -13,19 +14,19 @@ export async function handleAddressRequest(
 
   switch (req.method) {
     case "GET":
-      return handleList(ctx.userId, ctx.env);
+      return handleList(ctx.userId, ctx.env!);
     case "POST":
-      return handleCreate(ctx.userId, req, ctx.env);
+      return handleCreate(ctx.userId, req, ctx.env!);
     case "PUT":
-      return handleUpdate(ctx.userId, params[0], req, ctx.env);
+      return handleUpdate(ctx.userId, params[0], req, ctx.env!);
     case "DELETE":
-      return handleDelete(ctx.userId, params[0], ctx.env);
+      return handleDelete(ctx.userId, params[0], ctx.env!);
     default:
       return error(ErrorCode.INVALID_INPUT, "Method not allowed", 405);
   }
 }
 
-async function handleList(userId: string, env: any): Promise<Response> {
+async function handleList(userId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const addresses = await prisma.addresses.findMany({
@@ -38,7 +39,7 @@ async function handleList(userId: string, env: any): Promise<Response> {
   }
 }
 
-async function handleCreate(userId: string, req: Request, env: any): Promise<Response> {
+async function handleCreate(userId: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { label, fullName, phone, line1, line2, city, district, state, pincode, country, isDefault } = body;
 
@@ -79,7 +80,7 @@ async function handleCreate(userId: string, req: Request, env: any): Promise<Res
   }
 }
 
-async function handleUpdate(userId: string, addressId: string, req: Request, env: any): Promise<Response> {
+async function handleUpdate(userId: string, addressId: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
 
   try {
@@ -119,7 +120,7 @@ async function handleUpdate(userId: string, addressId: string, req: Request, env
   }
 }
 
-async function handleDelete(userId: string, addressId: string, env: any): Promise<Response> {
+async function handleDelete(userId: string, addressId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const existing = await prisma.addresses.findFirst({

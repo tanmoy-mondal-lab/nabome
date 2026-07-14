@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { badRequest, unauthorized, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
@@ -10,13 +11,13 @@ export async function handleReviewRequest(
 ): Promise<Response> {
   switch (action) {
     case "create":
-      return handleCreate(ctx, req, ctx.env);
+      return handleCreate(ctx, req, ctx.env!);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleCreate(ctx: RequestContext, req: Request, env: any): Promise<Response> {
+async function handleCreate(ctx: RequestContext, req: Request, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   let body: Record<string, unknown>;

@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -7,15 +8,15 @@ export async function handleAdminProductAttributeRequest(req: Request, ctx: Requ
   const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
   switch (action) {
-    case "list": return handleList(req, ctx.env);
-    case "create": return handleCreate(req, ctx.env);
-    case "update": return handleUpdate(params[0], req, ctx.env);
-    case "delete": return handleDelete(params[0], ctx.env);
+    case "list": return handleList(req, ctx.env!);
+    case "create": return handleCreate(req, ctx.env!);
+    case "update": return handleUpdate(params[0], req, ctx.env!);
+    case "delete": return handleDelete(params[0], ctx.env!);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request, env: any): Promise<Response> {
+async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const productId = url.searchParams.get("productId");
   const where: Record<string, unknown> = {};
@@ -29,7 +30,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request, env: any): Promise<Response> {
+async function handleCreate(req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   if (!body.productId || !body.name?.trim() || !body.value?.trim()) return badRequest("productId, name, and value are required");
   try {
@@ -50,7 +51,7 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleUpdate(id: string, req: Request, env: any): Promise<Response> {
+async function handleUpdate(id: string, req: Request, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const body = await req.json();
@@ -67,7 +68,7 @@ async function handleUpdate(id: string, req: Request, env: any): Promise<Respons
   }
 }
 
-async function handleDelete(id: string, env: any): Promise<Response> {
+async function handleDelete(id: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const existing = await prisma.product_attributes.findUnique({ where: { id }, select: { id: true } });

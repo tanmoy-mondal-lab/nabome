@@ -207,34 +207,29 @@ export default function MediaLibraryNew() {
     setNextCursor(folderContents?.nextCursor);
   }, [folderContents]);
   
-  // Build folder tree structure
   const buildFolderTree = (folderList: { path: string; name: string }[]): any[] => {
     const tree: any[] = [];
-    const map = new Map();
-    
+    const nodeMap = new Map<string, any>();
+    const childMap = new Map<string, any[]>();
+
     folderList.forEach(folder => {
       const parts = folder.path.split("/");
-      let current = map;
-      
       parts.forEach((part, index) => {
         const currentPath = parts.slice(0, index + 1).join("/");
-        
-        if (!current.has(part)) {
-          const node = { path: currentPath, name: part, children: [] };
-          current.set(part, node);
-          if (index === 0) {
-            tree.push(node);
-          } else {
-            const parentNode = map.get(parts[index - 1]);
-            if (parentNode) {
-              parentNode.children.push(node);
-            }
-          }
+        if (nodeMap.has(currentPath)) return;
+        const node = { path: currentPath, name: part, children: [] };
+        nodeMap.set(currentPath, node);
+        childMap.set(currentPath, node.children);
+        if (index === 0) {
+          tree.push(node);
+        } else {
+          const parentPath = parts.slice(0, index).join("/");
+          const parent = nodeMap.get(parentPath);
+          if (parent) parent.children.push(node);
         }
-        current = map.get(part).children || new Map();
       });
     });
-    
+
     return tree;
   };
   

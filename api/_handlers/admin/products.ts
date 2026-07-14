@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -31,28 +32,28 @@ export async function handleAdminProductRequest(
   if (adminGuard) return adminGuard;
 
   switch (action) {
-    case "list": return handleList(req, ctx.env);
+    case "list": return handleList(req, ctx.env!);
     case "create": return handleCreate(req, ctx);
-    case "detail": return handleDetail(params[0], ctx.env);
+    case "detail": return handleDetail(params[0], ctx.env!);
     case "update": return handleUpdate(params[0], req, ctx);
     case "delete": return handleDelete(params[0], req, ctx);
     case "duplicate": return handleDuplicate(params[0], req, ctx);
     case "restore": return handleRestore(params[0], req, ctx);
-    case "getVariants": return handleGetVariants(params[0], ctx.env);
-    case "variants": return handleUpdateVariants(params[0], req, ctx.env);
-    case "addImage": return handleAddImage(params[0], req, ctx.env);
-    case "deleteImage": return handleDeleteImage(params[0], params[1], ctx.env);
+    case "getVariants": return handleGetVariants(params[0], ctx.env!);
+    case "variants": return handleUpdateVariants(params[0], req, ctx.env!);
+    case "addImage": return handleAddImage(params[0], req, ctx.env!);
+    case "deleteImage": return handleDeleteImage(params[0], params[1], ctx.env!);
     case "bulkStatus": return handleBulkStatus(req, ctx);
-    case "bulkCategory": return handleBulkCategory(req, ctx.env);
+    case "bulkCategory": return handleBulkCategory(req, ctx.env!);
     case "bulkDelete": return handleBulkDelete(req, ctx);
     case "permanentDelete": return handlePermanentDelete(params[0], req, ctx);
     case "bulkPermanentDelete": return handleBulkPermanentDelete(req, ctx);
-    case "schedule": return handleSchedule(params[0], req, ctx.env);
+    case "schedule": return handleSchedule(params[0], req, ctx.env!);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request, env: any): Promise<Response> {
+async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -108,7 +109,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   } catch {
     return badRequest("Invalid JSON body");
   }
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
   const bodyData = body as Record<string, unknown>;
   const { description, shortDescription, categoryId, subcategoryId, collectionId, brandId, sizeGuideId, currency, scheduledPublishAt, scheduledArchiveAt, metaTitle, metaDesc } = bodyData;
   let name = bodyData.name as string | undefined;
@@ -196,7 +197,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
   }
 }
 
-async function handleDetail(productId: string, env: any): Promise<Response> {
+async function handleDetail(productId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const product = await prisma.products.findUnique({
@@ -218,7 +219,7 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
     return badRequest("Invalid JSON body");
   }
 
-  const prisma = getPrisma(ctx.env);
+  const prisma = getPrisma(ctx.env!);
   try {
     const existing = await prisma.products.findUnique({ where: { id: productId } });
     if (!existing) return notFound("Product not found");
@@ -278,8 +279,8 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
         const oldMediaAsset = await prisma.media_assets.findFirst({
           where: { publicId: existing.sizeChartPublicId, entityType: "products", entityId: productId },
         });
-        if (oldMediaAsset && ctx.env) {
-          await deleteMedia(oldMediaAsset.id, ctx.env);
+        if (oldMediaAsset && ctx.env!) {
+          await deleteMedia(oldMediaAsset.id, ctx.env!);
         }
       }
       data.sizeChartPublicId = body.sizeChartPublicId;
@@ -313,7 +314,7 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
 
 async function handleDelete(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     // Soft-delete: only deactivate, preserve images for potential restore
     await prisma.products.update({
       where: { id: productId },
@@ -333,7 +334,7 @@ async function handleDelete(productId: string, req: Request, ctx: RequestContext
   }
 }
 
-async function handleGetVariants(productId: string, env: any): Promise<Response> {
+async function handleGetVariants(productId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const product = await prisma.products.findUnique({
@@ -350,7 +351,7 @@ async function handleGetVariants(productId: string, env: any): Promise<Response>
   } catch (err) { return serverError(err); }
 }
 
-async function handleUpdateVariants(productId: string, req: Request, env: any): Promise<Response> {
+async function handleUpdateVariants(productId: string, req: Request, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -488,7 +489,7 @@ async function handleUpdateVariants(productId: string, req: Request, env: any): 
   }
 }
 
-async function handleAddImage(productId: string, req: Request, env: any): Promise<Response> {
+async function handleAddImage(productId: string, req: Request, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -552,7 +553,7 @@ async function handleAddImage(productId: string, req: Request, env: any): Promis
   }
 }
 
-async function handleDeleteImage(productId: string, imageId: string, env: any): Promise<Response> {
+async function handleDeleteImage(productId: string, imageId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const image = await prisma.product_images.findFirst({ where: { id: imageId, productId } });
@@ -578,7 +579,7 @@ async function handleDeleteImage(productId: string, imageId: string, env: any): 
 
 async function handleDuplicate(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const source = await prisma.products.findUnique({
       where: { id: productId },
       include: { attributes: true, variants: true, productTags: true, productLabels: true },
@@ -685,7 +686,7 @@ async function handleDuplicate(productId: string, req: Request, ctx: RequestCont
 
 async function handleRestore(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const product = await prisma.products.update({
       where: { id: productId },
       data: { isActive: true, publishedAt: new Date() },
@@ -717,7 +718,7 @@ async function handleBulkStatus(req: Request, ctx: RequestContext): Promise<Resp
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
   if (typeof status !== "boolean") return badRequest("status boolean required");
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const result = await prisma.products.updateMany({
       where: { id: { in: ids } },
       data: { isActive: status, publishedAt: status ? new Date() : undefined },
@@ -735,7 +736,7 @@ async function handleBulkStatus(req: Request, ctx: RequestContext): Promise<Resp
 
 // ─── Bulk Category ───
 
-async function handleBulkCategory(req: Request, env: any): Promise<Response> {
+async function handleBulkCategory(req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { ids, categoryId, subcategoryId, collectionId } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
@@ -765,7 +766,7 @@ async function handleBulkDelete(req: Request, ctx: RequestContext): Promise<Resp
   const { ids } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const result = await prisma.products.updateMany({
       where: { id: { in: ids }, isActive: true },
       data: { isActive: false },
@@ -785,7 +786,7 @@ async function handleBulkDelete(req: Request, ctx: RequestContext): Promise<Resp
 
 async function handlePermanentDelete(productId: string, req: Request, ctx: RequestContext): Promise<Response> {
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const product = await prisma.products.findUnique({
       where: { id: productId },
       select: { id: true, name: true, slug: true, isActive: true, _count: { select: { orderItems: true } } },
@@ -797,8 +798,8 @@ async function handlePermanentDelete(productId: string, req: Request, ctx: Reque
     }
 
     // Delete all media for this product using MediaService
-    if (ctx.env) {
-      await deleteEntityMedia("products", productId, product.slug, ctx.env);
+    if (ctx.env!) {
+      await deleteEntityMedia("products", productId, product.slug, ctx.env!);
     }
 
     // Delete from DB (cascades handle variants, images, tags, labels, etc.)
@@ -823,7 +824,7 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Pro
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     // Check for order items across all products
     const orderItemCount = await prisma.order_items.count({
       where: { productId: { in: ids } },
@@ -833,13 +834,13 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Pro
     }
 
     // Delete all media for these products using MediaService
-    if (ctx.env) {
+    if (ctx.env!) {
       const products = await prisma.products.findMany({
         where: { id: { in: ids } },
         select: { id: true, slug: true },
       });
       for (const product of products) {
-        await deleteEntityMedia("products", product.id, product.slug, ctx.env);
+        await deleteEntityMedia("products", product.id, product.slug, ctx.env!);
       }
     }
 
@@ -860,7 +861,7 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Pro
 
 // ─── Schedule Publish/Archive ───
 
-async function handleSchedule(productId: string, req: Request, env: any): Promise<Response> {
+async function handleSchedule(productId: string, req: Request, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();

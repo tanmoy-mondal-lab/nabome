@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -17,23 +18,23 @@ export async function handleAdminLookbookRequest(
 
   switch (action) {
     case "list":
-      return handleList(ctx.env);
+      return handleList(ctx.env!);
     case "create":
-      return handleCreate(req, ctx.env);
+      return handleCreate(req, ctx.env!);
     case "detail":
-      return handleDetail(params[0], ctx.env);
+      return handleDetail(params[0], ctx.env!);
     case "update":
-      return handleUpdate(params[0], req, ctx.env);
+      return handleUpdate(params[0], req, ctx.env!);
     case "delete":
-      return handleDelete(params[0], ctx.env);
+      return handleDelete(params[0], ctx.env!);
     case "addItem":
-      return handleAddItem(params[0], req, ctx.env);
+      return handleAddItem(params[0], req, ctx.env!);
     case "updateItem":
-      return handleUpdateItem(params[0], params[1], req, ctx.env);
+      return handleUpdateItem(params[0], params[1], req, ctx.env!);
     case "removeItem":
-      return handleRemoveItem(params[0], params[1], ctx.env);
+      return handleRemoveItem(params[0], params[1], ctx.env!);
     case "reorderItems":
-      return handleReorderItems(params[0], req, ctx.env);
+      return handleReorderItems(params[0], req, ctx.env!);
     default:
       return badRequest("Unknown action");
   }
@@ -76,7 +77,7 @@ function normalizeLookbookItems(items: unknown[]): Array<{
     .filter((item): item is NonNullable<typeof item> => item !== null);
 }
 
-async function handleList(env: any): Promise<Response> {
+async function handleList(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const lookbooks = await prisma.lookbooks.findMany({
@@ -89,7 +90,7 @@ async function handleList(env: any): Promise<Response> {
   }
 }
 
-async function handleDetail(id: string, env: any): Promise<Response> {
+async function handleDetail(id: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const lookbook = await prisma.lookbooks.findUnique({
@@ -103,7 +104,7 @@ async function handleDetail(id: string, env: any): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request, env: any): Promise<Response> {
+async function handleCreate(req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { name, description, coverImageUrl, coverImagePublicId, season, year, layout, story, tags, metaTitle, metaDesc, isActive, sortOrder } = body;
 
@@ -142,7 +143,7 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleUpdate(lookbookId: string, req: Request, env: any): Promise<Response> {
+async function handleUpdate(lookbookId: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
@@ -218,7 +219,7 @@ async function handleUpdate(lookbookId: string, req: Request, env: any): Promise
   }
 }
 
-async function handleDelete(lookbookId: string, env: any): Promise<Response> {
+async function handleDelete(lookbookId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const lookbook = await prisma.lookbooks.findUnique({
@@ -235,7 +236,7 @@ async function handleDelete(lookbookId: string, env: any): Promise<Response> {
   }
 }
 
-async function handleAddItem(lookbookId: string, req: Request, env: any): Promise<Response> {
+async function handleAddItem(lookbookId: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { imageUrl, imagePublicId, productId, hotspotX, hotspotY, caption, sortOrder } = body;
 
@@ -261,7 +262,7 @@ async function handleAddItem(lookbookId: string, req: Request, env: any): Promis
   }
 }
 
-async function handleUpdateItem(_lookbookId: string, itemId: string, req: Request, env: any): Promise<Response> {
+async function handleUpdateItem(_lookbookId: string, itemId: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
@@ -298,7 +299,7 @@ async function handleUpdateItem(_lookbookId: string, itemId: string, req: Reques
   }
 }
 
-async function handleRemoveItem(lookbookId: string, itemId: string, env: any): Promise<Response> {
+async function handleRemoveItem(lookbookId: string, itemId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const item = await prisma.lookbook_items.findUnique({
@@ -324,7 +325,7 @@ async function handleRemoveItem(lookbookId: string, itemId: string, env: any): P
   }
 }
 
-async function handleReorderItems(lookbookId: string, req: Request, env: any): Promise<Response> {
+async function handleReorderItems(lookbookId: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { order } = body;
   if (!Array.isArray(order)) return badRequest("Order array is required");

@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError, created } from "../_lib/response";
 import { requireAdmin } from "../_lib/auth-middleware";
@@ -11,7 +12,7 @@ export async function createNotification(
   body?: string,
   orderId?: string,
   channel: string = "in_app",
-  env?: any
+  env?: Env
 ): Promise<void> {
   try {
     const prisma = getPrisma(env);
@@ -65,36 +66,36 @@ export async function handleNotificationRequest(
 
   // Customer routes (require auth)
   if (!action || action === "list") {
-    if (method === "GET" && !params.length) return handleList(ctx, req, ctx.env);
+    if (method === "GET" && !params.length) return handleList(ctx, req, ctx.env!);
   }
   if (action === "read") {
-    if (method === "PUT") return handleMarkRead(ctx, params[0], ctx.env);
+    if (method === "PUT") return handleMarkRead(ctx, params[0], ctx.env!);
   }
   if (action === "readAll") {
-    if (method === "PUT") return handleMarkAllRead(ctx, ctx.env);
+    if (method === "PUT") return handleMarkAllRead(ctx, ctx.env!);
   }
   if (action === "unreadCount") {
-    if (method === "GET") return handleUnreadCount(ctx, ctx.env);
+    if (method === "GET") return handleUnreadCount(ctx, ctx.env!);
   }
 
   // Admin routes
   if (action === "adminList") {
-    if (method === "GET") return handleAdminList(ctx, req, ctx.env);
+    if (method === "GET") return handleAdminList(ctx, req, ctx.env!);
   }
   if (action === "adminTemplates") {
-    if (method === "GET") return handleListTemplates(ctx, ctx.env);
+    if (method === "GET") return handleListTemplates(ctx, ctx.env!);
   }
   if (action === "adminUpdateTemplate") {
-    if (method === "PUT") return handleUpdateTemplate(ctx, params[0], req, ctx.env);
+    if (method === "PUT") return handleUpdateTemplate(ctx, params[0], req, ctx.env!);
   }
   if (action === "adminSend") {
-    if (method === "POST") return handleAdminSend(ctx, req, ctx.env);
+    if (method === "POST") return handleAdminSend(ctx, req, ctx.env!);
   }
 
   return notFound();
 }
 
-async function handleList(ctx: RequestContext, req: Request, env: any): Promise<Response> {
+async function handleList(ctx: RequestContext, req: Request, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   const url = new URL(req.url);
@@ -129,7 +130,7 @@ async function handleList(ctx: RequestContext, req: Request, env: any): Promise<
   }
 }
 
-async function handleMarkRead(ctx: RequestContext, notificationId: string, env: any): Promise<Response> {
+async function handleMarkRead(ctx: RequestContext, notificationId: string, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
@@ -150,7 +151,7 @@ async function handleMarkRead(ctx: RequestContext, notificationId: string, env: 
   }
 }
 
-async function handleMarkAllRead(ctx: RequestContext, env: any): Promise<Response> {
+async function handleMarkAllRead(ctx: RequestContext, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
@@ -166,7 +167,7 @@ async function handleMarkAllRead(ctx: RequestContext, env: any): Promise<Respons
   }
 }
 
-async function handleUnreadCount(ctx: RequestContext, env: any): Promise<Response> {
+async function handleUnreadCount(ctx: RequestContext, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
@@ -181,7 +182,7 @@ async function handleUnreadCount(ctx: RequestContext, env: any): Promise<Respons
   }
 }
 
-async function handleAdminList(_ctx: RequestContext, req: Request, env: any): Promise<Response> {
+async function handleAdminList(_ctx: RequestContext, req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -221,7 +222,7 @@ async function handleAdminList(_ctx: RequestContext, req: Request, env: any): Pr
   }
 }
 
-async function handleListTemplates(_ctx: RequestContext, env: any): Promise<Response> {
+async function handleListTemplates(_ctx: RequestContext, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const templates = await prisma.notification_templates.findMany({
@@ -233,7 +234,7 @@ async function handleListTemplates(_ctx: RequestContext, env: any): Promise<Resp
   }
 }
 
-async function handleUpdateTemplate(_ctx: RequestContext, templateId: string, req: Request, env: any): Promise<Response> {
+async function handleUpdateTemplate(_ctx: RequestContext, templateId: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const allowedFields = ["subject", "emailBody", "smsBody", "inAppBody", "isActive"];
   const updateData: Record<string, unknown> = {};
@@ -264,7 +265,7 @@ async function handleUpdateTemplate(_ctx: RequestContext, templateId: string, re
   }
 }
 
-async function handleAdminSend(_ctx: RequestContext, req: Request, env: any): Promise<Response> {
+async function handleAdminSend(_ctx: RequestContext, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { profileId, type, title, body: messageBody, orderId, channel } = body;
 

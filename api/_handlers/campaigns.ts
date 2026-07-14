@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, serverError, notFound } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
@@ -9,14 +10,14 @@ export async function handleCampaignRequest(
   action: string
 ): Promise<Response> {
   switch (action) {
-    case "list": return handleList(req, ctx.env);
-    case "active": return handleActive(ctx.env);
-    case "detail": return handleDetail(params[0], ctx.env);
+    case "list": return handleList(req, ctx.env!);
+    case "active": return handleActive(ctx.env!);
+    case "detail": return handleDetail(params[0], ctx.env!);
     default: return serverError("Unknown action");
   }
 }
 
-async function handleList(req: Request, env: any): Promise<Response> {
+async function handleList(req: Request, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const url = new URL(req.url);
@@ -33,7 +34,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleActive(env: any): Promise<Response> {
+async function handleActive(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const now = new Date();
@@ -53,7 +54,7 @@ async function handleActive(env: any): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleDetail(id: string, env: any): Promise<Response> {
+async function handleDetail(id: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const campaign = await prisma.campaigns.findUnique({

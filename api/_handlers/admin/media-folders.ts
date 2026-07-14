@@ -39,25 +39,25 @@ export async function handleAdminMediaFoldersRequest(
 
   switch (action) {
     case "list":
-      return handleListFolders(_req, ctx.env);
+      return handleListFolders(_req, ctx.env!);
     case "contents":
-      return handleListFolderContents(_req, ctx.env);
+      return handleListFolderContents(_req, ctx.env!);
     case "create":
-      return handleCreateFolder(_req, ctx.env);
+      return handleCreateFolder(_req, ctx.env!);
     case "rename":
-      return handleRenameFolder(_req, ctx.env);
+      return handleRenameFolder(_req, ctx.env!);
     case "delete":
-      return handleDeleteFolder(_req, ctx.env);
+      return handleDeleteFolder(_req, ctx.env!);
     case "move":
-      return handleMoveFolder(_req, ctx.env);
+      return handleMoveFolder(_req, ctx.env!);
     case "storage":
-      return handleGetStorageInfo(_req, ctx.env);
+      return handleGetStorageInfo(_req, ctx.env!);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleListFolders(_req: Request, env: any): Promise<Response> {
+async function handleListFolders(_req: Request, env: Env): Promise<Response> {
   try {
     const config = getCloudinaryConfig(env);
     const folders = await listFolders(config);
@@ -72,7 +72,7 @@ async function handleListFolders(_req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleListFolderContents(req: Request, env: any): Promise<Response> {
+async function handleListFolderContents(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const folderPath = url.searchParams.get("path") || "";
   const maxResults = parseInt(url.searchParams.get("maxResults") || "100");
@@ -129,7 +129,7 @@ async function handleListFolderContents(req: Request, env: any): Promise<Respons
   }
 }
 
-async function handleCreateFolder(req: Request, env: any): Promise<Response> {
+async function handleCreateFolder(req: Request, env: Env): Promise<Response> {
   let body: any;
   try {
     body = await req.json();
@@ -158,7 +158,7 @@ async function handleCreateFolder(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleRenameFolder(req: Request, env: any): Promise<Response> {
+async function handleRenameFolder(req: Request, env: Env): Promise<Response> {
   let body: any;
   try {
     body = await req.json();
@@ -212,7 +212,7 @@ async function handleRenameFolder(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleDeleteFolder(req: Request, env: any): Promise<Response> {
+async function handleDeleteFolder(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const path = url.searchParams.get("path");
 
@@ -238,7 +238,7 @@ async function handleDeleteFolder(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleMoveFolder(req: Request, env: any): Promise<Response> {
+async function handleMoveFolder(req: Request, env: Env): Promise<Response> {
   let body: any;
   try {
     body = await req.json();
@@ -292,7 +292,7 @@ async function handleMoveFolder(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleGetStorageInfo(_req: Request, env: any): Promise<Response> {
+async function handleGetStorageInfo(_req: Request, env: Env): Promise<Response> {
   try {
     const config = getCloudinaryConfig(env);
     const info = await getStorageInfo(config);

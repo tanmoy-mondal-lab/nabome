@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -22,19 +23,19 @@ export async function handleAdminMediaRequest(
 
   switch (action) {
     case "list":
-      return handleList(req, ctx.env);
+      return handleList(req, ctx.env!);
     case "create":
-      return handleCreate(req, ctx.env);
+      return handleCreate(req, ctx.env!);
     case "update":
-      return handleUpdate(params[0], req, ctx.env);
+      return handleUpdate(params[0], req, ctx.env!);
     case "delete":
-      return handleDelete(params[0], req, ctx.env);
+      return handleDelete(params[0], req, ctx.env!);
     case "usage":
-      return handleUsage(params[0], ctx.env);
+      return handleUsage(params[0], ctx.env!);
     case "restore":
-      return handleRestore(params[0], req, ctx.env);
+      return handleRestore(params[0], req, ctx.env!);
     case "permanent-delete":
-      return handlePermanentDelete(params[0], req, ctx.env);
+      return handlePermanentDelete(params[0], req, ctx.env!);
     default:
       return badRequest("Unknown action");
   }
@@ -42,7 +43,7 @@ export async function handleAdminMediaRequest(
 
 const MAX_PAGE_LIMIT = 200;
 
-async function handleList(req: Request, env: any): Promise<Response> {
+async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1"));
   const limit = Math.min(MAX_PAGE_LIMIT, Math.max(1, parseInt(url.searchParams.get("limit") ?? "50")));
@@ -116,7 +117,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request, env: any): Promise<Response> {
+async function handleCreate(req: Request, env: Env): Promise<Response> {
   let body: any;
   try {
     body = await req.json();
@@ -175,7 +176,7 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleDelete(assetId: string, req: Request, env: any): Promise<Response> {
+async function handleDelete(assetId: string, req: Request, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     
@@ -234,7 +235,7 @@ async function handleDelete(assetId: string, req: Request, env: any): Promise<Re
   }
 }
 
-async function handleUpdate(assetId: string, req: Request, env: any): Promise<Response> {
+async function handleUpdate(assetId: string, req: Request, env: Env): Promise<Response> {
   let body: any;
   try {
     body = await req.json();
@@ -268,7 +269,7 @@ async function handleUpdate(assetId: string, req: Request, env: any): Promise<Re
   }
 }
 
-async function handleUsage(assetId: string, env: any): Promise<Response> {
+async function handleUsage(assetId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const asset = await prisma.media_assets.findUnique({
@@ -406,7 +407,7 @@ async function handleUsage(assetId: string, env: any): Promise<Response> {
   }
 }
 
-async function handleRestore(assetId: string, req: Request, env: any): Promise<Response> {
+async function handleRestore(assetId: string, req: Request, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     
@@ -434,7 +435,7 @@ async function handleRestore(assetId: string, req: Request, env: any): Promise<R
   }
 }
 
-async function handlePermanentDelete(assetId: string, req: Request, env: any): Promise<Response> {
+async function handlePermanentDelete(assetId: string, req: Request, env: Env): Promise<Response> {
   let body: any;
   try {
     body = await req.json();

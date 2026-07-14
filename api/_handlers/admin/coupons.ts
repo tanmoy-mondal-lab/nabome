@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -15,19 +16,19 @@ export async function handleAdminCouponRequest(
 
   switch (action) {
     case "list":
-      return handleList(req, ctx.env);
+      return handleList(req, ctx.env!);
     case "create":
-      return handleCreate(req, ctx, ctx.env);
+      return handleCreate(req, ctx, ctx.env!);
     case "update":
-      return handleUpdate(params[0], req, ctx, ctx.env);
+      return handleUpdate(params[0], req, ctx, ctx.env!);
     case "delete":
-      return handleDelete(params[0], req, ctx, ctx.env);
+      return handleDelete(params[0], req, ctx, ctx.env!);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request, env: any): Promise<Response> {
+async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "50");
@@ -53,7 +54,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   const body = await req.json();
   const { code, description, discountType, discountValue, minOrderValue, maxDiscount, usageLimit, perUserLimit, applicableGender, isActive, startDate, endDate } = body;
 
@@ -94,7 +95,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
   }
 }
 
-async function handleUpdate(couponId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleUpdate(couponId: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   const body = await req.json();
 
   try {
@@ -135,7 +136,7 @@ async function handleUpdate(couponId: string, req: Request, ctx: RequestContext,
   }
 }
 
-async function handleDelete(couponId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleDelete(couponId: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const existing = await prisma.coupons.findUnique({ where: { id: couponId } });

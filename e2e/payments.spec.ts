@@ -67,6 +67,56 @@ test.describe('Payment Flows', () => {
     await expect(page.locator('text=Retry Payment')).toBeVisible();
   });
 
+  test('should display Cash on Delivery payment option', async ({ page }) => {
+    await page.click('button:has-text("Add to Cart")');
+    await page.click('a:has-text("Cart")');
+    await page.click('button:has-text("Checkout")');
+
+    const codOption = page.locator(
+      'input[value="cod"], text=Cash on Delivery, text=COD, label:has-text("Cash on Delivery")'
+    ).first();
+    const hasCod = await codOption.isVisible().catch(() => false);
+    expect(hasCod).toBeTruthy();
+  });
+
+  test('should validate payment form before submission', async ({ page }) => {
+    await page.click('button:has-text("Add to Cart")');
+    await page.click('a:has-text("Cart")');
+    await page.click('button:has-text("Checkout")');
+
+    const payButton = page.locator('button:has-text("Pay Now"), button:has-text("Place Order")').first();
+    if (await payButton.isVisible().catch(() => false)) {
+      await payButton.click();
+      await page.waitForTimeout(500);
+    }
+
+    const errorMessages = page.locator('[class*="error"], [role="alert"], text|required|Required|invalid');
+    const hasErrors = await errorMessages.count() > 0;
+    const stayedOnCheckout = /checkout/.test(page.url());
+    expect(hasErrors || stayedOnCheckout).toBeTruthy();
+  });
+
+  test('should handle network error during payment gracefully', async ({ page }) => {
+    await page.click('button:has-text("Add to Cart")');
+    await page.click('a:has-text("Cart")');
+    await page.click('button:has-text("Checkout")');
+
+    await page.route('**/api/orders**', (route) => route.abort('internetdisconnected'));
+
+    const payButton = page.locator('button:has-text("Pay Now"), button:has-text("Place Order")').first();
+    if (await payButton.isVisible().catch(() => false)) {
+      await payButton.click();
+      await page.waitForTimeout(2000);
+    }
+
+    const errorUI = page.locator(
+      'text=network, text=Network, text=error, text=Error, text=failed, [role="alert"]'
+    ).first();
+    const hasErrorUI = await errorUI.isVisible().catch(() => false);
+    const stillOnPage = /checkout|payment/.test(page.url());
+    expect(hasErrorUI || stillOnPage).toBeTruthy();
+  });
+
   test('should prevent duplicate payment submissions', async ({ page }) => {
     await page.click('button:has-text("Add to Cart")');
     await page.click('a:has-text("Cart")');

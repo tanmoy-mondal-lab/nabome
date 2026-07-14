@@ -8,6 +8,7 @@ import { cleanSecret } from "../_lib/secrets";
 import type { Env } from "../_lib/env";
 import { authenticate } from "../_lib/auth-middleware";
 import { completeReferralForOrder } from "./referral";
+import { withIdempotency } from "../_lib/idempotency";
 
 const VALID_PAYMENT_METHODS = ["cod", "card", "upi", "netbanking", "wallet", "razorpay"] as const;
 const DEFAULT_SHIPPING_COST = 99;
@@ -65,11 +66,14 @@ export async function handleCheckoutRequest(
   _params: string[] = [],
   action: string = "checkout"
 ): Promise<Response> {
-  const isGuest = action === "guest";
-  let completedOrder = false;
-  const createdAddressIds: string[] = []; // Track addresses created for cleanup on failure
+  const idempotencyKey = req.headers.get("Idempotency-Key");
 
-  let body: Record<string, unknown>;
+  return withIdempotency(idempotencyKey, ctx.env!, async () => {
+    const isGuest = action === "guest";
+    let completedOrder = false;
+    const createdAddressIds: string[] = []; // Track addresses created for cleanup on failure
+
+    let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -96,7 +100,7 @@ export async function handleCheckoutRequest(
 
   // Require email verification for authenticated checkout
   if (!isGuest && ctx.userId) {
-    const authResult = await authenticate(req, { required: true, requireEmailVerified: true }, ctx.env);
+    const authResult = await authenticate(req, { required: true, requireEmailVerified: true }, ctx.env!);
     if (authResult instanceof Response) return authResult;
     ctx = { ...ctx, ...authResult.ctx };
   }
@@ -115,7 +119,7 @@ export async function handleCheckoutRequest(
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     let checkoutEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
     let profileId = ctx.userId ?? null;
 
@@ -521,7 +525,7 @@ export async function handleCheckoutRequest(
     let razorpayOrderId: string | null = null;
     if (paymentMethod !== "cod") {
       try {
-        razorpayOrderId = await createRazorpayOrder(total, "INR", orderNumber, ctx.env);
+        razorpayOrderId = await createRazorpayOrder(total, "INR", orderNumber, ctx.env!);
       } catch (razorpayError) {
         throw new CheckoutError(`Payment initialization failed: ${(razorpayError as Error).message}`);
       }
@@ -684,7 +688,7 @@ export async function handleCheckoutRequest(
           image: item.imageUrl,
         })) || [],
         orderId: order.id,
-      }, ctx.env);
+      }, ctx.env!);
     } catch (emailErr) {
       // Silent failure - email send error
     }
@@ -716,7 +720,7 @@ export async function handleCheckoutRequest(
     // Clean up any addresses created before the transaction in case of failure
     if (!completedOrder && createdAddressIds.length > 0) {
       try {
-        const prisma = getPrisma(ctx.env);
+        const prisma = getPrisma(ctx.env!);
         await prisma.addresses.deleteMany({
           where: { id: { in: createdAddressIds } },
         });
@@ -727,4 +731,5 @@ export async function handleCheckoutRequest(
     if (err instanceof CheckoutError) return badRequest(err.message);
     return serverError(err);
   }
+  });
 }

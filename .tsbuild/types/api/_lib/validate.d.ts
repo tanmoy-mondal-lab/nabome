@@ -201,6 +201,7 @@ export declare const checkoutSchema: z.ZodObject<{
     paymentMethod: z.ZodEnum<["cod", "razorpay"]>;
     notes: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    paymentMethod: "cod" | "razorpay";
     shippingAddress: {
         phone: string;
         fullName: string;
@@ -212,7 +213,8 @@ export declare const checkoutSchema: z.ZodObject<{
         line2?: string | undefined;
         district?: string | undefined;
     };
-    paymentMethod: "cod" | "razorpay";
+    couponCode?: string | undefined;
+    notes?: string | undefined;
     billingAddress?: {
         phone: string;
         fullName: string;
@@ -224,9 +226,8 @@ export declare const checkoutSchema: z.ZodObject<{
         line2?: string | undefined;
         district?: string | undefined;
     } | undefined;
-    couponCode?: string | undefined;
-    notes?: string | undefined;
 }, {
+    paymentMethod: "cod" | "razorpay";
     shippingAddress: {
         phone: string;
         fullName: string;
@@ -238,7 +239,8 @@ export declare const checkoutSchema: z.ZodObject<{
         district?: string | undefined;
         country?: string | undefined;
     };
-    paymentMethod: "cod" | "razorpay";
+    couponCode?: string | undefined;
+    notes?: string | undefined;
     billingAddress?: {
         phone: string;
         fullName: string;
@@ -250,8 +252,6 @@ export declare const checkoutSchema: z.ZodObject<{
         district?: string | undefined;
         country?: string | undefined;
     } | undefined;
-    couponCode?: string | undefined;
-    notes?: string | undefined;
 }>;
 export declare const productCreateSchema: z.ZodObject<{
     name: z.ZodString;
@@ -269,35 +269,35 @@ export declare const productCreateSchema: z.ZodObject<{
     images: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     tags: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
 }, "strip", z.ZodTypeAny, {
+    description: string;
     name: string;
     status: "draft" | "active" | "archived";
     slug: string;
-    description: string;
+    categoryId: string;
     price: number;
     trackQuantity: boolean;
-    categoryId: string;
+    images?: string[] | undefined;
+    brandId?: string | undefined;
     compareAtPrice?: number | undefined;
     costPrice?: number | undefined;
     sku?: string | undefined;
-    barcode?: string | undefined;
-    brandId?: string | undefined;
-    images?: string[] | undefined;
     tags?: string[] | undefined;
+    barcode?: string | undefined;
 }, {
+    description: string;
     name: string;
     slug: string;
-    description: string;
-    price: number;
     categoryId: string;
+    price: number;
     status?: "draft" | "active" | "archived" | undefined;
+    images?: string[] | undefined;
+    brandId?: string | undefined;
     compareAtPrice?: number | undefined;
     costPrice?: number | undefined;
     sku?: string | undefined;
+    tags?: string[] | undefined;
     barcode?: string | undefined;
     trackQuantity?: boolean | undefined;
-    brandId?: string | undefined;
-    images?: string[] | undefined;
-    tags?: string[] | undefined;
 }>;
 export declare const productUpdateSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
@@ -315,35 +315,35 @@ export declare const productUpdateSchema: z.ZodObject<{
     images: z.ZodOptional<z.ZodOptional<z.ZodArray<z.ZodString, "many">>>;
     tags: z.ZodOptional<z.ZodOptional<z.ZodArray<z.ZodString, "many">>>;
 }, "strip", z.ZodTypeAny, {
+    description?: string | undefined;
     name?: string | undefined;
     status?: "draft" | "active" | "archived" | undefined;
+    images?: string[] | undefined;
     slug?: string | undefined;
-    description?: string | undefined;
-    price?: number | undefined;
+    categoryId?: string | undefined;
+    brandId?: string | undefined;
     compareAtPrice?: number | undefined;
     costPrice?: number | undefined;
     sku?: string | undefined;
+    tags?: string[] | undefined;
+    price?: number | undefined;
     barcode?: string | undefined;
     trackQuantity?: boolean | undefined;
-    categoryId?: string | undefined;
-    brandId?: string | undefined;
-    images?: string[] | undefined;
-    tags?: string[] | undefined;
 }, {
+    description?: string | undefined;
     name?: string | undefined;
     status?: "draft" | "active" | "archived" | undefined;
+    images?: string[] | undefined;
     slug?: string | undefined;
-    description?: string | undefined;
-    price?: number | undefined;
+    categoryId?: string | undefined;
+    brandId?: string | undefined;
     compareAtPrice?: number | undefined;
     costPrice?: number | undefined;
     sku?: string | undefined;
+    tags?: string[] | undefined;
+    price?: number | undefined;
     barcode?: string | undefined;
     trackQuantity?: boolean | undefined;
-    categoryId?: string | undefined;
-    brandId?: string | undefined;
-    images?: string[] | undefined;
-    tags?: string[] | undefined;
 }>;
 export declare const categoryCreateSchema: z.ZodObject<{
     name: z.ZodString;
@@ -354,21 +354,21 @@ export declare const categoryCreateSchema: z.ZodObject<{
     sortOrder: z.ZodDefault<z.ZodNumber>;
     isActive: z.ZodDefault<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
-    name: string;
     isActive: boolean;
+    name: string;
     slug: string;
     sortOrder: number;
     description?: string | undefined;
-    image?: string | undefined;
     parentId?: string | undefined;
+    image?: string | undefined;
 }, {
     name: string;
     slug: string;
-    isActive?: boolean | undefined;
     description?: string | undefined;
-    image?: string | undefined;
+    isActive?: boolean | undefined;
     parentId?: string | undefined;
     sortOrder?: number | undefined;
+    image?: string | undefined;
 }>;
 export declare const orderUpdateSchema: z.ZodObject<{
     status: z.ZodEnum<["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "refunded"]>;
@@ -376,12 +376,12 @@ export declare const orderUpdateSchema: z.ZodObject<{
     internalNotes: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     status: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded";
-    trackingNumber?: string | undefined;
     internalNotes?: string | undefined;
+    trackingNumber?: string | undefined;
 }, {
     status: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled" | "refunded";
-    trackingNumber?: string | undefined;
     internalNotes?: string | undefined;
+    trackingNumber?: string | undefined;
 }>;
 export declare const couponCreateSchema: z.ZodObject<{
     code: z.ZodString;
@@ -398,17 +398,17 @@ export declare const couponCreateSchema: z.ZodObject<{
     applicableProducts: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     isActive: z.ZodDefault<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
-    isActive: boolean;
     code: string;
     discountType: "fixed" | "percentage" | "free_shipping";
     discountValue: number;
-    minimumPurchase: number;
-    usageLimitPerUser: number;
+    isActive: boolean;
     startDate: string;
     endDate: string;
+    minimumPurchase: number;
+    usageLimitPerUser: number;
     description?: string | undefined;
-    maximumDiscount?: number | undefined;
     usageLimit?: number | undefined;
+    maximumDiscount?: number | undefined;
     applicableCategories?: string[] | undefined;
     applicableProducts?: string[] | undefined;
 }, {
@@ -417,11 +417,11 @@ export declare const couponCreateSchema: z.ZodObject<{
     discountValue: number;
     startDate: string;
     endDate: string;
-    isActive?: boolean | undefined;
     description?: string | undefined;
+    usageLimit?: number | undefined;
+    isActive?: boolean | undefined;
     minimumPurchase?: number | undefined;
     maximumDiscount?: number | undefined;
-    usageLimit?: number | undefined;
     usageLimitPerUser?: number | undefined;
     applicableCategories?: string[] | undefined;
     applicableProducts?: string[] | undefined;
@@ -448,9 +448,9 @@ export declare const addressCreateSchema: z.ZodObject<{
     pincode: string;
     country: string;
     isDefault: boolean;
+    label?: string | undefined;
     line2?: string | undefined;
     district?: string | undefined;
-    label?: string | undefined;
 }, {
     phone: string;
     fullName: string;
@@ -458,11 +458,11 @@ export declare const addressCreateSchema: z.ZodObject<{
     city: string;
     state: string;
     pincode: string;
+    label?: string | undefined;
     line2?: string | undefined;
     district?: string | undefined;
     country?: string | undefined;
     isDefault?: boolean | undefined;
-    label?: string | undefined;
 }>;
 export declare const reviewUpdateSchema: z.ZodObject<{
     rating: z.ZodOptional<z.ZodNumber>;
@@ -470,14 +470,14 @@ export declare const reviewUpdateSchema: z.ZodObject<{
     body: z.ZodOptional<z.ZodString>;
     isVerified: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
+    title?: string | undefined;
     body?: string | undefined;
     rating?: number | undefined;
-    title?: string | undefined;
     isVerified?: boolean | undefined;
 }, {
+    title?: string | undefined;
     body?: string | undefined;
     rating?: number | undefined;
-    title?: string | undefined;
     isVerified?: boolean | undefined;
 }>;
 export declare const paginationSchema: z.ZodObject<{
@@ -514,9 +514,9 @@ export declare const searchSchema: z.ZodObject<{
     inStock?: boolean | undefined;
 }, {
     query: string;
+    category?: string | undefined;
     page?: number | undefined;
     limit?: number | undefined;
-    category?: string | undefined;
     minPrice?: number | undefined;
     maxPrice?: number | undefined;
     inStock?: boolean | undefined;
@@ -528,13 +528,13 @@ export declare const paymentVerifySchema: z.ZodObject<{
     orderId: z.ZodString;
 }, "strip", z.ZodTypeAny, {
     orderId: string;
-    razorpayPaymentId: string;
     razorpayOrderId: string;
+    razorpayPaymentId: string;
     razorpaySignature: string;
 }, {
     orderId: string;
-    razorpayPaymentId: string;
     razorpayOrderId: string;
+    razorpayPaymentId: string;
     razorpaySignature: string;
 }>;
 export declare const paymentFailedSchema: z.ZodObject<{
@@ -566,12 +566,12 @@ export declare const refundSchema: z.ZodObject<{
     returnRequestId: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     orderId: string;
-    amount?: number | undefined;
     returnRequestId?: string | undefined;
+    amount?: number | undefined;
 }, {
     orderId: string;
-    amount?: number | undefined;
     returnRequestId?: string | undefined;
+    amount?: number | undefined;
 }>;
 export declare const cartSyncSchema: z.ZodObject<{
     items: z.ZodArray<z.ZodObject<{
@@ -606,23 +606,23 @@ export declare const verifyResetCodeSchema: z.ZodObject<{
     email: z.ZodString;
     code: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    email: string;
     code: string;
+    email: string;
 }, {
-    email: string;
     code: string;
+    email: string;
 }>;
 export declare const resetPasswordSchema: z.ZodObject<{
     email: z.ZodString;
     code: z.ZodString;
     password: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    email: string;
     code: string;
+    email: string;
     password: string;
 }, {
-    email: string;
     code: string;
+    email: string;
     password: string;
 }>;
 export declare const changePasswordSchema: z.ZodObject<{
@@ -639,11 +639,11 @@ export declare const verifyEmailSchema: z.ZodObject<{
     email: z.ZodString;
     code: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    email: string;
     code: string;
+    email: string;
 }, {
-    email: string;
     code: string;
+    email: string;
 }>;
 export declare const resendVerificationSchema: z.ZodObject<{
     email: z.ZodString;
@@ -666,18 +666,18 @@ export declare const cmsPageCreateSchema: z.ZodObject<{
     template: string;
     isPublished: boolean;
     slug?: string | undefined;
-    content?: Record<string, unknown> | undefined;
     metaTitle?: string | null | undefined;
     metaDesc?: string | null | undefined;
+    content?: Record<string, unknown> | undefined;
     ogImage?: string | null | undefined;
 }, {
     title: string;
     slug?: string | undefined;
+    metaTitle?: string | null | undefined;
+    metaDesc?: string | null | undefined;
     content?: Record<string, unknown> | undefined;
     template?: string | undefined;
     isPublished?: boolean | undefined;
-    metaTitle?: string | null | undefined;
-    metaDesc?: string | null | undefined;
     ogImage?: string | null | undefined;
 }>;
 export declare const cmsPageUpdateSchema: z.ZodObject<{
@@ -692,20 +692,20 @@ export declare const cmsPageUpdateSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     title?: string | undefined;
     slug?: string | undefined;
+    metaTitle?: string | null | undefined;
+    metaDesc?: string | null | undefined;
     content?: Record<string, unknown> | undefined;
     template?: string | undefined;
     isPublished?: boolean | undefined;
-    metaTitle?: string | null | undefined;
-    metaDesc?: string | null | undefined;
     ogImage?: string | null | undefined;
 }, {
     title?: string | undefined;
     slug?: string | undefined;
+    metaTitle?: string | null | undefined;
+    metaDesc?: string | null | undefined;
     content?: Record<string, unknown> | undefined;
     template?: string | undefined;
     isPublished?: boolean | undefined;
-    metaTitle?: string | null | undefined;
-    metaDesc?: string | null | undefined;
     ogImage?: string | null | undefined;
 }>;
 export declare const cmsHomeSectionSchema: z.ZodObject<{
@@ -752,8 +752,8 @@ export declare const cmsNavigationSchema: z.ZodObject<{
     items: z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>, "many">;
     isActive: z.ZodDefault<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
-    name: string;
     isActive: boolean;
+    name: string;
     items: Record<string, unknown>[];
     location: "header" | "footer" | "mobile" | "sidebar";
 }, {
@@ -768,13 +768,13 @@ export declare const cmsNavigationUpdateSchema: z.ZodObject<{
     items: z.ZodOptional<z.ZodArray<z.ZodRecord<z.ZodString, z.ZodUnknown>, "many">>;
     isActive: z.ZodOptional<z.ZodDefault<z.ZodBoolean>>;
 }, "strip", z.ZodTypeAny, {
-    name?: string | undefined;
     isActive?: boolean | undefined;
+    name?: string | undefined;
     items?: Record<string, unknown>[] | undefined;
     location?: "header" | "footer" | "mobile" | "sidebar" | undefined;
 }, {
-    name?: string | undefined;
     isActive?: boolean | undefined;
+    name?: string | undefined;
     items?: Record<string, unknown>[] | undefined;
     location?: "header" | "footer" | "mobile" | "sidebar" | undefined;
 }>;
@@ -870,10 +870,10 @@ export declare const settingsUpdateSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     currency: string;
     preferences?: Record<string, unknown> | undefined;
-    siteName?: string | undefined;
-    tagline?: string | undefined;
     logoUrl?: string | null | undefined;
     logoPublicId?: string | null | undefined;
+    siteName?: string | undefined;
+    tagline?: string | undefined;
     faviconUrl?: string | null | undefined;
     faviconPublicId?: string | null | undefined;
     ogImageUrl?: string | null | undefined;
@@ -888,19 +888,19 @@ export declare const settingsUpdateSchema: z.ZodObject<{
     address?: string | null | undefined;
     googleAnalyticsId?: string | null | undefined;
     facebookPixelId?: string | null | undefined;
-    seo?: Record<string, unknown> | undefined;
     theme?: Record<string, unknown> | undefined;
+    seo?: Record<string, unknown> | undefined;
 }, {
     preferences?: Record<string, unknown> | undefined;
-    siteName?: string | undefined;
-    tagline?: string | undefined;
+    currency?: string | undefined;
     logoUrl?: string | null | undefined;
     logoPublicId?: string | null | undefined;
+    siteName?: string | undefined;
+    tagline?: string | undefined;
     faviconUrl?: string | null | undefined;
     faviconPublicId?: string | null | undefined;
     ogImageUrl?: string | null | undefined;
     ogImagePublicId?: string | null | undefined;
-    currency?: string | undefined;
     taxRate?: number | undefined;
     freeShippingThreshold?: number | undefined;
     shippingInfo?: string | null | undefined;
@@ -911,8 +911,8 @@ export declare const settingsUpdateSchema: z.ZodObject<{
     address?: string | null | undefined;
     googleAnalyticsId?: string | null | undefined;
     facebookPixelId?: string | null | undefined;
-    seo?: Record<string, unknown> | undefined;
     theme?: Record<string, unknown> | undefined;
+    seo?: Record<string, unknown> | undefined;
 }>;
 export declare const socialLinkCreateSchema: z.ZodObject<{
     platform: z.ZodEnum<["instagram", "facebook", "twitter", "youtube", "linkedin", "pinterest", "tiktok", "whatsapp", "other"]>;
@@ -923,17 +923,17 @@ export declare const socialLinkCreateSchema: z.ZodObject<{
     sortOrder: z.ZodDefault<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     isActive: boolean;
-    url: string;
     sortOrder: number;
-    platform: "instagram" | "facebook" | "twitter" | "youtube" | "linkedin" | "pinterest" | "tiktok" | "whatsapp" | "other";
+    url: string;
+    platform: "other" | "instagram" | "facebook" | "twitter" | "youtube" | "linkedin" | "pinterest" | "tiktok" | "whatsapp";
     label?: string | null | undefined;
     icon?: string | null | undefined;
 }, {
     url: string;
-    platform: "instagram" | "facebook" | "twitter" | "youtube" | "linkedin" | "pinterest" | "tiktok" | "whatsapp" | "other";
+    platform: "other" | "instagram" | "facebook" | "twitter" | "youtube" | "linkedin" | "pinterest" | "tiktok" | "whatsapp";
     isActive?: boolean | undefined;
-    sortOrder?: number | undefined;
     label?: string | null | undefined;
+    sortOrder?: number | undefined;
     icon?: string | null | undefined;
 }>;
 export declare const socialLinkUpdateSchema: z.ZodObject<{
@@ -945,17 +945,17 @@ export declare const socialLinkUpdateSchema: z.ZodObject<{
     sortOrder: z.ZodOptional<z.ZodDefault<z.ZodNumber>>;
 }, "strip", z.ZodTypeAny, {
     isActive?: boolean | undefined;
-    url?: string | undefined;
-    sortOrder?: number | undefined;
     label?: string | null | undefined;
-    platform?: "instagram" | "facebook" | "twitter" | "youtube" | "linkedin" | "pinterest" | "tiktok" | "whatsapp" | "other" | undefined;
+    sortOrder?: number | undefined;
+    url?: string | undefined;
+    platform?: "other" | "instagram" | "facebook" | "twitter" | "youtube" | "linkedin" | "pinterest" | "tiktok" | "whatsapp" | undefined;
     icon?: string | null | undefined;
 }, {
     isActive?: boolean | undefined;
-    url?: string | undefined;
-    sortOrder?: number | undefined;
     label?: string | null | undefined;
-    platform?: "instagram" | "facebook" | "twitter" | "youtube" | "linkedin" | "pinterest" | "tiktok" | "whatsapp" | "other" | undefined;
+    sortOrder?: number | undefined;
+    url?: string | undefined;
+    platform?: "other" | "instagram" | "facebook" | "twitter" | "youtube" | "linkedin" | "pinterest" | "tiktok" | "whatsapp" | undefined;
     icon?: string | null | undefined;
 }>;
 export declare const templateCreateSchema: z.ZodObject<{
@@ -971,17 +971,17 @@ export declare const templateCreateSchema: z.ZodObject<{
     category: string;
     sections: Record<string, unknown>;
     description?: string | null | undefined;
+    metadata?: Record<string, unknown> | undefined;
     thumbnail?: string | null | undefined;
     thumbnailPublicId?: string | null | undefined;
-    metadata?: Record<string, unknown> | undefined;
 }, {
     name: string;
     sections: Record<string, unknown>;
     description?: string | null | undefined;
+    metadata?: Record<string, unknown> | undefined;
     category?: string | undefined;
     thumbnail?: string | null | undefined;
     thumbnailPublicId?: string | null | undefined;
-    metadata?: Record<string, unknown> | undefined;
 }>;
 export declare const templateUpdateSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
@@ -993,23 +993,23 @@ export declare const templateUpdateSchema: z.ZodObject<{
     metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     isActive: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
-    name?: string | undefined;
-    isActive?: boolean | undefined;
     description?: string | null | undefined;
+    isActive?: boolean | undefined;
+    name?: string | undefined;
+    metadata?: Record<string, unknown> | undefined;
     category?: string | undefined;
     thumbnail?: string | null | undefined;
     thumbnailPublicId?: string | null | undefined;
     sections?: Record<string, unknown> | undefined;
-    metadata?: Record<string, unknown> | undefined;
 }, {
-    name?: string | undefined;
-    isActive?: boolean | undefined;
     description?: string | null | undefined;
+    isActive?: boolean | undefined;
+    name?: string | undefined;
+    metadata?: Record<string, unknown> | undefined;
     category?: string | undefined;
     thumbnail?: string | null | undefined;
     thumbnailPublicId?: string | null | undefined;
     sections?: Record<string, unknown> | undefined;
-    metadata?: Record<string, unknown> | undefined;
 }>;
 export declare const templateApplySchema: z.ZodObject<{
     pageId: z.ZodString;
@@ -1071,18 +1071,18 @@ export declare const sizeGuideCreateSchema: z.ZodObject<{
     unit: string;
     measurements: Record<string, unknown>;
     description?: string | null | undefined;
-    categoryId?: string | null | undefined;
     imageUrl?: string | null | undefined;
     imagePublicId?: string | null | undefined;
+    categoryId?: string | null | undefined;
 }, {
     name: string;
     measurements: Record<string, unknown>;
-    type?: string | undefined;
     description?: string | null | undefined;
-    categoryId?: string | null | undefined;
-    unit?: string | undefined;
+    type?: string | undefined;
     imageUrl?: string | null | undefined;
     imagePublicId?: string | null | undefined;
+    categoryId?: string | null | undefined;
+    unit?: string | undefined;
 }>;
 export declare const sizeGuideUpdateSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
@@ -1095,23 +1095,23 @@ export declare const sizeGuideUpdateSchema: z.ZodObject<{
     measurements: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
     isActive: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
-    name?: string | undefined;
-    isActive?: boolean | undefined;
-    type?: string | undefined;
     description?: string | null | undefined;
-    categoryId?: string | null | undefined;
-    unit?: string | undefined;
+    isActive?: boolean | undefined;
+    name?: string | undefined;
+    type?: string | undefined;
     imageUrl?: string | null | undefined;
     imagePublicId?: string | null | undefined;
+    categoryId?: string | null | undefined;
+    unit?: string | undefined;
     measurements?: Record<string, unknown> | undefined;
 }, {
-    name?: string | undefined;
-    isActive?: boolean | undefined;
-    type?: string | undefined;
     description?: string | null | undefined;
-    categoryId?: string | null | undefined;
-    unit?: string | undefined;
+    isActive?: boolean | undefined;
+    name?: string | undefined;
+    type?: string | undefined;
     imageUrl?: string | null | undefined;
     imagePublicId?: string | null | undefined;
+    categoryId?: string | null | undefined;
+    unit?: string | undefined;
     measurements?: Record<string, unknown> | undefined;
 }>;

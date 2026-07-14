@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -13,17 +14,17 @@ export async function handleAdminInventoryRequest(
   if (adminGuard) return adminGuard;
 
   switch (action) {
-    case "overview": return handleOverview(ctx.env);
-    case "productMovements": return handleProductMovements(params[0], ctx.env);
-    case "variantMovements": return handleVariantMovements(params[0], ctx.env);
-    case "adjustVariant": return handleAdjustVariant(params[0], req, ctx.env);
-    case "alerts": return handleAlerts(req, ctx.env);
-    case "resolveAlert": return handleResolveAlert(params[0], ctx.env);
+    case "overview": return handleOverview(ctx.env!);
+    case "productMovements": return handleProductMovements(params[0], ctx.env!);
+    case "variantMovements": return handleVariantMovements(params[0], ctx.env!);
+    case "adjustVariant": return handleAdjustVariant(params[0], req, ctx.env!);
+    case "alerts": return handleAlerts(req, ctx.env!);
+    case "resolveAlert": return handleResolveAlert(params[0], ctx.env!);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleOverview(env: any): Promise<Response> {
+async function handleOverview(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     // Read low stock threshold from site settings
@@ -55,7 +56,7 @@ async function handleOverview(env: any): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleProductMovements(productId: string, env: any): Promise<Response> {
+async function handleProductMovements(productId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const variants = await prisma.product_variants.findMany({
@@ -72,7 +73,7 @@ async function handleProductMovements(productId: string, env: any): Promise<Resp
   } catch (err) { return serverError(err); }
 }
 
-async function handleVariantMovements(variantId: string, env: any): Promise<Response> {
+async function handleVariantMovements(variantId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [, movements] = await Promise.all([
@@ -86,7 +87,7 @@ async function handleVariantMovements(variantId: string, env: any): Promise<Resp
   } catch (err) { return serverError(err); }
 }
 
-async function handleAdjustVariant(variantId: string, req: Request, env: any): Promise<Response> {
+async function handleAdjustVariant(variantId: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { quantityChange, reason, note } = body;
   if (quantityChange === undefined || !reason) return badRequest("quantityChange and reason are required");
@@ -141,7 +142,7 @@ async function handleAdjustVariant(variantId: string, req: Request, env: any): P
   } catch (_err) { return serverError(_err); }
 }
 
-async function handleAlerts(req: Request, env: any): Promise<Response> {
+async function handleAlerts(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const resolved = url.searchParams.get("resolved") === "true";
   const type = url.searchParams.get("type");
@@ -158,7 +159,7 @@ async function handleAlerts(req: Request, env: any): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleResolveAlert(alertId: string, env: any): Promise<Response> {
+async function handleResolveAlert(alertId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const alert = await prisma.inventory_alerts.update({

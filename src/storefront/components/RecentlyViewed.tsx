@@ -48,7 +48,7 @@ export function RecentlyViewed() {
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          <button onClick={clearRecentlyViewed} className="text-xs text-neutral-400 hover:text-neutral-700 transition-colors underline">
+          <button onClick={clearRecentlyViewed} className="text-xs text-neutral-400 hover:text-neutral-700 transition-colors underline" aria-label="Clear recently viewed items">
             Clear
           </button>
           <Link to="/products" className="text-xs text-brand-600 hover:text-brand-700 transition-colors flex items-center gap-1">

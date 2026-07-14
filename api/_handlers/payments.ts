@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, error, serverError, unauthorized } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
@@ -8,7 +9,7 @@ import { requireAdmin } from "../_lib/auth-middleware";
 import { ErrorCode } from "../_lib/types";
 import { validateBody, paymentVerifySchema, paymentFailedSchema, paymentRetrySchema, refundSchema } from "../_lib/validate";
 
-async function createHMACSHA256(secret: string, data: string, _env: any): Promise<string> {
+async function createHMACSHA256(secret: string, data: string, _env: Env): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw", enc.encode(secret),
@@ -34,7 +35,7 @@ async function callRazorpay(
   path: string,
   method: string,
   body?: Record<string, unknown>,
-  env?: any
+  env?: Env
 ): Promise<Record<string, unknown>> {
   const keyId = cleanSecret(env?.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID);
   const keySecret = cleanSecret(env?.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET);
@@ -68,21 +69,21 @@ export async function handlePaymentRequest(
 
   switch (action) {
     case "verify":
-      return handleVerify(req, ctx, ctx.env);
+      return handleVerify(req, ctx, ctx.env!);
     case "failed":
-      return handleFailed(req, ctx, ctx.env);
+      return handleFailed(req, ctx, ctx.env!);
     case "retry":
-      return handleRetry(req, ctx, ctx.env);
+      return handleRetry(req, ctx, ctx.env!);
     case "refund":
-      return handleRefund(req, ctx, ctx.env);
+      return handleRefund(req, ctx, ctx.env!);
     case "webhook":
-      return handleWebhook(req, ctx.env);
+      return handleWebhook(req, ctx.env!);
     default:
       return notFound();
   }
 }
 
-async function handleVerify(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleVerify(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   try {
     const parsed = await validateBody(req, paymentVerifySchema);
     if ("response" in parsed) return parsed.response;
@@ -228,7 +229,7 @@ async function releaseReservedInventory(
   }
 }
 
-async function handleFailed(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleFailed(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   try {
     const parsed = await validateBody(req, paymentFailedSchema);
     if ("response" in parsed) return parsed.response;
@@ -307,7 +308,7 @@ async function handleFailed(req: Request, ctx: RequestContext, env: any): Promis
   }
 }
 
-async function handleRetry(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleRetry(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   try {
     const parsed = await validateBody(req, paymentRetrySchema);
     if ("response" in parsed) return parsed.response;
@@ -344,7 +345,7 @@ async function handleRetry(req: Request, ctx: RequestContext, env: any): Promise
   }
 }
 
-async function handleRefund(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleRefund(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
   try {
@@ -494,12 +495,12 @@ function getWebhookEventId(event: WebhookEventPayload): string {
   return event.event_id || event.id || `${event.event}_${event.created_at || Date.now()}`;
 }
 
-async function findOrderByRazorpayOrderId(razorpayOrderId: string, env: any) {
+async function findOrderByRazorpayOrderId(razorpayOrderId: string, env: Env) {
   const prisma = getPrisma(env);
   return prisma.orders.findFirst({ where: { razorpayOrderId } });
 }
 
-async function findOrderByPaymentId(razorpayPaymentId: string, env: any) {
+async function findOrderByPaymentId(razorpayPaymentId: string, env: Env) {
   const prisma = getPrisma(env);
   return prisma.orders.findFirst({ where: { razorpayPaymentId } });
 }
@@ -512,8 +513,8 @@ function roundAmount(amount: unknown): number {
 // WEBHOOK EVENT HANDLERS
 // ─────────────────────────────────────────────────────────────
 
-async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: any }) {
-  const prisma = getPrisma(ctx.env);
+async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: Env }) {
+  const prisma = getPrisma(ctx.env!);
   const payment = event.payload.payment?.entity as Record<string, unknown> | undefined;
   if (!payment) throw new Error("Missing payment entity in payload");
 
@@ -522,7 +523,7 @@ async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: any
   const amount = roundAmount(payment.amount);
   const method = payment.method as string;
 
-  const order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env);
+  const order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env!);
   if (!order) throw new Error(`Order not found for razorpay_order_id: ${razorpayOrderId}`);
 
   const result = await prisma.$transaction(async (tx) => {
@@ -573,15 +574,15 @@ async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: any
         amount: `₹${amount.toLocaleString("en-IN")}`,
         transactionId: razorpayPaymentId,
         orderId: order.id,
-      }, ctx.env);
+      }, ctx.env!);
     } catch {}
   }
 
   return result;
 }
 
-async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: any }) {
-  const prisma = getPrisma(ctx.env);
+async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: Env }) {
+  const prisma = getPrisma(ctx.env!);
   const payment = event.payload.payment?.entity as Record<string, unknown> | undefined;
   if (!payment) throw new Error("Missing payment entity in payload");
 
@@ -592,7 +593,7 @@ async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: any }
   const errorStep = payment.error_step as string;
   const errorReason = payment.error_reason as string;
 
-  const order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env);
+  const order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env!);
   if (!order) throw new Error(`Order not found for razorpay_order_id: ${razorpayOrderId}`);
 
   const orderWithItems = await prisma.orders.findUnique({
@@ -636,15 +637,15 @@ async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: any }
         email: order.email,
         reason: errorDescription || "Payment was declined.",
         orderId: order.id,
-      }, ctx.env);
+      }, ctx.env!);
     } catch {}
   }
 
   return result;
 }
 
-async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }) {
-  const prisma = getPrisma(ctx.env);
+async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: Env }) {
+  const prisma = getPrisma(ctx.env!);
   const refund = event.payload.refund?.entity as Record<string, unknown> | undefined;
   if (!refund) throw new Error("Missing refund entity in payload");
 
@@ -654,12 +655,12 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }
   const refundStatus = refund.status as string;
   const refundCreatedAt = refund.created_at ? new Date((refund.created_at as number) * 1000) : new Date();
 
-  let order = await findOrderByPaymentId(razorpayPaymentId, ctx.env);
+  let order = await findOrderByPaymentId(razorpayPaymentId, ctx.env!);
   if (!order) {
     const paymentEntity = event.payload.payment?.entity as Record<string, unknown> | undefined;
     const razorpayOrderId = paymentEntity?.order_id as string || "";
     if (razorpayOrderId) {
-      order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env);
+      order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env!);
     }
   }
   if (!order) throw new Error(`Order not found for razorpay_payment_id: ${razorpayPaymentId}`);
@@ -737,8 +738,8 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: any }
   });
 }
 
-async function handleRefundProcessed(event: WebhookEventPayload, ctx: { env: any }) {
-  const prisma = getPrisma(ctx.env);
+async function handleRefundProcessed(event: WebhookEventPayload, ctx: { env: Env }) {
+  const prisma = getPrisma(ctx.env!);
   const refund = event.payload.refund?.entity as Record<string, unknown> | undefined;
   if (!refund) throw new Error("Missing refund entity in payload");
 
@@ -797,7 +798,7 @@ async function handleRefundProcessed(event: WebhookEventPayload, ctx: { env: any
   });
 }
 
-const EVENT_HANDLERS: Record<string, (event: WebhookEventPayload, ctx: { env: any }) => Promise<{ status: string; [key: string]: unknown }>> = {
+const EVENT_HANDLERS: Record<string, (event: WebhookEventPayload, ctx: { env: Env }) => Promise<{ status: string; [key: string]: unknown }>> = {
   "payment.captured": handlePaymentCaptured,
   "payment.failed": handlePaymentFailed,
   "refund.created": handleRefundCreated,
@@ -810,7 +811,7 @@ const EVENT_HANDLERS: Record<string, (event: WebhookEventPayload, ctx: { env: an
 
 const WEBHOOK_MAX_BODY_SIZE = 256_000;
 
-async function handleWebhook(req: Request, env: any): Promise<Response> {
+async function handleWebhook(req: Request, env: Env): Promise<Response> {
   const prisma = getPrisma(env);
 
   const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
@@ -979,17 +980,17 @@ export async function handleAdminWebhookRequest(
 ): Promise<Response> {
   switch (action) {
     case "events":
-      return handleListWebhookEvents(req, ctx.env);
+      return handleListWebhookEvents(req, ctx.env!);
     case "reprocess":
-      return handleReprocessWebhookEvent(req, params[0], ctx.env);
+      return handleReprocessWebhookEvent(req, params[0], ctx.env!);
     case "reconcile":
-      return handleReconcileOrder(req, params[0], ctx.env);
+      return handleReconcileOrder(req, params[0], ctx.env!);
     default:
       return notFound();
   }
 }
 
-async function handleListWebhookEvents(req: Request, env: any): Promise<Response> {
+async function handleListWebhookEvents(req: Request, env: Env): Promise<Response> {
   const prisma = getPrisma(env);
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") || "1", 10);
@@ -1017,7 +1018,7 @@ async function handleListWebhookEvents(req: Request, env: any): Promise<Response
   });
 }
 
-async function handleReprocessWebhookEvent(_req: Request, eventId: string, env: any): Promise<Response> {
+async function handleReprocessWebhookEvent(_req: Request, eventId: string, env: Env): Promise<Response> {
   if (!eventId) return badRequest("eventId is required");
 
   const prisma = getPrisma(env);
@@ -1052,7 +1053,7 @@ async function handleReprocessWebhookEvent(_req: Request, eventId: string, env: 
   }
 }
 
-async function handleReconcileOrder(_req: Request, orderId: string, env: any): Promise<Response> {
+async function handleReconcileOrder(_req: Request, orderId: string, env: Env): Promise<Response> {
   if (!orderId) return badRequest("orderId is required");
 
   const prisma = getPrisma(env);

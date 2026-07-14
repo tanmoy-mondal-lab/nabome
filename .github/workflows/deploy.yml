@@ -35,6 +35,11 @@ jobs:
         run: npm audit --audit-level=moderate
       - name: Dependency Audit
         run: npx audit-ci --moderate
+      - name: Secret Scanning
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
       - name: Bundle Size Check
         run: npm run build
       - name: Upload Build Artifacts
@@ -70,6 +75,7 @@ jobs:
       - name: Lighthouse CI
         uses: treosh/lighthouse-ci-action@v10
         with:
+          configPath: ./lighthouserc.json
           uploadArtifacts: true
           temporaryPublicStorage: true
 
@@ -109,3 +115,24 @@ jobs:
               repo: context.repo.repo,
               body: `🚀 Preview deployment ready at: ${url}`
             });
+
+  e2e:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - run: npx playwright install --with-deps
+      - run: npx playwright test --project=smoke
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}

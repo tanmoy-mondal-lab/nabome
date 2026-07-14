@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError, created } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
@@ -12,15 +13,15 @@ export async function handleWishlistRequest(
 
   switch (action) {
     case "add":
-      return handleAdd(ctx.userId, req, ctx.env);
+      return handleAdd(ctx.userId, req, ctx.env!);
     case "remove":
-      return handleRemove(ctx.userId, params[0], ctx.env);
+      return handleRemove(ctx.userId, params[0], ctx.env!);
     default:
-      return handleList(ctx.userId, ctx.env);
+      return handleList(ctx.userId, ctx.env!);
   }
 }
 
-async function handleList(userId: string, env: any): Promise<Response> {
+async function handleList(userId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const items = await prisma.wishlist_items.findMany({
@@ -50,7 +51,7 @@ async function handleList(userId: string, env: any): Promise<Response> {
   }
 }
 
-async function handleAdd(userId: string, req: Request, env: any): Promise<Response> {
+async function handleAdd(userId: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { variantId } = body;
 
@@ -86,7 +87,7 @@ async function handleAdd(userId: string, req: Request, env: any): Promise<Respon
   }
 }
 
-async function handleRemove(userId: string, variantId: string, env: any): Promise<Response> {
+async function handleRemove(userId: string, variantId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const item = await prisma.wishlist_items.findUnique({

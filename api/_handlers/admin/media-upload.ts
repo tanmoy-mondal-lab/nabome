@@ -73,7 +73,7 @@ export async function handleAdminMediaUploadRequest(
       return badRequest("Unsupported file type");
     }
 
-    const config = getCloudinaryConfig(ctx.env);
+    const config = getCloudinaryConfig(ctx.env!);
     const assetId = generateAssetId();
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const publicId = `${folder}/${assetId}/${safeName}`;
@@ -87,7 +87,7 @@ export async function handleAdminMediaUploadRequest(
     );
 
     // Save to database
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const asset = await prisma.media_assets.create({
       data: {
         assetId: uploadResult.publicId,
@@ -165,7 +165,7 @@ export async function handleAdminMediaMoveRequest(
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const asset = await prisma.media_assets.findUnique({
       where: { id: assetId },
     });
@@ -174,7 +174,7 @@ export async function handleAdminMediaMoveRequest(
       return badRequest("Asset not found");
     }
 
-    const config = getCloudinaryConfig(ctx.env);
+    const config = getCloudinaryConfig(ctx.env!);
     const newPublicId = buildMovedPublicId(asset, newFolder);
 
     // Move in Cloudinary
@@ -231,7 +231,7 @@ export async function handleAdminMediaBulkDeleteRequest(
   try {
     const { deleteMedia } = await import("../../_lib/media-service");
     const { isAssetInUse } = await import("../../_lib/media/usage.service");
-    const config = getCloudinaryConfig(ctx.env);
+    const config = getCloudinaryConfig(ctx.env!);
 
     let deleted = 0;
     let failed = 0;
@@ -239,7 +239,7 @@ export async function handleAdminMediaBulkDeleteRequest(
 
     for (const assetId of assetIds) {
       try {
-        const prisma = getPrisma(ctx.env);
+        const prisma = getPrisma(ctx.env!);
         const asset = await prisma.media_assets.findUnique({
           where: { id: assetId },
           select: { id: true, publicId: true },
@@ -258,7 +258,7 @@ export async function handleAdminMediaBulkDeleteRequest(
           continue;
         }
 
-        await deleteMedia(assetId, { ...ctx.env, ...config } as Env);
+        await deleteMedia(assetId, { ...ctx.env!, ...config } as Env);
         deleted++;
       } catch (err) {
         console.error(`Failed to delete asset ${assetId}:`, err);
@@ -304,8 +304,8 @@ export async function handleAdminMediaBulkMoveRequest(
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
-    const config = getCloudinaryConfig(ctx.env);
+    const prisma = getPrisma(ctx.env!);
+    const config = getCloudinaryConfig(ctx.env!);
     const { moveResource } = await import("../../_lib/media/folders");
 
     let moved = 0;

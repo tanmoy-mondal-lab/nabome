@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -28,23 +29,23 @@ export async function handleAdminOrderRequest(
 
   switch (action) {
     case "list":
-      return handleList(req, ctx.env);
+      return handleList(req, ctx.env!);
     case "stats":
-      return handleStats(ctx.env);
+      return handleStats(ctx.env!);
     case "detail":
-      return handleDetail(params[0], ctx.env);
+      return handleDetail(params[0], ctx.env!);
     case "updateStatus":
-      return handleUpdateStatus(params[0], req, ctx, ctx.env);
+      return handleUpdateStatus(params[0], req, ctx, ctx.env!);
     case "internalNotes":
-      return handleInternalNotes(params[0], req, ctx, ctx.env);
+      return handleInternalNotes(params[0], req, ctx, ctx.env!);
     case "timeline":
-      return handleTimeline(params[0], ctx.env);
+      return handleTimeline(params[0], ctx.env!);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request, env: any): Promise<Response> {
+async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -109,7 +110,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleStats(env: any): Promise<Response> {
+async function handleStats(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const statuses: string[] = [
@@ -163,7 +164,7 @@ async function handleStats(env: any): Promise<Response> {
   }
 }
 
-async function handleDetail(orderId: string, env: any): Promise<Response> {
+async function handleDetail(orderId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const order = await prisma.orders.findUnique({
@@ -186,7 +187,7 @@ async function handleDetail(orderId: string, env: any): Promise<Response> {
   }
 }
 
-async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -329,7 +330,7 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
   }
 }
 
-async function handleInternalNotes(orderId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleInternalNotes(orderId: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -364,7 +365,7 @@ async function handleInternalNotes(orderId: string, req: Request, ctx: RequestCo
   }
 }
 
-async function handleTimeline(orderId: string, env: any): Promise<Response> {
+async function handleTimeline(orderId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const statusHistory = await prisma.order_status_history.findMany({

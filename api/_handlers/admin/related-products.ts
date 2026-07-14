@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -13,15 +14,15 @@ export async function handleAdminRelatedProductRequest(
   if (adminGuard) return adminGuard;
 
   switch (action) {
-    case "list": return handleList(params[0], ctx.env);
-    case "create": return handleCreate(req, ctx.env);
-    case "delete": return handleDelete(params[0], ctx.env);
-    case "reorder": return handleReorder(params[0], req, ctx.env);
+    case "list": return handleList(params[0], ctx.env!);
+    case "create": return handleCreate(req, ctx.env!);
+    case "delete": return handleDelete(params[0], ctx.env!);
+    case "reorder": return handleReorder(params[0], req, ctx.env!);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleList(productId: string, env: any): Promise<Response> {
+async function handleList(productId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [relatedTo, relatedFrom] = await Promise.all([
@@ -42,7 +43,7 @@ async function handleList(productId: string, env: any): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleCreate(req: Request, env: any): Promise<Response> {
+async function handleCreate(req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { sourceId, targetId, type, sortOrder } = body;
   if (!sourceId || !targetId) return badRequest("sourceId and targetId are required");
@@ -61,7 +62,7 @@ async function handleCreate(req: Request, env: any): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleDelete(id: string, env: any): Promise<Response> {
+async function handleDelete(id: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     await prisma.related_products.delete({ where: { id } });
@@ -69,7 +70,7 @@ async function handleDelete(id: string, env: any): Promise<Response> {
   } catch (err) { return notFound("Relation not found"); }
 }
 
-async function handleReorder(_productId: string, req: Request, env: any): Promise<Response> {
+async function handleReorder(_productId: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { order } = body;
   if (!Array.isArray(order)) return badRequest("Order array required");

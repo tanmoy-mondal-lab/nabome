@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -18,19 +19,19 @@ export async function handleAdminCollectionRequest(
 
   switch (action) {
     case "list":
-      return handleList(ctx.env);
+      return handleList(ctx.env!);
     case "create":
-      return handleCreate(req, ctx, ctx.env);
+      return handleCreate(req, ctx, ctx.env!);
     case "update":
-      return handleUpdate(params[0], req, ctx, ctx.env);
+      return handleUpdate(params[0], req, ctx, ctx.env!);
     case "delete":
-      return handleDelete(params[0], req, ctx, ctx.env);
+      return handleDelete(params[0], req, ctx, ctx.env!);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(env: any): Promise<Response> {
+async function handleList(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const collections = await prisma.collections.findMany({
@@ -43,7 +44,7 @@ async function handleList(env: any): Promise<Response> {
   }
 }
 
-async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   const body = await req.json();
   const { name, description, heroImageUrl, heroImagePublicId, isActive, isFeatured, startDate, endDate, sortOrder, metaTitle, metaDesc } = body;
 
@@ -84,7 +85,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
   }
 }
 
-async function handleUpdate(collectionId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleUpdate(collectionId: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   const body = await req.json();
 
   try {
@@ -138,7 +139,7 @@ async function handleUpdate(collectionId: string, req: Request, ctx: RequestCont
   }
 }
 
-async function handleDelete(collectionId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleDelete(collectionId: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     await prisma.collections.update({

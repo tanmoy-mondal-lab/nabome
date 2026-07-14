@@ -14,7 +14,7 @@ const VALID_ENTITY_TYPES = [
 async function checkUploadRateLimit(req: Request, ctx: RequestContext): Promise<Response | null> {
   const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
   const key = getRateLimitKey(clientIp, "/api/upload", ctx.userId);
-  const result = await checkRateLimit(key, UPLOAD_RATE_LIMIT, ctx.env);
+  const result = await checkRateLimit(key, UPLOAD_RATE_LIMIT, ctx.env!);
   if (!result.allowed) return rateLimitExceeded("Upload rate limit exceeded. Please try again later.");
   return null;
 }
@@ -36,7 +36,7 @@ export async function handleUploadRequest(req: Request, ctx: RequestContext): Pr
 }
 
 async function doUpload(req: Request, ctx: RequestContext): Promise<Response> {
-  if (!ctx.env) return serverError(new Error("Environment not available"));
+  if (!ctx.env!) return serverError(new Error("Environment not available"));
 
   try {
     const formData = await req.formData();
@@ -70,7 +70,7 @@ async function doUpload(req: Request, ctx: RequestContext): Promise<Response> {
       displayName,
       sortOrder,
       isPrimary,
-    }, ctx.env);
+    }, ctx.env!);
 
     return success({
       success: true,

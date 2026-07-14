@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -14,21 +15,21 @@ export async function handleAdminProductLabelRequest(
   if (adminGuard) return adminGuard;
 
   switch (action) {
-    case "listLabels": return handleListLabels(ctx.env);
-    case "createLabel": return handleCreateLabel(req, ctx.env);
-    case "updateLabel": return handleUpdateLabel(params[0], req, ctx.env);
-    case "deleteLabel": return handleDeleteLabel(params[0], ctx.env);
-    case "listTags": return handleListTags(ctx.env);
-    case "createTag": return handleCreateTag(req, ctx.env);
-    case "updateTag": return handleUpdateTag(params[0], req, ctx.env);
-    case "deleteTag": return handleDeleteTag(params[0], ctx.env);
-    case "assignLabels": return handleAssignLabels(params[0], req, ctx.env);
-    case "assignTags": return handleAssignTags(params[0], req, ctx.env);
+    case "listLabels": return handleListLabels(ctx.env!);
+    case "createLabel": return handleCreateLabel(req, ctx.env!);
+    case "updateLabel": return handleUpdateLabel(params[0], req, ctx.env!);
+    case "deleteLabel": return handleDeleteLabel(params[0], ctx.env!);
+    case "listTags": return handleListTags(ctx.env!);
+    case "createTag": return handleCreateTag(req, ctx.env!);
+    case "updateTag": return handleUpdateTag(params[0], req, ctx.env!);
+    case "deleteTag": return handleDeleteTag(params[0], ctx.env!);
+    case "assignLabels": return handleAssignLabels(params[0], req, ctx.env!);
+    case "assignTags": return handleAssignTags(params[0], req, ctx.env!);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleListLabels(env: any): Promise<Response> {
+async function handleListLabels(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const labels = await prisma.product_labels.findMany({
@@ -39,7 +40,7 @@ async function handleListLabels(env: any): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleCreateLabel(req: Request, env: any): Promise<Response> {
+async function handleCreateLabel(req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { name, color } = body;
   if (!name) return badRequest("Label name is required");
@@ -53,7 +54,7 @@ async function handleCreateLabel(req: Request, env: any): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleUpdateLabel(id: string, req: Request, env: any): Promise<Response> {
+async function handleUpdateLabel(id: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
@@ -68,7 +69,7 @@ async function handleUpdateLabel(id: string, req: Request, env: any): Promise<Re
   }
 }
 
-async function handleDeleteLabel(id: string, env: any): Promise<Response> {
+async function handleDeleteLabel(id: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     await prisma.product_labels.delete({ where: { id } });
@@ -79,7 +80,7 @@ async function handleDeleteLabel(id: string, env: any): Promise<Response> {
   }
 }
 
-async function handleListTags(env: any): Promise<Response> {
+async function handleListTags(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const tags = await prisma.product_tags.findMany({
@@ -90,7 +91,7 @@ async function handleListTags(env: any): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleCreateTag(req: Request, env: any): Promise<Response> {
+async function handleCreateTag(req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { name } = body;
   if (!name) return badRequest("Tag name is required");
@@ -106,7 +107,7 @@ async function handleCreateTag(req: Request, env: any): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleUpdateTag(id: string, req: Request, env: any): Promise<Response> {
+async function handleUpdateTag(id: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   try {
     const prisma = getPrisma(env);
@@ -120,7 +121,7 @@ async function handleUpdateTag(id: string, req: Request, env: any): Promise<Resp
   }
 }
 
-async function handleDeleteTag(id: string, env: any): Promise<Response> {
+async function handleDeleteTag(id: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     await prisma.product_tags.delete({ where: { id } });
@@ -131,7 +132,7 @@ async function handleDeleteTag(id: string, env: any): Promise<Response> {
   }
 }
 
-async function handleAssignLabels(productId: string, req: Request, env: any): Promise<Response> {
+async function handleAssignLabels(productId: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { labelIds } = body;
   if (!Array.isArray(labelIds)) return badRequest("labelIds array required");
@@ -147,7 +148,7 @@ async function handleAssignLabels(productId: string, req: Request, env: any): Pr
   } catch (err) { return serverError(err); }
 }
 
-async function handleAssignTags(productId: string, req: Request, env: any): Promise<Response> {
+async function handleAssignTags(productId: string, req: Request, env: Env): Promise<Response> {
   const body = await req.json();
   const { tagIds } = body;
   if (!Array.isArray(tagIds)) return badRequest("tagIds array required");

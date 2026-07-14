@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -14,21 +15,21 @@ export async function handleAdminContactRequest(
 
   switch (action) {
     case "list":
-      return handleList(req, ctx.env);
+      return handleList(req, ctx.env!);
     case "markRead":
-      return handleMarkRead(params[0], ctx.env);
+      return handleMarkRead(params[0], ctx.env!);
     case "delete":
-      return handleDelete(params[0], ctx.env);
+      return handleDelete(params[0], ctx.env!);
     case "subscribers":
-      return handleSubscribers(req, ctx.env);
+      return handleSubscribers(req, ctx.env!);
     case "deleteSubscriber":
-      return handleDeleteSubscriber(params[0], ctx.env);
+      return handleDeleteSubscriber(params[0], ctx.env!);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request, env: any): Promise<Response> {
+async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -62,7 +63,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleMarkRead(submissionId: string, env: any): Promise<Response> {
+async function handleMarkRead(submissionId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const existing = await prisma.contact_submissions.findUnique({ where: { id: submissionId } });
@@ -77,7 +78,7 @@ async function handleMarkRead(submissionId: string, env: any): Promise<Response>
   }
 }
 
-async function handleDelete(submissionId: string, env: any): Promise<Response> {
+async function handleDelete(submissionId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const existing = await prisma.contact_submissions.findUnique({ where: { id: submissionId } });
@@ -89,7 +90,7 @@ async function handleDelete(submissionId: string, env: any): Promise<Response> {
   }
 }
 
-async function handleSubscribers(req: Request, env: any): Promise<Response> {
+async function handleSubscribers(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -116,7 +117,7 @@ async function handleSubscribers(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleDeleteSubscriber(subscriberId: string, env: any): Promise<Response> {
+async function handleDeleteSubscriber(subscriberId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const existing = await prisma.newsletter_subscribers.findUnique({ where: { id: subscriberId } });

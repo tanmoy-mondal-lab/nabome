@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, serverError } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -34,17 +35,17 @@ export async function handleAdminSearchIndexRequest(
 
   switch (action) {
     case "status":
-      return handleStatus(ctx.env);
+      return handleStatus(ctx.env!);
     case "build":
-      return handleBuild(ctx.env);
+      return handleBuild(ctx.env!);
     case "search":
-      return handleSearch(req, ctx.env);
+      return handleSearch(req, ctx.env!);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleStatus(_env: any): Promise<Response> {
+async function handleStatus(_env: Env): Promise<Response> {
   return success({
     indexed: memoryIndex.length > 0,
     count: memoryIndex.length,
@@ -53,7 +54,7 @@ async function handleStatus(_env: any): Promise<Response> {
   });
 }
 
-async function handleBuild(env: any): Promise<Response> {
+async function handleBuild(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [products, pages, categories, collections, lookbooks] = await Promise.all([
@@ -165,7 +166,7 @@ function scoreDoc(doc: SearchableDoc, queryTokens: string[]): number {
   return score;
 }
 
-async function handleSearch(req: Request, env: any): Promise<Response> {
+async function handleSearch(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const q = url.searchParams.get("q") ?? "";
   const type = url.searchParams.get("type");

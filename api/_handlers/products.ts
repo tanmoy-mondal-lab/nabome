@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
@@ -55,31 +56,31 @@ export async function handleProductRequest(
 ): Promise<Response> {
   switch (action) {
     case "list":
-      return handleList(req, ctx.env);
+      return handleList(req, ctx.env!);
     case "featured":
-      return handleFeatured(ctx.env);
+      return handleFeatured(ctx.env!);
     case "newArrivals":
-      return handleNewArrivals(ctx.env);
+      return handleNewArrivals(ctx.env!);
     case "bySlugs":
-      return handleBySlugs(req, ctx.env);
+      return handleBySlugs(req, ctx.env!);
     case "search":
-      return handleSearch(req, ctx.env);
+      return handleSearch(req, ctx.env!);
     case "autocomplete":
-      return handleAutocomplete(req, ctx.env);
+      return handleAutocomplete(req, ctx.env!);
     case "detail":
-      return handleDetail(params[0], ctx.env);
+      return handleDetail(params[0], ctx.env!);
     case "variants":
-      return handleVariants(params[0], ctx.env);
+      return handleVariants(params[0], ctx.env!);
     case "reviews":
-      return handleProductReviews(params[0], ctx.env);
+      return handleProductReviews(params[0], ctx.env!);
     case "similar":
-      return handleSimilar(params[0], ctx.env);
+      return handleSimilar(params[0], ctx.env!);
     default:
       return badRequest("Unknown product action");
   }
 }
 
-async function handleList(req: Request, env: any): Promise<Response> {
+async function handleList(req: Request, env: Env): Promise<Response> {
   const prisma = getPrisma(env);
   const url = new URL(req.url);
   const page = Math.max(1, parseInt(url.searchParams.get("page") ?? "1") || 1);
@@ -188,7 +189,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleFeatured(env: any): Promise<Response> {
+async function handleFeatured(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const products = await prisma.products.findMany({
@@ -203,7 +204,7 @@ async function handleFeatured(env: any): Promise<Response> {
   }
 }
 
-async function handleNewArrivals(env: any): Promise<Response> {
+async function handleNewArrivals(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const products = await prisma.products.findMany({
@@ -218,7 +219,7 @@ async function handleNewArrivals(env: any): Promise<Response> {
   }
 }
 
-async function handleBySlugs(req: Request, env: any): Promise<Response> {
+async function handleBySlugs(req: Request, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const url = new URL(req.url);
@@ -238,7 +239,7 @@ async function handleBySlugs(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleSimilar(slug: string, env: any): Promise<Response> {
+async function handleSimilar(slug: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const product = await prisma.products.findFirst({
@@ -262,7 +263,7 @@ async function handleSimilar(slug: string, env: any): Promise<Response> {
   }
 }
 
-async function handleSearch(req: Request, env: any): Promise<Response> {
+async function handleSearch(req: Request, env: Env): Promise<Response> {
   const prisma = getPrisma(env);
   const url = new URL(req.url);
   const q = url.searchParams.get("q");
@@ -326,7 +327,7 @@ async function handleSearch(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleAutocomplete(req: Request, env: any): Promise<Response> {
+async function handleAutocomplete(req: Request, env: Env): Promise<Response> {
   const prisma = getPrisma(env);
   const url = new URL(req.url);
   const q = url.searchParams.get("q");
@@ -374,7 +375,7 @@ async function handleAutocomplete(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleDetail(slug: string, env: any): Promise<Response> {
+async function handleDetail(slug: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const product = await prisma.products.findFirst({
@@ -404,7 +405,7 @@ async function handleDetail(slug: string, env: any): Promise<Response> {
   }
 }
 
-async function handleVariants(slug: string, env: any): Promise<Response> {
+async function handleVariants(slug: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const product = await prisma.products.findFirst({
@@ -430,7 +431,7 @@ async function handleVariants(slug: string, env: any): Promise<Response> {
   }
 }
 
-async function handleProductReviews(slug: string, env: any): Promise<Response> {
+async function handleProductReviews(slug: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const product = await prisma.products.findFirst({

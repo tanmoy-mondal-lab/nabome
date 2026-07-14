@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, notFound, unauthorized, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
@@ -189,19 +190,19 @@ export async function handleInvoiceRequest(
 ): Promise<Response> {
   switch (action) {
     case "getInvoice":
-      return handleGetInvoice(ctx, params[0], ctx.env);
+      return handleGetInvoice(ctx, params[0], ctx.env!);
     case "getByOrderNumber":
-      return handleGetByOrderNumber(ctx, params[0], ctx.env);
+      return handleGetByOrderNumber(ctx, params[0], ctx.env!);
     case "adminGetInvoice":
-      return handleAdminGetInvoice(params[0], ctx.env);
+      return handleAdminGetInvoice(params[0], ctx.env!);
     case "adminGenerateInvoice":
-      return handleAdminGenerateInvoice(params[0], ctx.env);
+      return handleAdminGenerateInvoice(params[0], ctx.env!);
     default:
       return notFound();
   }
 }
 
-async function handleGetByOrderNumber(ctx: RequestContext, orderNumber: string, env: any): Promise<Response> {
+async function handleGetByOrderNumber(ctx: RequestContext, orderNumber: string, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
   try {
     const prisma = getPrisma(env);
@@ -227,7 +228,7 @@ async function handleGetByOrderNumber(ctx: RequestContext, orderNumber: string, 
   }
 }
 
-async function handleGetInvoice(ctx: RequestContext, orderId: string, env: any): Promise<Response> {
+async function handleGetInvoice(ctx: RequestContext, orderId: string, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
@@ -257,7 +258,7 @@ async function handleGetInvoice(ctx: RequestContext, orderId: string, env: any):
   }
 }
 
-async function handleAdminGetInvoice(orderId: string, env: any): Promise<Response> {
+async function handleAdminGetInvoice(orderId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const order = await prisma.orders.findUnique({
@@ -282,7 +283,7 @@ async function handleAdminGetInvoice(orderId: string, env: any): Promise<Respons
   }
 }
 
-async function handleAdminGenerateInvoice(orderId: string, env: any): Promise<Response> {
+async function handleAdminGenerateInvoice(orderId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const order = await prisma.orders.findUnique({

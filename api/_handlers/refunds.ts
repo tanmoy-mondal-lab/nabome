@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../_lib/response";
 import { requireAdmin } from "../_lib/auth-middleware";
@@ -9,7 +10,7 @@ async function createNotification(
   type: string,
   title: string,
   body?: string,
-  env?: any
+  env?: Env
 ) {
   const prisma = getPrisma(env);
   await prisma.notifications.create({
@@ -39,19 +40,19 @@ export async function handleRefundRequest(
   }
 
   switch (action) {
-    case "list": return handleList(req, ctx.env);
-    case "detail": return handleDetail(params[0], ctx.env);
-    case "listMy": return handleListMy(req, ctx, ctx.env);
-    case "detailMy": return handleDetailMy(params[0], ctx, ctx.env);
-    case "create": return handleCreate(req, ctx, ctx.env);
-    case "process": return handleProcess(params[0], ctx.env);
-    case "complete": return handleComplete(params[0], ctx, ctx.env);
-    case "fail": return handleFail(params[0], req, ctx.env);
+    case "list": return handleList(req, ctx.env!);
+    case "detail": return handleDetail(params[0], ctx.env!);
+    case "listMy": return handleListMy(req, ctx, ctx.env!);
+    case "detailMy": return handleDetailMy(params[0], ctx, ctx.env!);
+    case "create": return handleCreate(req, ctx, ctx.env!);
+    case "process": return handleProcess(params[0], ctx.env!);
+    case "complete": return handleComplete(params[0], ctx, ctx.env!);
+    case "fail": return handleFail(params[0], req, ctx.env!);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleList(req: Request, env: any): Promise<Response> {
+async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -90,7 +91,7 @@ async function handleList(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleDetail(refundId: string, env: any): Promise<Response> {
+async function handleDetail(refundId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const refund = await prisma.refunds.findUnique({
@@ -113,7 +114,7 @@ async function handleDetail(refundId: string, env: any): Promise<Response> {
   }
 }
 
-async function handleListMy(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleListMy(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   if (!ctx.userId) return badRequest("Unauthorized");
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
@@ -145,7 +146,7 @@ async function handleListMy(req: Request, ctx: RequestContext, env: any): Promis
   }
 }
 
-async function handleDetailMy(refundId: string, ctx: RequestContext, env: any): Promise<Response> {
+async function handleDetailMy(refundId: string, ctx: RequestContext, env: Env): Promise<Response> {
   if (!ctx.userId) return badRequest("Unauthorized");
   try {
     const prisma = getPrisma(env);
@@ -163,7 +164,7 @@ async function handleDetailMy(refundId: string, ctx: RequestContext, env: any): 
   }
 }
 
-async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -203,7 +204,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
   }
 }
 
-async function handleProcess(refundId: string, env: any): Promise<Response> {
+async function handleProcess(refundId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const refund = await prisma.refunds.findUnique({ where: { id: refundId } });
@@ -221,7 +222,7 @@ async function handleProcess(refundId: string, env: any): Promise<Response> {
   }
 }
 
-async function handleComplete(refundId: string, _ctx: RequestContext, env: any): Promise<Response> {
+async function handleComplete(refundId: string, _ctx: RequestContext, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const refund = await prisma.refunds.findUnique({
@@ -276,7 +277,7 @@ async function handleComplete(refundId: string, _ctx: RequestContext, env: any):
   }
 }
 
-async function handleFail(refundId: string, req: Request, env: any): Promise<Response> {
+async function handleFail(refundId: string, req: Request, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();

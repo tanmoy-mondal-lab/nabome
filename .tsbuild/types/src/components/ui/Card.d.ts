@@ -1,7 +1,7 @@
 import { type HTMLAttributes } from "react";
 import { type VariantProps } from "class-variance-authority";
 declare const cardVariants: (props?: ({
-    variant?: "default" | "flat" | "minimal" | "ghost" | "elevated" | null | undefined;
+    variant?: "flat" | "default" | "minimal" | "ghost" | "elevated" | null | undefined;
     padding?: "none" | "sm" | "md" | "lg" | "xl" | null | undefined;
     rounded?: "none" | "sm" | "md" | "lg" | "xl" | "full" | null | undefined;
 } & import("class-variance-authority/types").ClassProp) | undefined) => string;

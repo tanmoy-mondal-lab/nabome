@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
@@ -10,15 +11,15 @@ export async function handleSettingsRequest(
 ): Promise<Response> {
   switch (action) {
     case "public":
-      return handlePublic(ctx.env);
+      return handlePublic(ctx.env!);
     case "homepage":
-      return handleHomepage(ctx.env);
+      return handleHomepage(ctx.env!);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleHomepage(env: any): Promise<Response> {
+async function handleHomepage(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const now = new Date();
@@ -38,7 +39,7 @@ async function handleHomepage(env: any): Promise<Response> {
   }
 }
 
-async function handlePublic(env: any): Promise<Response> {
+async function handlePublic(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const [settings, socialLinks] = await Promise.all([

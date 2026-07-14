@@ -1,7 +1,7 @@
 import { type HTMLAttributes } from "react";
 import { type VariantProps } from "class-variance-authority";
 declare const badgeVariants: (props?: ({
-    variant?: "default" | "success" | "gold" | "outline" | "primary" | "secondary" | "warning" | "danger" | "outline-gold" | null | undefined;
+    variant?: "default" | "success" | "gold" | "outline" | "primary" | "secondary" | "danger" | "warning" | "outline-gold" | null | undefined;
     size?: "sm" | "md" | "lg" | null | undefined;
     rounded?: "none" | "sm" | "md" | "lg" | "full" | null | undefined;
 } & import("class-variance-authority/types").ClassProp) | undefined) => string;

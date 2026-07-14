@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -17,16 +18,16 @@ export async function handleAdminBrandRequest(
   if (adminGuard) return adminGuard;
 
   switch (action) {
-    case "list": return handleList(ctx.env);
-    case "create": return handleCreate(req, ctx, ctx.env);
-    case "detail": return handleDetail(params[0], ctx.env);
-    case "update": return handleUpdate(params[0], req, ctx, ctx.env);
-    case "delete": return handleDelete(params[0], req, ctx, ctx.env);
+    case "list": return handleList(ctx.env!);
+    case "create": return handleCreate(req, ctx, ctx.env!);
+    case "detail": return handleDetail(params[0], ctx.env!);
+    case "update": return handleUpdate(params[0], req, ctx, ctx.env!);
+    case "delete": return handleDelete(params[0], req, ctx, ctx.env!);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleList(env: any): Promise<Response> {
+async function handleList(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const brands = await prisma.brands.findMany({
@@ -37,7 +38,7 @@ async function handleList(env: any): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleDetail(id: string, env: any): Promise<Response> {
+async function handleDetail(id: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const brand = await prisma.brands.findUnique({
@@ -49,7 +50,7 @@ async function handleDetail(id: string, env: any): Promise<Response> {
   } catch (err) { return serverError(err); }
 }
 
-async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   let body: any;
   try {
     body = await req.json();
@@ -76,7 +77,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
   } catch (err) { return serverError(err); }
 }
 
-async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   let body: any;
   try {
     body = await req.json();
@@ -122,7 +123,7 @@ async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: 
   } catch (err) { return serverError(err); }
 }
 
-async function handleDelete(id: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleDelete(id: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const existing = await prisma.brands.findUnique({ where: { id }, select: { id: true } });

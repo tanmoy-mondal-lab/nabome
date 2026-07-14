@@ -1,3 +1,4 @@
+import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, notFound, unauthorized, serverError, created } from "../_lib/response";
 import { requireAdmin } from "../_lib/auth-middleware";
@@ -9,7 +10,7 @@ async function createNotification(
   type: string,
   title: string,
   body?: string,
-  env?: any
+  env?: Env
 ) {
   const prisma = getPrisma(env);
   await prisma.notifications.create({
@@ -39,19 +40,19 @@ export async function handleReturnRequest(
   }
 
   switch (action) {
-    case "create": return handleCreate(req, ctx, ctx.env);
-    case "listMy": return handleListMy(ctx, ctx.env);
-    case "detailMy": return handleDetailMy(params[0], ctx, ctx.env);
-    case "adminList": return handleAdminList(req, ctx.env);
-    case "adminDetail": return handleAdminDetail(params[0], ctx.env);
-    case "approve": return handleApprove(params[0], ctx, ctx.env);
-    case "reject": return handleReject(params[0], req, ctx, ctx.env);
-    case "receive": return handleReceive(params[0], ctx, ctx.env);
+    case "create": return handleCreate(req, ctx, ctx.env!);
+    case "listMy": return handleListMy(ctx, ctx.env!);
+    case "detailMy": return handleDetailMy(params[0], ctx, ctx.env!);
+    case "adminList": return handleAdminList(req, ctx.env!);
+    case "adminDetail": return handleAdminDetail(params[0], ctx.env!);
+    case "approve": return handleApprove(params[0], ctx, ctx.env!);
+    case "reject": return handleReject(params[0], req, ctx, ctx.env!);
+    case "receive": return handleReceive(params[0], ctx, ctx.env!);
     default: return badRequest("Unknown action");
   }
 }
 
-async function handleCreate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   let body: Record<string, unknown>;
@@ -122,7 +123,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: any): Promis
   }
 }
 
-async function handleListMy(ctx: RequestContext, env: any): Promise<Response> {
+async function handleListMy(ctx: RequestContext, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
@@ -141,7 +142,7 @@ async function handleListMy(ctx: RequestContext, env: any): Promise<Response> {
   }
 }
 
-async function handleDetailMy(returnId: string, ctx: RequestContext, env: any): Promise<Response> {
+async function handleDetailMy(returnId: string, ctx: RequestContext, env: Env): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
   try {
@@ -163,7 +164,7 @@ async function handleDetailMy(returnId: string, ctx: RequestContext, env: any): 
   }
 }
 
-async function handleAdminList(req: Request, env: any): Promise<Response> {
+async function handleAdminList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
   const limit = parseInt(url.searchParams.get("limit") ?? "25");
@@ -200,7 +201,7 @@ async function handleAdminList(req: Request, env: any): Promise<Response> {
   }
 }
 
-async function handleAdminDetail(returnId: string, env: any): Promise<Response> {
+async function handleAdminDetail(returnId: string, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const returnRequest = await prisma.return_requests.findUnique({
@@ -219,7 +220,7 @@ async function handleAdminDetail(returnId: string, env: any): Promise<Response> 
   }
 }
 
-async function handleApprove(returnId: string, ctx: RequestContext, env: any): Promise<Response> {
+async function handleApprove(returnId: string, ctx: RequestContext, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const returnRequest = await prisma.return_requests.findUnique({
@@ -254,7 +255,7 @@ async function handleApprove(returnId: string, ctx: RequestContext, env: any): P
   }
 }
 
-async function handleReject(returnId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleReject(returnId: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   const body = await req.json();
   const { adminNote } = body;
 
@@ -295,7 +296,7 @@ async function handleReject(returnId: string, req: Request, ctx: RequestContext,
   }
 }
 
-async function handleReceive(returnId: string, ctx: RequestContext, env: any): Promise<Response> {
+async function handleReceive(returnId: string, ctx: RequestContext, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const returnRequest = await prisma.return_requests.findUnique({

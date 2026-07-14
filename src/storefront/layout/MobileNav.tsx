@@ -371,6 +371,7 @@ export function MobileNav() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-10 h-10 border border-white/20 rounded-full flex items-center justify-center text-white/60 hover:text-white hover:border-white/40 transition-all duration-200"
+                      aria-label="Follow us on Instagram"
                     >
                       <Instagram className="w-4 h-4" />
                     </a>

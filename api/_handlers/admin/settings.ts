@@ -1,3 +1,4 @@
+import type { Env } from "../../_lib/env";
 import { getPrisma } from "../../_lib/prisma";
 import { success, badRequest, notFound, serverError, created } from "../../_lib/response";
 import type { RequestContext } from "../../_lib/types";
@@ -6,7 +7,7 @@ import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { deleteMedia } from "../../_lib/media-service";
 import { toNull } from "../../_lib/sanitize";
 
-async function cleanupThemeMedia(existingTheme: unknown, nextTheme: unknown, env: any): Promise<unknown> {
+async function cleanupThemeMedia(existingTheme: unknown, nextTheme: unknown, env: Env): Promise<unknown> {
   // Extract public IDs from existing theme and delete using MediaService
   const existingPublicIds = extractPublicIds(existingTheme);
   const nextPublicIds = extractPublicIds(nextTheme);
@@ -25,7 +26,7 @@ async function cleanupThemeMedia(existingTheme: unknown, nextTheme: unknown, env
   return nextTheme;
 }
 
-async function cleanupSeoMedia(existingSeo: unknown, nextSeo: unknown, env: any): Promise<unknown> {
+async function cleanupSeoMedia(existingSeo: unknown, nextSeo: unknown, env: Env): Promise<unknown> {
   // Extract public IDs from existing SEO and delete using MediaService
   const existingPublicIds = extractPublicIds(existingSeo);
   const nextPublicIds = extractPublicIds(nextSeo);
@@ -79,23 +80,23 @@ export async function handleAdminSettingsRequest(
 
   switch (action) {
     case "get":
-      return handleGet(ctx.env);
+      return handleGet(ctx.env!);
     case "update":
-      return handleUpdate(req, ctx, ctx.env);
+      return handleUpdate(req, ctx, ctx.env!);
     case "socialLinks":
-      return handleSocialLinksList(ctx.env);
+      return handleSocialLinksList(ctx.env!);
     case "createSocialLink":
-      return handleCreateSocialLink(req, ctx, ctx.env);
+      return handleCreateSocialLink(req, ctx, ctx.env!);
     case "updateSocialLink":
-      return handleUpdateSocialLink(params[0], req, ctx, ctx.env);
+      return handleUpdateSocialLink(params[0], req, ctx, ctx.env!);
     case "deleteSocialLink":
-      return handleDeleteSocialLink(params[0], req, ctx, ctx.env);
+      return handleDeleteSocialLink(params[0], req, ctx, ctx.env!);
     default:
       return badRequest("Unknown action");
   }
 }
 
-async function handleGet(env: any): Promise<Response> {
+async function handleGet(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const settings = await prisma.site_settings.findFirst();
@@ -105,7 +106,7 @@ async function handleGet(env: any): Promise<Response> {
   }
 }
 
-async function handleUpdate(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleUpdate(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   const body = await req.json();
 
   try {
@@ -208,7 +209,7 @@ async function handleUpdate(req: Request, ctx: RequestContext, env: any): Promis
   }
 }
 
-async function handleSocialLinksList(env: any): Promise<Response> {
+async function handleSocialLinksList(env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     const links = await prisma.social_media_links.findMany({
@@ -220,7 +221,7 @@ async function handleSocialLinksList(env: any): Promise<Response> {
   }
 }
 
-async function handleCreateSocialLink(req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleCreateSocialLink(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   const body = await req.json();
   const { platform, url, label, icon, isActive, sortOrder } = body;
 
@@ -262,7 +263,7 @@ async function handleCreateSocialLink(req: Request, ctx: RequestContext, env: an
   }
 }
 
-async function handleUpdateSocialLink(linkId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleUpdateSocialLink(linkId: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   const body = await req.json();
 
   try {
@@ -289,7 +290,7 @@ async function handleUpdateSocialLink(linkId: string, req: Request, ctx: Request
   }
 }
 
-async function handleDeleteSocialLink(linkId: string, req: Request, ctx: RequestContext, env: any): Promise<Response> {
+async function handleDeleteSocialLink(linkId: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     await prisma.social_media_links.delete({ where: { id: linkId } });

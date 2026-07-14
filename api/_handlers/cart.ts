@@ -13,7 +13,7 @@ export async function handleCartRequest(
   const isGuestAction = action === "sync" || action === "merge";
   
   if (!isGuestAction) {
-    const authResult = await authenticate(req, { required: true, requireEmailVerified: true }, ctx.env);
+    const authResult = await authenticate(req, { required: true, requireEmailVerified: true }, ctx.env!);
     if (authResult instanceof Response) return authResult;
     ctx = { ...ctx, ...authResult.ctx };
   }
@@ -38,7 +38,7 @@ async function handleGetCart(ctx: RequestContext): Promise<Response> {
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
 
     // Clean up expired cart
     await prisma.carts.deleteMany({
@@ -151,7 +151,7 @@ async function handleSyncCart(req: Request, ctx: RequestContext): Promise<Respon
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     
     // Get or create cart
     let cart = await prisma.carts.findUnique({
@@ -218,7 +218,7 @@ async function handleMergeCart(req: Request, ctx: RequestContext): Promise<Respo
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     
     // Get or create cart
     const cart = await prisma.carts.findUnique({
@@ -284,7 +284,7 @@ async function handleClearCart(ctx: RequestContext): Promise<Response> {
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const cart = await prisma.carts.findUnique({
       where: { profileId: ctx.userId }
     });

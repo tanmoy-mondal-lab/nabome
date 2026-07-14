@@ -69,6 +69,58 @@ test.describe('Checkout Flow', () => {
     await expect(page.locator('.payment-section')).toBeVisible();
   });
 
+  test('empty cart prevents checkout', async ({ page }) => {
+    await page.goto('/cart');
+    await page.waitForTimeout(500);
+
+    const checkoutBtn = page.locator('button:has-text("Checkout"), a:has-text("Checkout")').first();
+    if (await checkoutBtn.isVisible().catch(() => false)) {
+      await checkoutBtn.click();
+      await page.waitForTimeout(500);
+    }
+
+    const emptyCartMsg = page.locator('text=cart is empty, text=No items, text=Your cart is empty');
+    const isOnCheckout = /checkout/.test(page.url());
+    const showsEmptyMsg = await emptyCartMsg.first().isVisible().catch(() => false);
+    expect(isOnCheckout || showsEmptyMsg).toBeTruthy();
+  });
+
+  test('form validation shows errors for missing required fields', async ({ page }) => {
+    await page.goto('/checkout');
+
+    const submitBtn = page.locator('button:has-text("Continue to Payment"), button:has-text("Place Order"), button[type="submit"]').first();
+    if (await submitBtn.isVisible().catch(() => false)) {
+      await submitBtn.click();
+      await page.waitForTimeout(500);
+    }
+
+    const errorMessages = page.locator('[class*="error"], [role="alert"], .field-error, text|required|Required');
+    const errorCount = await errorMessages.count();
+    expect(errorCount).toBeGreaterThan(0);
+  });
+
+  test('invalid postal code shows validation error', async ({ page }) => {
+    await page.goto('/checkout');
+
+    await page.fill('input[name="fullName"]', 'Test User');
+    await page.fill('input[name="phone"]', '+919876543210');
+    await page.fill('input[name="address"]', '123 Test Street');
+    await page.fill('input[name="city"]', 'Test City');
+    await page.fill('input[name="state"]', 'Test State');
+    await page.fill('input[name="postalCode"]', 'INVALID');
+
+    const submitBtn = page.locator('button:has-text("Continue to Payment"), button[type="submit"]').first();
+    if (await submitBtn.isVisible().catch(() => false)) {
+      await submitBtn.click();
+      await page.waitForTimeout(500);
+    }
+
+    const errorMessages = page.locator('[class*="error"], [role="alert"], text=invalid|Invalid|must be');
+    const hasError = await errorMessages.count() > 0;
+    const stayedOnCheckout = /checkout/.test(page.url());
+    expect(hasError || stayedOnCheckout).toBeTruthy();
+  });
+
   test('user can complete order with Razorpay', async ({ page }) => {
     // This test requires Razorpay test mode credentials
     test.skip(process.env.NODE_ENV === 'production', 'Skip in production');

@@ -32,23 +32,23 @@ export async function handleDashboardRequest(
 
   switch (action) {
     case "overview":
-      return handleDashboardOverview(ctx, ctx.env);
+      return handleDashboardOverview(ctx, ctx.env!);
     case "profile":
-      if (req.method === "GET") return handleGetProfile(ctx, ctx.env);
-      if (req.method === "PUT") return handleUpdateProfile(ctx, req, ctx.env);
+      if (req.method === "GET") return handleGetProfile(ctx, ctx.env!);
+      if (req.method === "PUT") return handleUpdateProfile(ctx, req, ctx.env!);
       return error(ErrorCode.INVALID_INPUT, "Method not allowed", 405);
     case "changePassword":
-      return handleChangePassword(ctx, req, ctx.env);
+      return handleChangePassword(ctx, req, ctx.env!);
     case "orderStats":
-      return handleOrderStats(ctx, ctx.env);
+      return handleOrderStats(ctx, ctx.env!);
     default:
       return notFound();
   }
 }
 
-async function handleDashboardOverview(ctx: RequestContext, _env: any): Promise<Response> {
+async function handleDashboardOverview(ctx: RequestContext, _env: Env): Promise<Response> {
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const [recentOrders, wishlistCount, addressesCount, unreadNotifications] = await Promise.all([
       prisma.orders.findMany({
         where: { profileId: ctx.userId },
@@ -75,9 +75,9 @@ async function handleDashboardOverview(ctx: RequestContext, _env: any): Promise<
   }
 }
 
-async function handleGetProfile(ctx: RequestContext, _env: any): Promise<Response> {
+async function handleGetProfile(ctx: RequestContext, _env: Env): Promise<Response> {
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const profile = await prisma.profiles.findUnique({
       where: { id: ctx.userId },
       select: {
@@ -111,7 +111,7 @@ async function handleGetProfile(ctx: RequestContext, _env: any): Promise<Respons
   }
 }
 
-async function handleUpdateProfile(ctx: RequestContext, req: Request, _env: any): Promise<Response> {
+async function handleUpdateProfile(ctx: RequestContext, req: Request, _env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -125,7 +125,7 @@ async function handleUpdateProfile(ctx: RequestContext, req: Request, _env: any)
   for (const field of allowedFields) {
     if (body[field] !== undefined) {
       if (field === "preferences") {
-        const existing = await getPrisma(ctx.env).profiles.findUnique({
+        const existing = await getPrisma(ctx.env!).profiles.findUnique({
           where: { id: ctx.userId },
           select: { preferences: true },
         });
@@ -144,7 +144,7 @@ async function handleUpdateProfile(ctx: RequestContext, req: Request, _env: any)
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const profile = await prisma.profiles.update({
       where: { id: ctx.userId },
       data: updateData,
@@ -167,7 +167,7 @@ async function handleUpdateProfile(ctx: RequestContext, req: Request, _env: any)
   }
 }
 
-async function handleChangePassword(ctx: RequestContext, req: Request, _env: any): Promise<Response> {
+async function handleChangePassword(ctx: RequestContext, req: Request, _env: Env): Promise<Response> {
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -189,11 +189,11 @@ async function handleChangePassword(ctx: RequestContext, req: Request, _env: any
   }
 
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const user = await prisma.profiles.findUnique({ where: { id: ctx.userId } });
     if (!user) return unauthorized();
 
-    const anonClient = getAnonClient(ctx.env);
+    const anonClient = getAnonClient(ctx.env!);
     const { error: verifyError } = await anonClient.auth.signInWithPassword({
       email: user.email,
       password: currentPassword as string,
@@ -203,7 +203,7 @@ async function handleChangePassword(ctx: RequestContext, req: Request, _env: any
       return badRequest("Current password is incorrect");
     }
 
-    const supabase = getAdminClient(ctx.env);
+    const supabase = getAdminClient(ctx.env!);
     const { error: updateError } = await supabase.auth.admin.updateUserById(ctx.userId!, {
       password: newPassword as string,
     });
@@ -222,9 +222,9 @@ async function handleChangePassword(ctx: RequestContext, req: Request, _env: any
   }
 }
 
-async function handleOrderStats(ctx: RequestContext, _env: any): Promise<Response> {
+async function handleOrderStats(ctx: RequestContext, _env: Env): Promise<Response> {
   try {
-    const prisma = getPrisma(ctx.env);
+    const prisma = getPrisma(ctx.env!);
     const [totalOrders, aggregation, pendingCount, deliveredCount] = await Promise.all([
       prisma.orders.count({ where: { profileId: ctx.userId } }),
       prisma.orders.aggregate({
