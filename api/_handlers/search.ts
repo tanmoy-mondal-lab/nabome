@@ -9,7 +9,7 @@ export async function handleSearchRequest(
   _params: string[],
   action: string
 ): Promise<Response> {
-  if (!ctx.env!) return serverError("Environment not available");
+  if (!ctx.env) return serverError("Environment not available");
 
   switch (action) {
     case "suggestions":

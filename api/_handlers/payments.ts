@@ -100,7 +100,7 @@ async function handleVerify(req: Request, ctx: RequestContext, env: Env): Promis
     if (!order) return notFound("Order not found");
     
     // Ownership validation: only the order owner can verify payment
-    if (ctx.userId && order.profileId !== ctx.userId) {
+    if (!ctx.userId || order.profileId !== ctx.userId) {
       return notFound("Order not found");
     }
     
@@ -516,7 +516,7 @@ function roundAmount(amount: unknown): number {
 async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: Env }) {
   const prisma = getPrisma(ctx.env!);
   const payment = event.payload.payment?.entity as Record<string, unknown> | undefined;
-  if (!payment) throw new Error("Missing payment entity in payload");
+  if (!payment) return { status: "skipped", reason: "Missing payment entity in payload" };
 
   const razorpayOrderId = payment.order_id as string;
   const razorpayPaymentId = payment.id as string;
@@ -524,7 +524,7 @@ async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: Env
   const method = payment.method as string;
 
   const order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env!);
-  if (!order) throw new Error(`Order not found for razorpay_order_id: ${razorpayOrderId}`);
+  if (!order) return { status: "skipped", reason: `Order not found for razorpay_order_id: ${razorpayOrderId}` };
 
   const result = await prisma.$transaction(async (tx) => {
     const current = await tx.orders.findUnique({ where: { id: order.id } });
@@ -584,7 +584,7 @@ async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: Env
 async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: Env }) {
   const prisma = getPrisma(ctx.env!);
   const payment = event.payload.payment?.entity as Record<string, unknown> | undefined;
-  if (!payment) throw new Error("Missing payment entity in payload");
+  if (!payment) return { status: "skipped", reason: "Missing payment entity in payload" };
 
   const razorpayOrderId = payment.order_id as string;
   const errorDescription = payment.error_description as string;
@@ -594,7 +594,7 @@ async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: Env }
   const errorReason = payment.error_reason as string;
 
   const order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env!);
-  if (!order) throw new Error(`Order not found for razorpay_order_id: ${razorpayOrderId}`);
+  if (!order) return { status: "skipped", reason: `Order not found for razorpay_order_id: ${razorpayOrderId}` };
 
   const orderWithItems = await prisma.orders.findUnique({
     where: { id: order.id },
@@ -647,7 +647,7 @@ async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: Env }
 async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: Env }) {
   const prisma = getPrisma(ctx.env!);
   const refund = event.payload.refund?.entity as Record<string, unknown> | undefined;
-  if (!refund) throw new Error("Missing refund entity in payload");
+  if (!refund) return { status: "skipped", reason: "Missing refund entity in payload" };
 
   const refundId = refund.id as string;
   const razorpayPaymentId = refund.payment_id as string;
@@ -663,7 +663,7 @@ async function handleRefundCreated(event: WebhookEventPayload, ctx: { env: Env }
       order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env!);
     }
   }
-  if (!order) throw new Error(`Order not found for razorpay_payment_id: ${razorpayPaymentId}`);
+  if (!order) return { status: "skipped", reason: `Order not found for razorpay_payment_id: ${razorpayPaymentId}` };
 
   return prisma.$transaction(async (tx) => {
     const existingRefund = await tx.refunds.findFirst({
@@ -929,23 +929,25 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
 
   try {
     const result = await handler(event, { env });
+    const webhookStatus = (result as Record<string, unknown>)?.status === "skipped" ? "skipped" : "processed";
 
     await prisma.webhook_events.update({
       where: { id: webhookEventId },
       data: {
-        status: "processed",
+        status: webhookStatus,
         processedAt: new Date(),
-        orderId: (result.orderId as string) || null,
+        orderId: (result as Record<string, unknown>)?.orderId as string || null,
+        errorMessage: webhookStatus === "skipped" ? String((result as Record<string, unknown>)?.reason || "") : undefined,
       },
     }).catch(() => {});
 
     logAction(null, "payment.webhook", {
       entity: "payment_webhook",
       entityId: eventId,
-      metadata: { event: eventName, status: "processed" },
+      metadata: { event: eventName, status: webhookStatus },
     }, env);
 
-    return success({ status: "processed", event: eventName, result });
+    return success({ status: webhookStatus, event: eventName, result });
   } catch (err) {
     const errorMessage = (err as Error).message;
 
@@ -964,7 +966,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       metadata: { event: eventName, status: "failed", error: errorMessage },
     }, env);
 
-    return serverError(new Error(`Webhook handler failed: ${errorMessage}`));
+    return success({ status: "event_failed", event: eventName, error: errorMessage });
   }
 }
 

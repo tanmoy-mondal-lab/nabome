@@ -88,7 +88,7 @@ export function csrfError(): Response {
   return new Response(
     JSON.stringify({
       success: false,
-      error: { message: "Invalid or missing CSRF token", status: 403 },
+      error: { code: "CSRF_TOKEN_INVALID", message: "Invalid or missing CSRF token", status: 403 },
     }),
     {
       status: 403,

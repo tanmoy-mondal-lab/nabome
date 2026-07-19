@@ -3,10 +3,7 @@
  * Idempotent upsert helpers for seed operations
  */
 
-import { PrismaClient } from '@prisma/client';
 import { logSeed } from './helpers';
-
-export const prisma = new PrismaClient();
 
 /**
  * Generic upsert helper with logging

@@ -878,27 +878,38 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
     hashToken(sbData.session.refresh_token),
   ]);
 
-  // 4. Rotate: revoke old session, create new one linked via rotatedFromSessionId
-  // If Supabase returned the same refresh token, update the current record in place.
-  if (newRefreshTokenHash === refreshTokenHash) {
-    await prisma.auth_sessions.update({
-      where: { id: oldSession.id },
-      data: {
-        accessToken: newAccessTokenHash,
-        refreshToken: newRefreshTokenHash,
-        refreshTokenExpiresAt: refreshExpiresAt,
-        expiresAt: newExpiresAt,
-        lastActiveAt: new Date(),
-      },
-    });
-    let response = success({ message: "Token refreshed successfully" });
-    response = setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, sbData.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env!);
-    response = setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, sbData.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env!);
-    return response;
-  }
+  // 4. Rotate within a transaction with row lock to prevent race conditions
+  //    Two concurrent refresh requests for the same session are serialized
+  //    via SELECT ... FOR UPDATE on the old session row.
+  const result = await prisma.$transaction(async (tx) => {
+    // Lock the old session row — blocks concurrent refreshes until this tx completes
+    const lockedRows = await tx.$queryRawUnsafe<Array<{ id: string; is_active: boolean }>>(
+      `SELECT id, is_active FROM auth_sessions WHERE id = $1::uuid FOR UPDATE`,
+      oldSession.id
+    );
 
-  const [newSession] = await prisma.$transaction([
-    prisma.auth_sessions.create({
+    if (!lockedRows.length || !lockedRows[0].is_active) {
+      // Another concurrent request already rotated this session
+      return { type: "conflict" as const };
+    }
+
+    if (newRefreshTokenHash === refreshTokenHash) {
+      // Supabase returned the same refresh token; update the record in place
+      await tx.auth_sessions.update({
+        where: { id: oldSession.id },
+        data: {
+          accessToken: newAccessTokenHash,
+          refreshToken: newRefreshTokenHash,
+          refreshTokenExpiresAt: refreshExpiresAt,
+          expiresAt: newExpiresAt,
+          lastActiveAt: new Date(),
+        },
+      });
+      return { type: "updated" as const, sessionId: oldSession.id };
+    }
+
+    // Create new session and revoke old one atomically
+    const created = await tx.auth_sessions.create({
       data: {
         profileId: oldSession.profileId,
         accessToken: newAccessTokenHash,
@@ -910,23 +921,28 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
         expiresAt: newExpiresAt,
         rotatedFromSessionId: oldSession.id,
       },
-    }),
-    prisma.auth_sessions.update({
+    });
+    await tx.auth_sessions.update({
       where: { id: oldSession.id },
       data: { isActive: false, revokedAt: new Date() },
-    }),
-  ]);
+    });
+    return { type: "rotated" as const, session: created };
+  });
+
+  if (result.type === "conflict") {
+    return unauthorized("Session already refreshed — please try again");
+  }
 
   logAction(oldSession.profileId, "auth.token_refresh", {
-    metadata: { rotatedFromSession: oldSession.id, newSessionId: newSession.id },
+    metadata: {
+      rotatedFromSession: oldSession.id,
+      newSessionId: result.type === "rotated" ? result.session.id : result.sessionId,
+    },
     ipAddress: clientIp,
     userAgent: userAgent,
   }, ctx.env!);
 
-  // Security: Set httpOnly cookies for new tokens
-  let response = success({
-    message: "Token refreshed successfully",
-  });
+  let response = success({ message: "Token refreshed successfully" });
 
   response = setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, sbData.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env!);
   response = setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, sbData.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env!);

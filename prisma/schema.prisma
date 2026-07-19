@@ -380,7 +380,7 @@ model product_images {
   isPrimary Boolean         @default(false) @map("is_primary")
   type      String?         @default("image") @db.VarChar(20)
   product   products         @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant   product_variants? @relation(fields: [variantId], references: [id])
+  variant   product_variants? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
   @@index([productId])
   @@index([variantId])
