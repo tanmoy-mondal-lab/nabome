@@ -171,7 +171,8 @@ export default function CheckoutPage() {
       } else {
         setCouponError(data.message || "Invalid coupon code");
       }
-    } catch {
+    } catch (err) {
+      console.error("Coupon validation failed:", err);
       setCouponError("Failed to validate coupon");
     }
     setCouponApplying(false);

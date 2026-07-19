@@ -21,7 +21,7 @@ export default function ImportExportPage() {
       a.download = filename.replace(".csv", `-${new Date().toISOString().split("T")[0]}.csv`);
       a.click();
       URL.revokeObjectURL(url);
-    } catch { /* non-critical: failed to export data */ } finally {
+    } catch (err) { console.error("Export failed:", err); } finally {
       setExporting(null);
     }
   };
@@ -36,7 +36,7 @@ export default function ImportExportPage() {
       formData.append("file", file);
       const res = await adminApi.importProducts(formData);
       setImportResult(res);
-    } catch { /* non-critical: failed to import products from CSV */ } finally {
+    } catch (err) { console.error("Import failed:", err); } finally {
       setImporting(false);
       e.target.value = "";
     }

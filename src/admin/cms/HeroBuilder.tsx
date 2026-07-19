@@ -90,7 +90,7 @@ export default function HeroBuilder() {
         if (created?.id) setSectionId(created.id);
       }
       setConfig(newConfig);
-    } catch { setError("Failed to save hero config."); } finally {
+    } catch (err) { console.error("Failed to save hero config:", err); setError("Failed to save hero config."); } finally {
       setSaving(false);
     }
   };
@@ -140,7 +140,7 @@ export default function HeroBuilder() {
     try {
       const res = await adminApi.uploadFile(file, "hero-banners");
       setForm((prev) => ({ ...prev, [field]: res.url }));
-    } catch { setError("Failed to upload file."); } finally {
+    } catch (err) { console.error("Failed to upload file:", err); setError("Failed to upload file."); } finally {
       setUploadingFor(null);
       if (fileRef.current) fileRef.current.value = "";
       if (posterRef.current) posterRef.current.value = "";

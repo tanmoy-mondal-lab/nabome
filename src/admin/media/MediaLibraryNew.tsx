@@ -39,10 +39,11 @@ const FILE_ICONS: Record<string, React.ElementType> = {
 };
 
 function formatSize(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return "0 B";
   if (bytes === 0) return "0 B";
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
   return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
 }
 
@@ -133,7 +134,7 @@ export default function MediaLibraryNew() {
   const [moveTargetFolder, setMoveTargetFolder] = useState("");
   
   const [bulkActionModalOpen, setBulkActionModalOpen] = useState(false);
-  const bulkActionType = "delete";
+  const bulkActionType = "delete" as const;
   
   // Keyboard navigation state
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -153,16 +154,10 @@ export default function MediaLibraryNew() {
   // Asset usage detection state
   const [assetUsage, setAssetUsage] = useState<{ entity: string; count: number; items: string[] } | null>(null);
   
-  // Query for asset usage when previewing (mock implementation for now)
+  // Asset usage detection — backend API route not yet wired up
   useEffect(() => {
     if (previewItem?.metadata?.id) {
-      // Mock usage data - in production, this would come from the API
-      const mockUsage = {
-        entity: "Products",
-        count: Math.floor(Math.random() * 5),
-        items: ["Summer Collection", "New Arrivals", "Featured Products"].slice(0, Math.floor(Math.random() * 3))
-      };
-      setAssetUsage(mockUsage);
+      setAssetUsage(null);
     } else {
       setAssetUsage(null);
     }
@@ -581,13 +576,9 @@ export default function MediaLibraryNew() {
     }
     
     if (renamingItem.type === "folder") {
-      // Rename folder (would need backend support)
-      console.log("Rename folder:", renamingItem.id, "to:", renameValue);
-      toast("Folder renaming not yet implemented", "info");
+      toast("Folder renaming is not yet available in the API", "info");
     } else {
-      // Rename asset (would need backend support)
-      console.log("Rename asset:", renamingItem.id, "to:", renameValue);
-      toast("Asset renaming not yet implemented", "info");
+      toast("Asset renaming is not yet available in the API", "info");
     }
     
     setRenamingItem(null);

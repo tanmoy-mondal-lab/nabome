@@ -581,7 +581,7 @@ export default function ProductsPage() {
           page={page}
           totalPages={totalPages}
           onPageChange={setPage}
-          onSearch={() => {}}
+          onSearch={undefined}
           searchPlaceholder=""
           onRowClick={(p) => navigate(`/admin/products/${p.id}/edit`)}
           emptyMessage=""

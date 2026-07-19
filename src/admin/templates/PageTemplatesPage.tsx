@@ -85,7 +85,7 @@ export default function PageTemplatesPage() {
 
   const handleSave = () => {
     let sections;
-    try { sections = JSON.parse(sectionsJson); } catch { toast("Invalid JSON in sections", "error"); return; }
+    try { sections = JSON.parse(sectionsJson); } catch (err) { console.error("Invalid JSON in sections:", err); toast("Invalid JSON in sections", "error"); return; }
     const payload = { name: form.name, description: form.description || null, category: form.category, sections, isActive: form.isActive, thumbnail: form.thumbnail || null, thumbnailPublicId: form.thumbnailPublicId || null };
     if (editItem) {
       updateMutation.mutate({ id: editItem.id, payload }, { onSuccess: () => setModalOpen(false) });

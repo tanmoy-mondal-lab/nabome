@@ -18,15 +18,21 @@ export function PwaInstallPrompt() {
     const dismissed = localStorage.getItem(DISMISSED_KEY);
     if (dismissed === "true") return;
 
+    const timerIds: ReturnType<typeof setTimeout>[] = [];
+
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setIsDismissed(false);
-      setTimeout(() => setShowBanner(true), 30000);
+      const id = setTimeout(() => setShowBanner(true), 30000);
+      timerIds.push(id);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      timerIds.forEach(clearTimeout);
+    };
   }, []);
 
   const handleInstall = async () => {

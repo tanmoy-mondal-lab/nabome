@@ -32,7 +32,8 @@ export function NewsletterForm({ layout = "stacked" }: NewsletterFormProps) {
       setStatus("success");
       setEmail("");
       setTimeout(() => setStatus("idle"), 4000);
-    } catch {
+    } catch (err) {
+      console.error("Newsletter subscription failed:", err);
       setStatus("error");
     } finally {
       if (shouldResetTurnstile) {

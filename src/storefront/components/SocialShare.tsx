@@ -45,8 +45,8 @@ export function SocialShare({ url, title, description, image: _image, className 
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // fallback
+    } catch (err) {
+      if (import.meta.env.DEV) console.debug("Clipboard write failed:", err);
     }
   }
 

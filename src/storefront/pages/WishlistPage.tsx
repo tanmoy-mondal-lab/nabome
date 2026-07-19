@@ -26,9 +26,13 @@ export default function WishlistPage() {
       return;
     }
     // Wait for wishlist data to load from hook
-    const timer = setTimeout(() => setLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, [isAuthenticated]);
+    const timer = setTimeout(() => {
+      if (!removingId) {
+        setLoading(false);
+      }
+    }, 300);
+    return () => { clearTimeout(timer); };
+  }, [isAuthenticated, removingId]);
 
   async function handleRemove(variantId: string) {
     setRemovingId(variantId);

@@ -19,7 +19,7 @@ export default function SearchIndexPage() {
     try {
       const res = await adminApi.getSearchIndexStatus();
       setStatus(res);
-    } catch { toast("Failed to load search index status", "error"); } finally { setLoading(false); }
+    } catch (err) { console.error("Failed to load search index status:", err); toast("Failed to load search index status", "error"); } finally { setLoading(false); }
   }, [toast]);
 
   useEffect(() => { void fetchStatus(); }, [fetchStatus]);
@@ -31,7 +31,7 @@ export default function SearchIndexPage() {
       const res = await adminApi.buildSearchIndex();
       setBuildResult(res);
       void fetchStatus();
-    } catch { toast("Failed to rebuild search index", "error"); } finally {
+    } catch (err) { console.error("Failed to rebuild search index:", err); toast("Failed to rebuild search index", "error"); } finally {
       setBuilding(false);
     }
   };
@@ -42,7 +42,7 @@ export default function SearchIndexPage() {
     try {
       const res = await adminApi.searchIndex(searchQuery);
       setSearchResults(res);
-    } catch { toast("Search failed", "error"); } finally {
+    } catch (err) { console.error("Search failed:", err); toast("Search failed", "error"); } finally {
       setSearching(false);
     }
   };

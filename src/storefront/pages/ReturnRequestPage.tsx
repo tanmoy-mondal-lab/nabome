@@ -72,7 +72,8 @@ export default function ReturnRequestPage() {
         const url = await customerApi.uploadImage(file, "returns");
         setEvidenceImages((prev) => [...prev, url]);
       }
-    } catch {
+    } catch (err) {
+      console.error("Image upload failed:", err);
       setSubmitError("Failed to upload image. Please try again.");
     } finally {
       setIsUploading(false);

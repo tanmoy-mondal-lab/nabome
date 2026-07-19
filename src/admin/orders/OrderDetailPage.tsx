@@ -4,6 +4,7 @@ import { adminApi } from "../../lib/api/admin";
 import { StatusBadge } from "../common/StatusBadge";
 import { SafeImage } from "../../components/SafeImage";
 import { formatPrice, formatDateTime, formatDate } from "../../lib/utils/format";
+import { useToast } from "../../components/ui/Toast";
 import { ArrowLeft, FileText, CheckCircle, Circle, Clock, User, CreditCard, RotateCcw, Bell, LifeBuoy } from "lucide-react";
 
 interface OrderItem {
@@ -89,6 +90,7 @@ const TABS = ["Details", "Customer", "Payments", "Returns & Refunds", "Notificat
 export default function OrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusNote, setStatusNote] = useState("");
@@ -107,7 +109,9 @@ export default function OrderDetailPage() {
       setOrder(o);
       setInternalNote(o.internalNotes || o.notes || "");
       setTimeline((timelineRes.timeline as TimelineEntry[]) ?? []);
-    }).catch(() => {
+    }).catch((err) => {
+      console.error("Failed to load order detail:", err);
+      toast("Failed to load order details. Redirecting...", "error");
       void navigate("/admin/orders");
     }).finally(() => setLoading(false));
   }, [id, navigate]);
@@ -120,7 +124,10 @@ export default function OrderDetailPage() {
       const timelineRes = await adminApi.getOrderTimeline(id);
       setTimeline((timelineRes.timeline as TimelineEntry[]) ?? []);
       setStatusNote("");
-    } catch { /* non-critical: failed to update order status */ }
+    } catch (err) {
+      console.error("Failed to update order status:", err);
+      toast("Failed to update order status", "error");
+    }
   };
 
   const handleSaveNote = async () => {
@@ -129,7 +136,11 @@ export default function OrderDetailPage() {
     try {
       await adminApi.updateOrderInternalNotes(id, internalNote);
       setOrder((prev) => prev ? { ...prev, notes: internalNote } : prev);
-    } catch { /* non-critical: failed to save internal notes */ } finally {
+      toast("Note saved", "success");
+    } catch (err) {
+      console.error("Failed to save internal notes:", err);
+      toast("Failed to save note", "error");
+    } finally {
       setSavingNote(false);
     }
   };
@@ -141,7 +152,10 @@ export default function OrderDetailPage() {
       if (res?.invoiceUrl) {
         window.open(res.invoiceUrl, "_blank");
       }
-    } catch { /* non-critical: failed to generate invoice */ }
+    } catch (err) {
+      console.error("Failed to generate invoice:", err);
+      toast("Failed to generate invoice", "error");
+    }
   };
 
   if (loading) {

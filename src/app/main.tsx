@@ -6,16 +6,13 @@ import "../styles/globals.css";
 import { registerServiceWorker } from "../lib/serviceWorker";
 import { ConnectivityProvider } from "../storefront/components/ConnectivityIndicators";
 
-// Debug logging to identify mount failures
-console.log("[main.tsx] Script loaded, starting initialization");
-
 // Initialize enhanced offline support for mobile and desktop
 registerServiceWorker()
   .then(() => {
-    console.log("[main.tsx] Service worker initialized successfully");
+    if (import.meta.env.DEV) console.log("[main.tsx] Service worker initialized successfully");
   })
   .catch((error) => {
-    console.warn("[main.tsx] Service worker registration failed:", error);
+    if (import.meta.env.DEV) console.warn("[main.tsx] Service worker registration failed:", error);
     // App works without service worker
   });
 
@@ -24,7 +21,7 @@ function mountApp() {
   const rootElement = document.getElementById("root");
 
   if (!rootElement) {
-    console.error("[main.tsx] CRITICAL: Root element not found in DOM");
+    if (import.meta.env.DEV) console.error("[main.tsx] CRITICAL: Root element not found in DOM");
     document.body.innerHTML = `
       <div style="padding: 40px; font-family: monospace; color: red; background: #fee; border: 2px solid red;">
         <h1>Mount Error: Root element not found</h1>
@@ -40,11 +37,10 @@ function mountApp() {
     return;
   }
 
-  console.log("[main.tsx] Root element found, attempting to mount React");
+  if (import.meta.env.DEV) console.log("[main.tsx] Root element found, attempting to mount React");
 
   try {
     const root = createRoot(rootElement);
-    console.log("[main.tsx] React root created successfully");
 
     root.render(
       <StrictMode>
@@ -55,10 +51,8 @@ function mountApp() {
         </HelmetProvider>
       </StrictMode>
     );
-
-    console.log("[main.tsx] React render called successfully");
   } catch (error) {
-    console.error("[main.tsx] CRITICAL: React mount failed with error:", error);
+    if (import.meta.env.DEV) console.error("[main.tsx] CRITICAL: React mount failed with error:", error);
     rootElement.innerHTML = `
       <div style="padding: 40px; font-family: monospace; color: red; background: #fee; border: 2px solid red;">
         <h1>React Mount Error</h1>
@@ -72,9 +66,9 @@ function mountApp() {
 
 // Mount when DOM is ready
 if (document.readyState === "loading") {
-  console.log("[main.tsx] DOM still loading, waiting for DOMContentLoaded");
+  if (import.meta.env.DEV) console.log("[main.tsx] DOM still loading, waiting for DOMContentLoaded");
   document.addEventListener("DOMContentLoaded", mountApp);
 } else {
-  console.log("[main.tsx] DOM already ready, mounting immediately");
+  if (import.meta.env.DEV) console.log("[main.tsx] DOM already ready, mounting immediately");
   mountApp();
 }

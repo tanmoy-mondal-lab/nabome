@@ -167,10 +167,21 @@ export default function CategoriesPage() {
     deleteSubMutation.mutate(id);
   };
 
-  const filtered = categories.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.slug.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = categories.filter((c) => {
+    const match = c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.slug.toLowerCase().includes(search.toLowerCase());
+    // Also include parent categories when a subcategory matches
+    if (!match && search && c.id) {
+      const hasMatchingChild = categories.some(
+        (child) => child.parentId === c.id && (
+          child.name.toLowerCase().includes(search.toLowerCase()) ||
+          child.slug.toLowerCase().includes(search.toLowerCase())
+        )
+      );
+      return hasMatchingChild;
+    }
+    return match;
+  });
 
   const rootCategories = filtered.filter((c) => !c.parentId);
   const totalProducts = categories.reduce((sum, c) => sum + (c._count?.products ?? 0), 0);

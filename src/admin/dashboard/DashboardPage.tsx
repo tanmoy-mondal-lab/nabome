@@ -4,6 +4,7 @@ import { adminApi, type DashboardStats } from "../../lib/api/admin";
 import { StatsCard } from "../common/StatsCard";
 import { StatusBadge } from "../common/StatusBadge";
 import { formatPrice, formatCompactPrice } from "../../lib/utils/format";
+
 import {
   Package, ShoppingCart, Users, IndianRupee, TrendingUp, TrendingDown,
   ArrowRight, BarChart3, ShoppingBag,
@@ -13,7 +14,16 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < 640
+  );
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -228,7 +238,6 @@ export default function DashboardPage() {
           <div className="h-52 flex items-end gap-px">
             {(() => {
               const maxRevenue = Math.max(...data.dailySales.map((d) => d.revenue), 1);
-              const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
               const step = isMobile ? 2 : 1;
               const visibleSales = data.dailySales.filter((_, i) => i % step === 0);
               return visibleSales.map((day, i) => {

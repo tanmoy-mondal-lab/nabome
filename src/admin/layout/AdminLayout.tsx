@@ -102,7 +102,7 @@ export default function AdminLayout() {
   useEffect(() => {
     try {
       localStorage.setItem("admin-sidebar-expanded", JSON.stringify(expandedMenus));
-    } catch { /* non-critical: localStorage might be full */ }
+    } catch (err) { /* localStorage might be full */ console.error("Failed to persist sidebar state:", err); }
   }, [expandedMenus]);
 
   // Save scroll position before navigation
@@ -111,7 +111,7 @@ export default function AdminLayout() {
       if (sidebarNavRef.current) {
         try {
           localStorage.setItem("admin-sidebar-scroll", sidebarNavRef.current.scrollTop.toString());
-        } catch { /* non-critical */ }
+        } catch (err) { console.error("Failed to save sidebar scroll:", err); }
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
@@ -126,7 +126,7 @@ export default function AdminLayout() {
         if (savedScroll) {
           sidebarNavRef.current.scrollTop = parseInt(savedScroll, 10);
         }
-      } catch { /* non-critical */ }
+      } catch (err) { console.error("Failed to restore sidebar scroll:", err); }
     }
   }, [location.pathname]);
 

@@ -69,7 +69,7 @@ export default function ReturnDetailPage() {
       await adminApi.approveReturn(id, adminNote ? { adminNote } : undefined);
       await reload();
       setAdminNote("");
-    } catch { /* non-critical: failed to approve return, data stays unchanged */ } finally {
+    } catch (err) { console.error("Failed to approve return:", err); } finally {
       setActionLoading(false);
     }
   };
@@ -81,7 +81,7 @@ export default function ReturnDetailPage() {
       await adminApi.rejectReturn(id, { adminNote });
       await reload();
       setAdminNote("");
-    } catch { /* non-critical: failed to reject return, data stays unchanged */ } finally {
+    } catch (err) { console.error("Failed to reject return:", err); } finally {
       setActionLoading(false);
     }
   };
@@ -92,7 +92,7 @@ export default function ReturnDetailPage() {
     try {
       await adminApi.receiveReturn(id);
       await reload();
-    } catch { /* non-critical: failed to mark return as received */ } finally {
+    } catch (err) { console.error("Failed to mark return as received:", err); } finally {
       setActionLoading(false);
     }
   };
@@ -110,7 +110,7 @@ export default function ReturnDetailPage() {
       });
       await reload();
       setRefundModalOpen(false);
-    } catch { /* non-critical: failed to create refund */ } finally {
+    } catch (err) { console.error("Failed to create refund:", err); } finally {
       setActionLoading(false);
     }
   };
@@ -328,7 +328,7 @@ export default function ReturnDetailPage() {
                     try {
                       await adminApi.processRefund(returnDetail.refund.id);
                       await reload();
-                    } catch { /* non-critical: failed to process refund */ } finally {
+                    } catch (err) { console.error("Failed to process refund:", err); } finally {
                       setActionLoading(false);
                     }
                   }}
@@ -346,7 +346,7 @@ export default function ReturnDetailPage() {
                     try {
                       await adminApi.completeRefund(returnDetail.refund.id);
                       await reload();
-                    } catch { /* non-critical: failed to complete refund */ } finally {
+                    } catch (err) { console.error("Failed to complete refund:", err); } finally {
                       setActionLoading(false);
                     }
                   }}
@@ -364,7 +364,7 @@ export default function ReturnDetailPage() {
                     try {
                       await adminApi.failRefund(returnDetail.refund.id);
                       await reload();
-                    } catch { /* non-critical: failed to mark refund as failed */ } finally {
+                    } catch (err) { console.error("Failed to mark refund as failed:", err); } finally {
                       setActionLoading(false);
                     }
                   }}

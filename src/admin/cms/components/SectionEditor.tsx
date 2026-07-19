@@ -27,7 +27,7 @@ function VideoField({
     try {
       const res = await adminApi.uploadFile(file, "page-builder");
       onChange(field.key, res.url);
-    } catch { setError("Upload failed"); }
+    } catch (err) { console.error("Upload failed:", err); setError("Upload failed"); }
     finally { setUploading(false); }
   }, [field.key, onChange]);
 

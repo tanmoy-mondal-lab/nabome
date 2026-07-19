@@ -40,7 +40,8 @@ function parseSections(content: unknown): { sections: CmsSection[] } | null {
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.sections)) return parsed;
       return null;
-    } catch {
+    } catch (err) {
+      if (import.meta.env.DEV) console.debug("Failed to parse static page content:", err);
       return null;
     }
   }
