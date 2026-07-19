@@ -106,16 +106,22 @@ export function buildCookieString(
 export function clearCookie(
   response: Response,
   name: string,
-  options: Pick<CookieOptions, "path" | "sameSite">
+  options: Pick<CookieOptions, "path" | "sameSite">,
+  env?: any
 ): Response {
+  const nodeEnv = env?.NODE_ENV ?? (typeof process !== "undefined" ? process.env?.NODE_ENV : undefined);
+  const cfPages = env?.CF_PAGES ?? (typeof process !== "undefined" ? process.env?.CF_PAGES : undefined);
+  const isSecure = nodeEnv === "production" || cfPages !== undefined;
   const cookieString = [
     `${name}=`,
     `Path=${options.path}`,
     `Max-Age=0`,
     `SameSite=${options.sameSite}`,
-    "Secure",
+    isSecure ? "Secure" : "",
     "HttpOnly",
-  ].join("; ");
+  ]
+    .filter(Boolean)
+    .join("; ");
 
   response.headers.append("Set-Cookie", cookieString);
   return response;

@@ -201,19 +201,19 @@ describe("Login", () => {
     mockPrisma.profiles.findUnique.mockResolvedValue(null);
     const { status, json } = await call("login", { email: "nope@example.com", password: "Passw0rd!" });
     expect(status).toBe(401);
-    expect(json.error.message).toBe("No account found with this email.");
+    expect(json.error.message).toBe("Invalid email or password.");
   });
 
   it("reports an incorrect password", async () => {
-    mockPrisma.profiles.findUnique.mockResolvedValue({ id: "u1", emailVerified: true, firstName: "A" });
+    mockPrisma.profiles.findUnique.mockResolvedValue({ id: "u1", emailVerified: true, firstName: "A", isActive: true });
     mockSupabase.auth.signInWithPassword.mockResolvedValue({ data: { session: null }, error: { message: "invalid" } });
     const { status, json } = await call("login", { email: "a@b.com", password: "wrong" });
     expect(status).toBe(401);
-    expect(json.error.message).toBe("Incorrect password.");
+    expect(json.error.message).toBe("Invalid email or password.");
   });
 
   it("sends a fresh verification email for an unverified account", async () => {
-    mockPrisma.profiles.findUnique.mockResolvedValue({ id: "u1", emailVerified: false, firstName: "A" });
+    mockPrisma.profiles.findUnique.mockResolvedValue({ id: "u1", emailVerified: false, firstName: "A", isActive: true });
     mockSupabase.auth.signInWithPassword.mockResolvedValue({
       data: { session: { access_token: "at", refresh_token: "rt", expires_in: 3600 }, user: { id: "u1" } },
       error: null,
@@ -227,7 +227,7 @@ describe("Login", () => {
   });
 
   it("reports inability to send verification email on unverified login", async () => {
-    mockPrisma.profiles.findUnique.mockResolvedValue({ id: "u1", emailVerified: false, firstName: "A" });
+    mockPrisma.profiles.findUnique.mockResolvedValue({ id: "u1", emailVerified: false, firstName: "A", isActive: true });
     mockSupabase.auth.signInWithPassword.mockResolvedValue({
       data: { session: { access_token: "at", refresh_token: "rt", expires_in: 3600 }, user: { id: "u1" } },
       error: null,

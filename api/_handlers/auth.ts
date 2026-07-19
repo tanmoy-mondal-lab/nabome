@@ -609,7 +609,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     // Check if account exists in Prisma first
     const existingProfile = await prisma.profiles.findUnique({
       where: { email: normalizedEmail },
-      select: { id: true, emailVerified: true, firstName: true },
+      select: { id: true, emailVerified: true, firstName: true, isActive: true },
     });
 
     if (!existingProfile) {
@@ -628,7 +628,26 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
       } catch {
         // Non-critical
       }
-      return unauthorized("No account found with this email.");
+      return unauthorized("Invalid email or password.");
+    }
+
+    // Reject login for deactivated accounts (suspended by admin)
+    if (!existingProfile.isActive) {
+      try {
+        await prisma.login_attempts.create({
+          data: {
+            profileId: existingProfile.id,
+            email: normalizedEmail,
+            ipAddress: clientIp,
+            userAgent: userAgent ?? null,
+            success: false,
+            failReason: "account_deactivated",
+          },
+        });
+      } catch {
+        // Non-critical
+      }
+      return unauthorized("Invalid email or password.");
     }
 
     const supabase = getAnonClient(ctx.env!);
@@ -656,7 +675,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     }
 
     if (authError || !data.session) {
-      return unauthorized("Incorrect password.");
+      return unauthorized("Invalid email or password.");
     }
 
     if (!existingProfile.emailVerified) {
@@ -872,14 +891,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
         lastActiveAt: new Date(),
       },
     });
-    let response = success({
-      session: {
-        accessToken: sbData.session.access_token,
-        refreshToken: sbData.session.refresh_token,
-        expiresAt: Math.floor(newExpiresAt.getTime() / 1000),
-        expiresIn: sbData.session.expires_in,
-      },
-    });
+    let response = success({ message: "Token refreshed successfully" });
     response = setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, sbData.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env!);
     response = setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, sbData.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env!);
     return response;
@@ -962,8 +974,8 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
 
   // Security: Clear httpOnly cookies
   const response = success({ message: "Logged out successfully" });
-  clearCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, { path: "/", sameSite: "lax" });
-  clearCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, { path: "/", sameSite: "strict" });
+  clearCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, { path: "/", sameSite: "lax" }, ctx.env!);
+  clearCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, { path: "/", sameSite: "strict" }, ctx.env!);
 
   return response;
 }
