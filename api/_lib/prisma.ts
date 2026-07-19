@@ -13,10 +13,9 @@ neonConfig.poolQueryViaFetch = true;
 
 function getDatabaseUrl(env?: Env): string {
   const effectiveEnv = env || getEnv();
-  const hyperdriveUrl = effectiveEnv.HYPERDRIVE?.connectionString
-    ? cleanSecret(effectiveEnv.HYPERDRIVE.connectionString)
-    : null;
-  if (hyperdriveUrl) return hyperdriveUrl;
+  // Use DATABASE_URL_POOLED directly (Neon pooled endpoint via Neon serverless driver HTTP).
+  // Hyperdrive is not used with @prisma/adapter-neon — the Neon serverless driver
+  // uses HTTP fetch (not TCP), which is incompatible with Hyperdrive's TCP-based pooling.
   const url = cleanSecret(effectiveEnv.DATABASE_URL_POOLED) ||
     cleanSecret(effectiveEnv.DATABASE_URL);
   if (!url) {

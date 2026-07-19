@@ -65,6 +65,7 @@ const mockPrisma = {
   },
   login_attempts: {
     findMany: vi.fn().mockResolvedValue([]),
+    count: vi.fn().mockResolvedValue(0),
     create: vi.fn().mockResolvedValue({}),
   },
   verification_attempts: {

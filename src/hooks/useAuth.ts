@@ -86,7 +86,7 @@ export function useAuth() {
       }
     };
 
-    const refreshTimer = setInterval(checkAndRefresh, 30_000);
+    const refreshTimer = setInterval(checkAndRefresh, 600_000);
     return () => clearInterval(refreshTimer);
   }, []);
 

@@ -71,7 +71,7 @@ describe("health endpoint probes", () => {
           headers: { "Content-Type": "application/json" },
         });
       }
-      if (url.includes("api.resend.com/domains")) {
+      if (url.includes("api.resend.com/audience")) {
         return new Response(JSON.stringify({ data: [] }), {
           status: 200,
           headers: { "Content-Type": "application/json" },

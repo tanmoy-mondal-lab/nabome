@@ -137,9 +137,11 @@ async function probeEmail(env?: Env): Promise<ProbeResult> {
     return readyState(false, false, "Resend API key, sender address, or admin recipients are missing");
   }
 
+  // Resend API keys can be restricted to sending-only, which rejects listing endpoints.
+  // Validate by pinging a lightweight key-check endpoint instead.
   try {
     const response = await withTimeout(
-      fetch("https://api.resend.com/domains", {
+      fetch("https://api.resend.com/audience", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -148,6 +150,15 @@ async function probeEmail(env?: Env): Promise<ProbeResult> {
       4000,
       "Resend"
     );
+    if (response.status === 401 || response.status === 403) {
+      const body = await response.json().catch(() => ({}));
+      const errMsg = body?.message ?? "";
+      // Restricted sending-only keys return 401/403 on listing endpoints — that's fine.
+      if (errMsg.includes("restricted") || errMsg.includes("sending")) {
+        return readyState(true, true);
+      }
+      return readyState(true, false, errMsg || `HTTP ${response.status}`);
+    }
     if (!response.ok) {
       const body = await response.text().catch(() => "");
       return readyState(true, false, body || `HTTP ${response.status}`);

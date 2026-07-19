@@ -28,9 +28,9 @@ export declare function getNextJobs(limit: number | undefined, env: Env): Promis
     id: string;
     createdAt: Date;
     updatedAt: Date;
-    status: import("@prisma/client").$Enums.JobStatus;
     errorMessage: string | null;
     retryCount: number;
+    status: import("@prisma/client").$Enums.JobStatus;
     priority: number;
     payload: Prisma.JsonValue;
     jobType: string;

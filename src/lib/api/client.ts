@@ -59,39 +59,55 @@ async function attemptTokenRefresh(): Promise<boolean> {
   // Security: Tokens are in httpOnly cookies, no need to send them
   // The server reads refresh token from cookie
   const csrfToken = readCsrfToken();
-  try {
-    const res = await fetch(`${BASE_URL}/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        // The refresh endpoint requires CSRF protection (it is not exempt),
-        // so the token must be included here just like a normal request.
-        ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
-      },
-    });
 
-    // Genuine authentication failure: the refresh token is invalid, revoked,
-    // or expired. The session is truly over — log the user out.
-    if (res.status === 401) {
-      await fireLogout();
-      return false;
+  const doRefresh = async (): Promise<Response | null> => {
+    try {
+      return await fetch(`${BASE_URL}/auth/refresh`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // The refresh endpoint requires CSRF protection (it is not exempt),
+          // so the token must be included here just like a normal request.
+          ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+        },
+      });
+    } catch {
+      return null;
     }
+  };
 
-    // Any other non-2xx response (5xx, 502/503/504 gateway errors, 429 rate
-    // limit, a transient Cloudflare/DB/Supabase blip, or a momentary network
-    // failure) is NOT a reason to log the user out. Return false so the
-    // original request fails gracefully; the user keeps their session and the
-    // next request can retry the refresh once the hiccup is over.
-    if (!res.ok) {
-      return false;
-    }
+  let res = await doRefresh();
 
-    // Server sets new cookies automatically, no need to update store
-    return true;
-  } catch {
-    // Network error / timeout / blocked request — transient. Do NOT log out.
+  // 401 from the refresh endpoint can be a genuine session expiry OR a race
+  // condition where a concurrent proactive refresh rotated the session
+  // milliseconds before us — the old refresh token's session was revoked,
+  // but the new cookies might already be on their way to the browser.
+  // Retry once after a short delay so any in-flight refresh response can
+  // update the cookies before we conclude the session is dead.
+  if (res?.status === 401) {
+    await new Promise((r) => setTimeout(r, 300));
+    res = await doRefresh();
+  }
+
+  // Genuine authentication failure: the refresh token is invalid, revoked,
+  // or expired. The session is truly over — log the user out.
+  if (res?.status === 401) {
+    await fireLogout();
     return false;
   }
+
+  // Any other non-2xx response (5xx, 502/503/504 gateway errors, 429 rate
+  // limit, a transient Cloudflare/DB/Supabase blip, or a momentary network
+  // failure, or a network error) is NOT a reason to log the user out.
+  // Return false so the original request fails gracefully; the user keeps
+  // their session and the next request can retry the refresh once the
+  // hiccup is over.
+  if (!res || !res.ok) {
+    return false;
+  }
+
+  // Server sets new cookies automatically, no need to update store
+  return true;
 }
 
 function getAuthStateFromStore(): { isAuthenticated: boolean } {

@@ -575,17 +575,30 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
     const userAgent = req.headers.get("user-agent");
 
-    // Check IP block status (block after 5 failed attempts for 15 minutes)
-    const recentFailedAttempts = await prisma.login_attempts.findMany({
+    // Check IP block status (block after 5 consecutive failed attempts).
+    // A successful login from the same IP resets the counter so legitimate
+    // users are not needlessly locked out for the full 15-minute window.
+    const [lastSuccess] = await prisma.login_attempts.findMany({
+      where: {
+        ipAddress: clientIp,
+        success: true,
+        createdAt: { gte: new Date(Date.now() - 15 * 60 * 1000) },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 1,
+    });
+    const sinceWhen = lastSuccess
+      ? lastSuccess.createdAt
+      : new Date(Date.now() - 15 * 60 * 1000);
+    const recentFailedAttempts = await prisma.login_attempts.count({
       where: {
         ipAddress: clientIp,
         success: false,
-        createdAt: { gte: new Date(Date.now() - 15 * 60 * 1000) }, // Last 15 minutes
+        createdAt: { gte: sinceWhen },
       },
-      orderBy: { createdAt: "desc" },
     });
 
-    if (recentFailedAttempts.length >= 5) {
+    if (recentFailedAttempts >= 5) {
       // Check if IP is in whitelist
       const ipWhitelist = process.env.IP_WHITELIST?.split(",") || [];
       if (!ipWhitelist.includes(clientIp)) {
