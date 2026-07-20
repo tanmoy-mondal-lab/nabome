@@ -13,12 +13,14 @@ const ALLOWED_FILE_TYPES: Record<string, FileTypeConfig> = {
     resourceType: "image" as CloudinaryResourceType,
     validate: (b) => b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF,
     maxSize: MAX_IMAGE_SIZE,
+    extensions: [".jpg", ".jpeg", ".jpe", ".jfif"],
   },
   "image/png": {
     type: "image" as MediaType,
     resourceType: "image" as CloudinaryResourceType,
     validate: (b) => b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47,
     maxSize: MAX_IMAGE_SIZE,
+    extensions: [".png"],
   },
   "image/webp": {
     type: "image" as MediaType,
@@ -27,6 +29,7 @@ const ALLOWED_FILE_TYPES: Record<string, FileTypeConfig> = {
       b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
       b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50,
     maxSize: MAX_IMAGE_SIZE,
+    extensions: [".webp"],
   },
   "image/avif": {
     type: "image" as MediaType,
@@ -35,18 +38,21 @@ const ALLOWED_FILE_TYPES: Record<string, FileTypeConfig> = {
       b[4] === FTYP_MARKER[0] && b[5] === FTYP_MARKER[1] &&
       b[6] === FTYP_MARKER[2] && b[7] === FTYP_MARKER[3],
     maxSize: MAX_IMAGE_SIZE,
+    extensions: [".avif"],
   },
   "image/gif": {
     type: "image" as MediaType,
     resourceType: "image" as CloudinaryResourceType,
     validate: (b) => b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38,
     maxSize: MAX_IMAGE_SIZE,
+    extensions: [".gif"],
   },
   "image/bmp": {
     type: "image" as MediaType,
     resourceType: "image" as CloudinaryResourceType,
     validate: (b) => b[0] === 0x42 && b[1] === 0x4D,
     maxSize: MAX_IMAGE_SIZE,
+    extensions: [".bmp"],
   },
   "image/tiff": {
     type: "image" as MediaType,
@@ -55,6 +61,7 @@ const ALLOWED_FILE_TYPES: Record<string, FileTypeConfig> = {
       (b[0] === 0x49 && b[1] === 0x49 && b[2] === 0x2A && b[3] === 0x00) ||
       (b[0] === 0x4D && b[1] === 0x4D && b[2] === 0x00 && b[3] === 0x2A),
     maxSize: MAX_IMAGE_SIZE,
+    extensions: [".tiff", ".tif"],
   },
   "video/mp4": {
     type: "video" as MediaType,
@@ -63,12 +70,14 @@ const ALLOWED_FILE_TYPES: Record<string, FileTypeConfig> = {
       b[4] === FTYP_MARKER[0] && b[5] === FTYP_MARKER[1] &&
       b[6] === FTYP_MARKER[2] && b[7] === FTYP_MARKER[3],
     maxSize: MAX_VIDEO_SIZE,
+    extensions: [".mp4", ".m4v"],
   },
   "video/webm": {
     type: "video" as MediaType,
     resourceType: "video" as CloudinaryResourceType,
     validate: (b) => b[0] === 0x1A && b[1] === 0x45 && b[2] === 0xDF && b[3] === 0xA3,
     maxSize: MAX_VIDEO_SIZE,
+    extensions: [".webm"],
   },
   "video/quicktime": {
     type: "video" as MediaType,
@@ -77,18 +86,21 @@ const ALLOWED_FILE_TYPES: Record<string, FileTypeConfig> = {
       b[4] === FTYP_MARKER[0] && b[5] === FTYP_MARKER[1] &&
       b[6] === FTYP_MARKER[2] && b[7] === FTYP_MARKER[3],
     maxSize: MAX_VIDEO_SIZE,
+    extensions: [".mov", ".qt"],
   },
   "video/x-msvideo": {
     type: "video" as MediaType,
     resourceType: "video" as CloudinaryResourceType,
     validate: (b) => b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46,
     maxSize: MAX_VIDEO_SIZE,
+    extensions: [".avi"],
   },
   "application/pdf": {
     type: "document" as MediaType,
     resourceType: "raw" as CloudinaryResourceType,
     validate: (b) => b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46,
     maxSize: MAX_DOCUMENT_SIZE,
+    extensions: [".pdf"],
   },
 };
 
@@ -121,6 +133,19 @@ export function validateFile(file: File): ValidationResult {
     };
   }
 
+  // Validate file extension
+  if (config.extensions && config.extensions.length > 0) {
+    const fileName = file.name.toLowerCase();
+    const hasValidExtension = config.extensions.some(ext => fileName.endsWith(ext));
+    if (!hasValidExtension) {
+      return {
+        valid: false,
+        error: `File extension does not match MIME type ${file.type}. Allowed: ${config.extensions.join(", ")}`,
+        details: { mimeType: file.type, fileName: file.name, allowedExtensions: config.extensions },
+      };
+    }
+  }
+
   const maxSize = config.maxSize ?? MAX_UPLOAD_SIZE;
   if (file.size > maxSize) {
     return {
@@ -138,8 +163,9 @@ export function validateFile(file: File): ValidationResult {
 }
 
 export async function validateFileContent(file: File, _mimeType: string): Promise<ValidationResult> {
-  const buffer = await file.arrayBuffer();
-  const bytes = new Uint8Array(buffer.slice(0, 12));
+  const headerSlice = file.slice(0, 12);
+  const buffer = await headerSlice.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
 
   const config = getFileTypeConfig(file.type);
   if (!config) {

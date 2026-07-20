@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "../../components/ui/Toast";
 import { adminApi } from "../../lib/api/admin";
@@ -61,6 +61,8 @@ export default function MediaLibrary() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedEntityType, setSelectedEntityType] = useState("all");
   const [uploading, setUploading] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<{ file: File; entityType: string }[]>([]);
@@ -71,14 +73,26 @@ export default function MediaLibrary() {
   const [editAsset, setEditAsset] = useState<Asset | null>(null);
   const [editForm, setEditForm] = useState({ altText: "", displayName: "", sortOrder: 0, isPrimary: false });
   const [deleteConfirmAsset, setDeleteConfirmAsset] = useState<Asset | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
+  // Debounce search input
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [search]);
+
   const { data: mediaData, isLoading: loading, error: mediaError } = useQuery({
-    queryKey: ["admin", "media", search, selectedEntityType],
+    queryKey: ["admin", "media", debouncedSearch, selectedEntityType],
     queryFn: async () => {
       const params: Record<string, string | number | undefined> = {};
-      if (search) params.search = search;
+      if (debouncedSearch) params.search = debouncedSearch;
       if (selectedEntityType !== "all") params.entityType = selectedEntityType;
       try {
         const res = await adminApi.getMedia(params);
@@ -97,7 +111,14 @@ export default function MediaLibrary() {
   const entityTypes = mediaData?.entityTypes ?? [];
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => adminApi.deleteMedia(id),
+    mutationFn: async (id: string) => {
+      setDeleteLoading(true);
+      try {
+        return await adminApi.deleteMedia(id);
+      } finally {
+        setDeleteLoading(false);
+      }
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
       toast("Asset deleted", "success");
@@ -191,8 +212,13 @@ export default function MediaLibrary() {
     }
   };
 
-  const copyUrl = (url: string) => {
-    void navigator.clipboard.writeText(url);
+  const copyUrl = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast("URL copied to clipboard", "success");
+    } catch {
+      toast("Failed to copy URL", "error");
+    }
   };
 
   const openUploadModal = () => {
@@ -288,7 +314,8 @@ export default function MediaLibrary() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
           <input type="text" placeholder="Search assets…" value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            className="w-full pl-10 pr-4 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500"
+            aria-label="Search media assets" />
         </div>
         <div className="flex items-center gap-2 text-xs text-neutral-500">
           <Folder size={14} />
@@ -340,7 +367,8 @@ export default function MediaLibrary() {
                     <SafeImage src={asset.url} alt={asset.altText || ""} className="w-full h-full object-cover" useTransform={false} />
                   ) : asset.type === "video" ? (
                     <div className="relative w-full h-full flex items-center justify-center bg-neutral-900">
-                      <video src={asset.url} className="w-full h-full object-cover opacity-70" />
+                      <video src={asset.url} className="w-full h-full object-cover opacity-70"
+                        onError={(e) => { (e.target as HTMLVideoElement).style.display = "none"; }} />
                       <Film size={32} className="absolute text-white/60" />
                     </div>
                   ) : (
@@ -430,7 +458,8 @@ export default function MediaLibrary() {
               <SafeImage src={preview.url} alt={preview.altText || ""}
                 className="w-full max-h-96 object-contain bg-neutral-50 rounded" useTransform={false} />
             ) : preview.type === "video" ? (
-              <video src={preview.url} controls className="w-full max-h-96 rounded bg-neutral-900" />
+              <video src={preview.url} controls className="w-full max-h-96 rounded bg-neutral-900"
+                onError={(e) => { (e.target as HTMLVideoElement).style.display = "none"; }} />
             ) : (
               <div className="flex flex-col items-center justify-center h-48 bg-neutral-50 rounded text-neutral-400">
                 <FileText size={48} />
@@ -456,7 +485,7 @@ export default function MediaLibrary() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => { void navigator.clipboard.writeText(preview.url); }}
+              <button onClick={() => { void copyUrl(preview.url); }}
                 className="bg-neutral-900 text-white px-4 py-2 rounded text-sm font-medium hover:bg-neutral-800">
                 Copy URL
               </button>
@@ -513,8 +542,9 @@ export default function MediaLibrary() {
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button onClick={() => setDeleteConfirmAsset(null)} className="px-4 py-2.5 text-sm text-neutral-500">Cancel</button>
-              <button onClick={confirmDelete} className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700">
-                Delete
+              <button onClick={confirmDelete} disabled={deleteLoading}
+                className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700 disabled:opacity-50">
+                {deleteLoading ? "Deleting…" : "Delete"}
               </button>
             </div>
           </div>

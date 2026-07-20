@@ -31,7 +31,7 @@ export async function createMediaAsset(
   const assetFolder = getAssetFolder(entityFolder, assetId);
   const originalFilename = file.name;
   const publicId = `${assetFolder}/${originalFilename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-  const resourceType: CloudinaryResourceType = file.type.startsWith("video/") ? "video" : "image";
+  const resourceType: CloudinaryResourceType = file.type.startsWith("video/") ? "video" : file.type === "application/pdf" ? "raw" : "image";
 
   const uploadResult = await uploadToCloudinary(file, publicId, resourceType, config);
 
@@ -72,12 +72,14 @@ export async function replaceMediaAsset(
   entityId: string,
   slug: string,
   _oldAssetId: string,
-  oldPublicId: string,
-  oldResourceType: CloudinaryResourceType,
+  _oldPublicId: string,
+  _oldResourceType: CloudinaryResourceType,
   config: CloudinaryConfig,
   metadata?: { altText?: string; displayName?: string }
 ): Promise<ReplaceMediaResult> {
-  await deleteAsset(oldPublicId, oldResourceType, config);
+  // Upload new asset FIRST — never delete the old one before the new one is confirmed.
+  // The caller (replaceMedia in media-service.ts) is responsible for deleting the old
+  // Cloudinary asset ONLY after the new DB record is successfully committed.
   return createMediaAsset(file, entityType, entityId, slug, config, metadata);
 }
 
@@ -106,15 +108,62 @@ export async function deleteEntityMediaAssets(
   config: CloudinaryConfig
 ): Promise<DeleteEntityResult> {
   const entityFolder = getEntityFolder(entityType, slug);
+  let deletedCount = 0;
+
+  // Delete individual assets within the folder rather than the folder itself
+  // Cloudinary's folder deletion API is unreliable for non-empty folders
   try {
-    await fetch(
-      `https://api.cloudinary.com/v1_1/${config.cloudName}/folders/${entityFolder}`,
-      { method: "DELETE" }
+    // List all resources in the folder
+    const listRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${config.cloudName}/resources/image?prefix=${encodeURIComponent(`${entityFolder}/`)}&max_results=500`,
+      {
+        headers: {
+          "Authorization": `Basic ${btoa(`${config.apiKey}:${config.apiSecret}`)}`,
+        },
+      }
     );
+
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      const resources = listData.resources || [];
+
+      // Delete resources by public_id
+      for (const resource of resources) {
+        const deleteResult = await deleteAsset(resource.public_id, "image", config);
+        if (deleteResult) deletedCount++;
+      }
+    }
+
+    // Attempt folder deletion as best-effort cleanup
+    try {
+      const folderParams: Record<string, string> = {
+        folder: entityFolder,
+        timestamp: String(Math.round(Date.now() / 1000)),
+      };
+      const folderSortedKeys = Object.keys(folderParams).sort();
+      const folderSignStr = folderSortedKeys.map((key) => `${key}=${folderParams[key]}`).join("&") + config.apiSecret;
+      const folderEnc = new TextEncoder();
+      const folderHashBuf = await crypto.subtle.digest("SHA-1", folderEnc.encode(folderSignStr));
+      const folderSignature = Array.from(new Uint8Array(folderHashBuf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+      const folderBody = new URLSearchParams({
+        ...folderParams,
+        api_key: config.apiKey,
+        signature: folderSignature,
+      });
+
+      await fetch(
+        `https://api.cloudinary.com/v1_1/${config.cloudName}/folders/${entityFolder}`,
+        { method: "DELETE", body: folderBody }
+      );
+    } catch {
+      // Folder deletion is best-effort
+    }
   } catch {
-    // Folder deletion is best-effort
+    // Asset deletion is best-effort
   }
-  return { deletedCount: 1, migratedAssets: 0, failedMigrations: 0 };
+
+  return { deletedCount, migratedAssets: 0, failedMigrations: 0 };
 }
 
 export interface MigrateSlugResult {

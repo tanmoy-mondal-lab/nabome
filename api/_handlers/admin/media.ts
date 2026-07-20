@@ -10,6 +10,7 @@ import {
   restoreWithCacheInvalidation,
 } from "../../_lib/media/transaction.service";
 import type { CloudinaryConfig } from "../../_lib/media/types";
+import { getAssetReferences } from "../../_lib/media/usage.service";
 
 
 export async function handleAdminMediaRequest(
@@ -21,6 +22,7 @@ export async function handleAdminMediaRequest(
   const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
 
+  const userId = ctx.userId || 'system';
   switch (action) {
     case "list":
       return handleList(req, ctx.env!);
@@ -29,13 +31,13 @@ export async function handleAdminMediaRequest(
     case "update":
       return handleUpdate(params[0], req, ctx.env!);
     case "delete":
-      return handleDelete(params[0], req, ctx.env!);
+      return handleDelete(params[0], req, ctx.env!, userId);
     case "usage":
       return handleUsage(params[0], ctx.env!);
     case "restore":
-      return handleRestore(params[0], req, ctx.env!);
+      return handleRestore(params[0], req, ctx.env!, userId);
     case "permanent-delete":
-      return handlePermanentDelete(params[0], req, ctx.env!);
+      return handlePermanentDelete(params[0], req, ctx.env!, userId);
     default:
       return badRequest("Unknown action");
   }
@@ -176,9 +178,10 @@ async function handleCreate(req: Request, env: Env): Promise<Response> {
   }
 }
 
-async function handleDelete(assetId: string, req: Request, env: Env): Promise<Response> {
+async function handleDelete(assetId: string, req: Request, env: Env, userId?: string): Promise<Response> {
   try {
     const prisma = getPrisma(env);
+    const performedBy = userId || 'system';
     
     // Check if asset exists
     const asset = await prisma.media_assets.findUnique({
@@ -194,24 +197,12 @@ async function handleDelete(assetId: string, req: Request, env: Env): Promise<Re
       return badRequest("Asset is already in trash. Use permanent-delete to remove permanently.");
     }
 
-    // Check usage before soft delete
-    const usageResponse = await handleUsage(assetId, env);
-    const usageData = await usageResponse.json();
+    // Check usage before soft delete — direct function call avoids Response parsing fragility
+    const references = await getAssetReferences(prisma, asset.publicId);
     
-    if (usageData.data?.used === true) {
-      return success({
-        success: false,
-        message: "Cannot delete asset: it is currently in use",
-        data: {
-          assetId,
-          references: usageData.data.references,
-          total: usageData.data.total,
-        },
-      }, 400);
+    if (references.length > 0) {
+      return badRequest("Cannot delete asset: it is currently in use");
     }
-
-    // Get admin ID from context (simplified - in real implementation, get from auth)
-    const performedBy = req.headers.get('x-admin-id') || 'system';
 
     // Soft delete with cache invalidation
     const result = await softDeleteWithCacheInvalidation(prisma, {
@@ -329,15 +320,20 @@ async function handleUsage(assetId: string, env: Env): Promise<Response> {
     // Check product variants
     const variants = await prisma.product_variants.findMany({
       where: { videoPublicId: publicId },
-      select: { id: true },
+      select: { id: true, productId: true },
     });
-    for (const variant of variants) {
-      const product = await prisma.products.findUnique({
-        where: { id: variant.id },
-        select: { name: true },
+    const variantProductIds = [...new Set(variants.map(v => v.productId))];
+    if (variantProductIds.length > 0) {
+      const variantProducts = await prisma.products.findMany({
+        where: { id: { in: variantProductIds } },
+        select: { id: true, name: true },
       });
-      if (product) {
-        references.push({ type: "Product Variant", id: variant.id, name: product.name });
+      const productMap = new Map(variantProducts.map(p => [p.id, p.name]));
+      for (const variant of variants) {
+        const productName = productMap.get(variant.productId);
+        if (productName) {
+          references.push({ type: "Product Variant", id: variant.id, name: productName });
+        }
       }
     }
 
@@ -346,13 +342,18 @@ async function handleUsage(assetId: string, env: Env): Promise<Response> {
       where: { publicId: publicId },
       select: { id: true, productId: true },
     });
-    for (const img of productImages) {
-      const product = await prisma.products.findUnique({
-        where: { id: img.productId },
-        select: { name: true },
+    if (productImages.length > 0) {
+      const imgProductIds = [...new Set(productImages.map(i => i.productId))];
+      const imgProducts = await prisma.products.findMany({
+        where: { id: { in: imgProductIds } },
+        select: { id: true, name: true },
       });
-      if (product) {
-        references.push({ type: "Product Image", id: img.id, name: product.name });
+      const imgProductMap = new Map(imgProducts.map(p => [p.id, p.name]));
+      for (const img of productImages) {
+        const productName = imgProductMap.get(img.productId);
+        if (productName) {
+          references.push({ type: "Product Image", id: img.id, name: productName });
+        }
       }
     }
 
@@ -368,13 +369,18 @@ async function handleUsage(assetId: string, env: Env): Promise<Response> {
       where: { imagePublicId: publicId },
       select: { id: true, lookbookId: true },
     });
-    for (const item of lookbookItems) {
-      const lookbook = await prisma.lookbooks.findUnique({
-        where: { id: item.lookbookId },
-        select: { name: true },
+    if (lookbookItems.length > 0) {
+      const itemLookbookIds = [...new Set(lookbookItems.map(i => i.lookbookId))];
+      const itemLookbooks = await prisma.lookbooks.findMany({
+        where: { id: { in: itemLookbookIds } },
+        select: { id: true, name: true },
       });
-      if (lookbook) {
-        references.push({ type: "Lookbook Item", id: item.id, name: lookbook.name });
+      const lookbookMap = new Map(itemLookbooks.map(l => [l.id, l.name]));
+      for (const item of lookbookItems) {
+        const lookbookName = lookbookMap.get(item.lookbookId);
+        if (lookbookName) {
+          references.push({ type: "Lookbook Item", id: item.id, name: lookbookName });
+        }
       }
     }
 
@@ -407,12 +413,11 @@ async function handleUsage(assetId: string, env: Env): Promise<Response> {
   }
 }
 
-async function handleRestore(assetId: string, req: Request, env: Env): Promise<Response> {
+async function handleRestore(assetId: string, req: Request, env: Env, userId?: string): Promise<Response> {
   try {
     const prisma = getPrisma(env);
     
-    // Get admin ID from context
-    const performedBy = req.headers.get('x-admin-id') || 'system';
+    const performedBy = userId || 'system';
 
     // Restore with cache invalidation
     const result = await restoreWithCacheInvalidation(prisma, {
@@ -435,7 +440,7 @@ async function handleRestore(assetId: string, req: Request, env: Env): Promise<R
   }
 }
 
-async function handlePermanentDelete(assetId: string, req: Request, env: Env): Promise<Response> {
+async function handlePermanentDelete(assetId: string, req: Request, env: Env, userId?: string): Promise<Response> {
   let body: any;
   try {
     body = await req.json();
@@ -450,6 +455,7 @@ async function handlePermanentDelete(assetId: string, req: Request, env: Env): P
 
   try {
     const prisma = getPrisma(env);
+    const performedBy = userId || 'system';
     
     // Get asset details
     const asset = await prisma.media_assets.findUnique({
@@ -465,9 +471,6 @@ async function handlePermanentDelete(assetId: string, req: Request, env: Env): P
     if (!asset) {
       return notFound("Asset not found");
     }
-
-    // Get admin ID from context
-    const performedBy = req.headers.get('x-admin-id') || 'system';
 
     // Build Cloudinary config
     const config: CloudinaryConfig = {

@@ -286,12 +286,12 @@ export const verifyResetCodeSchema = z.object({
 export const resetPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
   code: z.string().regex(/^\d{6}$/, "Code must be a 6-digit number"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: passwordSchema,
 });
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(8, "New password must be at least 8 characters"),
+  newPassword: passwordSchema,
 });
 
 export const verifyEmailSchema = z.object({
@@ -301,6 +301,18 @@ export const verifyEmailSchema = z.object({
 
 export const resendVerificationSchema = z.object({
   email: z.string().email("Invalid email address"),
+});
+
+export const updateProfileSchema = z.object({
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().max(100).optional(),
+  phone: z.string().max(20).optional(),
+  avatarUrl: z.string().url("Invalid URL").nullable().optional(),
+  preferences: z.record(z.unknown()).optional(),
+});
+
+export const emailChangeSchema = z.object({
+  newEmail: z.string().email("Invalid email address"),
 });
 
 // Admin CMS validation schemas

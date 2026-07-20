@@ -12,6 +12,8 @@
 // For pure SPA → API architectures with SameSite=Strict cookies,
 // CSRF is largely mitigated. This provides defense-in-depth.
 
+import { parseCookies } from "./cookies";
+
 const TOKEN_LENGTH = 32;
 const CSRF_COOKIE_NAME = "csrf_token";
 const CSRF_HEADER_NAME = "x-csrf-token";
@@ -32,11 +34,19 @@ export function generateToken(): string {
  * Call this on the first GET request to establish a CSRF token.
  */
 export function setCsrfCookie(response: Response, env?: any): Response {
-  // Only set a new CSRF cookie if one doesn't already exist in the response
-  // This avoids regenerating on every GET request (reduces Set-Cookie headers for CDN caching)
-  const existingCookies = response.headers.getSetCookie?.() ?? [];
-  const hasCsrf = existingCookies.some(c => c.startsWith(`${CSRF_COOKIE_NAME}=`));
-  if (hasCsrf) return response;
+  // Only set a new CSRF cookie if one doesn't already exist in the response.
+  // This avoids regenerating on every GET request (reduces Set-Cookie headers for CDN caching).
+  // Use getSetCookie() where available (Cloudflare Workers, modern runtimes), fall back to
+  // checking the raw Set-Cookie header for compatibility.
+  let alreadyHasCsrf = false;
+  if (typeof response.headers.getSetCookie === "function") {
+    const existingCookies = response.headers.getSetCookie();
+    alreadyHasCsrf = existingCookies.some(c => c.startsWith(`${CSRF_COOKIE_NAME}=`));
+  } else {
+    const raw = response.headers.get("Set-Cookie") || "";
+    alreadyHasCsrf = raw.includes(`${CSRF_COOKIE_NAME}=`);
+  }
+  if (alreadyHasCsrf) return response;
 
   const token = generateToken();
   const nodeEnv = env?.NODE_ENV ?? (typeof process !== "undefined" ? process.env?.NODE_ENV : undefined);
@@ -73,15 +83,6 @@ export function validateCsrf(request: Request): boolean {
   }
 
   return cookieToken === headerToken;
-}
-
-export function parseCookies(cookieHeader: string): Record<string, string> {
-  const cookies: Record<string, string> = {};
-  cookieHeader.split(";").forEach((pair) => {
-    const [key, ...val] = pair.trim().split("=");
-    if (key) cookies[key] = val.join("=");
-  });
-  return cookies;
 }
 
 export function csrfError(): Response {

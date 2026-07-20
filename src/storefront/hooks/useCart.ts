@@ -22,7 +22,7 @@ export function useCart() {
     }
   }, [store.items, isAuthenticated, queueServerSync]);
 
-  // Hydrate server cart on mount for authenticated users
+  // Hydrate server cart once on mount for authenticated users
   useEffect(() => {
     if (isAuthenticated) {
       void hydrateServerCart();

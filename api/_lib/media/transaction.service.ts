@@ -21,11 +21,10 @@ export interface PermanentDeleteOptions {
 }
 
 /**
- * Permanently deletes a media asset with transaction safety
- * 
- * This ensures that Cloudinary deletion and database deletion happen atomically.
+ * Permanently deletes a media asset with transaction safety.
+ * Cloudinary deletion happens BEFORE the transaction to avoid holding
+ * DB connections during external API calls.
  * If Cloudinary deletion fails, the database record is preserved.
- * If database deletion fails, we attempt to restore the Cloudinary asset.
  */
 export async function permanentDeleteWithTransaction(
   prisma: PrismaClient,
@@ -38,61 +37,58 @@ export async function permanentDeleteWithTransaction(
   const { ipAddress, userAgent } = req ? extractRequestContext(req) : {};
 
   try {
-    // Start transaction
-    return await prisma.$transaction(async (tx) => {
-      // 1. Get the asset record
-      const asset = await tx.media_assets.findUnique({
-        where: { id: assetId },
-        select: {
-          id: true,
-          assetId: true,
-          publicId: true,
-          resourceType: true,
-          folder: true,
-        },
-      });
+    // 1. Read asset record OUTSIDE transaction
+    const asset = await prisma.media_assets.findUnique({
+      where: { id: assetId },
+      select: {
+        id: true,
+        assetId: true,
+        publicId: true,
+        resourceType: true,
+        folder: true,
+      },
+    });
 
-      if (!asset) {
-        throw new Error('Asset not found');
-      }
+    if (!asset) {
+      return { success: false, error: 'Asset not found' };
+    }
 
-      // 2. Delete from Cloudinary first (external operation)
-      const cloudinaryDeleted = await deleteAsset(
-        asset.publicId || publicId,
-        resourceType as any,
-        config
-      );
+    // 2. Delete from Cloudinary BEFORE the transaction
+    const cloudinaryDeleted = await deleteAsset(
+      asset.publicId || publicId,
+      resourceType as any,
+      config
+    );
 
-      if (!cloudinaryDeleted) {
-        throw new Error('Cloudinary deletion failed');
-      }
+    if (!cloudinaryDeleted) {
+      return { success: false, error: 'Cloudinary deletion failed' };
+    }
 
-      // 3. Delete from database (only if Cloudinary succeeded)
+    // 3. Delete from database in a lightweight transaction
+    await prisma.$transaction(async (tx) => {
       await tx.media_assets.delete({
         where: { id: assetId },
       });
-
-      // 4. Invalidate cache
       await invalidateAssetCache(tx as any, assetId);
-
-      // 5. Log the operation (outside transaction, but after success)
-      await logMediaOperation(prisma, {
-        assetId: asset.assetId,
-        action: 'permanent_delete',
-        performedBy,
-        metadata: {
-          reason,
-          oldValues: {
-            publicId: asset.publicId,
-            folder: asset.folder,
-          },
-        },
-        ipAddress,
-        userAgent,
-      });
-
-      return { success: true };
     });
+
+    // 4. Log the operation
+    await logMediaOperation(prisma, {
+      assetId: asset.assetId,
+      action: 'permanent_delete',
+      performedBy,
+      metadata: {
+        reason,
+        oldValues: {
+          publicId: asset.publicId,
+          folder: asset.folder,
+        },
+      },
+      ipAddress,
+      userAgent,
+    });
+
+    return { success: true };
   } catch (error) {
     console.error('[TransactionService] Permanent delete failed:', error);
     
@@ -117,7 +113,9 @@ export async function permanentDeleteWithTransaction(
 }
 
 /**
- * Batch permanent delete with transaction safety
+ * Batch permanent delete with transaction safety.
+ * Cloudinary deletions happen BEFORE the transaction to avoid holding
+ * DB connections during external API calls.
  */
 export async function batchPermanentDeleteWithTransaction(
   prisma: PrismaClient,
@@ -139,39 +137,31 @@ export async function batchPermanentDeleteWithTransaction(
   const deleted: string[] = [];
   const failed: Array<{ id: string; error: string }> = [];
 
-  for (const assetId of assetIds) {
-    try {
-      // Get asset details
-      const asset = await prisma.media_assets.findUnique({
-        where: { id: assetId },
-        select: {
-          id: true,
-          assetId: true,
-          publicId: true,
-          resourceType: true,
-        },
-      });
+  // 1. Read all assets and delete from Cloudinary OUTSIDE transaction
+  const assets = await prisma.media_assets.findMany({
+    where: { id: { in: assetIds } },
+    select: { id: true, assetId: true, publicId: true, resourceType: true },
+  });
 
-      if (!asset) {
-        failed.push({ id: assetId, error: 'Asset not found' });
+  const assetMap = new Map(assets.map(a => [a.id, a]));
+
+  for (const assetId of assetIds) {
+    const asset = assetMap.get(assetId);
+    if (!asset) {
+      failed.push({ id: assetId, error: 'Asset not found' });
+      continue;
+    }
+    try {
+      const cloudinaryDeleted = await deleteAsset(
+        asset.publicId || '',
+        (asset.resourceType || 'image') as any,
+        config
+      );
+      if (!cloudinaryDeleted) {
+        failed.push({ id: assetId, error: 'Cloudinary deletion failed' });
         continue;
       }
-
-      // Delete with transaction
-      const result = await permanentDeleteWithTransaction(prisma, config, {
-        assetId,
-        publicId: asset.publicId || '',
-        resourceType: asset.resourceType || 'image',
-        performedBy,
-        reason,
-        req,
-      });
-
-      if (result.success) {
-        deleted.push(assetId);
-      } else {
-        failed.push({ id: assetId, error: result.error || 'Unknown error' });
-      }
+      deleted.push(assetId);
     } catch (error) {
       failed.push({
         id: assetId,
@@ -180,7 +170,14 @@ export async function batchPermanentDeleteWithTransaction(
     }
   }
 
-  // Log batch operation
+  // 2. Delete from database in a single lightweight query
+  if (deleted.length > 0) {
+    await prisma.media_assets.deleteMany({
+      where: { id: { in: deleted } },
+    });
+  }
+
+  // 3. Log the batch operation
   await logMediaOperation(prisma, {
     assetId: 'batch',
     action: 'bulk_delete',

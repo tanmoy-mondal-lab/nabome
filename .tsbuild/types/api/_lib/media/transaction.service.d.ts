@@ -27,6 +27,7 @@ export declare function permanentDeleteWithTransaction(prisma: PrismaClient, con
 }>;
 /**
  * Batch permanent delete with transaction safety
+ * Uses a single transaction for all assets to ensure atomicity
  */
 export declare function batchPermanentDeleteWithTransaction(prisma: PrismaClient, config: CloudinaryConfig, options: {
     assetIds: string[];

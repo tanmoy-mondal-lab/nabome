@@ -103,7 +103,14 @@ async function doUpload(req: Request, ctx: RequestContext): Promise<Response> {
       },
     });
   } catch (err) {
+    console.error("[Upload] Upload failed:", err);
     const msg = err instanceof Error ? err.message : String(err);
-    return badRequest(msg);
+    const isClientError = err instanceof Error && (
+      msg.includes("Validation") || msg.includes("validation") ||
+      msg.includes("Unsupported") || msg.includes("No file") ||
+      msg.includes("too large") || msg.includes("Invalid")
+    );
+    if (isClientError) return badRequest(msg);
+    return serverError(err);
   }
 }

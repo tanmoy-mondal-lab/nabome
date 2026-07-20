@@ -146,8 +146,13 @@ export function setSecurityHeaders(
   // X-Content-Type-Options
   response.headers.set("X-Content-Type-Options", "nosniff");
 
-  // Cross-Origin-Embedder-Policy
-  response.headers.set("Cross-Origin-Embedder-Policy", "require-corp");
+  // Cross-Origin-Embedder-Policy: "require-corp" is intentionally NOT set because
+  // it would block Cloudinary images, Razorpay checkout, Google Fonts, and other
+  // third-party resources that don't send CORP headers. Unsafe-none is the safe
+  // default that allows loading cross-origin resources without CORP headers while
+  // still benefiting from all other security headers (CSP, XFO, COOP, HSTS, etc.).
+  // If COEP is needed in the future, the app must migrate all cross-origin resources
+  // to same-origin or use credentialless mode: "credentialless"
 
   // Cross-Origin-Opener-Policy
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin");

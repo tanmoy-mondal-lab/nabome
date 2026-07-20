@@ -61,26 +61,36 @@ export async function getAssetReferences(
 
     const variants = await prisma.product_variants.findMany({
       where: { videoPublicId: publicId },
-      select: { id: true },
+      select: { id: true, productId: true },
     });
-    for (const variant of variants) {
-      const product = await prisma.products.findUnique({
-        where: { id: variant.id },
-        select: { name: true },
+    if (variants.length > 0) {
+      const vProductIds = [...new Set(variants.map(v => v.productId))];
+      const vProducts = await prisma.products.findMany({
+        where: { id: { in: vProductIds } },
+        select: { id: true, name: true },
       });
-      if (product) references.push({ type: "Product Variant", id: variant.id, name: product.name });
+      const vProductMap = new Map(vProducts.map(p => [p.id, p.name]));
+      for (const variant of variants) {
+        const name = vProductMap.get(variant.productId);
+        if (name) references.push({ type: "Product Variant", id: variant.id, name });
+      }
     }
 
     const productImages = await prisma.product_images.findMany({
       where: { publicId: publicId },
       select: { id: true, productId: true },
     });
-    for (const img of productImages) {
-      const product = await prisma.products.findUnique({
-        where: { id: img.productId },
-        select: { name: true },
+    if (productImages.length > 0) {
+      const piProductIds = [...new Set(productImages.map(i => i.productId))];
+      const piProducts = await prisma.products.findMany({
+        where: { id: { in: piProductIds } },
+        select: { id: true, name: true },
       });
-      if (product) references.push({ type: "Product Image", id: img.id, name: product.name });
+      const piProductMap = new Map(piProducts.map(p => [p.id, p.name]));
+      for (const img of productImages) {
+        const name = piProductMap.get(img.productId);
+        if (name) references.push({ type: "Product Image", id: img.id, name });
+      }
     }
 
     const lookbooks = await prisma.lookbooks.findMany({
@@ -93,12 +103,17 @@ export async function getAssetReferences(
       where: { imagePublicId: publicId },
       select: { id: true, lookbookId: true },
     });
-    for (const item of lookbookItems) {
-      const lookbook = await prisma.lookbooks.findUnique({
-        where: { id: item.lookbookId },
-        select: { name: true },
+    if (lookbookItems.length > 0) {
+      const liLookbookIds = [...new Set(lookbookItems.map(i => i.lookbookId))];
+      const liLookbooks = await prisma.lookbooks.findMany({
+        where: { id: { in: liLookbookIds } },
+        select: { id: true, name: true },
       });
-      if (lookbook) references.push({ type: "Lookbook Item", id: item.id, name: lookbook.name });
+      const liLookbookMap = new Map(liLookbooks.map(l => [l.id, l.name]));
+      for (const item of lookbookItems) {
+        const name = liLookbookMap.get(item.lookbookId);
+        if (name) references.push({ type: "Lookbook Item", id: item.id, name });
+      }
     }
 
     const siteSettings = await prisma.site_settings.findFirst({

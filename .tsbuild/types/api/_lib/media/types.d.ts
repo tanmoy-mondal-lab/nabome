@@ -1,6 +1,6 @@
 export type CloudinaryResourceType = "image" | "video" | "raw";
 export type MediaType = "image" | "video" | "document";
-export type EntityType = "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users" | "media-library";
+export type EntityType = "settings" | "homepage" | "products" | "product-videos" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users" | "media-library" | "temp";
 export interface CloudinaryConfig {
     cloudName: string;
     apiKey: string;
@@ -16,6 +16,7 @@ export interface FileTypeConfig {
     resourceType: CloudinaryResourceType;
     validate: (bytes: Uint8Array) => boolean;
     maxSize?: number;
+    extensions?: string[];
     dimensions?: {
         minWidth?: number;
         maxWidth?: number;

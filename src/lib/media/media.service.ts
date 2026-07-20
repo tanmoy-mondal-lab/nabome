@@ -341,8 +341,8 @@ export async function copyMedia(
   const targetFolder = getEntityFolder(targetEntityType as "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users" | "temp", targetSlug);
   const targetPublicId = `${targetFolder}/${newAssetId}`;
 
-  // Extract resource type from source public ID
-  const resourceType = "image"; // Default, should be determined from source
+  // Determine resource type from source public ID or source URL
+  const resourceType = sourcePublicId.startsWith("video/") ? "video" as const : sourcePublicId.startsWith("raw/") ? "raw" as const : "image" as const
 
   try {
     const success = await copyAsset(
@@ -389,8 +389,8 @@ export async function moveMedia(
   const targetFolder = getEntityFolder(targetEntityType as "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users" | "temp", targetSlug);
   const targetPublicId = `${targetFolder}/${newAssetId}`;
 
-  // Extract resource type from source public ID
-  const resourceType = "image"; // Default, should be determined from source
+  // Determine resource type from source public ID or source URL
+  const resourceType = sourcePublicId.startsWith("video/") ? "video" as const : sourcePublicId.startsWith("raw/") ? "raw" as const : "image" as const
 
   try {
     const success = await moveAsset(

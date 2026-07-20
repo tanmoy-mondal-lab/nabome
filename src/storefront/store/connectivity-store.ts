@@ -69,6 +69,10 @@ export const useConnectivityStore = create<ConnectivityState>((set, get) => ({
 
   addToOfflineQueue: (action) => {
     const id = crypto.randomUUID();
+    const actionStr = action.toString();
+    const state = get();
+    const isDuplicate = state.offlineQueue.some(q => q.action.toString() === actionStr);
+    if (isDuplicate) return id;
     set((state) => ({
       offlineQueue: [...state.offlineQueue, { action, id }]
     }));
@@ -78,15 +82,24 @@ export const useConnectivityStore = create<ConnectivityState>((set, get) => ({
   executeOfflineQueue: async () => {
     const { offlineQueue } = get();
     if (offlineQueue.length === 0) return;
-    
-    for (const item of offlineQueue) {
-      try {
-        await item.action();
-        set((state) => ({
-          offlineQueue: state.offlineQueue.filter((q) => q.id !== item.id)
-        }));
-      } catch {
-        // Silent failure - offline action failed
+
+    for (let i = 0; i < offlineQueue.length; i++) {
+      const item = offlineQueue[i];
+      let retries = 0;
+      const maxRetries = 3;
+      while (retries < maxRetries) {
+        try {
+          await item.action();
+          set((state) => ({
+            offlineQueue: state.offlineQueue.filter((q) => q.id !== item.id)
+          }));
+          break;
+        } catch {
+          retries++;
+          if (retries < maxRetries) {
+            await new Promise((r) => setTimeout(r, 1000 * Math.pow(2, retries)));
+          }
+        }
       }
     }
   },

@@ -74,13 +74,16 @@ export function useConnectivityManager() {
   }, [setAuthenticated]);
 
   useEffect(() => {
-    const cartSync = async () => {
-      if (!isOnline && items.length > 0) {
-        addToOfflineQueue(() => mergeGuestCartOnServer(items));
+    if (!isOnline && items.length > 0) {
+      const offlineKey = `cart-sync-${items.map(i => `${i.variantId}:${i.quantity}`).join(",")}`;
+      if (!sessionStorage.getItem(offlineKey)) {
+        sessionStorage.setItem(offlineKey, "1");
+        addToOfflineQueue(async () => {
+          await mergeGuestCartOnServer(items);
+          sessionStorage.removeItem(offlineKey);
+        });
       }
-    };
-
-    void cartSync();
+    }
   }, [isOnline, addToOfflineQueue, items, mergeGuestCartOnServer]);
 
   useEffect(() => {

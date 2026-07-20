@@ -10,5 +10,4 @@ export declare function setCsrfCookie(response: Response, env?: any): Response;
  * Skips validation for GET/HEAD/OPTIONS requests (idempotent methods).
  */
 export declare function validateCsrf(request: Request): boolean;
-export declare function parseCookies(cookieHeader: string): Record<string, string>;
 export declare function csrfError(): Response;

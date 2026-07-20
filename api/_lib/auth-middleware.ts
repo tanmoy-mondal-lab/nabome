@@ -6,7 +6,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { unauthorized, forbidden, serverError } from "./response";
 import { withRateLimit, getRateLimitKey, RATE_LIMIT_CONFIG } from "./rate-limit";
-import { validateCsrf, csrfError } from "./csrf";
 import { getPrisma } from "./prisma";
 import { cleanSecret } from "./secrets";
 import { hashToken } from "./token-hash";
@@ -139,14 +138,7 @@ export async function authenticate(
     if (limitCheck !== null) return limitCheck;
   }
 
-  // 2. CSRF validation (for state-changing requests)
-  if (opts.csrf) {
-    if (!validateCsrf(request)) {
-      return csrfError();
-    }
-  }
-
-  // 3. JWT verification
+  // 2. JWT verification
   // Security: Read access token from httpOnly cookie instead of Authorization header
   const cookieHeader = request.headers.get("Cookie");
   const cookies = cookieHeader ? parseCookies(cookieHeader) : {};

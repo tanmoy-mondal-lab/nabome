@@ -10,9 +10,12 @@ import { requireAdmin } from "../../_lib/auth-middleware";
 import { cleanSecret } from "../../_lib/secrets";
 import type { Env } from "../../_lib/env";
 import { getEnv } from "../../_lib/env";
-import { uploadToCloudinary } from "../../_lib/media/cloudinary";
+import { uploadToCloudinary, deleteAsset } from "../../_lib/media/cloudinary";
 import { validateFile, validateFileContent, getFileTypeConfig } from "../../_lib/media/validation";
 import { generateAssetId } from "../../_lib/media/asset-id";
+import { moveResource } from "../../_lib/media/folders";
+import { deleteMedia } from "../../_lib/media-service";
+import { isAssetInUse } from "../../_lib/media/usage.service";
 
 
 function getCloudinaryConfig(env?: Env) {
@@ -66,7 +69,16 @@ export async function handleAdminMediaUploadRequest(
     const folder = (formData.get("folder") as string) || "media-library";
     const altText = (formData.get("altText") as string) || file.name;
     const displayName = (formData.get("displayName") as string) || altText;
-    const tags = formData.get("tags") ? JSON.parse(formData.get("tags") as string) : [];
+    let tags: string[] = [];
+    const tagsRaw = formData.get("tags");
+    if (tagsRaw && typeof tagsRaw === "string") {
+      try {
+        tags = JSON.parse(tagsRaw);
+        if (!Array.isArray(tags)) tags = [];
+      } catch {
+        tags = [];
+      }
+    }
 
     const fileConfig = getFileTypeConfig(file.type);
     if (!fileConfig) {
@@ -88,52 +100,62 @@ export async function handleAdminMediaUploadRequest(
 
     // Save to database
     const prisma = getPrisma(ctx.env!);
-    const asset = await prisma.media_assets.create({
-      data: {
-        assetId: uploadResult.publicId,
-        entityType: "cms", // Using cms as base type, folder provides organization
-        entityId: crypto.randomUUID(),
-        url: uploadResult.url,
-        secureUrl: uploadResult.secureUrl,
-        publicId: uploadResult.publicId,
-        folder: folder,
-        resourceType: uploadResult.resourceType,
-        mimeType: file.type,
-        width: uploadResult.width,
-        height: uploadResult.height,
-        fileSize: uploadResult.bytes,
-        originalFilename: file.name,
-        displayName: displayName,
-        altText: altText,
-        mediaType: fileConfig.type as "image" | "video" | "document",
-        sortOrder: 0,
-        isPrimary: false,
-        tags: tags,
-      },
-    });
+    try {
+      const asset = await prisma.media_assets.create({
+        data: {
+          assetId: assetId,
+          entityType: "cms", // Using cms as base type, folder provides organization
+          entityId: crypto.randomUUID(),
+          url: uploadResult.url,
+          secureUrl: uploadResult.secureUrl,
+          publicId: uploadResult.publicId,
+          folder: folder,
+          resourceType: uploadResult.resourceType,
+          mimeType: file.type,
+          width: uploadResult.width,
+          height: uploadResult.height,
+          fileSize: uploadResult.bytes,
+          originalFilename: file.name,
+          displayName: displayName,
+          altText: altText,
+          mediaType: fileConfig.type as "image" | "video" | "document",
+          sortOrder: 0,
+          isPrimary: false,
+          tags: tags,
+        },
+      });
 
-    return created({
-      success: true,
-      message: "File uploaded successfully",
-      media: {
-        id: asset.id,
-        assetId: asset.assetId,
-        url: asset.url,
-        publicId: asset.publicId,
-        folder: asset.folder,
-        secureUrl: asset.secureUrl,
-        width: asset.width,
-        height: asset.height,
-        format: uploadResult.format,
-        bytes: uploadResult.bytes,
-        mimeType: asset.mimeType,
-        resourceType: asset.resourceType,
-        originalFilename: asset.originalFilename,
-        displayName: asset.displayName,
-        altText: asset.altText,
-        tags: asset.tags,
-      },
-    });
+      return created({
+        success: true,
+        message: "File uploaded successfully",
+        media: {
+          id: asset.id,
+          assetId: asset.assetId,
+          url: asset.url,
+          publicId: asset.publicId,
+          folder: asset.folder,
+          secureUrl: asset.secureUrl,
+          width: asset.width,
+          height: asset.height,
+          format: uploadResult.format,
+          bytes: uploadResult.bytes,
+          mimeType: asset.mimeType,
+          resourceType: asset.resourceType,
+          originalFilename: asset.originalFilename,
+          displayName: asset.displayName,
+          altText: asset.altText,
+          tags: asset.tags,
+        },
+      });
+    } catch (dbError) {
+      // Rollback: delete Cloudinary asset if DB insert fails
+      try {
+        await deleteAsset(uploadResult.publicId, fileConfig.type as "image" | "video" | "raw", config);
+      } catch (cleanupError) {
+        console.error(`[AdminMediaUpload] DB insert failed AND Cloudinary cleanup failed for ${uploadResult.publicId}. Asset may be orphaned.`, cleanupError);
+      }
+      throw dbError;
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return badRequest(msg);
@@ -178,7 +200,6 @@ export async function handleAdminMediaMoveRequest(
     const newPublicId = buildMovedPublicId(asset, newFolder);
 
     // Move in Cloudinary
-    const { moveResource } = await import("../../_lib/media/folders");
     await moveResource(
       asset.publicId || "",
       newPublicId,
@@ -229,8 +250,6 @@ export async function handleAdminMediaBulkDeleteRequest(
   }
 
   try {
-    const { deleteMedia } = await import("../../_lib/media-service");
-    const { isAssetInUse } = await import("../../_lib/media/usage.service");
     const config = getCloudinaryConfig(ctx.env!);
 
     let deleted = 0;
@@ -258,7 +277,13 @@ export async function handleAdminMediaBulkDeleteRequest(
           continue;
         }
 
-        await deleteMedia(assetId, { ...ctx.env!, ...config } as Env);
+        const deleteEnv = {
+          ...ctx.env!,
+          CLOUDINARY_CLOUD_NAME: config.cloudName,
+          CLOUDINARY_API_KEY: config.apiKey,
+          CLOUDINARY_API_SECRET: config.apiSecret,
+        } as Env;
+        await deleteMedia(assetId, deleteEnv);
         deleted++;
       } catch (err) {
         console.error(`Failed to delete asset ${assetId}:`, err);
@@ -306,7 +331,6 @@ export async function handleAdminMediaBulkMoveRequest(
   try {
     const prisma = getPrisma(ctx.env!);
     const config = getCloudinaryConfig(ctx.env!);
-    const { moveResource } = await import("../../_lib/media/folders");
 
     let moved = 0;
     let failed = 0;

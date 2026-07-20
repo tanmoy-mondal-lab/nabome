@@ -34,8 +34,7 @@ class ApiError extends Error {
 
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
-const MAX_REFRESH_RETRIES = 2;
-let refreshRetryCount = 0;
+
 
 // Self-service auth endpoints that return their own user-facing errors.
 // A 401 from these should surface the server's message, not trigger the
@@ -209,8 +208,8 @@ async function request<T>(
       refreshPromise = null;
 
       if (refreshed) {
-        refreshRetryCount = 0;
         const retryController = new AbortController();
+        const retryTimeoutId = setTimeout(() => retryController.abort(), timeout);
         const retryResponse = await fetch(url.toString(), {
           ...fetchOptions,
           headers,
@@ -224,14 +223,12 @@ async function request<T>(
         });
 
         if (retryResponse.status === 204) {
+          clearTimeout(retryTimeoutId);
           return null as T;
         }
 
         if (!retryResponse.ok) {
-          if (retryResponse.status === 401 && refreshRetryCount < MAX_REFRESH_RETRIES) {
-            refreshRetryCount++;
-            return request<T>(endpoint, { ...options, body, params });
-          }
+          clearTimeout(retryTimeoutId);
           const retryData = await retryResponse.json().catch(() => ({}));
           throw new ApiError(
             retryData.error?.message ??
@@ -240,11 +237,10 @@ async function request<T>(
             retryData.details
           );
         }
+        clearTimeout(retryTimeoutId);
         const retryData = await retryResponse.json();
         return retryData.data ?? retryData;
       }
-
-      refreshRetryCount = 0;
       // If the refresh genuinely failed due to an invalid session,
       // attemptTokenRefresh has already fired the logout above. For transient
       // failures (5xx / network / rate limit) we must NOT log the user out —

@@ -6,6 +6,7 @@ export type EntityType =
   | "settings"
   | "homepage"
   | "products"
+  | "product-videos"
   | "categories"
   | "collections"
   | "brands"
@@ -15,7 +16,8 @@ export type EntityType =
   | "cms"
   | "sellers"
   | "users"
-  | "media-library";
+  | "media-library"
+  | "temp";
 
 export interface CloudinaryConfig {
   cloudName: string;
@@ -34,6 +36,7 @@ export interface FileTypeConfig {
   resourceType: CloudinaryResourceType;
   validate: (bytes: Uint8Array) => boolean;
   maxSize?: number;
+  extensions?: string[];
   dimensions?: {
     minWidth?: number;
     maxWidth?: number;

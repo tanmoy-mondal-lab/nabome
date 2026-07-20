@@ -33,7 +33,7 @@ export interface ReplaceMediaResult {
     format: string;
     originalFilename: string;
 }
-export declare function replaceMediaAsset(file: File, entityType: EntityType, entityId: string, slug: string, _oldAssetId: string, oldPublicId: string, oldResourceType: CloudinaryResourceType, config: CloudinaryConfig, metadata?: {
+export declare function replaceMediaAsset(file: File, entityType: EntityType, entityId: string, slug: string, _oldAssetId: string, _oldPublicId: string, _oldResourceType: CloudinaryResourceType, config: CloudinaryConfig, metadata?: {
     altText?: string;
     displayName?: string;
 }): Promise<ReplaceMediaResult>;

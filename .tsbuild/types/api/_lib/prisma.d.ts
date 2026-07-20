@@ -15,3 +15,8 @@ import type { Env } from "./env";
  * @returns PrismaClient instance
  */
 export declare function getPrisma(env?: Env): PrismaClient;
+/**
+ * Execute a database query with a timeout guard.
+ * This provides a safety net against hung queries that could exhaust Neon connections.
+ */
+export declare function withQueryTimeout<T>(fn: () => Promise<T>, timeoutMs?: number): Promise<T>;

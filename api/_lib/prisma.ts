@@ -5,6 +5,8 @@ import type { Env } from "./env";
 import { cleanSecret } from "./secrets";
 import { getEnv } from "./env";
 
+const QUERY_TIMEOUT_MS = 10_000;
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
@@ -66,4 +68,28 @@ export function getPrisma(env?: Env): PrismaClient {
     globalForPrisma.prisma = createPrismaClient(env);
   }
   return globalForPrisma.prisma;
+}
+
+/**
+ * Execute a database query with a timeout guard.
+ * This provides a safety net against hung queries that could exhaust Neon connections.
+ */
+export async function withQueryTimeout<T>(
+  fn: () => Promise<T>,
+  timeoutMs: number = QUERY_TIMEOUT_MS
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const result = await Promise.race([
+      fn(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`Database query timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      }),
+    ]);
+    return result;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }

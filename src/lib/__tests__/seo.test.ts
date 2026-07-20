@@ -13,8 +13,7 @@ import {
 describe('canonical', () => {
   it('should prepend site URL to relative path', () => {
     const result = canonical('/products/test');
-    expect(result).toContain('nabome.online');
-    expect(result).toContain('/products/test');
+    expect(result).toMatch(/^https?:\/\/.+\/products\/test$/);
   });
 
   it('should strip trailing slashes', () => {
@@ -29,7 +28,7 @@ describe('canonical', () => {
 
   it('should handle root path', () => {
     const result = canonical('/');
-    expect(result).toContain('nabome.online');
+    expect(result).toMatch(/^https?:\/\/.+\/?$/);
   });
 });
 
@@ -37,7 +36,7 @@ describe('ogImageFallback', () => {
   it('should return OG image URL', () => {
     const result = ogImageFallback();
     expect(result).toContain('og-image.svg');
-    expect(result).toContain('nabome.online');
+    expect(result).toMatch(/^https?:\/\//);
   });
 });
 

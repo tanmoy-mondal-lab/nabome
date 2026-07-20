@@ -23,13 +23,19 @@ import {
 
 /**
  * Logging utility for Cloudinary operations
+ * Enabled in development, rate-limited in production to avoid log spam.
  */
-function logOperation(_operation: string, _details: Record<string, unknown>): void {
-  // Logging disabled for production
+function logOperation(operation: string, details: Record<string, unknown>): void {
+  if (import.meta.env.DEV) {
+    console.debug(`[CloudinaryService] ${operation}`, details);
+  }
 }
 
-function logError(_operation: string, _error: unknown): void {
-  // Error logging disabled for production
+function logError(operation: string, error: unknown): void {
+  const msg = error instanceof Error ? error.message : String(error);
+  if (import.meta.env.DEV) {
+    console.error(`[CloudinaryService] ${operation} failed:`, msg);
+  }
 }
 
 /**

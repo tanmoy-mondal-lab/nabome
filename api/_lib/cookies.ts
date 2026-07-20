@@ -123,8 +123,14 @@ export function clearCookie(
     .filter(Boolean)
     .join("; ");
 
-  response.headers.append("Set-Cookie", cookieString);
-  return response;
+  const newResponse = new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: new Headers(response.headers),
+  });
+
+  newResponse.headers.append("Set-Cookie", cookieString);
+  return newResponse;
 }
 
 /**

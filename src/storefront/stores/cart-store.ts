@@ -114,6 +114,32 @@ interface CartState {
   total: () => number;
 }
 
+// Cross-tab synchronization: listen for storage events from other tabs
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key && event.key.startsWith(`${CART_STORAGE_KEY}-`)) {
+      const current = useCartStore.getState();
+      const currentUserId = getUserId();
+      if (event.key === `${CART_STORAGE_KEY}-${currentUserId}` && event.newValue) {
+        try {
+          const parsed = JSON.parse(event.newValue);
+          if (parsed?.state?.items) {
+            const currentIds = new Set(current.items.map(i => i.variantId));
+            const newItems = parsed.state.items.filter((i: CartItem) => !currentIds.has(i.variantId));
+            const updatedItems = parsed.state.items.map((i: CartItem) => {
+              const existing = current.items.find(ci => ci.variantId === i.variantId);
+              return existing && existing.quantity > i.quantity ? existing : i;
+            });
+            if (newItems.length > 0 || updatedItems.length !== current.items.length) {
+              useCartStore.setState({ items: updatedItems, justAdded: null });
+            }
+          }
+        } catch { /* ignore parse errors */ }
+      }
+    }
+  });
+}
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({

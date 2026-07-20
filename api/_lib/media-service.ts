@@ -5,8 +5,6 @@ import { getAssetFolder, getEntityFolder } from "./media/folder";
 import {
   createMediaAsset,
   replaceMediaAsset,
-  deleteMediaAsset as lifecycleDeleteMediaAsset,
-  deleteEntityMediaAssets as lifecycleDeleteEntityMediaAssets,
   migrateEntitySlug as lifecycleMigrateEntitySlug,
 } from "./media/lifecycle";
 import { validateFile, validateFileContent, throwIfInvalid, getFileTypeConfig } from "./media/validation";
@@ -158,7 +156,6 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
   const oldPublicId = oldAsset.publicId ?? "";
   const oldResourceType = (oldAsset.resourceType ?? "image") as CloudinaryResourceType;
 
-  // Use the lifecycle service for safe replacement
   const lifecycleResult = await replaceMediaAsset(
     file,
     entityType,
@@ -195,6 +192,16 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
       },
     });
 
+    // Delete old Cloudinary asset ONLY after new DB record is committed
+    if (oldPublicId) {
+      try {
+        await deleteAsset(oldPublicId, oldResourceType, config);
+      } catch (cloudinaryError) {
+        console.error(`[MediaService] Failed to delete old Cloudinary asset ${oldPublicId}. Database record preserved.`, cloudinaryError);
+      }
+    }
+
+    // Delete old database record
     await prisma.media_assets.delete({ where: { id: oldAssetId } });
 
     return {
@@ -219,6 +226,8 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
     } catch (cleanupError) {
       console.error(`[MediaService] DB operation failed AND Cloudinary cleanup failed for ${lifecycleResult.publicId}. Asset may be orphaned.`, cleanupError);
     }
+    // Note: old Cloudinary asset is intentionally NOT deleted here since the
+    // old DB record is still intact and points to it.
     throw dbError;
   }
 }
@@ -230,21 +239,22 @@ export async function deleteMedia(assetId: string, env: Env): Promise<void> {
 
   const config = envToCloudinaryConfig(env);
 
+  // Delete from Cloudinary first
+  let cloudinarySuccess = true;
   if (asset.publicId) {
     const resourceType = (asset.resourceType ?? "image") as CloudinaryResourceType;
-    // Use the lifecycle service for safe deletion
-    await lifecycleDeleteMediaAsset(
-      assetId,
-      asset.publicId,
-      resourceType,
-      config,
-      asset.entityType as EntityType,
-      asset.entityId,
-      asset.folder || undefined
-    );
+    const result = await deleteAsset(asset.publicId, resourceType, config).catch(() => false);
+    if (!result) {
+      console.error(`[MediaService] Cloudinary deletion failed for ${asset.publicId}, preserving DB record`);
+      cloudinarySuccess = false;
+    }
   }
 
-  // Permanent delete from database
+  if (!cloudinarySuccess) {
+    throw new Error(`Failed to delete asset from storage (assetId: ${assetId}). Database record preserved.`);
+  }
+
+  // Permanent delete from database only after Cloudinary confirms
   await prisma.media_assets.delete({ where: { id: assetId } });
 }
 
@@ -253,7 +263,7 @@ export async function softDeleteMedia(assetId: string, deletedBy: string, reason
   await prisma.media_assets.update({
     where: { id: assetId },
     data: {
-      deletedAt: new Date() as any,
+      deletedAt: new Date(),
       deletedBy,
       deletedReason: reason,
     },
@@ -265,14 +275,14 @@ export async function restoreMedia(assetId: string, env: Env): Promise<void> {
   await prisma.media_assets.update({
     where: { id: assetId },
     data: {
-      deletedAt: null as any,
+      deletedAt: null,
       deletedBy: null,
       deletedReason: null,
     },
   });
 }
 
-export async function deleteEntityMedia(entityType: EntityType, entityId: string, slug: string, env: Env): Promise<number> {
+export async function deleteEntityMedia(entityType: EntityType, entityId: string, _slug: string, env: Env): Promise<number> {
   const prisma = getPrisma(env);
   const assets = await prisma.media_assets.findMany({
     where: { entityType: entityType as any, entityId },
@@ -283,16 +293,34 @@ export async function deleteEntityMedia(entityType: EntityType, entityId: string
 
   const config = envToCloudinaryConfig(env);
 
-  const deleteResult = await lifecycleDeleteEntityMediaAssets(
-    entityType,
-    entityId,
-    slug,
-    config
-  );
+  // Delete from Cloudinary first for each asset
+  let deletedCount = 0;
+  const failedAssets: string[] = [];
+  for (const asset of assets) {
+    if (asset.publicId) {
+      const resourceType = (asset.resourceType ?? "image") as CloudinaryResourceType;
+      const result = await deleteAsset(asset.publicId, resourceType, config).catch(() => false);
+      if (result) deletedCount++;
+      else failedAssets.push(asset.id);
+    }
+  }
 
-  await prisma.media_assets.deleteMany({ where: { entityType: entityType as any, entityId } });
+  // Only delete DB records for assets that were successfully deleted from Cloudinary
+  const idsToDelete = assets
+    .filter(a => !failedAssets.includes(a.id))
+    .map(a => a.id);
 
-  return deleteResult.deletedCount;
+  if (idsToDelete.length > 0) {
+    await prisma.media_assets.deleteMany({
+      where: { id: { in: idsToDelete } },
+    });
+  }
+
+  if (failedAssets.length > 0) {
+    console.error(`[MediaService] Failed to delete ${failedAssets.length} assets from Cloudinary. DB records preserved.`);
+  }
+
+  return deletedCount;
 }
 
 export async function migrateEntitySlug(

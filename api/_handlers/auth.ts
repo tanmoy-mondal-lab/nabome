@@ -10,7 +10,8 @@ import {
 } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { ErrorCode } from "../_lib/types";
-import { validateBody, authRegisterSchema, authLoginSchema, forgotPasswordSchema, verifyResetCodeSchema, resetPasswordSchema, changePasswordSchema, verifyEmailSchema, resendVerificationSchema } from "../_lib/validate";
+import { validateBody, authRegisterSchema, authLoginSchema, forgotPasswordSchema, verifyResetCodeSchema, resetPasswordSchema, changePasswordSchema, verifyEmailSchema, resendVerificationSchema, updateProfileSchema, emailChangeSchema } from "../_lib/validate";
+import type { Prisma } from "@prisma/client";
 import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
 import type { Env } from "../_lib/env";
@@ -827,6 +828,15 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
     return unauthorized("Refresh token not found in cookies");
   }
 
+  const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
+
+  const rateLimitResponse = await withRateLimit(
+    `${clientIp}:refresh-token`,
+    { windowMs: 60_000, maxRequests: 10, message: "Too many refresh attempts. Try again in 1 minute." },
+    ctx.env
+  );
+  if (rateLimitResponse) return rateLimitResponse;
+
   const prisma = getPrisma(ctx.env!);
 
   // 1. Find the active session with this refresh token
@@ -869,7 +879,6 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
     return unauthorized("Session expired — please log in again");
   }
 
-  const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
   const userAgent = req.headers.get("user-agent");
   const newExpiresAt = new Date(Date.now() + sbData.session.expires_in * 1000);
   const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days for refresh
@@ -1039,20 +1048,9 @@ async function handleMe(_req: Request, ctx: RequestContext): Promise<Response> {
 async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return badRequest("Invalid JSON body");
-  }
-  const allowedFields = ["firstName", "lastName", "phone", "avatarUrl", "preferences"];
-  const updateData: Record<string, unknown> = {};
-
-  for (const field of allowedFields) {
-    if (body[field] !== undefined) {
-      updateData[field] = body[field];
-    }
-  }
+  const parsed = await validateBody(req, updateProfileSchema);
+  if ("response" in parsed) return parsed.response;
+  const updateData = parsed.data;
 
   if (Object.keys(updateData).length === 0) {
     return badRequest("No valid fields to update");
@@ -1062,7 +1060,7 @@ async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Respon
   try {
     const updated = await prisma.profiles.update({
       where: { id: ctx.userId },
-      data: updateData as never,
+      data: updateData as Prisma.profilesUpdateInput,
       select: {
         id: true,
         email: true,
@@ -1076,6 +1074,7 @@ async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Respon
 
     return success({ user: updated });
   } catch (err) {
+    console.error("[AUTH] Failed to update profile:", err);
     return serverError(err);
   }
 }
@@ -1085,22 +1084,16 @@ async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Respon
 async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  let body: Record<string, unknown>;
-  try {
-    body = await req.json();
-  } catch {
-    return badRequest("Invalid JSON body");
-  }
-  const { newEmail } = body;
+  const rateLimitResponse = await withRateLimit(
+    `user:${ctx.userId}:change-email`,
+    RATE_LIMIT_CONFIG.auth,
+    ctx.env
+  );
+  if (rateLimitResponse) return rateLimitResponse;
 
-  if (!newEmail || typeof newEmail !== "string") {
-    return badRequest("New email is required");
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(newEmail)) {
-    return badRequest("Invalid email format");
-  }
+  const parsed = await validateBody(req, emailChangeSchema);
+  if ("response" in parsed) return parsed.response;
+  const { newEmail } = parsed.data;
 
   const normalizedEmail = newEmail.toLowerCase().trim();
 
@@ -1199,7 +1192,24 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
 
   const newEmail = profile.pendingEmail;
 
-  // Update email in Supabase Auth
+  // Update email in Prisma profile and clear pending fields FIRST
+  // so that if this fails, Supabase auth is never changed (avoiding orphan state)
+  try {
+    await prisma.profiles.update({
+      where: { id: ctx.userId },
+      data: {
+        email: newEmail,
+        pendingEmail: null,
+        pendingEmailToken: null,
+        pendingEmailTokenExpiresAt: null,
+      },
+    });
+  } catch (err) {
+    console.error("[AUTH] Failed to update profile email:", err);
+    return serverError(new Error("Failed to update email. Please try again."));
+  }
+
+  // Update email in Supabase Auth SECOND (after Prisma succeeds)
   try {
     const supabase = getAdminClient(ctx.env!);
     const { error: supabaseError } = await supabase.auth.admin.updateUserById(ctx.userId, {
@@ -1208,22 +1218,31 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
     });
 
     if (supabaseError) {
+      console.error("[AUTH] Supabase email update failed after Prisma update:", supabaseError);
+      // Attempt to roll back Prisma change
+      try {
+        await prisma.profiles.update({
+          where: { id: ctx.userId },
+          data: { email: profile.email, pendingEmail: newEmail },
+        });
+      } catch (rollbackErr) {
+        console.error("[AUTH] Failed to rollback Prisma email after Supabase error:", rollbackErr);
+      }
       return serverError(new Error("Failed to update email. Please try again."));
     }
   } catch (err) {
+    console.error("[AUTH] Supabase email update threw after Prisma update:", err);
+    // Attempt to roll back Prisma change
+    try {
+      await prisma.profiles.update({
+        where: { id: ctx.userId },
+        data: { email: profile.email, pendingEmail: newEmail },
+      });
+    } catch (rollbackErr) {
+      console.error("[AUTH] Failed to rollback Prisma email after Supabase error:", rollbackErr);
+    }
     return serverError(new Error("Failed to update email. Please try again."));
   }
-
-  // Update email in Prisma profile and clear pending fields
-  await prisma.profiles.update({
-    where: { id: ctx.userId },
-    data: {
-      email: newEmail,
-      pendingEmail: null,
-      pendingEmailToken: null,
-      pendingEmailTokenExpiresAt: null,
-    },
-  });
 
   logAction(ctx.userId, "auth.email_changed", {
     metadata: { oldEmail: profile.email, newEmail },
@@ -1428,6 +1447,13 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
 
 async function handleChangePassword(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
+
+  const rateLimitResponse = await withRateLimit(
+    `user:${ctx.userId}:change-password`,
+    RATE_LIMIT_CONFIG.auth,
+    ctx.env
+  );
+  if (rateLimitResponse) return rateLimitResponse;
 
   const parsed = await validateBody(req, changePasswordSchema);
   if ("response" in parsed) return parsed.response;

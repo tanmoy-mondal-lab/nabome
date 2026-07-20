@@ -3,9 +3,9 @@ import {
   generateToken,
   setCsrfCookie,
   validateCsrf,
-  parseCookies,
   csrfError,
 } from '../csrf';
+import { parseCookies } from '../cookies';
 
 describe('CSRF Protection - Security Tests', () => {
   describe('generateToken', () => {
