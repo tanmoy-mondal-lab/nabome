@@ -1,12 +1,12 @@
+import { useAuthStore } from "../../stores/auth-store";
+
 function getUserKey(): string {
   try {
-    const raw = localStorage.getItem("nabome-auth");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return parsed?.state?.user?.id ?? "guest";
-    }
-  } catch {}
-  return "guest";
+    const user = useAuthStore.getState().user;
+    return user?.id ?? "guest";
+  } catch {
+    return "guest";
+  }
 }
 
 function userKey(base: string): string {

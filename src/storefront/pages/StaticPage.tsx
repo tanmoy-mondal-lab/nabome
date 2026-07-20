@@ -4,7 +4,7 @@ import { Helmet } from "react-helmet-async";
 import { Breadcrumbs } from "../components/Breadcrumbs";
 import { api } from "../../lib/api/client";
 import SectionRenderer from "../sections/SectionRenderer";
-import { sanitizeHTML } from "../../lib/sanitize-html";
+import { sanitizeHtml } from "../../lib/security/validations";
 
 interface StaticPageData {
   id: string;
@@ -137,7 +137,7 @@ export function StaticPage() {
             {isHtml ? (
               <div
                 className="prose prose-neutral space-y-6 text-body-base text-neutral-600 font-editorial leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: sanitizeHTML(contentString) }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(contentString) }}
               />
             ) : (
               <p className="text-body-base text-neutral-600">{contentString}</p>

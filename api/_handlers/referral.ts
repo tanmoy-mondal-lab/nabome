@@ -4,7 +4,7 @@
  * 
  * NOTE: This is a stub implementation. The referral model is not currently
  * in the schema. This function exists to prevent import errors in checkout.ts.
- * TODO: Implement proper referral system when the model is added to schema.
+ * Referral system implementation pending model addition to schema.
  */
 export async function completeReferralForOrder(
   _prisma: unknown,

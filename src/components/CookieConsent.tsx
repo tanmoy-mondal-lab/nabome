@@ -36,7 +36,10 @@ export function CookieConsent() {
 
   const applyConsent = (consentData: ConsentType) => {
     if (!consentData.analytics) {
-      (window as unknown as Record<string, unknown>)["ga-disable-G-XXXXXXXXXX"] = true;
+      const gaId = import.meta.env.VITE_GA_ID;
+      if (gaId) {
+        (window as unknown as Record<string, unknown>)[`ga-disable-${gaId}`] = true;
+      }
     }
     // Log consent for GDPR compliance
     void logConsent(consentData);

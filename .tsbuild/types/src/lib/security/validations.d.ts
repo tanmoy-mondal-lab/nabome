@@ -19,8 +19,10 @@ export declare function validateImageDimensions(width: number, height: number): 
 /**
  * Sanitizes HTML content to prevent XSS attacks
  * Removes dangerous tags and attributes while preserving safe formatting
+ * Uses DOMParser for robust parsing when available, falls back to regex for SSR
  */
 export declare function sanitizeHtml(html: string): string;
+export { sanitizeHtml as sanitizeHTML };
 /**
  * Sanitizes Markdown content
  * Removes potentially dangerous content while preserving Markdown formatting

@@ -72,11 +72,54 @@ export function validateImageDimensions(width: number, height: number): { valid:
 /**
  * Sanitizes HTML content to prevent XSS attacks
  * Removes dangerous tags and attributes while preserving safe formatting
+ * Uses DOMParser for robust parsing when available, falls back to regex for SSR
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return '';
 
-  // Remove dangerous tags
+  // Use DOMParser for client-side (more robust)
+  if (typeof window !== 'undefined' && typeof DOMParser !== 'undefined') {
+    const BLOCKED_TAGS = new Set([
+      "SCRIPT", "IFRAME", "OBJECT", "EMBED", "FORM", "INPUT", "TEXTAREA",
+      "BUTTON", "LINK", "META", "BASE", "STYLE",
+    ]);
+    const URL_ATTRIBUTES = new Set(["href", "src", "action", "formaction", "poster", "xlink:href"]);
+
+    function isSafeUrl(value: string): boolean {
+      const normalized = value.trim().replace(/[\u0000-\u001F\u007F\s]+/g, "").toLowerCase();
+      return !normalized.startsWith("javascript:")
+        && !normalized.startsWith("vbscript:")
+        && !normalized.startsWith("data:text/html");
+    }
+
+    const document = new DOMParser().parseFromString(`<template>${html}</template>`, "text/html");
+    const template = document.querySelector("template");
+    if (!template) return "";
+
+    for (const element of Array.from(template.content.querySelectorAll("*"))) {
+      if (BLOCKED_TAGS.has(element.tagName)) {
+        element.remove();
+        continue;
+      }
+      for (const attribute of Array.from(element.attributes)) {
+        const name = attribute.name.toLowerCase();
+        if (name.startsWith("on") || name === "srcdoc" || name === "style") {
+          element.removeAttribute(attribute.name);
+          continue;
+        }
+        if (URL_ATTRIBUTES.has(name) && !isSafeUrl(attribute.value)) {
+          element.removeAttribute(attribute.name);
+        }
+      }
+      if (element.tagName === "A" && element.getAttribute("target") === "_blank") {
+        element.setAttribute("rel", "noopener noreferrer");
+      }
+    }
+
+    return template.innerHTML;
+  }
+
+  // Server-side fallback using regex
   const dangerousTags = ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'link', 'style', 'meta'];
   let sanitized = html;
 
@@ -87,14 +130,12 @@ export function sanitizeHtml(html: string): string {
     sanitized = sanitized.replace(selfClosingRegex, '');
   });
 
-  // Remove dangerous attributes
   const dangerousAttrs = ['onclick', 'onload', 'onerror', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onkeydown', 'onkeyup', 'javascript:', 'data:', 'vbscript:'];
   dangerousAttrs.forEach(attr => {
     const regex = new RegExp(`\\s${attr}\\s*=\\s*["'][^"']*["']`, 'gis');
     sanitized = sanitized.replace(regex, '');
   });
 
-  // Remove javascript: and data: protocols in href/src
   sanitized = sanitized.replace(/href\s*=\s*["']javascript:[^"']*["']/gi, 'href=""');
   sanitized = sanitized.replace(/src\s*=\s*["']javascript:[^"']*["']/gi, 'src=""');
   sanitized = sanitized.replace(/href\s*=\s*["']data:[^"']*["']/gi, 'href=""');
@@ -102,6 +143,9 @@ export function sanitizeHtml(html: string): string {
 
   return sanitized;
 }
+
+// Alias for backward compatibility
+export { sanitizeHtml as sanitizeHTML };
 
 /**
  * Sanitizes Markdown content

@@ -10,18 +10,17 @@ import { SafeImage } from "../../components/SafeImage";
 import { formatPrice } from "../../lib/utils/format";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { api } from "../../lib/api/client";
+import { useAuthStore } from "../../stores/auth-store";
 
 const FALLBACK_TRENDING = ["Summer Dresses", "Linen Shirts", "Leather Bags", "Sneakers", "Silk Scarves"];
 
 function getUserKey(): string {
   try {
-    const raw = localStorage.getItem("nabome-auth");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return parsed?.state?.user?.id ?? "guest";
-    }
-  } catch (err) { /* non-critical */ if (import.meta.env.DEV) console.debug("Failed to parse auth store:", err); }
-  return "guest";
+    const user = useAuthStore.getState().user;
+    return user?.id ?? "guest";
+  } catch {
+    return "guest";
+  }
 }
 
 const SEARCH_KEY = "nabome-recent-searches";

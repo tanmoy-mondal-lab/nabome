@@ -87,7 +87,6 @@ export async function uploadToCloudinary(
   const uploadParams: Record<string, string> = {
     timestamp: String(timestamp),
     public_id: publicId,
-    resource_type: resourceType,
   };
 
   const signature = await generateSignature(uploadParams, config.apiSecret);
@@ -95,13 +94,12 @@ export async function uploadToCloudinary(
   const formData = new FormData();
   formData.append("file", file);
   formData.append("api_key", config.apiKey);
-  formData.append("timestamp", String(timestamp));
+  formData.append("timestamp", uploadParams.timestamp);
   formData.append("signature", signature);
-  formData.append("public_id", publicId);
-  formData.append("resource_type", resourceType);
+  formData.append("public_id", uploadParams.public_id);
 
   const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${config.cloudName}/auto/upload`,
+    `https://api.cloudinary.com/v1_1/${config.cloudName}/${resourceType}/upload`,
     { method: "POST", body: formData }
   );
 

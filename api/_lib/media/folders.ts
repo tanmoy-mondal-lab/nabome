@@ -314,7 +314,6 @@ export async function moveResource(
     timestamp: String(timestamp),
     from_public_id: oldPublicId,
     to_public_id: newPublicId,
-    resource_type: resourceType,
   };
 
   const signature = await generateSignature(params, config.apiSecret);

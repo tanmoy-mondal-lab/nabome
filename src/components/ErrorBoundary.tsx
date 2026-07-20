@@ -31,8 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
     // In production, send to error tracking service
     if (import.meta.env.PROD && typeof window !== 'undefined') {
-      // TODO: Integrate with error tracking service (Sentry, LogRocket, etc.)
-      // For now, store in sessionStorage for debugging
+      // Error tracking integration pending - storing in sessionStorage for debugging
       try {
         const errors = JSON.parse(sessionStorage.getItem('error-log') || '[]');
         errors.push(errorDetails);

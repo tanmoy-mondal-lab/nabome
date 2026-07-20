@@ -1,3 +1,5 @@
+import { sanitizeHtml } from "../../lib/security/validations";
+
 interface SectionData {
   sectionType: string;
   title: string | null;
@@ -18,8 +20,7 @@ export default function CustomHTMLSection({ section }: CustomHTMLSectionProps) {
   return (
     <div
       className="container-wide"
-      dangerouslySetInnerHTML={{ __html: sanitizeHTML(html) }}
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
     />
   );
 }
-import { sanitizeHTML } from "../../lib/sanitize-html";
