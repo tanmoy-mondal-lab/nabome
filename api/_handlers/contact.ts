@@ -46,7 +46,12 @@ async function handleContact(req: Request, env: Env): Promise<Response> {
 }
 
 async function handleNewsletter(req: Request, env: Env): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const email = body?.email;
 
   const parsed = emailSchema.safeParse(email);

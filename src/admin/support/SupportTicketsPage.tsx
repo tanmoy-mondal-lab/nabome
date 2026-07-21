@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
@@ -19,32 +20,23 @@ interface SupportTicket {
 }
 
 export default function SupportTicketsPage() {
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
-  const [fetchError, setFetchError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    setFetchError(null);
-    try {
+  useEffect(() => { setPage(1); }, [statusFilter]);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["admin", "support", page, statusFilter],
+    queryFn: () => {
       const params: Record<string, string | number | undefined> = { page, limit: 25 };
       if (statusFilter) params.status = statusFilter;
-      const res = await adminApi.getSupportTickets(params) as { tickets: SupportTicket[]; pagination?: { totalPages: number } };
-      setTickets(res.tickets ?? []);
-      setTotalPages(res.pagination?.totalPages ?? 1);
-    } catch {
-      setFetchError("Failed to load support tickets");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, statusFilter]);
+      return adminApi.getSupportTickets(params) as Promise<{ tickets: SupportTicket[]; pagination?: { totalPages: number } }>;
+    },
+  });
 
-  useEffect(() => { setPage(1); }, [statusFilter]);
-  useEffect(() => { void fetch(); }, [fetch]);
+  const tickets = data?.tickets ?? [];
+  const totalPages = data?.pagination?.totalPages ?? 1;
 
   const statuses = ["", "open", "in_progress", "resolved", "closed"];
 
@@ -88,8 +80,8 @@ export default function SupportTicketsPage() {
 
   return (
     <div>
-      {fetchError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{fetchError}</div>
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">Failed to load support tickets</div>
       )}
       <div className="mb-6">
         <h1 className="font-display text-2xl text-neutral-900">Support Tickets</h1>
@@ -104,7 +96,7 @@ export default function SupportTicketsPage() {
         ))}
       </div>
 
-      <DataTable columns={columns} data={tickets} isLoading={loading}
+      <DataTable columns={columns} data={tickets} isLoading={isLoading}
         page={page} totalPages={totalPages} onPageChange={setPage}
         onRowClick={(t) => navigate(`/admin/support/${t.id}`)}
         emptyMessage="No tickets found" />

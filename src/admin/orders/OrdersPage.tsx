@@ -1,5 +1,6 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
@@ -68,52 +69,37 @@ const STATUS_MAP: Record<string, string> = {
 };
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [stats, setStats] = useState<OrderStats | null>(null);
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [fetchError, setFetchError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const fetchStats = useCallback(async () => {
-    try {
-      const res = await adminApi.getOrderStats();
-      setStats((res as unknown as OrderStats) ?? null);
-    } catch {
-      setFetchError("Failed to load order stats");
-    }
-  }, []);
+  useEffect(() => { setPage(1); }, [activeTab, searchQuery, dateFrom, dateTo]);
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
-    setFetchError(null);
-    try {
+  const { data: statsData } = useQuery({
+    queryKey: ["admin", "orders", "stats"],
+    queryFn: () => adminApi.getOrderStats(),
+  });
+
+  const { data: ordersData, isLoading, error } = useQuery({
+    queryKey: ["admin", "orders", page, activeTab, debouncedSearch, dateFrom, dateTo],
+    queryFn: () => {
       const statusKey = STATUS_MAP[activeTab];
       const params: Record<string, string | number | undefined> = { page, limit: 20 };
       if (statusKey) params.status = statusKey;
       if (debouncedSearch) params.search = debouncedSearch;
       if (dateFrom) params.from = dateFrom;
       if (dateTo) params.to = dateTo;
-      const res = await adminApi.getOrders(params);
-      setOrders(res.orders ?? []);
-      const pag = res.pagination as { totalPages?: number } | undefined;
-      setTotalPages(pag?.totalPages ?? 1);
-    } catch {
-      setFetchError("Failed to load orders");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, activeTab, debouncedSearch, dateFrom, dateTo]);
+      return adminApi.getOrders(params);
+    },
+  });
 
-  useEffect(() => { void fetchStats(); }, [fetchStats]);
-  useEffect(() => { setPage(1); }, [activeTab, searchQuery, dateFrom, dateTo]);
-  useEffect(() => { void fetchOrders(); }, [fetchOrders]);
+  const stats = (statsData as unknown as OrderStats) ?? null;
+  const orders = ordersData?.orders ?? [];
+  const totalPages = (ordersData?.pagination as { totalPages?: number } | undefined)?.totalPages ?? 1;
 
   const statCards = stats
     ? [
@@ -180,8 +166,8 @@ export default function OrdersPage() {
 
   return (
     <div>
-      {fetchError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{fetchError}</div>
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">Failed to load orders</div>
       )}
       <div className="mb-6">
         <h1 className="font-display text-2xl text-neutral-900">Orders</h1>
@@ -254,7 +240,7 @@ export default function OrdersPage() {
       <DataTable
         columns={columns}
         data={orders}
-        isLoading={loading}
+        isLoading={isLoading}
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}

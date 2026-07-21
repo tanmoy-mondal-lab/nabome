@@ -53,11 +53,13 @@ function mountApp() {
     );
   } catch (error) {
     if (import.meta.env.DEV) console.error("[main.tsx] CRITICAL: React mount failed with error:", error);
+    const safeMessage = error instanceof Error
+      ? error.message.replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] ?? c))
+      : String(error).replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] ?? c));
     rootElement.innerHTML = `
       <div style="padding: 40px; font-family: monospace; color: red; background: #fee; border: 2px solid red;">
         <h1>React Mount Error</h1>
-        <pre style="white-space: pre-wrap; word-wrap: break-word;">${error instanceof Error ? error.message : String(error)}</pre>
-        <pre style="white-space: pre-wrap; word-wrap: break-word; font-size: 12px; margin-top: 20px;">${error instanceof Error ? error.stack : ""}</pre>
+        <pre style="white-space: pre-wrap; word-wrap: break-word;">${safeMessage}</pre>
         <p style="margin-top: 20px;">Check browser console for full error details.</p>
       </div>
     `;

@@ -4,7 +4,7 @@
 // Accessible dialog/modal component
 // ─────────────────────────────────────────────────────────────
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { cn } from "../../lib/utils/cn";
 import { useEscapeHandler } from "../../hooks/useKeyboardNavigation";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
@@ -21,7 +21,12 @@ export function Dialog({ isOpen, onClose, title, children, size = "md" }: Dialog
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEscapeHandler(onClose, isOpen);
-  useFocusTrap(isOpen);
+  const focusTrapRef = useFocusTrap<HTMLDivElement>(isOpen);
+
+  const mergedRef = useCallback((node: HTMLDivElement | null) => {
+    dialogRef.current = node;
+    (focusTrapRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+  }, [focusTrapRef]);
 
   useEffect(() => {
     if (isOpen) {
@@ -49,7 +54,7 @@ export function Dialog({ isOpen, onClose, title, children, size = "md" }: Dialog
         aria-hidden="true"
       />
       <div
-        ref={dialogRef}
+        ref={mergedRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "dialog-title" : undefined}

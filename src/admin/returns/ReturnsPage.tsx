@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
 import { StatsCard } from "../common/StatsCard";
+import { useToast } from "../../components/ui/Toast";
 import { RotateCcw, Clock, CheckCircle } from "lucide-react";
 
 interface ReturnEntry {
@@ -32,39 +34,61 @@ const TAB_STATUS_MAP: Record<string, string | undefined> = {
 };
 
 export default function ReturnsPage() {
-  const [returns, setReturns] = useState<ReturnEntry[]>([]);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [activeTab, setActiveTab] = useState("All Returns");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedReturn, setSelectedReturn] = useState<ReturnEntry | null>(null);
   const [actionType, setActionType] = useState<"approve" | "reject">("approve");
   const [adminNote, setAdminNote] = useState("");
-  const [actionLoading, setActionLoading] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    setFetchError(null);
-    try {
+  useEffect(() => { setPage(1); }, [activeTab]);
+
+  const { data: statsData } = useQuery({
+    queryKey: ["admin", "returns", "stats"],
+    queryFn: async () => {
+      const [all, pending, approved, refunded] = await Promise.all([
+        adminApi.getReturns({ limit: 1 }),
+        adminApi.getReturns({ limit: 1, status: "pending" }),
+        adminApi.getReturns({ limit: 1, status: "approved" }),
+        adminApi.getReturns({ limit: 1, status: "refunded" }),
+      ]);
+      return {
+        total: (all.pagination as { total?: number })?.total ?? 0,
+        pending: (pending.pagination as { total?: number })?.total ?? 0,
+        approved: (approved.pagination as { total?: number })?.total ?? 0,
+        refunded: (refunded.pagination as { total?: number })?.total ?? 0,
+      };
+    },
+  });
+
+  const { data: returnsData, isLoading, error } = useQuery({
+    queryKey: ["admin", "returns", page, activeTab],
+    queryFn: () => {
       const status = TAB_STATUS_MAP[activeTab];
       const params: Record<string, string | number | undefined> = { page, limit: 20 };
       if (status) params.status = status;
-      const res = await adminApi.getReturns(params);
-      setReturns((res.returns as ReturnEntry[]) ?? []);
-      const pag = res.pagination as { totalPages?: number } | undefined;
-      setTotalPages(pag?.totalPages ?? 1);
-    } catch {
-      setFetchError("Failed to load returns");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, activeTab]);
+      return adminApi.getReturns(params);
+    },
+  });
 
-  useEffect(() => { setPage(1); }, [activeTab]);
-  useEffect(() => { void fetch(); }, [fetch]);
+  const returns = (returnsData?.returns as ReturnEntry[]) ?? [];
+  const totalPages = (returnsData?.pagination as { totalPages?: number } | undefined)?.totalPages ?? 1;
+
+  const actionMutation = useMutation({
+    mutationFn: ({ id, action, note }: { id: string; action: "approve" | "reject"; note: string }) =>
+      action === "approve"
+        ? adminApi.approveReturn(id, note ? { adminNote: note } : undefined)
+        : adminApi.rejectReturn(id, { adminNote: note }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "returns"] });
+      setModalOpen(false);
+      toast(`Return ${actionType === "approve" ? "approved" : "rejected"}`, "success");
+    },
+    onError: () => toast("Failed to process return action", "error"),
+  });
 
   const handleAction = (returnItem: ReturnEntry, action: "approve" | "reject") => {
     setSelectedReturn(returnItem);
@@ -73,28 +97,10 @@ export default function ReturnsPage() {
     setModalOpen(true);
   };
 
-  const confirmAction = async () => {
-    if (!selectedReturn) return;
-    setActionLoading(true);
-    try {
-      if (actionType === "approve") {
-        await adminApi.approveReturn(selectedReturn.id, adminNote ? { adminNote } : undefined);
-      } else {
-        await adminApi.rejectReturn(selectedReturn.id, { adminNote });
-      }
-      setModalOpen(false);
-      void fetch();
-    } catch {
-      setFetchError("Failed to process return action");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const kpiCards = [
-    { label: "Total Returns", value: returns.length, icon: RotateCcw },
-    { label: "Pending", value: returns.filter((r) => r.status === "pending").length, icon: Clock },
-    { label: "Approved This Month", value: returns.filter((r) => r.status === "approved").length, icon: CheckCircle },
+    { label: "Total Returns", value: statsData?.total ?? 0, icon: RotateCcw },
+    { label: "Pending", value: statsData?.pending ?? 0, icon: Clock },
+    { label: "Approved This Month", value: statsData?.approved ?? 0, icon: CheckCircle },
   ];
 
   const columns = [
@@ -137,8 +143,8 @@ export default function ReturnsPage() {
 
   return (
     <div>
-      {fetchError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">{fetchError}</div>
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">Failed to load returns</div>
       )}
       <div className="mb-6">
         <h1 className="font-display text-2xl text-neutral-900">Returns & Refunds</h1>
@@ -172,7 +178,7 @@ export default function ReturnsPage() {
       <DataTable
         columns={columns}
         data={returns}
-        isLoading={loading}
+        isLoading={isLoading}
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
@@ -228,13 +234,16 @@ export default function ReturnsPage() {
               Cancel
             </button>
             <button
-              onClick={confirmAction}
-              disabled={actionLoading || (actionType === "reject" && !adminNote.trim())}
+              onClick={() => {
+                if (!selectedReturn) return;
+                actionMutation.mutate({ id: selectedReturn.id, action: actionType, note: adminNote });
+              }}
+              disabled={actionMutation.isPending || (actionType === "reject" && !adminNote.trim())}
               className={`px-4 py-2 text-sm font-medium text-white rounded disabled:opacity-50 ${
                 actionType === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
               }`}
             >
-              {actionLoading ? "Processing…" : actionType === "approve" ? "Approve" : "Reject"}
+              {actionMutation.isPending ? "Processing…" : actionType === "approve" ? "Approve" : "Reject"}
             </button>
           </div>
         </div>

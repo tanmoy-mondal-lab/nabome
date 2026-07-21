@@ -152,17 +152,7 @@ export default function MediaLibraryNew() {
   const [renameValue, setRenameValue] = useState("");
   
   // Asset usage detection state
-  const [assetUsage, setAssetUsage] = useState<{ entity: string; count: number; items: string[] } | null>(null);
-  
-  // Asset usage detection — backend API route not yet wired up
-  useEffect(() => {
-    if (previewItem?.metadata?.id) {
-      setAssetUsage(null);
-    } else {
-      setAssetUsage(null);
-    }
-  }, [previewItem?.metadata?.id]);
-  
+  const [assetUsage, _setAssetUsage] = useState<{ count: number; entity: string; items: string[] } | null>(null);
   // Refs
   const fileRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);

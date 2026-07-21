@@ -28,7 +28,7 @@ export async function handleAdminCustomerRequest(
 async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
-  const limit = parseInt(url.searchParams.get("limit") ?? "25");
+  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "25"), 100);
   const search = url.searchParams.get("search");
 
   const where: Record<string, unknown> = {};
@@ -134,7 +134,12 @@ async function handleDetail(customerId: string, env: Env): Promise<Response> {
 }
 
 async function handleUpdate(customerId: string, req: Request, env: Env): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
 
   try {
     const prisma = getPrisma(env);

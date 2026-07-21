@@ -737,7 +737,12 @@ async function handleBulkStatus(req: Request, ctx: RequestContext): Promise<Resp
 // ─── Bulk Category ───
 
 async function handleBulkCategory(req: Request, env: Env): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { ids, categoryId, subcategoryId, collectionId } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
   try {
@@ -819,7 +824,12 @@ async function handlePermanentDelete(productId: string, req: Request, ctx: Reque
 }
 
 async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Promise<Response> {
-  const body = await req.json();
+  let body: { ids?: string[] };
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { ids } = body;
   if (!Array.isArray(ids) || ids.length === 0) return badRequest("ids array required");
 

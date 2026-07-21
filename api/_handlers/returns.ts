@@ -167,7 +167,7 @@ async function handleDetailMy(returnId: string, ctx: RequestContext, env: Env): 
 async function handleAdminList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
-  const limit = parseInt(url.searchParams.get("limit") ?? "25");
+  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "25"), 100);
   const status = url.searchParams.get("status");
 
   const where: Record<string, unknown> = {};
@@ -256,7 +256,12 @@ async function handleApprove(returnId: string, ctx: RequestContext, env: Env): P
 }
 
 async function handleReject(returnId: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
-  const body = await req.json();
+  let body: { adminNote?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { adminNote } = body;
 
   try {

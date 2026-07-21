@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { Routes, Route, Navigate, Link, useLocation } from "react-router-dom";
 import AdminLayout from "./layout/AdminLayout";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { AdminRoute } from "../components/auth/AdminRoute";
 
 function lazyWithRetry(factory: () => Promise<{ default: React.ComponentType<unknown> }>) {
   return lazy(() =>
@@ -111,7 +112,7 @@ export default function AdminRoutes() {
         }
       >
         <Routes>
-        <Route element={<AdminLayout />}>
+        <Route element={<AdminRoute><AdminLayout /></AdminRoute>}>
           <Route index element={<DashboardPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="products/new" element={<ProductFormPage />} />

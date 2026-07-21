@@ -52,7 +52,7 @@ export default function InventoryPage() {
       void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
       void queryClient.invalidateQueries({ queryKey: ["admin", "inventory"] });
     },
-    onError: () => {},
+    onError: () => toast("Failed to resolve alert", "error"),
   });
 
   function handleAdjust() {

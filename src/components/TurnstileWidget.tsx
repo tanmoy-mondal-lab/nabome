@@ -100,6 +100,13 @@ export function TurnstileWidget({
 
     return () => {
       cancelled = true;
+      if (widgetIdRef.current && window.turnstile?.remove) {
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+        } catch {
+          // Widget may already be removed
+        }
+      }
       if (container) {
         container.innerHTML = "";
       }

@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
 import { SafeImage } from "../../components/SafeImage";
 import { formatPrice, formatDate, formatDateTime } from "../../lib/utils/format";
+import { useToast } from "../../components/ui/Toast";
 import { ArrowLeft, CheckCircle, XCircle, Package, Banknote } from "lucide-react";
 
 interface ReturnDetail {
@@ -37,83 +39,56 @@ interface ReturnDetail {
 export default function ReturnDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [returnDetail, setReturnDetail] = useState<ReturnDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [adminNote, setAdminNote] = useState("");
-  const [actionLoading, setActionLoading] = useState(false);
   const [refundModalOpen, setRefundModalOpen] = useState(false);
   const [refundAmount, setRefundAmount] = useState(0);
   const [refundNote, setRefundNote] = useState("");
 
-  useEffect(() => {
-    if (!id) return;
-    adminApi.getReturn(id).then((res) => {
-      const data = (res as unknown as { return: ReturnDetail }).return;
-      if (data) setReturnDetail(data);
-    }).catch(() => {
-      void navigate("/admin/returns");
-    }).finally(() => setLoading(false));
-  }, [id, navigate]);
+  const { data: returnDetail, isLoading: loading } = useQuery<ReturnDetail>({
+    queryKey: ["admin", "return", id],
+    queryFn: async () => {
+      const res = await adminApi.getReturn(id!);
+      return (res as unknown as { return: ReturnDetail }).return;
+    },
+    enabled: !!id,
+  });
 
-  const reload = async () => {
-    if (!id) return;
-    const res = await adminApi.getReturn(id);
-    const data = (res as unknown as { return: ReturnDetail }).return;
-    if (data) setReturnDetail(data);
-  };
-
-  const handleApprove = async () => {
-    if (!id) return;
-    setActionLoading(true);
-    try {
-      await adminApi.approveReturn(id, adminNote ? { adminNote } : undefined);
-      await reload();
+  const actionMutation = useMutation({
+    mutationFn: async ({ action, note }: { action: string; note?: string }) => {
+      if (!id) return;
+      if (action === "approve") await adminApi.approveReturn(id, note ? { adminNote: note } : undefined);
+      else if (action === "reject") await adminApi.rejectReturn(id, { adminNote: note ?? "" });
+      else if (action === "receive") await adminApi.receiveReturn(id);
+      else if (action === "processRefund") await adminApi.processRefund(returnDetail!.refund!.id);
+      else if (action === "completeRefund") await adminApi.completeRefund(returnDetail!.refund!.id);
+      else if (action === "failRefund") await adminApi.failRefund(returnDetail!.refund!.id);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "return", id] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "returns"] });
       setAdminNote("");
-    } catch (err) { console.error("Failed to approve return:", err); } finally {
-      setActionLoading(false);
-    }
-  };
+      toast("Action completed", "success");
+    },
+    onError: () => toast("Action failed", "error"),
+  });
 
-  const handleReject = async () => {
-    if (!id) return;
-    setActionLoading(true);
-    try {
-      await adminApi.rejectReturn(id, { adminNote });
-      await reload();
-      setAdminNote("");
-    } catch (err) { console.error("Failed to reject return:", err); } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleMarkReceived = async () => {
-    if (!id) return;
-    setActionLoading(true);
-    try {
-      await adminApi.receiveReturn(id);
-      await reload();
-    } catch (err) { console.error("Failed to mark return as received:", err); } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleCreateRefund = async () => {
-    if (!id || !returnDetail) return;
-    setActionLoading(true);
-    try {
-      await adminApi.createRefund({
-        orderId: returnDetail.order!.id,
-        returnRequestId: id,
-        amount: refundAmount,
-        type: refundAmount >= (returnDetail.order?.total ?? 0) ? "full" : "partial",
-        notes: refundNote || undefined,
-      });
-      await reload();
+  const createRefundMutation = useMutation({
+    mutationFn: () => adminApi.createRefund({
+      orderId: returnDetail!.order!.id,
+      returnRequestId: id!,
+      amount: refundAmount,
+      type: refundAmount >= (returnDetail?.order?.total ?? 0) ? "full" : "partial",
+      notes: refundNote || undefined,
+    }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "return", id] });
       setRefundModalOpen(false);
-    } catch (err) { console.error("Failed to create refund:", err); } finally {
-      setActionLoading(false);
-    }
-  };
+      toast("Refund created", "success");
+    },
+    onError: () => toast("Failed to create refund", "error"),
+  });
 
   if (loading) {
     return (
@@ -285,8 +260,8 @@ export default function ReturnDetailPage() {
                     className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none mb-2"
                   />
                   <button
-                    onClick={handleApprove}
-                    disabled={actionLoading}
+                    onClick={() => actionMutation.mutate({ action: "approve", note: adminNote })}
+                    disabled={actionMutation.isPending}
                     className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
                   >
                     <CheckCircle size={14} /> Approve Return
@@ -303,8 +278,8 @@ export default function ReturnDetailPage() {
                     className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none mb-2"
                   />
                   <button
-                    onClick={handleReject}
-                    disabled={actionLoading || !adminNote.trim()}
+                    onClick={() => actionMutation.mutate({ action: "reject", note: adminNote })}
+                    disabled={actionMutation.isPending || !adminNote.trim()}
                     className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
                   >
                     <XCircle size={14} /> Reject Return
@@ -313,8 +288,8 @@ export default function ReturnDetailPage() {
               )}
               {canMarkReceived && (
                 <button
-                  onClick={handleMarkReceived}
-                  disabled={actionLoading}
+                  onClick={() => actionMutation.mutate({ action: "receive" })}
+                  disabled={actionMutation.isPending}
                   className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 >
                   <Package size={14} /> Mark as Received
@@ -322,17 +297,8 @@ export default function ReturnDetailPage() {
               )}
               {canProcessRefund && (
                 <button
-                  onClick={async () => {
-                    if (!returnDetail.refund) return;
-                    setActionLoading(true);
-                    try {
-                      await adminApi.processRefund(returnDetail.refund.id);
-                      await reload();
-                    } catch (err) { console.error("Failed to process refund:", err); } finally {
-                      setActionLoading(false);
-                    }
-                  }}
-                  disabled={actionLoading}
+                  onClick={() => actionMutation.mutate({ action: "processRefund" })}
+                  disabled={actionMutation.isPending}
                   className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-amber-600 text-white rounded hover:bg-amber-700 disabled:opacity-50"
                 >
                   <Banknote size={14} /> Process Refund
@@ -340,17 +306,8 @@ export default function ReturnDetailPage() {
               )}
               {canCompleteRefund && (
                 <button
-                  onClick={async () => {
-                    if (!returnDetail.refund) return;
-                    setActionLoading(true);
-                    try {
-                      await adminApi.completeRefund(returnDetail.refund.id);
-                      await reload();
-                    } catch (err) { console.error("Failed to complete refund:", err); } finally {
-                      setActionLoading(false);
-                    }
-                  }}
-                  disabled={actionLoading}
+                  onClick={() => actionMutation.mutate({ action: "completeRefund" })}
+                  disabled={actionMutation.isPending}
                   className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:opacity-50"
                 >
                   <CheckCircle size={14} /> Complete Refund
@@ -358,17 +315,8 @@ export default function ReturnDetailPage() {
               )}
               {canFailRefund && (
                 <button
-                  onClick={async () => {
-                    if (!returnDetail.refund) return;
-                    setActionLoading(true);
-                    try {
-                      await adminApi.failRefund(returnDetail.refund.id);
-                      await reload();
-                    } catch (err) { console.error("Failed to mark refund as failed:", err); } finally {
-                      setActionLoading(false);
-                    }
-                  }}
-                  disabled={actionLoading}
+                  onClick={() => actionMutation.mutate({ action: "failRefund" })}
+                  disabled={actionMutation.isPending}
                   className="w-full flex items-center justify-center gap-1.5 px-4 py-2 text-sm font-medium bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50"
                 >
                   <XCircle size={14} /> Fail Refund
@@ -428,11 +376,11 @@ export default function ReturnDetailPage() {
               Cancel
             </button>
             <button
-              onClick={handleCreateRefund}
-              disabled={actionLoading || refundAmount <= 0}
+              onClick={() => createRefundMutation.mutate()}
+              disabled={createRefundMutation.isPending || refundAmount <= 0}
               className="px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50"
             >
-              {actionLoading ? "Processing…" : "Create Refund"}
+              {createRefundMutation.isPending ? "Processing…" : "Create Refund"}
             </button>
           </div>
         </div>

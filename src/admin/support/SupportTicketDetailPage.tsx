@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { StatusBadge } from "../common/StatusBadge";
 import { ArrowLeft, Send } from "lucide-react";
 import { formatDateTime } from "../../lib/utils/format";
+import { useToast } from "../../components/ui/Toast";
 
 interface Reply {
   id: string;
@@ -31,43 +33,40 @@ interface TicketDetail {
 export default function SupportTicketDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [ticket, setTicket] = useState<TicketDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [replyText, setReplyText] = useState("");
-  const [sending, setSending] = useState(false);
   const [newStatus, setNewStatus] = useState("");
 
-  useEffect(() => {
-    if (!id) return;
-    adminApi.getSupportTicket(id).then((res) => {
+  const { data: ticket, isLoading: loading } = useQuery<TicketDetail>({
+    queryKey: ["admin", "support", id],
+    queryFn: async () => {
+      const res = await adminApi.getSupportTicket(id!);
       const t = (res as unknown as { ticket: TicketDetail }).ticket;
-      setTicket(t);
       setNewStatus(t.status);
-    }).catch(() => navigate("/admin/support")).finally(() => setLoading(false));
-  }, [id, navigate]);
+      return t;
+    },
+    enabled: !!id,
+  });
 
-  const handleSendReply = async () => {
-    if (!id || !replyText.trim()) return;
-    setSending(true);
-    try {
-      await adminApi.replySupportTicket(id, { message: replyText });
+  const replyMutation = useMutation({
+    mutationFn: () => adminApi.replySupportTicket(id!, { message: replyText }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "support", id] });
       setReplyText("");
-      const res = await adminApi.getSupportTicket(id);
-      setTicket((res as unknown as { ticket: TicketDetail }).ticket);
-    } catch (err) { console.error("Failed to send reply:", err); } finally {
-      setSending(false);
-    }
-  };
+      toast("Reply sent", "success");
+    },
+    onError: () => toast("Failed to send reply", "error"),
+  });
 
-  const handleStatusChange = async (status: string) => {
-    if (!id) return;
-    try {
-      await adminApi.updateSupportTicketStatus(id, { status });
-      setNewStatus(status);
-      const res = await adminApi.getSupportTicket(id);
-      setTicket((res as unknown as { ticket: TicketDetail }).ticket);
-    } catch (err) { console.error("Failed to update ticket status:", err); }
-  };
+  const statusMutation = useMutation({
+    mutationFn: (status: string) => adminApi.updateSupportTicketStatus(id!, { status }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "support", id] });
+      toast("Status updated", "success");
+    },
+    onError: () => toast("Failed to update ticket status", "error"),
+  });
 
   if (loading) {
     return (
@@ -96,7 +95,7 @@ export default function SupportTicketDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <select value={newStatus} onChange={(e) => handleStatusChange(e.target.value)}
+          <select value={newStatus} onChange={(e) => statusMutation.mutate(e.target.value)}
             className="px-3 py-1.5 text-sm border border-neutral-200 rounded">
             <option value="open">Open</option>
             <option value="in_progress">In Progress</option>
@@ -145,9 +144,9 @@ export default function SupportTicketDetailPage() {
               rows={3} placeholder="Type your reply..."
               className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500 resize-none" />
             <div className="flex justify-end mt-2">
-              <button onClick={handleSendReply} disabled={sending || !replyText.trim()}
+              <button onClick={() => replyMutation.mutate()} disabled={replyMutation.isPending || !replyText.trim()}
                 className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-neutral-900 text-white rounded hover:bg-neutral-800 disabled:opacity-50">
-                <Send size={14} /> {sending ? "Sending..." : "Send Reply"}
+                <Send size={14} /> {replyMutation.isPending ? "Sending..." : "Send Reply"}
               </button>
             </div>
           </div>

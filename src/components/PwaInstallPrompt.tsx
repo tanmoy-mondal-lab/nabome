@@ -12,7 +12,6 @@ interface BeforeInstallPromptEvent extends Event {
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
-  const [_isDismissed, setIsDismissed] = useState(true);
 
   useEffect(() => {
     const dismissed = localStorage.getItem(DISMISSED_KEY);
@@ -23,7 +22,6 @@ export function PwaInstallPrompt() {
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setIsDismissed(false);
       const id = setTimeout(() => setShowBanner(true), 30000);
       timerIds.push(id);
     };
@@ -47,7 +45,6 @@ export function PwaInstallPrompt() {
 
   const handleDismiss = () => {
     setShowBanner(false);
-    setIsDismissed(true);
     localStorage.setItem(DISMISSED_KEY, "true");
   };
 

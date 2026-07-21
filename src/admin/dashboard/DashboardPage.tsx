@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { adminApi, type DashboardStats } from "../../lib/api/admin";
+import { useQuery } from "@tanstack/react-query";
+import { adminApi } from "../../lib/api/admin";
 import { StatsCard } from "../common/StatsCard";
 import { StatusBadge } from "../common/StatusBadge";
 import { formatPrice, formatCompactPrice } from "../../lib/utils/format";
@@ -11,9 +12,6 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" && window.innerWidth < 640
   );
@@ -25,21 +23,12 @@ export default function DashboardPage() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setError(null);
-      const res = await adminApi.getDashboard();
-      setData(res);
-    } catch (err) {
-      setError(`Failed to load dashboard data: ${(err as Error).message ?? "Unknown error"}`);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["admin", "dashboard"],
+    queryFn: () => adminApi.getDashboard(),
+  });
 
-  useEffect(() => { void fetchData(); }, [fetchData]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="premium-card rounded-2xl px-6 py-5 flex items-center gap-3 shadow-subtle">
@@ -54,8 +43,8 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-4">
         <div className="premium-card rounded-2xl px-6 py-5 text-center max-w-md">
-          <p className="text-sm text-red-600">{error}</p>
-          <button onClick={fetchData} className="mt-4 btn-primary">
+          <p className="text-sm text-red-600">Failed to load dashboard data</p>
+          <button onClick={() => refetch()} className="mt-4 btn-primary">
           Retry
           </button>
         </div>

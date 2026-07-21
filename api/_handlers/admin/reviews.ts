@@ -29,7 +29,7 @@ export async function handleAdminReviewRequest(
 async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
-  const limit = parseInt(url.searchParams.get("limit") ?? "25");
+  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "25"), 100);
   const status = url.searchParams.get("status"); // "pending" | "approved"
 
   const where: Record<string, unknown> = {};
@@ -64,7 +64,12 @@ async function handleList(req: Request, env: Env): Promise<Response> {
 }
 
 async function handleApprove(reviewId: string, req: Request, ctx: RequestContext): Promise<Response> {
-  const body = await req.json();
+  let body: { approved?: boolean };
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { approved } = body;
 
   try {

@@ -105,7 +105,7 @@ export default function RegisterPage() {
           </div>
 
           {displayError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded" role="alert">
               <p className="text-sm text-red-700">{displayError}</p>
             </div>
           )}

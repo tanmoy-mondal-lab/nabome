@@ -1,10 +1,12 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { DataTable } from "../common/DataTable";
 import { StatusBadge } from "../common/StatusBadge";
 import { Modal } from "../common/Modal";
 import { SafeImage } from "../../components/SafeImage";
 import { formatPrice, formatDate } from "../../lib/utils/format";
+import { useToast } from "../../components/ui/Toast";
 import { Mail, Phone, ShoppingBag, Edit3, Clock, UserCheck } from "lucide-react";
 
 interface Customer {
@@ -34,56 +36,43 @@ interface CustomerDetail extends Customer {
 }
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<CustomerDetail | null>(null);
   const [editTarget, setEditTarget] = useState<Customer | null>(null);
   const [editForm, setEditForm] = useState({ firstName: "", lastName: "", email: "", phone: "", isActive: true, role: "customer", marketingOptIn: false, avatarUrl: "" });
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const [editError, setEditError] = useState<string | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["admin", "customers", page],
+    queryFn: () => adminApi.getCustomers({ page, limit: 20 }),
+  });
 
-  const fetchCustomers = useCallback(async () => {
-    setLoading(true);
-    setFetchError(null);
-    try {
-      const res = await adminApi.getCustomers({ page, limit: 20 });
-      setCustomers((res.customers as Customer[]) ?? []);
-      const pag = res.pagination as { totalPages?: number } | undefined;
-      setTotalPages(pag?.totalPages ?? 1);
-    } catch {
-      setFetchError("Failed to load customers");
-    } finally {
-      setLoading(false);
-    }
-  }, [page]);
+  const customers = (data?.customers as Customer[]) ?? [];
+  const totalPages = (data?.pagination as { totalPages?: number } | undefined)?.totalPages ?? 1;
 
-  useEffect(() => { void fetchCustomers(); }, [fetchCustomers]);
+  const updateMutation = useMutation({
+    mutationFn: (payload: { id: string; data: typeof editForm }) => adminApi.updateCustomer(payload.id, payload.data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "customers"] });
+      setEditTarget(null);
+      toast("Customer updated", "success");
+    },
+    onError: (err: Error) => toast(`Failed to update customer: ${err.message}`, "error"),
+  });
 
   const viewDetail = async (c: Customer) => {
     try {
       const res = await adminApi.getCustomer(c.id);
       setSelected(res.customer as CustomerDetail);
     } catch {
-      setFetchError("Failed to load customer detail");
+      toast("Failed to load customer detail", "error");
     }
   };
 
   const openEdit = (c: Customer) => {
     setEditTarget(c);
     setEditForm({ firstName: c.firstName, lastName: c.lastName, email: c.email, phone: c.phone ?? "", isActive: c.isActive, role: c.role ?? "customer", marketingOptIn: c.marketingOptIn ?? false, avatarUrl: c.avatarUrl ?? "" });
-  };
-
-  const handleEditSave = async () => {
-    if (!editTarget) return;
-    setEditError(null);
-    try {
-      await adminApi.updateCustomer(editTarget.id, editForm);
-      setEditTarget(null);
-      void fetchCustomers();
-    } catch (err) { setEditError(`Failed to update customer: ${(err as Error).message ?? "Unknown error"}`); }
   };
 
   const columns = [
@@ -125,8 +114,8 @@ export default function CustomersPage() {
 
   return (
     <div>
-      {fetchError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{fetchError}</div>
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">Failed to load customers</div>
       )}
       <div className="mb-6">
         <h1 className="font-display text-2xl text-neutral-900">Customers</h1>
@@ -136,7 +125,7 @@ export default function CustomersPage() {
       <DataTable
         columns={columns}
         data={customers}
-        isLoading={loading}
+        isLoading={isLoading}
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
@@ -229,9 +218,8 @@ export default function CustomersPage() {
         )}
       </Modal>
 
-      <Modal open={!!editTarget} onClose={() => { setEditTarget(null); setEditError(null); }} title="Edit Customer">
+      <Modal open={!!editTarget} onClose={() => { setEditTarget(null); }} title="Edit Customer">
         <div className="space-y-4">
-          {editError && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{editError}</p>}
           <div className="grid grid-cols-2 gap-4">
             <div><label className="block text-xs text-neutral-500 mb-1">First Name</label><input value={editForm.firstName} onChange={(e) => setEditForm({ ...editForm, firstName: e.target.value })} className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
             <div><label className="block text-xs text-neutral-500 mb-1">Last Name</label><input value={editForm.lastName} onChange={(e) => setEditForm({ ...editForm, lastName: e.target.value })} className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors" /></div>
@@ -261,7 +249,7 @@ export default function CustomersPage() {
           </label>
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setEditTarget(null)} className="border border-neutral-200 px-4 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:border-neutral-300 transition-colors">Cancel</button>
-            <button onClick={handleEditSave} className="bg-neutral-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors">Save</button>
+            <button onClick={() => updateMutation.mutate({ id: editTarget!.id, data: editForm })} disabled={updateMutation.isPending} className="bg-neutral-900 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-neutral-800 transition-colors disabled:opacity-50">{updateMutation.isPending ? "Saving…" : "Save"}</button>
           </div>
         </div>
       </Modal>

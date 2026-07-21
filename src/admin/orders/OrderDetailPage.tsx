@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminApi } from "../../lib/api/admin";
 import { StatusBadge } from "../common/StatusBadge";
 import { SafeImage } from "../../components/SafeImage";
@@ -91,74 +92,55 @@ export default function OrderDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [order, setOrder] = useState<Order | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [statusNote, setStatusNote] = useState("");
   const [internalNote, setInternalNote] = useState("");
-  const [savingNote, setSavingNote] = useState(false);
   const [activeTab, setActiveTab] = useState("Details");
-  const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
 
-  useEffect(() => {
-    if (!id) return;
-    Promise.all([
-      adminApi.getOrder(id),
-      adminApi.getOrderTimeline(id),
-    ]).then(([orderRes, timelineRes]) => {
-      const o = orderRes.order as unknown as Order & { internalNotes?: string; notes?: string };
-      setOrder(o);
-      setInternalNote(o.internalNotes || o.notes || "");
-      setTimeline((timelineRes.timeline as TimelineEntry[]) ?? []);
-    }).catch((err) => {
-      console.error("Failed to load order detail:", err);
-      toast("Failed to load order details. Redirecting...", "error");
-      void navigate("/admin/orders");
-    }).finally(() => setLoading(false));
-  }, [id, navigate]);
+  const { data: orderData, isLoading: loadingOrder } = useQuery({
+    queryKey: ["admin", "order", id],
+    queryFn: async () => {
+      const [orderRes, timelineRes] = await Promise.all([
+        adminApi.getOrder(id!),
+        adminApi.getOrderTimeline(id!),
+      ]);
+      return { order: orderRes.order, timeline: timelineRes.timeline };
+    },
+    enabled: !!id,
+  });
 
-  const handleStatusChange = async (newStatus: string) => {
-    if (!id) return;
-    try {
-      await adminApi.updateOrderStatus(id, { status: newStatus, note: statusNote });
-      setOrder((prev) => prev ? { ...prev, status: newStatus } : prev);
-      const timelineRes = await adminApi.getOrderTimeline(id);
-      setTimeline((timelineRes.timeline as TimelineEntry[]) ?? []);
+  const order = (orderData as unknown as { order?: Order & { internalNotes?: string; notes?: string } })?.order ?? null;
+  const timeline = (orderData as unknown as { timeline?: TimelineEntry[] })?.timeline ?? [];
+
+  const statusMutation = useMutation({
+    mutationFn: (newStatus: string) => adminApi.updateOrderStatus(id!, { status: newStatus, note: statusNote }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "order", id] });
       setStatusNote("");
-    } catch (err) {
-      console.error("Failed to update order status:", err);
-      toast("Failed to update order status", "error");
-    }
-  };
+      toast("Status updated", "success");
+    },
+    onError: () => toast("Failed to update order status", "error"),
+  });
 
-  const handleSaveNote = async () => {
-    if (!id) return;
-    setSavingNote(true);
-    try {
-      await adminApi.updateOrderInternalNotes(id, internalNote);
-      setOrder((prev) => prev ? { ...prev, notes: internalNote } : prev);
+  const noteMutation = useMutation({
+    mutationFn: () => adminApi.updateOrderInternalNotes(id!, internalNote),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin", "order", id] });
       toast("Note saved", "success");
-    } catch (err) {
-      console.error("Failed to save internal notes:", err);
-      toast("Failed to save note", "error");
-    } finally {
-      setSavingNote(false);
-    }
-  };
+    },
+    onError: () => toast("Failed to save note", "error"),
+  });
 
-  const handleGenerateInvoice = async () => {
-    if (!id) return;
-    try {
-      const res = await adminApi.generateOrderInvoice(id) as { invoiceUrl?: string };
-      if (res?.invoiceUrl) {
-        window.open(res.invoiceUrl, "_blank");
-      }
-    } catch (err) {
-      console.error("Failed to generate invoice:", err);
-      toast("Failed to generate invoice", "error");
-    }
-  };
+  const invoiceMutation = useMutation({
+    mutationFn: () => adminApi.generateOrderInvoice(id!),
+    onSuccess: (res) => {
+      const url = (res as { invoiceUrl?: string })?.invoiceUrl;
+      if (url) window.open(url, "_blank");
+    },
+    onError: () => toast("Failed to generate invoice", "error"),
+  });
 
-  if (loading) {
+  if (loadingOrder) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -189,8 +171,9 @@ export default function OrderDetailPage() {
           <StatusBadge status={order.status} />
           <StatusBadge status={order.paymentStatus} />
           <button
-            onClick={handleGenerateInvoice}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors"
+            onClick={() => invoiceMutation.mutate()}
+            disabled={invoiceMutation.isPending}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors disabled:opacity-50"
           >
             <FileText size={14} /> Generate Invoice
           </button>
@@ -250,8 +233,9 @@ export default function OrderDetailPage() {
                 <label className="block text-xs text-neutral-500 mb-1">Update Status</label>
                 <select
                   value={order.status}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  className="w-full max-w-xs px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+                  onChange={(e) => statusMutation.mutate(e.target.value)}
+                  disabled={statusMutation.isPending}
+                  className="w-full max-w-xs px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors disabled:opacity-50"
                 >
                   {ALL_STATUSES.map((s) => (
                     <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
@@ -303,11 +287,11 @@ export default function OrderDetailPage() {
               className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors resize-none"
             />
             <button
-              onClick={handleSaveNote}
-              disabled={savingNote}
+              onClick={() => noteMutation.mutate()}
+              disabled={noteMutation.isPending}
               className="mt-2 px-4 py-1.5 text-xs font-medium bg-neutral-900 text-white rounded-lg hover:bg-neutral-800 transition-colors disabled:opacity-50"
             >
-              {savingNote ? "Saving…" : "Save Note"}
+              {noteMutation.isPending ? "Saving…" : "Save Note"}
             </button>
           </div>
 

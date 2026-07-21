@@ -42,7 +42,7 @@ export default function AnalyticsPage() {
   const [tab, setTab] = useState<Tab>("sales");
   const [period, setPeriod] = useState("30d");
 
-  const { data: salesData, isLoading: salesLoading, error: salesError } = useQuery<SalesData>({
+  const { data: salesData, isLoading: salesLoading, error: salesError, refetch: refetchSales } = useQuery<SalesData>({
     queryKey: ["admin", "analytics", "sales", period],
     queryFn: async () => {
       const res = await adminApi.getSalesAnalytics({ period });
@@ -51,7 +51,7 @@ export default function AnalyticsPage() {
     enabled: tab === "sales",
   });
 
-  const { data: deliveryData, isLoading: deliveryLoading, error: deliveryError } = useQuery<DeliveryData>({
+  const { data: deliveryData, isLoading: deliveryLoading, error: deliveryError, refetch: refetchDelivery } = useQuery<DeliveryData>({
     queryKey: ["admin", "analytics", "delivery", period],
     queryFn: async () => {
       const res = await adminApi.getDeliveryAddressAnalytics({ period });
@@ -62,6 +62,7 @@ export default function AnalyticsPage() {
 
   const loading = tab === "sales" ? salesLoading : deliveryLoading;
   const error = tab === "sales" ? salesError : deliveryError;
+  const refetch = tab === "sales" ? refetchSales : refetchDelivery;
 
   return (
     <div>
@@ -109,6 +110,9 @@ export default function AnalyticsPage() {
         <div className="premium-card rounded-2xl p-6 text-center bg-red-50/70 border-red-200">
           <p className="text-red-600 font-medium">Failed to load analytics</p>
           <p className="text-sm text-red-500 mt-1">Please try again or check your connection.</p>
+          <button onClick={() => refetch()} className="mt-3 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">
+            Retry
+          </button>
         </div>
       ) : tab === "sales" ? (
         <SalesTab data={salesData} />

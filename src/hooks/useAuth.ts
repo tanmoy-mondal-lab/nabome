@@ -4,7 +4,7 @@
 // Handles session restore via API call and auto-refresh
 // ─────────────────────────────────────────────────────────────
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../stores/auth-store";
 import { authApi, type LoginRequest, type RegisterRequest } from "../lib/api/auth";
@@ -21,29 +21,12 @@ export function useAuth() {
   const isLoading = useAuthStore((s) => s.isLoading);
   const setAuth = useAuthStore((s) => s.setAuth);
   const setUser = useAuthStore((s) => s.setUser);
-  const setLoading = useAuthStore((s) => s.setLoading);
   const clearAuth = useAuthStore((s) => s.clearAuth);
 
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const { items } = useCartStore();
   const { mergeGuestCartOnServer, hydrateServerCart } = useCartSync(items);
-
-  // ── Restore session on mount using cookies (runs exactly once) ──
-  const restored = useRef(false);
-  useEffect(() => {
-    if (restored.current) return;
-    restored.current = true;
-    const restoreSession = async () => {
-      try {
-        const res = await authApi.me();
-        setAuth(res.user);
-      } catch {
-        setLoading(false);
-      }
-    };
-    void restoreSession();
-  }, [setAuth, setLoading]);
 
   // ── Listen for forced logout from API client (session expired) ──
   useEffect(() => {

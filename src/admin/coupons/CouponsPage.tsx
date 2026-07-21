@@ -143,10 +143,10 @@ export default function CouponsPage() {
   };
 
   const handleSave = () => {
-    if (!form.code.trim()) return;
-    if (form.discountValue <= 0) return;
-    if (!form.startDate) return;
-    if (!form.endDate) return;
+    if (!form.code.trim()) { toast("Coupon code is required", "error"); return; }
+    if (form.discountValue <= 0) { toast("Discount value must be greater than 0", "error"); return; }
+    if (!form.startDate) { toast("Start date is required", "error"); return; }
+    if (!form.endDate) { toast("End date is required", "error"); return; }
     saveMutation.mutate();
   };
 

@@ -31,7 +31,7 @@ export async function handleAdminCouponRequest(
 async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
-  const limit = parseInt(url.searchParams.get("limit") ?? "50");
+  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "50"), 100);
   const skip = (page - 1) * limit;
 
   try {
@@ -55,7 +55,12 @@ async function handleList(req: Request, env: Env): Promise<Response> {
 }
 
 async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, any>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
   const { code, description, discountType, discountValue, minOrderValue, maxDiscount, usageLimit, perUserLimit, applicableGender, isActive, startDate, endDate } = body;
 
   if (!code || !discountType || discountValue === undefined || !startDate || !endDate) {
@@ -96,7 +101,12 @@ async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promis
 }
 
 async function handleUpdate(couponId: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
-  const body = await req.json();
+  let body: Record<string, any>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON body");
+  }
 
   try {
     const prisma = getPrisma(env);

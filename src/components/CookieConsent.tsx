@@ -181,7 +181,11 @@ export function CookieConsent() {
             )}
           </div>
           <button
-            onClick={() => setIsVisible(false)}
+            onClick={() => {
+              localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consent));
+              applyConsent(consent);
+              setIsVisible(false);
+            }}
             className="self-start p-1 hover:bg-neutral-100 rounded-md transition-colors"
             aria-label="Close cookie consent"
           >
