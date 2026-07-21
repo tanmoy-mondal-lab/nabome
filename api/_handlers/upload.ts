@@ -3,13 +3,21 @@ import type { RequestContext } from "../_lib/types";
 import { requireAdmin } from "../_lib/auth-middleware";
 import { uploadMedia, validateFile, validateFileContent } from "../_lib/media-service";
 import { checkRateLimit, getRateLimitKey } from "../_lib/rate-limit";
+import type { EntityType } from "../_lib/media/types";
 
 const UPLOAD_RATE_LIMIT = { maxRequests: 20, windowMs: 60_000 };
 
 const VALID_ENTITY_TYPES = [
   "settings", "homepage", "products", "product-videos", "categories", "collections",
   "brands", "labels", "lookbooks", "blogs", "cms", "sellers", "users",
-] as const;
+] as const satisfies readonly EntityType[];
+
+function resolveUploadEntityType(value: FormDataEntryValue | null): EntityType {
+  if (typeof value === "string" && (VALID_ENTITY_TYPES as readonly string[]).includes(value)) {
+    return value as EntityType;
+  }
+  return "cms";
+}
 
 async function checkUploadRateLimit(req: Request, ctx: RequestContext): Promise<Response | null> {
   const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
@@ -49,7 +57,7 @@ async function doUpload(req: Request, ctx: RequestContext): Promise<Response> {
     const contentValidation = await validateFileContent(file, file.type);
     if (!contentValidation.valid) return badRequest(contentValidation.error!);
 
-    const entityType = (formData.get("entityType") as string) || "cms";
+    const entityType = resolveUploadEntityType(formData.get("entityType"));
     const entityId = (formData.get("entityId") as string) || crypto.randomUUID();
     const slug = (formData.get("slug") as string) || `upload-${Date.now().toString(36)}`;
     const altText = (formData.get("altText") as string) || file.name;
@@ -57,12 +65,8 @@ async function doUpload(req: Request, ctx: RequestContext): Promise<Response> {
     const sortOrder = parseInt(formData.get("sortOrder") as string) || 0;
     const isPrimary = formData.get("isPrimary") === "true";
 
-    const validType = (VALID_ENTITY_TYPES as readonly string[]).includes(entityType)
-      ? (entityType as "settings" | "homepage" | "products" | "categories" | "collections" | "brands" | "labels" | "lookbooks" | "blogs" | "cms" | "sellers" | "users")
-      : "cms";
-
     const result = await uploadMedia({
-      entityType: validType,
+      entityType,
       entityId,
       slug,
       file,
@@ -91,7 +95,7 @@ async function doUpload(req: Request, ctx: RequestContext): Promise<Response> {
         originalFilename: result.originalFilename,
       },
       entity: {
-        entityType: validType,
+        entityType,
         entityId,
         slug,
       },

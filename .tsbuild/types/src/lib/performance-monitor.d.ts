@@ -24,6 +24,7 @@ declare class PerformanceMonitor {
     private logMetric;
     getMetrics(): PerformanceMetrics;
     destroy(): void;
+    autoCleanup(): void;
 }
 export declare const performanceMonitor: PerformanceMonitor;
 export {};

@@ -14,13 +14,11 @@ export function useProductComparison() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(COMPARISON_KEY);
-    if (stored) {
-      try {
-        setComparison(JSON.parse(stored));
-      } catch (e) {
-        console.error("Failed to parse comparison:", e);
-      }
+    try {
+      const stored = localStorage.getItem(COMPARISON_KEY);
+      if (stored) setComparison(JSON.parse(stored));
+    } catch {
+      // Ignore parse errors
     }
     setIsLoaded(true);
   }, []);

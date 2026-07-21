@@ -1,8 +1,8 @@
 /**
  * Media Management Module - Structured Logging Service
- * 
- * This service provides persistent structured logging for all media operations.
- * It uses Pino for high-performance JSON logging with support for multiple transports.
+ *
+ * SERVER-ONLY: This service uses Pino (Node.js logging library) and must not
+ * be imported from browser/client code. It will throw if bundled for the browser.
  */
 
 import { createRequire } from "module";
@@ -62,7 +62,7 @@ export interface LoggerConfig {
  */
 const DEFAULT_CONFIG: LoggerConfig = {
   level: LogLevel.INFO,
-  pretty: process.env.NODE_ENV === "development",
+  pretty: false,
   context: "MediaService",
 };
 
@@ -91,7 +91,6 @@ function createLogger(config: LoggerConfig = DEFAULT_CONFIG): pino.Logger {
       sync: false,
     });
   } else if (config.pretty) {
-    // Use pino-pretty for pretty printing in development
     try {
       const pinoPretty = _require("pino-pretty");
       destination = pinoPretty({
@@ -101,11 +100,40 @@ function createLogger(config: LoggerConfig = DEFAULT_CONFIG): pino.Logger {
         singleLine: false,
       });
     } catch {
-      // pino-pretty not available, using default output
+      // pino-pretty not available
     }
   }
 
   return pino(pinoConfig, destination);
+}
+
+function stringifyUnknown(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value === undefined) return "undefined";
+  if (value === null) return "null";
+  try {
+    const json = JSON.stringify(value, (_key, nestedValue) =>
+      typeof nestedValue === "bigint" ? nestedValue.toString() : nestedValue
+    );
+    return json ?? String(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function normalizeError(error: unknown): Error {
+  if (error instanceof Error) return error;
+
+  const normalized = new Error(stringifyUnknown(error));
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    if (typeof record.name === "string") normalized.name = record.name;
+    if (typeof record.stack === "string") normalized.stack = record.stack;
+    if (typeof record.code === "string") {
+      (normalized as Error & { code?: string }).code = record.code;
+    }
+  }
+  return normalized;
 }
 
 /**
@@ -121,32 +149,20 @@ export class MediaLogger {
     this.logger = createLogger(finalConfig);
   }
 
-  /**
-   * Log a debug message
-   */
   debug(message: string, metadata?: Record<string, unknown>): void {
     this.logger.debug({ context: this.context, ...metadata }, message);
   }
 
-  /**
-   * Log an info message
-   */
   info(message: string, metadata?: Record<string, unknown>): void {
     this.logger.info({ context: this.context, ...metadata }, message);
   }
 
-  /**
-   * Log a warning message
-   */
   warn(message: string, metadata?: Record<string, unknown>): void {
     this.logger.warn({ context: this.context, ...metadata }, message);
   }
 
-  /**
-   * Log an error message
-   */
   error(message: string, error?: Error | unknown, metadata?: Record<string, unknown>): void {
-    const errorObj = error instanceof Error ? error : new Error(String(error));
+    const errorObj = normalizeError(error);
     this.logger.error(
       {
         context: this.context,
@@ -157,11 +173,8 @@ export class MediaLogger {
     );
   }
 
-  /**
-   * Log a fatal error message
-   */
   fatal(message: string, error?: Error | unknown, metadata?: Record<string, unknown>): void {
-    const errorObj = error instanceof Error ? error : new Error(String(error));
+    const errorObj = normalizeError(error);
     this.logger.fatal(
       {
         context: this.context,
@@ -172,26 +185,19 @@ export class MediaLogger {
     );
   }
 
-  /**
-   * Create a child logger with additional context
-   */
   child(childContext: string, metadata?: Record<string, unknown>): MediaLogger {
     const childLogger = new MediaLogger({
       context: `${this.context}:${childContext}`,
     });
-    
-    // Bind the child logger to the parent's logger
+
     childLogger.logger = this.logger.child({
       context: childContext,
       ...metadata,
     });
-    
+
     return childLogger;
   }
 
-  /**
-   * Log the start of an operation
-   */
   startOperation(operation: string, metadata?: Record<string, unknown>): string {
     const operationId = crypto.randomUUID();
     this.info(`Starting operation: ${operation}`, {
@@ -202,9 +208,6 @@ export class MediaLogger {
     return operationId;
   }
 
-  /**
-   * Log the completion of an operation
-   */
   completeOperation(operation: string, operationId: string, metadata?: Record<string, unknown>): void {
     this.info(`Completed operation: ${operation}`, {
       operationId,
@@ -213,9 +216,6 @@ export class MediaLogger {
     });
   }
 
-  /**
-   * Log the failure of an operation
-   */
   failOperation(operation: string, operationId: string, error?: Error, metadata?: Record<string, unknown>): void {
     this.error(`Failed operation: ${operation}`, error, {
       operationId,
@@ -224,9 +224,6 @@ export class MediaLogger {
     });
   }
 
-  /**
-   * Log with timing information
-   */
   withTiming<T>(
     operation: string,
     fn: () => Promise<T>,
@@ -249,14 +246,8 @@ export class MediaLogger {
   }
 }
 
-/**
- * Default logger instance
- */
 let defaultLogger: MediaLogger | null = null;
 
-/**
- * Get the default logger instance
- */
 export function getLogger(): MediaLogger {
   if (!defaultLogger) {
     defaultLogger = new MediaLogger();
@@ -264,23 +255,14 @@ export function getLogger(): MediaLogger {
   return defaultLogger;
 }
 
-/**
- * Set the default logger instance
- */
 export function setLogger(logger: MediaLogger): void {
   defaultLogger = logger;
 }
 
-/**
- * Create a new logger instance with custom configuration
- */
 export function createLoggerInstance(config?: LoggerConfig): MediaLogger {
   return new MediaLogger(config);
 }
 
-/**
- * Lifecycle event types for logging
- */
 export type LifecycleEventType =
   | "upload"
   | "replace"
@@ -292,9 +274,6 @@ export type LifecycleEventType =
   | "rollback"
   | "migration";
 
-/**
- * Log a lifecycle event
- */
 export function logLifecycleEvent(
   eventType: LifecycleEventType,
   success: boolean,
@@ -313,19 +292,21 @@ export function logLifecycleEvent(
   }
 ): void {
   const logger = getLogger();
-  const level = success ? "info" : "error";
   const message = `Lifecycle event: ${eventType}`;
-
-  logger[level](message, {
+  const payload = {
     eventType,
     success,
     ...metadata,
-  });
+  };
+
+  if (success) {
+    logger.info(message, payload);
+    return;
+  }
+
+  logger.error(message, metadata?.error ?? "Media lifecycle event failed", payload);
 }
 
-/**
- * Log a media operation
- */
 export function logMediaOperation(
   operation: string,
   entityType: string,
@@ -340,9 +321,6 @@ export function logMediaOperation(
   });
 }
 
-/**
- * Log a media operation result
- */
 export function logMediaOperationResult(
   operation: string,
   operationId: string,

@@ -17,6 +17,20 @@ import { parseCookies } from "./cookies";
 const TOKEN_LENGTH = 32;
 const CSRF_COOKIE_NAME = "csrf_token";
 const CSRF_HEADER_NAME = "x-csrf-token";
+const textEncoder = new TextEncoder();
+
+function timingSafeEqual(left: string, right: string): boolean {
+  const leftBytes = textEncoder.encode(left);
+  const rightBytes = textEncoder.encode(right);
+  const maxLength = Math.max(leftBytes.length, rightBytes.length);
+  let diff = leftBytes.length ^ rightBytes.length;
+
+  for (let i = 0; i < maxLength; i++) {
+    diff |= (leftBytes[i] ?? 0) ^ (rightBytes[i] ?? 0);
+  }
+
+  return diff === 0;
+}
 
 export function generateToken(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -82,7 +96,7 @@ export function validateCsrf(request: Request): boolean {
     return false;
   }
 
-  return cookieToken === headerToken;
+  return timingSafeEqual(cookieToken, headerToken);
 }
 
 export function csrfError(): Response {

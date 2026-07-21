@@ -4,7 +4,8 @@ declare global {
         gtag?: (...args: unknown[]) => void;
     }
 }
-type EventParams = Record<string, string | number | boolean | undefined>;
+type GtagItem = Record<string, string | number | boolean>;
+type EventParams = Record<string, string | number | boolean | undefined | GtagItem | GtagItem[]>;
 export declare function trackEvent(action: string, params?: EventParams): void;
 export declare function trackPageView(path: string, title?: string): void;
 export declare function trackProductView(productId: string, productName: string, price: number): void;

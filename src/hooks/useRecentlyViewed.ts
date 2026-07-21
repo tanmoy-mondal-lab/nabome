@@ -19,13 +19,11 @@ export function useRecentlyViewed() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(RECENTLY_VIEWED_KEY);
-    if (stored) {
-      try {
-        setRecentlyViewed(JSON.parse(stored));
-      } catch (e) {
-        console.error("Failed to parse recently viewed:", e);
-      }
+    try {
+      const stored = localStorage.getItem(RECENTLY_VIEWED_KEY);
+      if (stored) setRecentlyViewed(JSON.parse(stored));
+    } catch {
+      // Ignore parse errors
     }
     setIsLoaded(true);
   }, []);

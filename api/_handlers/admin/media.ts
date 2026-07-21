@@ -10,6 +10,7 @@ import {
   restoreWithCacheInvalidation,
 } from "../../_lib/media/transaction.service";
 import type { CloudinaryConfig } from "../../_lib/media/types";
+import { normalizeEntityTypeForDb } from "../../_lib/media/entity-type";
 import { getAssetReferences } from "../../_lib/media/usage.service";
 
 
@@ -58,7 +59,7 @@ async function handleList(req: Request, env: Env): Promise<Response> {
 
   const where: Record<string, unknown> = {};
   if (type) where.mediaType = type;
-  if (entityType) where.entityType = entityType;
+  if (entityType && entityType !== "all") where.entityType = normalizeEntityTypeForDb(entityType);
   if (entityId) where.entityId = entityId;
   if (folder) where.folder = { contains: folder };
   if (trash) {
@@ -148,7 +149,7 @@ async function handleCreate(req: Request, env: Env): Promise<Response> {
     const asset = await prisma.media_assets.create({
       data: {
         assetId: assetId ?? crypto.randomUUID(),
-        entityType: entityType ?? "cms",
+        entityType: normalizeEntityTypeForDb(entityType),
         entityId: entityId ?? crypto.randomUUID(),
         url,
         secureUrl: secureUrl ?? url,

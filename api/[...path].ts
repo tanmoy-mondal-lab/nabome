@@ -701,6 +701,15 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
   // Log incoming request
   logger.logRequest(requestId, method, versionedPath);
 
+  if (method === "OPTIONS") {
+    const response = new Response(null, { status: 204 });
+    response.headers.set("X-Request-ID", requestId);
+    response.headers.set("X-API-Version", apiVersion);
+    healthMonitor.recordRequest(Date.now() - startTime, false);
+    logger.logResponse(requestId, method, versionedPath, 204, Date.now() - startTime);
+    return withCors(response, request, versionedPath);
+  }
+
   // Body size limit (check early to reject oversized payloads fast)
   const contentLength = request.headers.get("content-length");
   if (contentLength && ["POST", "PUT", "PATCH"].includes(method)) {

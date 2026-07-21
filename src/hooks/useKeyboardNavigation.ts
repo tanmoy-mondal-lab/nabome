@@ -4,15 +4,18 @@
 // Provides keyboard navigation utilities for accessibility
 // ─────────────────────────────────────────────────────────────
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export function useKeyboardNavigation(
   handlers: Record<string, () => void>,
   deps: React.DependencyList = []
 ) {
+  const handlersRef = useRef(handlers);
+  handlersRef.current = handlers;
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const handler = handlers[e.key];
+      const handler = handlersRef.current[e.key];
       if (handler) {
         e.preventDefault();
         handler();
@@ -22,7 +25,7 @@ export function useKeyboardNavigation(
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
      
-  }, [handlers, ...deps]);
+  }, deps);
 }
 
 export function useEscapeHandler(callback: () => void, enabled = true) {

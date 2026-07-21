@@ -1,6 +1,7 @@
 import type { CloudinaryResourceType, CloudinaryConfig } from "./types";
 
 const CLOUDINARY_DESTROY_TIMEOUT = 10000;
+const CLOUDINARY_UPLOAD_TIMEOUT = 60000;
 
 async function generateSignature(params: Record<string, string>, apiSecret: string): Promise<string> {
   const sortedKeys = Object.keys(params).sort();
@@ -98,29 +99,36 @@ export async function uploadToCloudinary(
   formData.append("signature", signature);
   formData.append("public_id", uploadParams.public_id);
 
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${config.cloudName}/${resourceType}/upload`,
-    { method: "POST", body: formData }
-  );
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), CLOUDINARY_UPLOAD_TIMEOUT);
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(
-      errorData.error?.message ?? `Cloudinary upload failed (${res.status})`
+  try {
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${config.cloudName}/${resourceType}/upload`,
+      { method: "POST", body: formData, signal: controller.signal }
     );
-  }
 
-  const result = await res.json();
-  return {
-    publicId: result.public_id,
-    url: result.url,
-    secureUrl: result.secure_url,
-    bytes: result.bytes,
-    format: result.format,
-    width: result.width ?? null,
-    height: result.height ?? null,
-    resourceType: result.resource_type,
-  };
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(
+        errorData.error?.message ?? `Cloudinary upload failed (${res.status})`
+      );
+    }
+
+    const result = await res.json();
+    return {
+      publicId: result.public_id,
+      url: result.url,
+      secureUrl: result.secure_url,
+      bytes: result.bytes,
+      format: result.format,
+      width: result.width ?? null,
+      height: result.height ?? null,
+      resourceType: result.resource_type,
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function deleteEntityAssets(

@@ -24,7 +24,7 @@ interface TicketDetail {
   createdAt: string;
   profile?: { id: string; firstName: string; lastName: string; email: string; phone?: string };
   assignee?: { id: string; firstName: string; lastName: string };
-  order?: { orderNumber: string };
+  order?: { id: string; orderNumber: string };
   replies: Reply[];
 }
 
@@ -179,7 +179,7 @@ export default function SupportTicketDetailPage() {
           {ticket.order && (
             <div className="premium-card rounded-2xl p-6">
               <h3 className="font-medium text-sm text-neutral-900 mb-2">Order</h3>
-              <button onClick={() => navigate(`/admin/orders/${ticket.order?.orderNumber}`)}
+              <button onClick={() => navigate(`/admin/orders/${ticket.order?.id}`)}
                 className="text-sm text-brand-600 hover:underline">View Order #{ticket.order.orderNumber} →</button>
             </div>
           )}

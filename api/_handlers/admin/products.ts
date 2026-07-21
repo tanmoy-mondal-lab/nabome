@@ -399,7 +399,7 @@ async function handleUpdateVariants(productId: string, req: Request, env: Env): 
     const videoIdsToClean = [...new Set([...replacementVideoIds, ...removedVideoIds])];
     if (videoIdsToClean.length > 0) {
       const mediaAssets = await prisma.media_assets.findMany({
-        where: { publicId: { in: videoIdsToClean }, entityType: "products" },
+        where: { publicId: { in: videoIdsToClean } },
         select: { id: true },
       });
       const results = await Promise.allSettled(
@@ -423,7 +423,7 @@ async function handleUpdateVariants(productId: string, req: Request, env: Env): 
       const allRemovedIds = [...removedImageIds, ...removedVideoIdsFromImages];
       if (allRemovedIds.length > 0) {
         const mediaAssets = await prisma.media_assets.findMany({
-          where: { publicId: { in: allRemovedIds }, entityType: "products" },
+          where: { publicId: { in: allRemovedIds } },
           select: { id: true },
         });
         const results = await Promise.allSettled(
@@ -561,7 +561,7 @@ async function handleDeleteImage(productId: string, imageId: string, env: Env): 
     if (image.publicId) {
       // Find and delete using MediaService
       const mediaAsset = await prisma.media_assets.findFirst({
-        where: { publicId: image.publicId, entityType: "products" },
+        where: { publicId: image.publicId },
         select: { id: true },
       });
       if (mediaAsset) {

@@ -7,7 +7,7 @@ datasource db {
   provider     = "postgresql"
   url          = env("DATABASE_URL")
   relationMode = "foreignKeys"
-  extensions   = [pg_trgm, pgcrypto]
+  extensions   = [pg_trgm]
 }
 
 model profiles {
@@ -93,7 +93,7 @@ model login_attempts {
   success    Boolean  @default(false)
   failReason String?  @map("fail_reason") @db.VarChar(100)
   createdAt  DateTime @default(now()) @map("created_at")
-  profile    profiles? @relation(fields: [profileId], references: [id])
+  profile    profiles? @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   @@index([email, createdAt])
   @@index([ipAddress, createdAt])
@@ -109,7 +109,7 @@ model verification_attempts {
   success     Boolean   @default(false)
   lockedUntil DateTime? @map("locked_until") @db.Timestamptz(6)
   createdAt   DateTime  @default(now()) @map("created_at")
-  profile     profiles?  @relation(fields: [profileId], references: [id])
+  profile     profiles?  @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   @@index([email, code])
   @@index([ipAddress, createdAt])
@@ -126,7 +126,7 @@ model user_action_logs {
   ipAddress String?  @map("ip_address") @db.VarChar(45)
   userAgent String?  @map("user_agent")
   createdAt DateTime @default(now()) @map("created_at")
-  profile   profiles? @relation(fields: [profileId], references: [id])
+  profile   profiles? @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   @@index([profileId])
   @@index([action, createdAt])
@@ -248,7 +248,7 @@ model size_guides {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   products      products[]
-  category      categories? @relation(fields: [categoryId], references: [id])
+  category      categories? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([categoryId])
 }
@@ -310,11 +310,11 @@ model products {
   productLabels      product_labels_products[]
   productTags        product_tags_products[]
   variants           product_variants[]
-  brand              brands?                  @relation(fields: [brandId], references: [id])
-  category           categories?               @relation(fields: [categoryId], references: [id])
-  collection         collections?             @relation(fields: [collectionId], references: [id])
-  sizeGuide          size_guides?              @relation(fields: [sizeGuideId], references: [id])
-  subcategory        subcategories?            @relation(fields: [subcategoryId], references: [id])
+  brand              brands?                  @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  category           categories?               @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  collection         collections?             @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  sizeGuide          size_guides?              @relation(fields: [sizeGuideId], references: [id], onDelete: SetNull)
+  subcategory        subcategories?            @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
   relatedTo          related_products[]        @relation("RelatedProductSource")
   relatedFrom        related_products[]        @relation("RelatedProductTarget")
   reviews            reviews[]
@@ -363,7 +363,6 @@ model product_variants {
   wishlistItems      wishlist_items[]
 
   @@unique([productId, size, color])
-  @@index([productId])
   @@index([productId, isActive])
   @@index([size, color])
   @@index([isActive, stock])
@@ -477,7 +476,7 @@ model addresses {
   line1            String   @db.VarChar(500)
   line2            String?  @db.VarChar(500)
   city             String   @db.VarChar(200)
-  district         String?  @map("district") @db.VarChar(200)
+  district         String?  @db.VarChar(200)
   state            String   @db.VarChar(200)
   pincode          String   @db.VarChar(10)
   country          String   @default("India") @db.VarChar(100)
@@ -570,14 +569,13 @@ model orders {
   items              order_items[]
   statusHistory      order_status_history[]
   billingAddress     addresses?             @relation("BillingAddress", fields: [billingAddressId], references: [id])
-  profile            profiles?             @relation(fields: [profileId], references: [id])
+  profile            profiles?             @relation(fields: [profileId], references: [id], onDelete: SetNull)
   shippingAddress    addresses?             @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
   refunds            refunds[]
   returnRequests     return_requests[]
   supportTickets     support_tickets[]
   webhookEvents      webhook_events[]
 
-  @@index([profileId])
   @@index([email])
   @@index([status, createdAt])
   @@index([paymentStatus, createdAt])
@@ -607,8 +605,8 @@ model order_items {
   isReturned     Boolean         @default(false) @map("is_returned")
   returnQuantity Int             @default(0) @map("return_quantity")
   order          orders           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product        products         @relation(fields: [productId], references: [id])
-  variant        product_variants? @relation(fields: [variantId], references: [id])
+  product        products         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant        product_variants? @relation(fields: [variantId], references: [id], onDelete: SetNull)
   returnRequests return_requests[]
 
   @@index([orderId])
@@ -626,7 +624,7 @@ model order_status_history {
   note      String?
   createdBy String?     @map("created_by") @db.Uuid
   createdAt DateTime    @default(now()) @map("created_at")
-  creator   profiles?    @relation(fields: [createdBy], references: [id])
+  creator   profiles?    @relation(fields: [createdBy], references: [id], onDelete: SetNull)
   order     orders       @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
@@ -662,9 +660,9 @@ model coupon_redemptions {
   orderId   String   @unique @map("order_id") @db.Uuid
   profileId String   @map("profile_id") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at")
-  coupon    coupons   @relation(fields: [couponId], references: [id])
-  order     orders    @relation(fields: [orderId], references: [id])
-  profile   profiles  @relation(fields: [profileId], references: [id])
+  coupon    coupons   @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  order     orders    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  profile   profiles  @relation(fields: [profileId], references: [id], onDelete: Restrict)
 
   @@unique([couponId, profileId, orderId])
   @@index([couponId])
@@ -804,7 +802,7 @@ model lookbook_items {
   caption       String?  @db.VarChar(500)
   sortOrder     Int      @default(0) @map("sort_order")
   lookbook      lookbooks @relation(fields: [lookbookId], references: [id], onDelete: Cascade)
-  product       products? @relation(fields: [productId], references: [id])
+  product       products? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
   @@index([lookbookId])
   @@index([productId])
@@ -822,8 +820,8 @@ model reviews {
   isApproved Boolean  @default(false) @map("is_approved")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
-  product    products  @relation(fields: [productId], references: [id])
-  profile    profiles  @relation(fields: [profileId], references: [id])
+  product    products  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  profile    profiles  @relation(fields: [profileId], references: [id], onDelete: Restrict)
 
   @@unique([productId, profileId, orderId])
   @@index([productId, isApproved])
@@ -987,10 +985,10 @@ model page_templates {
   slug              String   @unique @db.VarChar(200)
   description       String?
   category          String   @default("custom") @db.VarChar(50)
-  thumbnail         String?  @map("thumbnail")
+  thumbnail         String?
   thumbnailPublicId String?  @map("thumbnail_public_id") @db.VarChar(500)
   sections          Json
-  metadata          Json?    @map("metadata")
+  metadata          Json?
   isActive          Boolean  @default(true) @map("is_active")
   useCount          Int      @default(0) @map("use_count")
   createdAt         DateTime @default(now()) @map("created_at")
@@ -1029,7 +1027,7 @@ model webhook_events {
   retryCount   Int       @default(0) @map("retry_count")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
-  order        orders?    @relation(fields: [orderId], references: [id])
+  order        orders?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@unique([source, eventId])
   @@index([eventType, status])
@@ -1054,9 +1052,9 @@ model return_requests {
   createdAt      DateTime     @default(now()) @map("created_at")
   updatedAt      DateTime     @updatedAt @map("updated_at")
   refund         refunds?
-  order          orders        @relation(fields: [orderId], references: [id])
+  order          orders        @relation(fields: [orderId], references: [id], onDelete: Restrict)
   orderItem      order_items?   @relation(fields: [orderItemId], references: [id])
-  profile        profiles      @relation(fields: [profileId], references: [id])
+  profile        profiles      @relation(fields: [profileId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
   @@index([profileId])
@@ -1078,7 +1076,7 @@ model refunds {
   notes           String?
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
-  initiator       profiles?       @relation("RefundInitiator", fields: [initiatedBy], references: [id])
+  initiator       profiles?       @relation("RefundInitiator", fields: [initiatedBy], references: [id], onDelete: SetNull)
   order           orders          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   returnRequest   return_requests? @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
 
@@ -1104,8 +1102,8 @@ model notifications {
   retryCount   Int                 @default(0) @map("retry_count")
   createdAt    DateTime            @default(now()) @map("created_at")
   updatedAt    DateTime            @updatedAt @map("updated_at")
-  order        orders?              @relation(fields: [orderId], references: [id])
-  profile      profiles?            @relation(fields: [profileId], references: [id])
+  order        orders?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  profile      profiles?            @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   @@index([profileId, isRead])
   @@index([profileId, createdAt])
@@ -1141,9 +1139,9 @@ model support_tickets {
   createdAt  DateTime              @default(now()) @map("created_at")
   updatedAt  DateTime              @updatedAt @map("updated_at")
   replies    support_ticket_replies[]
-  assignee   profiles?              @relation("AssignedSupport", fields: [assignedTo], references: [id])
-  order      orders?                @relation(fields: [orderId], references: [id])
-  profile    profiles?              @relation(fields: [profileId], references: [id])
+  assignee   profiles?              @relation("AssignedSupport", fields: [assignedTo], references: [id], onDelete: SetNull)
+  order      orders?                @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  profile    profiles?              @relation(fields: [profileId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([priority])
@@ -1160,7 +1158,7 @@ model support_ticket_replies {
   message   String
   isStaff   Boolean       @default(false) @map("is_staff")
   createdAt DateTime      @default(now()) @map("created_at")
-  author    profiles?      @relation(fields: [profileId], references: [id])
+  author    profiles?      @relation(fields: [profileId], references: [id], onDelete: SetNull)
   ticket    support_tickets @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
@@ -1369,12 +1367,6 @@ enum SupportTicketPriority {
   medium
   high
   urgent
-}
-
-enum AssetType {
-  image
-  video
-  document
 }
 
 enum JobStatus {

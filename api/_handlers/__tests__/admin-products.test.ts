@@ -16,6 +16,7 @@ vi.mock("../../_lib/media-service", () => ({
 }));
 
 import { getPrisma } from "../../_lib/prisma";
+import { deleteMedia } from "../../_lib/media-service";
 import { handleAdminProductRequest } from "../admin/products";
 
 const mockPrisma = createMockPrisma();
@@ -35,6 +36,12 @@ describe("admin products handler", () => {
     mockPrisma.productImage.findMany.mockResolvedValue([
       { publicId: "removed-image" },
     ]);
+    mockPrisma.media_assets.findMany
+      .mockResolvedValueOnce([
+        { id: "asset-old-video" },
+        { id: "asset-removed-video" },
+      ])
+      .mockResolvedValueOnce([{ id: "asset-removed-image" }]);
     mockPrisma.productVariant.update.mockResolvedValue({ id: "variant-1" });
     mockPrisma.productVariant.create.mockResolvedValue({ id: "variant-3" });
 
@@ -82,6 +89,17 @@ describe("admin products handler", () => {
     expect(mockPrisma.productVariant.deleteMany).toHaveBeenCalledWith({
       where: { productId: "prod-1", id: { in: ["variant-2"] } },
     });
+    expect(mockPrisma.media_assets.findMany).toHaveBeenNthCalledWith(1, {
+      where: { publicId: { in: ["old-video", "removed-video"] } },
+      select: { id: true },
+    });
+    expect(mockPrisma.media_assets.findMany).toHaveBeenNthCalledWith(2, {
+      where: { publicId: { in: ["removed-image"] } },
+      select: { id: true },
+    });
+    expect(deleteMedia).toHaveBeenCalledWith("asset-old-video", ctx.env);
+    expect(deleteMedia).toHaveBeenCalledWith("asset-removed-video", ctx.env);
+    expect(deleteMedia).toHaveBeenCalledWith("asset-removed-image", ctx.env);
     expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
   });
 });

@@ -20,16 +20,16 @@ interface CacheOptions {
 // In-memory cache for development
 const memoryCache = new Map<string, CacheEntry>();
 
-// Clean up expired entries periodically
-if (typeof setInterval !== "undefined") {
-  setInterval(() => {
-    const now = Date.now();
-    for (const [key, entry] of memoryCache.entries()) {
-      if (entry.expiresAt < now) {
-        memoryCache.delete(key);
-      }
+let lastMemoryCleanupAt = 0;
+
+function cleanupExpiredMemoryEntries(now = Date.now()): void {
+  if (now - lastMemoryCleanupAt < 60_000) return;
+  lastMemoryCleanupAt = now;
+  for (const [key, entry] of memoryCache.entries()) {
+    if (entry.expiresAt < now) {
+      memoryCache.delete(key);
     }
-  }, 60 * 1000); // Clean up every minute
+  }
 }
 
 export class CacheService {
@@ -59,6 +59,7 @@ export class CacheService {
         return null;
       }
     } else {
+      cleanupExpiredMemoryEntries();
       const entry = memoryCache.get(cacheKey);
       if (!entry) return null;
       if (entry.expiresAt < Date.now()) {
@@ -89,6 +90,7 @@ export class CacheService {
         console.error("Cache set error:", error);
       }
     } else {
+      cleanupExpiredMemoryEntries();
       memoryCache.set(cacheKey, {
         value,
         expiresAt,

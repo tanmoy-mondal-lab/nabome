@@ -1,8 +1,8 @@
 /**
  * Media Management Module - Structured Logging Service
  *
- * This service provides persistent structured logging for all media operations.
- * It uses Pino for high-performance JSON logging with support for multiple transports.
+ * SERVER-ONLY: This service uses Pino (Node.js logging library) and must not
+ * be imported from browser/client code. It will throw if bundled for the browser.
  */
 /**
  * Log levels
@@ -55,66 +55,21 @@ export declare class MediaLogger {
     private logger;
     private context;
     constructor(config?: LoggerConfig);
-    /**
-     * Log a debug message
-     */
     debug(message: string, metadata?: Record<string, unknown>): void;
-    /**
-     * Log an info message
-     */
     info(message: string, metadata?: Record<string, unknown>): void;
-    /**
-     * Log a warning message
-     */
     warn(message: string, metadata?: Record<string, unknown>): void;
-    /**
-     * Log an error message
-     */
     error(message: string, error?: Error | unknown, metadata?: Record<string, unknown>): void;
-    /**
-     * Log a fatal error message
-     */
     fatal(message: string, error?: Error | unknown, metadata?: Record<string, unknown>): void;
-    /**
-     * Create a child logger with additional context
-     */
     child(childContext: string, metadata?: Record<string, unknown>): MediaLogger;
-    /**
-     * Log the start of an operation
-     */
     startOperation(operation: string, metadata?: Record<string, unknown>): string;
-    /**
-     * Log the completion of an operation
-     */
     completeOperation(operation: string, operationId: string, metadata?: Record<string, unknown>): void;
-    /**
-     * Log the failure of an operation
-     */
     failOperation(operation: string, operationId: string, error?: Error, metadata?: Record<string, unknown>): void;
-    /**
-     * Log with timing information
-     */
     withTiming<T>(operation: string, fn: () => Promise<T>, metadata?: Record<string, unknown>): Promise<T>;
 }
-/**
- * Get the default logger instance
- */
 export declare function getLogger(): MediaLogger;
-/**
- * Set the default logger instance
- */
 export declare function setLogger(logger: MediaLogger): void;
-/**
- * Create a new logger instance with custom configuration
- */
 export declare function createLoggerInstance(config?: LoggerConfig): MediaLogger;
-/**
- * Lifecycle event types for logging
- */
 export type LifecycleEventType = "upload" | "replace" | "delete" | "delete_entity" | "slug_change" | "cleanup" | "verification" | "rollback" | "migration";
-/**
- * Log a lifecycle event
- */
 export declare function logLifecycleEvent(eventType: LifecycleEventType, success: boolean, metadata?: {
     entityType?: string;
     entityId?: string;
@@ -128,11 +83,5 @@ export declare function logLifecycleEvent(eventType: LifecycleEventType, success
     duration?: number;
     [key: string]: unknown;
 }): void;
-/**
- * Log a media operation
- */
 export declare function logMediaOperation(operation: string, entityType: string, entityId: string, metadata?: Record<string, unknown>): string;
-/**
- * Log a media operation result
- */
 export declare function logMediaOperationResult(operation: string, operationId: string, success: boolean, metadata?: Record<string, unknown>): void;

@@ -15,7 +15,7 @@ export default function InventoryPage() {
   const [tab, setTab] = useState<"overview" | "alerts" | "history">("overview");
   const [search, setSearch] = useState("");
   const [showAdjust, setShowAdjust] = useState(false);
-  const [adjustVariant] = useState<Record<string, unknown> | null>(null);
+  const [adjustVariant, setAdjustVariant] = useState<Record<string, unknown> | null>(null);
   const [adjustForm, setAdjustForm] = useState({ quantityChange: 0, reason: "", note: "" });
   const [adjustError, setAdjustError] = useState<string | null>(null);
 
@@ -122,13 +122,36 @@ export default function InventoryPage() {
                         <p className="text-xs text-neutral-400">{p.name as string} — {v.sku as string} ({v.size as string}/{v.color as string})</p>
                       </div>
                     </div>
-                    <button onClick={() => handleResolveAlert(a.id as string)} className="flex items-center gap-1 text-xs text-neutral-500 hover:text-green-600"><CheckCircle className="w-3 h-3" /> Resolve</button>
+                    <div className="flex items-center gap-2"><button onClick={() => { setAdjustVariant(v); setShowAdjust(true); }} className="flex items-center gap-1 text-xs text-neutral-500 hover:text-neutral-900"><PackageSearch className="w-3 h-3" /> Adjust</button><button onClick={() => handleResolveAlert(a.id as string)} className="flex items-center gap-1 text-xs text-neutral-500 hover:text-green-600"><CheckCircle className="w-3 h-3" /> Resolve</button></div>
                   </div>
                 );
               })}
             </div>}
         </div>
       )}
+
+      {tab === "overview" && (
+        movements.length === 0 ? <EmptyState title="Welcome to Inventory" description="Recent stock movements will appear here as you make adjustments." />
+          : <div className="space-y-3">
+              <h3 className="text-sm font-medium text-neutral-700">Recent Movements</h3>
+              <div className="space-y-2">
+                {(movements as Record<string, unknown>[]).slice(0, 10).map((m, i) => {
+                  const variant = (m.variant as Record<string, unknown>) ?? {};
+                  const product = (variant.product as Record<string, unknown>) ?? {};
+                  const qty = m.quantityChange as number;
+                  return (
+                    <div key={m.id as string ?? String(i)} className="flex items-center justify-between bg-white border border-neutral-200 rounded px-4 py-3">
+                      <div>
+                        <p className="text-sm text-neutral-900">{(product.name as string) ?? "Unknown"} — {variant.sku as string}</p>
+                        <p className="text-xs text-neutral-400">{m.reason as string} &middot; {formatDate(m.createdAt as string)}</p>
+                      </div>
+                      <span className={`text-sm font-medium ${qty > 0 ? "text-green-600" : "text-red-600"}`}>{qty > 0 ? `+${qty}` : qty}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
       {tab === "history" && (
         movements.length === 0 ? <EmptyState title="No movements yet" description="Stock adjustments will appear here." />

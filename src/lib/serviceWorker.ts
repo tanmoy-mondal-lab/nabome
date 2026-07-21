@@ -98,13 +98,14 @@ export function skipWaiting(): Promise<void> {
     return Promise.resolve();
   }
 
-  return new Promise<void>((_resolve) => {
+  return new Promise<void>((resolve) => {
     swRegistration!.waiting!.addEventListener("statechange", (e) => {
       if ((e.target as ServiceWorker).state === "activated") {
         swRegistration = null;
         if (typeof window !== "undefined") {
           window.location.reload();
         }
+        resolve();
       }
     });
 
@@ -175,17 +176,14 @@ export function setupConnectivityDetection() {
 
   const handleOnline = () => handleConnectionChange();
   const handleOffline = () => handleConnectionChange();
-  const handleConnectionChangeEvent = () => handleConnectionChange();
 
   window.addEventListener("online", handleOnline);
   window.addEventListener("offline", handleOffline);
-  window.addEventListener("connectionchange", handleConnectionChangeEvent);
 
   return () => {
     window.removeEventListener("online", handleOnline);
     window.removeEventListener("offline", handleOffline);
-    window.removeEventListener("connectionchange", handleConnectionChangeEvent);
-    
-    intervals.forEach(id => clearInterval(id as unknown as number));
+
+    intervals.forEach(id => clearInterval(id));
   };
 }

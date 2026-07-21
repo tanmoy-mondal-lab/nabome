@@ -9,6 +9,7 @@ import {
 } from "./media/lifecycle";
 import { validateFile, validateFileContent, throwIfInvalid, getFileTypeConfig } from "./media/validation";
 import { deleteAsset } from "./media/cloudinary";
+import { toPrismaEntityType } from "./media/entity-type";
 import { cleanSecret } from "./secrets";
 import { getPrisma } from "./prisma";
 
@@ -89,7 +90,7 @@ export async function uploadMedia(options: UploadOptions, env: Env): Promise<Med
     const asset = await prisma.media_assets.create({
       data: {
         assetId: lifecycleResult.assetId,
-        entityType: entityType as any,
+        entityType: toPrismaEntityType(entityType),
         entityId,
         url: lifecycleResult.url,
         secureUrl: lifecycleResult.secureUrl,
@@ -172,7 +173,7 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
     const newAsset = await prisma.media_assets.create({
       data: {
         assetId: lifecycleResult.assetId,
-        entityType: entityType as any,
+        entityType: toPrismaEntityType(entityType),
         entityId,
         url: lifecycleResult.url,
         secureUrl: lifecycleResult.secureUrl,
@@ -285,7 +286,7 @@ export async function restoreMedia(assetId: string, env: Env): Promise<void> {
 export async function deleteEntityMedia(entityType: EntityType, entityId: string, _slug: string, env: Env): Promise<number> {
   const prisma = getPrisma(env);
   const assets = await prisma.media_assets.findMany({
-    where: { entityType: entityType as any, entityId },
+    where: { entityType: toPrismaEntityType(entityType), entityId },
     select: { id: true, publicId: true, resourceType: true },
   });
 
@@ -332,7 +333,7 @@ export async function migrateEntitySlug(
 ): Promise<void> {
   const prisma = getPrisma(env);
   const assets = await prisma.media_assets.findMany({
-    where: { entityType: entityType as any, entityId },
+    where: { entityType: toPrismaEntityType(entityType), entityId },
   });
 
   if (assets.length === 0) return;

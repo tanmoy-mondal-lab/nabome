@@ -3,6 +3,13 @@
  * Tracks Core Web Vitals and custom performance metrics
  */
 
+interface LayoutShift extends PerformanceEntry {
+  value: number;
+  hadRecentInput: boolean;
+  lastInputTime: DOMHighResTimeStamp;
+  sources: unknown[];
+}
+
 export interface PerformanceMetrics {
   fcp: number; // First Contentful Paint
   lcp: number; // Largest Contentful Paint
@@ -86,16 +93,16 @@ class PerformanceMonitor {
     try {
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        const fidEntry = entries[0] as PerformanceEntry;
+        const fidEntry = entries[0] as PerformanceEventTiming | undefined;
         if (fidEntry) {
-          this.metrics.fid = (fidEntry as any).processingStart - fidEntry.startTime;
+          this.metrics.fid = fidEntry.processingStart - fidEntry.startTime;
           this.logMetric('FID', this.metrics.fid);
         }
       });
       observer.observe({ type: 'first-input', buffered: true });
       this.observers.push(observer);
-    } catch (e) {
-      console.warn('FID observation not supported');
+    } catch {
+      // FID observation not supported
     }
   }
 
@@ -104,8 +111,9 @@ class PerformanceMonitor {
       let clsValue = 0;
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          if (!(entry as any).hadRecentInput) {
-            clsValue += (entry as any).value;
+          const layoutShift = entry as LayoutShift;
+          if (!layoutShift.hadRecentInput) {
+            clsValue += layoutShift.value;
           }
         }
         this.metrics.cls = clsValue;
@@ -113,8 +121,8 @@ class PerformanceMonitor {
       });
       observer.observe({ type: 'layout-shift', buffered: true });
       this.observers.push(observer);
-    } catch (e) {
-      console.warn('CLS observation not supported');
+    } catch {
+      // CLS observation not supported
     }
   }
 
@@ -122,9 +130,8 @@ class PerformanceMonitor {
     if (import.meta.env.DEV) {
       console.log(`[Performance] ${name}: ${value.toFixed(2)}ms`);
     }
-    // Send to analytics in production
-    if (import.meta.env.PROD && typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'web_vitals', {
+    if (import.meta.env.PROD && typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'web_vitals', {
         name,
         value: Math.round(value),
         event_category: 'Performance'
@@ -147,6 +154,12 @@ class PerformanceMonitor {
   destroy() {
     this.observers.forEach(observer => observer.disconnect());
     this.observers = [];
+  }
+
+  autoCleanup() {
+    if (typeof window === 'undefined') return;
+    const cleanup = () => this.destroy();
+    window.addEventListener('beforeunload', cleanup, { once: true });
   }
 }
 

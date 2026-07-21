@@ -107,10 +107,8 @@ export const customerApi = {
     formData.append("slug", `upload-${Date.now().toString(36)}`);
     formData.append("entityId", crypto.randomUUID());
     formData.append("altText", file.name);
-    const res = await fetch("/api/upload/customer", { method: "POST", body: formData });
-    if (!res.ok) throw new Error("Upload failed");
-    const json = await res.json();
-    return json.url || json.data?.url;
+    const result = await api.post<{ url: string }>("/upload/customer", formData);
+    return result.url;
   },
 
   // Payments
