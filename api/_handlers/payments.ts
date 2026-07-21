@@ -114,6 +114,32 @@ async function handleVerify(req: Request, ctx: RequestContext, env: Env): Promis
       return badRequest("Invalid payment signature");
     }
 
+    // Verify the actual payment amount from Razorpay matches the order total.
+    // The HMAC covers only (orderId|paymentId), not the amount, so a client
+    // could submit a valid signature for a lesser payment against a larger order.
+    let paymentAmount: number;
+    try {
+      const payment = await callRazorpay(`/payments/${razorpayPaymentId}`, "GET", undefined, env);
+      const actualAmount = payment.amount as number;
+      const paymentOrderId = payment.order_id as string;
+      if (paymentOrderId !== razorpayOrderId) {
+        return badRequest("Payment does not belong to this order");
+      }
+      paymentAmount = roundAmount(actualAmount);
+    } catch {
+      return serverError(new Error("Failed to verify payment amount with Razorpay"));
+    }
+    const orderTotal = Number(order.total);
+    if (Math.abs(paymentAmount - orderTotal) > 0.01) {
+      void logAction(null, "payment.amount_mismatch", {
+        entity: "order",
+        entityId: orderId,
+        metadata: { expected: orderTotal, actual: paymentAmount, razorpayPaymentId },
+        ...extractRequestMeta(req),
+      }, env);
+      return badRequest("Payment amount does not match order total");
+    }
+
     if (order.paymentStatus === "paid") {
       void logAction(null, "payment.verify_duplicate", {
         entity: "order",
@@ -254,7 +280,7 @@ async function handleFailed(req: Request, ctx: RequestContext, env: Env): Promis
     }
 
     // Ownership validation: only the order owner can mark payment as failed
-    if (ctx.userId && order.profileId !== ctx.userId) {
+    if (!ctx.userId || order.profileId !== ctx.userId) {
       return notFound("Order not found");
     }
 
@@ -356,39 +382,50 @@ async function handleRefund(req: Request, ctx: RequestContext, env: Env): Promis
 
     const prisma = getPrisma(env);
 
-    const order = await prisma.orders.findUnique({
-      where: { id: orderId },
-      include: { refunds: true },
-    });
-    if (!order) return notFound("Order not found");
+    const result = await prisma.$transaction(async (tx) => {
+      // Re-read order and refunds inside the transaction to prevent TOCTOU
+      // between amount computation and DB write (the previous code read refunds
+      // outside the transaction, allowing concurrent over-refund).
+      const currentOrder = await tx.orders.findUnique({
+        where: { id: orderId },
+        include: { refunds: true },
+      });
+      if (!currentOrder) throw Object.assign(new Error("Order not found"), { statusCode: 404 });
 
-    if (order.paymentStatus !== "paid" && order.paymentStatus !== "partially_refunded") {
-      return badRequest("Order is not eligible for refund");
-    }
+      if (currentOrder.paymentStatus !== "paid" && currentOrder.paymentStatus !== "partially_refunded") {
+        throw Object.assign(new Error("Order is not eligible for refund"), { statusCode: 400 });
+      }
 
-    const existingRefunded = order.refunds.reduce(
-      (sum, r) => sum + (r.status === "completed" ? Number(r.amount) : 0),
-      0
-    );
-    const remaining = Number(order.total) - existingRefunded;
-    const refundAmount = amount ? Math.min(Number(amount), remaining) : remaining;
+      const existingRefunded = currentOrder.refunds.reduce(
+        (sum, r) => sum + (r.status === "completed" ? Number(r.amount) : 0),
+        0
+      );
+      const remaining = Number(currentOrder.total) - existingRefunded;
+      const refundAmount = amount ? Math.min(Number(amount), remaining) : remaining;
 
-    if (refundAmount <= 0) {
-      return badRequest("No amount available to refund");
-    }
+      if (refundAmount <= 0) {
+        throw Object.assign(new Error("No amount available to refund"), { statusCode: 400 });
+      }
 
-    if (!order.razorpayPaymentId) {
-      return badRequest("No Razorpay payment found for this order");
-    }
+      if (!currentOrder.razorpayPaymentId) {
+        throw Object.assign(new Error("No Razorpay payment found for this order"), { statusCode: 400 });
+      }
 
-    const refundData = await callRazorpay(`/payments/${encodeURIComponent(order.razorpayPaymentId)}/refund`, "POST", {
-      amount: Math.round(refundAmount * 100),
-      notes: { order_id: orderId, order_number: order.orderNumber },
-    }, env);
+      const isFullRefund = refundAmount >= remaining;
 
-    const isFullRefund = refundAmount >= remaining;
+      // Call Razorpay inside the transaction. If the API call fails, the
+      // transaction rolls back and no DB changes are committed. Idempotency
+      // key prevents duplicate refunds on network retry.
+      const refundData = await callRazorpay(
+        `/payments/${encodeURIComponent(currentOrder.razorpayPaymentId)}/refund`,
+        "POST",
+        {
+          amount: Math.round(refundAmount * 100),
+          notes: { order_id: orderId, order_number: currentOrder.orderNumber },
+        },
+        env
+      );
 
-    await prisma.$transaction(async (tx) => {
       // Create or reuse a return request for this refund
       let rrId = returnRequestId as string | undefined;
       if (!rrId) {
@@ -401,7 +438,7 @@ async function handleRefund(req: Request, ctx: RequestContext, env: Env): Promis
           const rr = await tx.return_requests.create({
             data: {
               orderId,
-              profileId: order.profileId!,
+              profileId: currentOrder.profileId!,
               reason: "other",
               status: "approved",
               adminNote: "Direct refund processed via Razorpay",
@@ -411,6 +448,14 @@ async function handleRefund(req: Request, ctx: RequestContext, env: Env): Promis
           });
           rrId = rr.id;
         }
+      }
+
+      // Check for duplicate razorpay refund idempotency
+      const existingRefundWithTxnId = await tx.refunds.findFirst({
+        where: { transactionId: refundData.id as string },
+      });
+      if (existingRefundWithTxnId) {
+        return { status: "already_processed", refundId: existingRefundWithTxnId.id, orderNumber: currentOrder.orderNumber };
       }
 
       await tx.refunds.create({
@@ -437,40 +482,47 @@ async function handleRefund(req: Request, ctx: RequestContext, env: Env): Promis
 
       await tx.notifications.create({
         data: {
-          profileId: order.profileId!,
+          profileId: currentOrder.profileId!,
           orderId,
           type: "refund_processed",
           channel: "in_app",
           title: "Refund Processed",
-          body: `Refund of ₹${refundAmount} for order ${order.orderNumber} has been processed.`,
+          body: `Refund of ₹${refundAmount} for order ${currentOrder.orderNumber} has been processed.`,
           data: {
-            orderNumber: order.orderNumber,
+            orderNumber: currentOrder.orderNumber,
             amount: refundAmount,
             refundId: refundData.id as string,
           },
         },
       });
+
+      return { refundAmount, refundId: refundData.id as string, orderNumber: currentOrder.orderNumber };
     });
+
+    if (result.status === "already_processed") {
+      return success({ success: true, alreadyProcessed: true, refundId: result.refundId });
+    }
 
     void logAction(ctx.userId, "payment.refund", {
       entity: "order",
       entityId: orderId,
       metadata: {
-        orderNumber: order.orderNumber,
-        amount: refundAmount,
-        refundId: refundData.id,
-        isFullRefund,
+        orderNumber: result.orderNumber,
+        amount: result.refundAmount,
+        refundId: result.refundId,
       },
       ...extractRequestMeta(req),
     }, env);
 
     return success({
       success: true,
-      refundId: refundData.id,
-      amount: refundAmount,
-      type: isFullRefund ? "full" : "partial",
+      refundId: result.refundId,
+      amount: result.refundAmount,
     });
   } catch (err) {
+    const statusCode = (err as Error & { statusCode?: number }).statusCode || 500;
+    if (statusCode === 400) return badRequest((err as Error).message);
+    if (statusCode === 404) return notFound((err as Error).message);
     return serverError(err);
   }
 }
@@ -493,7 +545,7 @@ interface WebhookEventPayload {
 }
 
 function getWebhookEventId(event: WebhookEventPayload): string {
-  return event.event_id || event.id || `${event.event}_${event.created_at || Date.now()}`;
+  return event.event_id || event.id || `${event.event}_${event.created_at || Date.now()}_${crypto.randomUUID().slice(0, 8)}`;
 }
 
 async function findOrderByRazorpayOrderId(razorpayOrderId: string, env: Env) {
@@ -526,6 +578,17 @@ async function handlePaymentCaptured(event: WebhookEventPayload, ctx: { env: Env
 
   const order = await findOrderByRazorpayOrderId(razorpayOrderId, ctx.env!);
   if (!order) return { status: "skipped", reason: `Order not found for razorpay_order_id: ${razorpayOrderId}` };
+
+  // Verify webhook payment amount matches order total
+  const orderTotal = Number(order.total);
+  if (Math.abs(amount - orderTotal) > 0.01) {
+    void logAction(null, "payment.webhook_amount_mismatch", {
+      entity: "order",
+      entityId: order.id,
+      metadata: { expected: orderTotal, actual: amount, razorpayPaymentId, razorpayOrderId },
+    }, ctx.env!);
+    return { status: "skipped", reason: `Payment amount (${amount}) does not match order total (${orderTotal})` };
+  }
 
   const result = await prisma.$transaction(async (tx) => {
     const current = await tx.orders.findUnique({ where: { id: order.id } });
@@ -867,49 +930,50 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
     return badRequest("Invalid webhook event");
   }
 
-  // ── 4. Dedup — check if we already processed this event ──
-  try {
-    const existing = await prisma.webhook_events.findUnique({
-      where: { source_eventId: { source: "razorpay", eventId } },
-    });
-
-    if (existing) {
-      if (existing.status === "processed") {
-        return success({ status: "duplicate_ignored", existingStatus: existing.status });
-      }
-      if (existing.status === "failed" && existing.retryCount >= 3) {
-        return success({ status: "duplicate_ignored", existingStatus: existing.status, retryCount: existing.retryCount });
-      }
-    }
-  } catch (dedupErr) {
-    void logAction(null, "payment.webhook_dedup_error", {
-      entity: "payment_webhook",
-      entityId: eventId || "unknown",
-      metadata: { error: (dedupErr as Error).message },
-    }, env);
-  }
-
-  // ── 5. Create or update WebhookEvent record ──
+  // ── 4. Dedup + persist atomically (inside transaction to prevent
+  //       race between two concurrent webhook deliveries). ──
   let webhookEventId: string;
   try {
-    const record = await prisma.webhook_events.upsert({
-      where: { source_eventId: { source: "razorpay", eventId } },
-      create: {
-        eventId,
-        source: "razorpay",
-        eventType: eventName,
-        status: "received",
-        payload: event as never,
-      },
-      update: {
-        retryCount: { increment: 1 },
-        status: "received",
-        errorMessage: null,
-      },
+    const record = await prisma.$transaction(async (tx) => {
+      const existing = await tx.webhook_events.findUnique({
+        where: { source_eventId: { source: "razorpay", eventId } },
+      });
+
+      if (existing) {
+        if (existing.status === "processed") {
+          throw Object.assign(new Error("DUPLICATE_PROCESSED"), { existingRecord: existing });
+        }
+        if (existing.status === "failed" && existing.retryCount >= 3) {
+          throw Object.assign(new Error("DUPLICATE_EXHAUSTED"), { existingRecord: existing });
+        }
+      }
+
+      return tx.webhook_events.upsert({
+        where: { source_eventId: { source: "razorpay", eventId } },
+        create: {
+          eventId,
+          source: "razorpay",
+          eventType: eventName,
+          status: "received",
+          payload: event as never,
+        },
+        update: {
+          retryCount: { increment: 1 },
+          status: "received",
+          errorMessage: null,
+        },
+      });
     });
     webhookEventId = record.id;
-  } catch {
-    // Upsert failed — try simple create
+  } catch (err) {
+    const dupErr = err as Error & { existingRecord?: { id: string; status: string; retryCount: number } };
+    if (dupErr.message === "DUPLICATE_PROCESSED") {
+      return success({ status: "duplicate_ignored", existingStatus: dupErr.existingRecord?.status });
+    }
+    if (dupErr.message === "DUPLICATE_EXHAUSTED") {
+      return success({ status: "duplicate_ignored", existingStatus: dupErr.existingRecord?.status, retryCount: dupErr.existingRecord?.retryCount });
+    }
+    // Unexpected error — try simple create as fallback
     try {
       const record = await prisma.webhook_events.create({
         data: {

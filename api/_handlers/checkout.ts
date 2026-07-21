@@ -372,11 +372,13 @@ export async function handleCheckoutRequest(
           },
         });
       } else {
-        // Update existing profile to mark as guest if not already
-        await prisma.profiles.update({
-          where: { id: guestProfile.id },
-          data: { preferences: { ...(guestProfile.preferences as Record<string, unknown> || {}), guest: true } },
-        });
+        const prefs = guestProfile.preferences as Record<string, unknown> | null;
+        // Only reuse profiles explicitly created as guest. Reject if this email
+        // belongs to a registered user (no `guest: true` flag) to prevent
+        // attribute hijacking and preference corruption.
+        if (!prefs?.guest) {
+          return badRequest("This email is associated with a registered account. Please log in to continue.");
+        }
       }
       profileId = guestProfile.id;
       // Track for potential cleanup (profile is kept intentionally for reuse)

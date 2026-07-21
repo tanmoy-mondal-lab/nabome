@@ -11,7 +11,7 @@ import { cleanSecret } from "../../_lib/secrets";
 import type { Env } from "../../_lib/env";
 import { getEnv } from "../../_lib/env";
 import { uploadToCloudinary, deleteAsset } from "../../_lib/media/cloudinary";
-import { validateFile, validateFileContent, getFileTypeConfig } from "../../_lib/media/validation";
+import { validateFile, validateFileContent, getFileTypeConfig, sanitizeFolderPath } from "../../_lib/media/validation";
 import { generateAssetId } from "../../_lib/media/asset-id";
 import { moveResource } from "../../_lib/media/folders";
 import { deleteMedia } from "../../_lib/media-service";
@@ -66,7 +66,7 @@ export async function handleAdminMediaUploadRequest(
     const contentValidation = await validateFileContent(file, file.type);
     if (!contentValidation.valid) return badRequest(contentValidation.error!);
 
-    const folder = (formData.get("folder") as string) || "media-library";
+    const folder = sanitizeFolderPath((formData.get("folder") as string) || "media-library");
     const altText = (formData.get("altText") as string) || file.name;
     const displayName = (formData.get("displayName") as string) || altText;
     let tags: string[] = [];
@@ -255,10 +255,10 @@ export async function handleAdminMediaBulkDeleteRequest(
     let deleted = 0;
     let failed = 0;
     let skippedInUse = 0;
+    const prisma = getPrisma(ctx.env!);
 
     for (const assetId of assetIds) {
       try {
-        const prisma = getPrisma(ctx.env!);
         const asset = await prisma.media_assets.findUnique({
           where: { id: assetId },
           select: { id: true, publicId: true },

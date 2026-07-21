@@ -265,11 +265,12 @@ export default function CheckoutPage() {
         });
       }
 
-      const order = orderData.order as { id?: string; orderId?: string; orderNumber?: string };
+      const order = orderData.order as { id: string; orderId?: string; orderNumber?: string };
       const razorpayOrderId = orderData.razorpayOrderId;
+      const resolvedOrderId = order.id || order.orderId || "";
 
       if (paymentMethod === "cod") {
-        setOrderId((order.id ?? order.orderId) as string);
+        setOrderId(resolvedOrderId);
         clearCart();
         setStep("success");
       } else {
@@ -287,16 +288,16 @@ export default function CheckoutPage() {
             razorpayPaymentId: result.razorpayPaymentId,
             razorpayOrderId: result.razorpayOrderId,
             razorpaySignature: result.razorpaySignature,
-            orderId: (order.id ?? order.orderId) as string,
+            orderId: resolvedOrderId,
           });
-          setOrderId((order.id ?? order.orderId) as string);
+          setOrderId(resolvedOrderId);
           clearCart();
           setStep("success");
         } catch (payErr: unknown) {
           if (payErr && typeof payErr === "object" && "code" in payErr) {
             const err = payErr as { code?: string; description?: string; message?: string };
             await customerApi.reportPaymentFailed({
-              orderId: (order.id ?? order.orderId) as string,
+              orderId: resolvedOrderId,
               razorpayOrderId: razorpayOrderId!,
               errorDescription: err.description || err.message,
             });

@@ -124,14 +124,21 @@ if (typeof window !== "undefined") {
         try {
           const parsed = JSON.parse(event.newValue);
           if (parsed?.state?.items) {
+            const incoming = parsed.state.items as CartItem[];
             const currentIds = new Set(current.items.map(i => i.variantId));
-            const newItems = parsed.state.items.filter((i: CartItem) => !currentIds.has(i.variantId));
-            const updatedItems = parsed.state.items.map((i: CartItem) => {
+            const incomingIds = new Set(incoming.map(i => i.variantId));
+            const hasNewItems = incoming.some(i => !currentIds.has(i.variantId));
+            const hasRemovedItems = current.items.some(i => !incomingIds.has(i.variantId));
+            const hasQuantityChanges = incoming.some((i: CartItem) => {
               const existing = current.items.find(ci => ci.variantId === i.variantId);
-              return existing && existing.quantity > i.quantity ? existing : i;
+              return existing && existing.quantity !== i.quantity;
             });
-            if (newItems.length > 0 || updatedItems.length !== current.items.length) {
-              useCartStore.setState({ items: updatedItems, justAdded: null });
+            if (hasNewItems || hasRemovedItems || hasQuantityChanges) {
+              const mergedItems = incoming.map((i: CartItem) => {
+                const existing = current.items.find(ci => ci.variantId === i.variantId);
+                return existing && existing.quantity > i.quantity ? existing : i;
+              });
+              useCartStore.setState({ items: mergedItems, justAdded: null });
             }
           }
         } catch { /* ignore parse errors */ }
@@ -163,7 +170,7 @@ export const useCartStore = create<CartState>()(
           });
         } else {
           set({
-            items: [...items, { ...item, id: crypto.randomUUID() }],
+            items: [...items, { ...item, id: crypto.randomUUID(), quantity: Math.min(item.quantity, item.maxQuantity) }],
             justAdded: item.variantId,
           });
         }
@@ -213,11 +220,13 @@ export const useCartStore = create<CartState>()(
 
       discountAmount: () => {
         const sub = get().subtotal();
-        if (!get().discountType) return 0;
+        if (Number.isNaN(sub) || !get().discountType) return 0;
         // The /api/coupons/validate endpoint returns `discount` as an absolute
         // rupee amount (already computed for percentage coupons), so treat it
         // as absolute regardless of discountType.
-        const raw = Math.min(sub, Math.max(0, get().discount));
+        const discountValue = get().discount;
+        if (Number.isNaN(discountValue) || discountValue <= 0) return 0;
+        const raw = Math.min(sub, Math.max(0, discountValue));
         return Math.round(raw * 100) / 100;
       },
 

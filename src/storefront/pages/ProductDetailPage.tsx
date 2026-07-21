@@ -119,7 +119,7 @@ export default function ProductDetailPage() {
 
   const filteredVariants = variants.filter((v) => !selectedColor || v.colorHex === selectedColor);
   const sizeStock: Record<string, number> = {};
-  filteredVariants.forEach((v) => { sizeStock[v.size] = v.stock ?? 0; });
+  filteredVariants.forEach((v) => { sizeStock[v.size] = (sizeStock[v.size] ?? 0) + (v.stock ?? 0); });
 
   const matchedVariant = variants.find((v) => v.size === selectedSize && v.colorHex === selectedColor)
     ?? variants.find((v) => v.size === selectedSize)

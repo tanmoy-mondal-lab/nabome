@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Grid3X3, List, SlidersHorizontal, X, RefreshCw } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api/client";
 import { SafeImage } from "../../components/SafeImage";
 import { Breadcrumbs } from "../components/Breadcrumbs";
@@ -86,6 +86,7 @@ function SubcategoryCard({ sub, index, categorySlug }: { sub: Subcategory; index
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const queryClient = useQueryClient();
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
@@ -592,7 +593,7 @@ export default function CategoryPage() {
                 </div>
                 <p className="text-neutral-500 text-lg mb-2">Failed to load products.</p>
                 <p className="text-neutral-400 text-sm mb-4">Please try again.</p>
-                <button onClick={() => { if (typeof window !== 'undefined') window.location.reload(); }} className="btn-primary">
+                <button onClick={() => queryClient.invalidateQueries({ queryKey: ["products"] })} className="btn-primary">
                   Retry
                 </button>
               </div>

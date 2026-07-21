@@ -15,16 +15,17 @@ import { Helmet } from "react-helmet-async";
 
 export default function CartPage() {
   const navigate = useNavigate();
-  const { items, removeItem, updateQuantity, subtotal, discountAmount, total: _total, couponCode, applyCoupon, removeCoupon, clearCart } = useCart();
+  const { items, removeItem, updateQuantity, subtotal, discountAmount, couponCode, applyCoupon, removeCoupon, clearCart } = useCart();
   const { data: settings } = useSettings();
   const [couponInput, setCouponInput] = useState("");
   const [couponError, setCouponError] = useState("");
   const [removingId, setRemovingId] = useState<string | null>(null);
 
+  const rawPreferences = settings?.preferences ?? {};
   const siteSettings = {
-    freeShippingThreshold: Number(settings?.preferences?.freeShippingThreshold ?? 500),
-    shippingCost: Number(settings?.preferences?.shippingCost ?? 99),
-    taxRate: Number(settings?.preferences?.taxRate ?? 5),
+    freeShippingThreshold: Number(settings?.freeShippingThreshold ?? rawPreferences.freeShippingThreshold ?? 500),
+    shippingCost: Number(rawPreferences.shippingCost ?? 99),
+    taxRate: Number(settings?.taxRate ?? rawPreferences.taxRate ?? 5),
   };
 
   async function handleApplyCoupon() {
@@ -54,10 +55,8 @@ export default function CartPage() {
 
   function handleRemove(variantId: string) {
     setRemovingId(variantId);
-    setTimeout(() => {
-      removeItem(variantId);
-      setRemovingId(null);
-    }, 300);
+    removeItem(variantId);
+    setRemovingId(null);
   }
 
   const shipping = subtotal >= siteSettings.freeShippingThreshold ? 0 : siteSettings.shippingCost;

@@ -187,3 +187,18 @@ export function throwIfInvalid(result: ValidationResult): void {
     throw new Error(result.error ?? "Validation failed");
   }
 }
+
+/**
+ * Sanitize a folder path to prevent path-traversal attacks.
+ * Allows only alphanumeric characters, hyphens, underscores, dots, and single slashes.
+ * Rejects '..', absolute paths, and empty segments.
+ */
+export function sanitizeFolderPath(input: string): string {
+  const trimmed = input.trim().replace(/^\/+|\/+$/g, "");
+  const segments = trimmed.split("/").filter(Boolean);
+  const safeSegments = segments.map((seg) => {
+    const s = seg.replace(/[^a-zA-Z0-9_-]/g, "_");
+    return s || "unnamed";
+  });
+  return safeSegments.join("/") || "media-library";
+}

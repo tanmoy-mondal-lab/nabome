@@ -390,6 +390,7 @@ export default function ProductFormPage() {
               toast(isEdit ? "Product updated" : "Product created", "success");
               void navigate("/admin/products");
             }
+            setSaving(false);
             return;
           }
         } catch (err) {
@@ -423,19 +424,19 @@ export default function ProductFormPage() {
   );
 
   handleSaveRef.current = () => handleSaveWithRetry();
-  function handleDuplicate() {
+  async function handleDuplicate() {
     if (!id) return;
     
     const maxRetries = 3;
     const baseDelay = 1000;
-    let retryCount = 0;
     
-    const attemptDuplicate = async () => {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        await adminApi.duplicateProduct(id!);
+        await adminApi.duplicateProduct(id);
         void queryClient.invalidateQueries({ queryKey: ["admin", "products"] });
         toast("Product duplicated as draft", "success");
         void navigate("/admin/products");
+        return;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         const statusCode = (err as { status?: number })?.status;
@@ -444,20 +445,17 @@ export default function ProductFormPage() {
           statusCode === 429 || 
           statusCode === 503;
         
-        if (isRateLimit && retryCount < maxRetries) {
-          retryCount++;
-          const delay = baseDelay * Math.pow(2, retryCount);
-          void setSaveError(`Rate limited during duplicate. Retrying in ${Math.round(delay/1000)}s... (Attempt ${retryCount}/${maxRetries})`);
+        if (isRateLimit && attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt);
+          setSaveError(`Rate limited during duplicate. Retrying in ${Math.round(delay/1000)}s... (Attempt ${attempt + 1}/${maxRetries})`);
           await new Promise(resolve => setTimeout(resolve, delay));
-          void attemptDuplicate();
         } else {
-          void setSaveError(`Failed to duplicate product: ${msg}`);
+          setSaveError(`Failed to duplicate product: ${msg}`);
           toast("Failed to duplicate product", "error");
+          return;
         }
       }
-    };
-    
-    void attemptDuplicate();
+    }
   }
 
   function handleBack() {

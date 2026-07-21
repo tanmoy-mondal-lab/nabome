@@ -7,7 +7,8 @@ export function getRootFolder(): string {
 }
 
 export function getEntityFolder(entityType: EntityType, slug: string): string {
-  const safeSlug = slug.replace(/[^a-zA-Z0-9_-]/g, "_") || slug;
+  const sanitized = slug.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const safeSlug = sanitized || "unnamed";
   return `${ROOT_FOLDER}/${entityType}/${safeSlug}`;
 }
 

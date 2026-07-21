@@ -18,6 +18,7 @@ import {
   deleteFolder,
   getStorageInfo,
 } from "../../_lib/media/folders";
+import { sanitizeFolderPath } from "../../_lib/media/validation";
 
 function getCloudinaryConfig(env?: Env) {
   const effectiveEnv = env || getEnv();
@@ -74,12 +75,13 @@ async function handleListFolders(_req: Request, env: Env): Promise<Response> {
 
 async function handleListFolderContents(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
-  const folderPath = url.searchParams.get("path") || "";
+  const rawPath = url.searchParams.get("path") || "";
+  const folderPath = rawPath ? sanitizeFolderPath(rawPath) : "";
   const maxResults = parseInt(url.searchParams.get("maxResults") || "100");
   const nextCursor = url.searchParams.get("nextCursor") || undefined;
   const resourceType = url.searchParams.get("resourceType") as "image" | "video" | "raw" | undefined;
 
-  if (!folderPath) {
+  if (!rawPath) {
     return badRequest("Folder path is required");
   }
 
@@ -137,11 +139,13 @@ async function handleCreateFolder(req: Request, env: Env): Promise<Response> {
     return badRequest("Invalid JSON body");
   }
 
-  const { path } = body;
+  const rawPath = body.path;
 
-  if (!path || typeof path !== "string") {
+  if (!rawPath || typeof rawPath !== "string") {
     return badRequest("Folder path is required");
   }
+
+  const path = sanitizeFolderPath(rawPath);
 
   try {
     const config = getCloudinaryConfig(env);
@@ -166,15 +170,19 @@ async function handleRenameFolder(req: Request, env: Env): Promise<Response> {
     return badRequest("Invalid JSON body");
   }
 
-  const { oldPath, newPath } = body;
+  const rawOldPath = body.oldPath;
+  const rawNewPath = body.newPath;
 
-  if (!oldPath || typeof oldPath !== "string") {
+  if (!rawOldPath || typeof rawOldPath !== "string") {
     return badRequest("Old folder path is required");
   }
 
-  if (!newPath || typeof newPath !== "string") {
+  if (!rawNewPath || typeof rawNewPath !== "string") {
     return badRequest("New folder path is required");
   }
+
+  const oldPath = sanitizeFolderPath(rawOldPath);
+  const newPath = sanitizeFolderPath(rawNewPath);
 
   try {
     const config = getCloudinaryConfig(env);
@@ -184,7 +192,7 @@ async function handleRenameFolder(req: Request, env: Env): Promise<Response> {
     const prisma = getPrisma(env);
     const assetsToUpdate = await prisma.media_assets.findMany({
       where: {
-        folder: { contains: oldPath },
+        folder: { startsWith: oldPath },
       },
       select: { id: true, folder: true },
     });
@@ -194,7 +202,7 @@ async function handleRenameFolder(req: Request, env: Env): Promise<Response> {
         await prisma.media_assets.update({
           where: { id: asset.id },
           data: {
-            folder: asset.folder.replace(oldPath, newPath),
+            folder: newPath + asset.folder.slice(oldPath.length),
           },
         });
       }
@@ -214,9 +222,10 @@ async function handleRenameFolder(req: Request, env: Env): Promise<Response> {
 
 async function handleDeleteFolder(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
-  const path = url.searchParams.get("path");
+  const rawPath = url.searchParams.get("path") || "";
+  const path = sanitizeFolderPath(rawPath);
 
-  if (!path) {
+  if (!rawPath) {
     return badRequest("Folder path is required");
   }
 
@@ -246,13 +255,16 @@ async function handleMoveFolder(req: Request, env: Env): Promise<Response> {
     return badRequest("Invalid JSON body");
   }
 
-  const { oldPath, newPath } = body;
+  const rawOldPath = body.oldPath;
+  const rawNewPath = body.newPath;
+  const oldPath = sanitizeFolderPath(rawOldPath || "");
+  const newPath = sanitizeFolderPath(rawNewPath || "");
 
-  if (!oldPath || typeof oldPath !== "string") {
+  if (!rawOldPath || typeof rawOldPath !== "string") {
     return badRequest("Old folder path is required");
   }
 
-  if (!newPath || typeof newPath !== "string") {
+  if (!rawNewPath || typeof rawNewPath !== "string") {
     return badRequest("New folder path is required");
   }
 
@@ -264,7 +276,7 @@ async function handleMoveFolder(req: Request, env: Env): Promise<Response> {
     const prisma = getPrisma(env);
     const assetsToUpdate = await prisma.media_assets.findMany({
       where: {
-        folder: { contains: oldPath },
+        folder: { startsWith: oldPath },
       },
       select: { id: true, folder: true },
     });
@@ -274,7 +286,7 @@ async function handleMoveFolder(req: Request, env: Env): Promise<Response> {
         await prisma.media_assets.update({
           where: { id: asset.id },
           data: {
-            folder: asset.folder.replace(oldPath, newPath),
+            folder: newPath + asset.folder.slice(oldPath.length),
           },
         });
       }

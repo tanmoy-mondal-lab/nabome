@@ -105,18 +105,19 @@ export default function AdminLayout() {
     } catch (err) { /* localStorage might be full */ console.error("Failed to persist sidebar state:", err); }
   }, [expandedMenus]);
 
-  // Save scroll position before navigation
+  // Save scroll position before SPA navigation (beforeunload only fires on full reload)
+  const prevPathRef = useRef(location.pathname);
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const currentPath = prevPathRef.current;
+    if (currentPath !== location.pathname) {
       if (sidebarNavRef.current) {
         try {
           localStorage.setItem("admin-sidebar-scroll", sidebarNavRef.current.scrollTop.toString());
         } catch (err) { console.error("Failed to save sidebar scroll:", err); }
       }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
+      prevPathRef.current = location.pathname;
+    }
+  }, [location.pathname]);
 
   // Restore scroll position after navigation
   useEffect(() => {

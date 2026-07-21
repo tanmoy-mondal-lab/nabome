@@ -57,13 +57,17 @@ export function useWishlist() {
 
   const remove = async (variantId: string) => {
     if (!isAuthenticated) return;
-    const previous = items;
+
     setItems((prev) => prev.filter((i) => i.variantId !== variantId));
 
     try {
       await api.delete(`/wishlist/${variantId}`);
     } catch {
-      setItems(previous);
+      setItems((prev) => {
+        const alreadyRemoved = !prev.some((i) => i.variantId === variantId);
+        if (alreadyRemoved) return prev;
+        return prev;
+      });
     }
   };
 

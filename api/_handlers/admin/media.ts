@@ -12,6 +12,7 @@ import {
 import type { CloudinaryConfig } from "../../_lib/media/types";
 import { normalizeEntityTypeForDb } from "../../_lib/media/entity-type";
 import { getAssetReferences } from "../../_lib/media/usage.service";
+import { sanitizeFolderPath } from "../../_lib/media/validation";
 
 
 export async function handleAdminMediaRequest(
@@ -241,7 +242,7 @@ async function handleUpdate(assetId: string, req: Request, env: Env): Promise<Re
     const data: Record<string, unknown> = {};
     if (altText !== undefined) data.altText = altText;
     if (displayName !== undefined) data.displayName = displayName;
-    if (folder !== undefined) data.folder = folder;
+    if (folder !== undefined) data.folder = sanitizeFolderPath(String(folder));
     if (tags !== undefined) data.tags = tags;
     if (sortOrder !== undefined) data.sortOrder = sortOrder;
     if (isPrimary !== undefined) data.isPrimary = isPrimary;
