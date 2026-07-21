@@ -42,7 +42,7 @@ export function useAuth() {
         setLoading(false);
       }
     };
-    restoreSession();
+    void restoreSession();
   }, [setAuth, setLoading]);
 
   // ── Listen for forced logout from API client (session expired) ──

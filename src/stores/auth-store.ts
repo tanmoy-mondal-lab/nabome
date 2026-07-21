@@ -20,7 +20,7 @@ export interface AuthState {
   clearAuth: () => void;
 }
 
-export const useAuthStore = create<AuthState>()((set, _get) => ({
+export const useAuthStore = create<AuthState>()((set) => ({
   user: null,
   isAuthenticated: false,
   isAdmin: false,

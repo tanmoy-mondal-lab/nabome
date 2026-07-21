@@ -107,7 +107,8 @@ export function clearCookie(
   response: Response,
   name: string,
   options: Pick<CookieOptions, "path" | "sameSite">,
-  env?: any
+  env?: any,
+  httpOnly?: boolean
 ): Response {
   const nodeEnv = env?.NODE_ENV ?? (typeof process !== "undefined" ? process.env?.NODE_ENV : undefined);
   const cfPages = env?.CF_PAGES ?? (typeof process !== "undefined" ? process.env?.CF_PAGES : undefined);
@@ -118,7 +119,7 @@ export function clearCookie(
     `Max-Age=0`,
     `SameSite=${options.sameSite}`,
     isSecure ? "Secure" : "",
-    "HttpOnly",
+    httpOnly ? "HttpOnly" : "",
   ]
     .filter(Boolean)
     .join("; ");

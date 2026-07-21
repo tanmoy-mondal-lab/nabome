@@ -197,7 +197,7 @@ async function handleUpdate(req: Request, ctx: RequestContext, env: Env): Promis
       settings = await prisma.site_settings.create({ data: createData });
     }
 
-    logAction(ctx.userId, "admin.settings.update", {
+    void logAction(ctx.userId, "admin.settings.update", {
       entity: "siteSetting",
       entityId: settings.id,
       metadata: { siteName: settings.siteName },
@@ -251,7 +251,7 @@ async function handleCreateSocialLink(req: Request, ctx: RequestContext, env: En
         sortOrder: sortOrder ?? 0,
       },
     });
-    logAction(ctx.userId, "admin.social_links.create", {
+    void logAction(ctx.userId, "admin.social_links.create", {
       entity: "socialMediaLink",
       entityId: link.id,
       metadata: { platform: link.platform, url: link.url },
@@ -278,7 +278,7 @@ async function handleUpdateSocialLink(linkId: string, req: Request, ctx: Request
       where: { id: linkId },
       data: data as never,
     });
-    logAction(ctx.userId, "admin.social_links.update", {
+    void logAction(ctx.userId, "admin.social_links.update", {
       entity: "socialMediaLink",
       entityId: link.id,
       metadata: { platform: link.platform },
@@ -294,7 +294,7 @@ async function handleDeleteSocialLink(linkId: string, req: Request, ctx: Request
   try {
     const prisma = getPrisma(env);
     await prisma.social_media_links.delete({ where: { id: linkId } });
-    logAction(ctx.userId, "admin.social_links.delete", {
+    void logAction(ctx.userId, "admin.social_links.delete", {
       entity: "socialMediaLink",
       entityId: linkId,
       ...extractRequestMeta(req),

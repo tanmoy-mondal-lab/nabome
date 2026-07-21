@@ -83,7 +83,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promis
         endDate: new Date(endDate),
       },
     });
-    logAction(ctx.userId, "admin.coupons.create", {
+    void logAction(ctx.userId, "admin.coupons.create", {
       entity: "coupon",
       entityId: coupon.id,
       metadata: { code: coupon.code, discountType: coupon.discountType },
@@ -124,7 +124,7 @@ async function handleUpdate(couponId: string, req: Request, ctx: RequestContext,
       where: { id: couponId },
       data: data as never,
     });
-    logAction(ctx.userId, "admin.coupons.update", {
+    void logAction(ctx.userId, "admin.coupons.update", {
       entity: "coupon",
       entityId: coupon.id,
       metadata: { code: coupon.code },
@@ -145,7 +145,7 @@ async function handleDelete(couponId: string, req: Request, ctx: RequestContext,
       where: { id: couponId },
       data: { isActive: false },
     });
-    logAction(ctx.userId, "admin.coupons.delete", {
+    void logAction(ctx.userId, "admin.coupons.delete", {
       entity: "coupon",
       entityId: couponId,
       ...extractRequestMeta(req),

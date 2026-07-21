@@ -32,7 +32,7 @@ class BackgroundCleanupQueue {
       // Then by creation time (oldest first)
       return a.createdAt - b.createdAt;
     });
-    this.process();
+    void this.process();
   }
 
   /**
@@ -52,7 +52,7 @@ class BackgroundCleanupQueue {
       this.currentConcurrent++;
       
       // Process task in background
-      this.processTask(task).finally(() => {
+      void this.processTask(task).finally(() => {
         this.currentConcurrent--;
       });
     }

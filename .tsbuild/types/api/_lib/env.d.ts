@@ -23,6 +23,7 @@ export interface Env {
     VITE_SITE_URL?: string;
     CF_PAGES?: string;
     ALERT_WEBHOOK_URL?: string;
+    IP_WHITELIST?: string;
     RATE_LIMIT_STORE?: {
         get: (key: string) => Promise<string | null>;
         put: (key: string, value: string, opts?: {

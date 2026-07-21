@@ -72,7 +72,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promis
         metaDesc: metaDesc ?? null,
       },
     });
-    logAction(ctx.userId, "admin.collection.create", {
+    void logAction(ctx.userId, "admin.collection.create", {
       entity: "collection",
       entityId: collection.id,
       metadata: { name: collection.name, slug: collection.slug },
@@ -126,7 +126,7 @@ async function handleUpdate(collectionId: string, req: Request, ctx: RequestCont
       where: { id: collectionId },
       data: data as never,
     });
-    logAction(ctx.userId, "admin.collection.update", {
+    void logAction(ctx.userId, "admin.collection.update", {
       entity: "collection",
       entityId: collectionId,
       metadata: { name: collection.name },
@@ -146,7 +146,7 @@ async function handleDelete(collectionId: string, req: Request, ctx: RequestCont
       where: { id: collectionId },
       data: { isActive: false },
     });
-    logAction(ctx.userId, "admin.collection.delete", {
+    void logAction(ctx.userId, "admin.collection.delete", {
       entity: "collection",
       entityId: collectionId,
       metadata: {},

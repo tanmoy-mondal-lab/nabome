@@ -80,7 +80,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promis
     // Also create subcategory if parentId is provided and no subcategory table entry needed
     // The subcategory model exists for finer-grained categorization
 
-    logAction(ctx.userId, "admin.category.create", {
+    void logAction(ctx.userId, "admin.category.create", {
       entity: "category",
       entityId: category.id,
       metadata: { name: category.name, slug: category.slug },
@@ -135,7 +135,7 @@ async function handleUpdate(categoryId: string, req: Request, ctx: RequestContex
       include: { _count: { select: { products: true, children: true } }, parent: { select: { id: true, name: true } } },
     });
 
-    logAction(ctx.userId, "admin.category.update", {
+    void logAction(ctx.userId, "admin.category.update", {
       entity: "category",
       entityId: categoryId,
       metadata: { name: category.name },
@@ -177,7 +177,7 @@ async function handleDelete(categoryId: string, req: Request, ctx: RequestContex
 
     await prisma.categories.delete({ where: { id: categoryId } });
 
-    logAction(ctx.userId, "admin.category.delete", {
+    void logAction(ctx.userId, "admin.category.delete", {
       entity: "category",
       entityId: categoryId,
       metadata: {},

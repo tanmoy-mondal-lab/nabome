@@ -254,7 +254,7 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
       return cancelled;
     });
 
-    logAction(ctx.userId, "order.cancel", {
+    void logAction(ctx.userId, "order.cancel", {
       entity: "order",
       entityId: orderId,
       metadata: { orderNumber: order.orderNumber, reason: cancellationReason },

@@ -66,7 +66,7 @@ async function handleCreateAnnouncement(req: Request, ctx: RequestContext): Prom
         endDate: endDate ? new Date(endDate) : null,
       },
     });
-    logAction(ctx.userId, "admin.announcements.create", {
+    void logAction(ctx.userId, "admin.announcements.create", {
       entity: "announcement",
       entityId: announcement.id,
       metadata: { text: announcement.text },
@@ -102,7 +102,7 @@ async function handleUpdateAnnouncement(announcementId: string, req: Request, ct
       where: { id: announcementId },
       data: data as never,
     });
-    logAction(ctx.userId, "admin.announcements.update", {
+    void logAction(ctx.userId, "admin.announcements.update", {
       entity: "announcement",
       entityId: announcementId,
       ...extractRequestMeta(req),
@@ -119,7 +119,7 @@ async function handleDeleteAnnouncement(announcementId: string, req: Request, ct
     const existing = await prisma.announcement_bars.findUnique({ where: { id: announcementId } });
     if (!existing) return notFound("Announcement not found");
     await prisma.announcement_bars.delete({ where: { id: announcementId } });
-    logAction(ctx.userId, "admin.announcements.delete", {
+    void logAction(ctx.userId, "admin.announcements.delete", {
       entity: "announcement",
       entityId: announcementId,
       ...extractRequestMeta(req),

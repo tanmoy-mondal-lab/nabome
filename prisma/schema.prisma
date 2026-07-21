@@ -56,6 +56,7 @@ model profiles {
 
   @@index([role])
   @@index([isActive])
+  @@index([role, isActive])
   @@index([createdAt])
 }
 
@@ -336,6 +337,7 @@ model products {
   @@index([scheduledPublishAt])
   @@index([scheduledArchiveAt])
   @@index([createdAt])
+  @@index([sizeGuideId])
 }
 
 model product_variants {
@@ -382,6 +384,7 @@ model product_images {
   variant   product_variants? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
   @@index([productId])
+  @@index([productId, isPrimary])
   @@index([variantId])
   @@index([isPrimary])
 }
@@ -490,6 +493,8 @@ model addresses {
   ordersAsShipping orders[]  @relation("ShippingAddress")
 
   @@index([profileId])
+  @@index([profileId, isDefault])
+  @@index([profileId, isBillingDefault])
   @@index([pincode])
 }
 
@@ -598,7 +603,7 @@ model order_items {
   productName    String          @map("product_name") @db.VarChar(300)
   variantLabel   String          @map("variant_label") @db.VarChar(200)
   sku            String          @db.VarChar(100)
-  quantity       Int
+  quantity       Int             @default(1)
   unitPrice      Decimal         @map("unit_price") @db.Decimal(10, 2)
   totalPrice     Decimal         @map("total_price") @db.Decimal(10, 2)
   imageUrl       String?         @map("image_url")
@@ -613,6 +618,7 @@ model order_items {
   @@index([productId])
   @@index([variantId])
   @@index([orderId, productId])
+  @@index([orderId, productId, variantId])
   @@index([orderId, isReturned])
   @@index([productId, variantId])
 }
@@ -824,6 +830,7 @@ model reviews {
   profile    profiles  @relation(fields: [profileId], references: [id], onDelete: Restrict)
 
   @@unique([productId, profileId, orderId])
+  @@index([orderId])
   @@index([productId, isApproved])
   @@index([profileId])
 }
@@ -1057,7 +1064,9 @@ model return_requests {
   profile        profiles      @relation(fields: [profileId], references: [id], onDelete: Restrict)
 
   @@index([orderId])
+  @@index([orderItemId])
   @@index([profileId])
+  @@index([reviewedBy])
   @@index([status])
   @@index([status, createdAt])
 }

@@ -137,7 +137,7 @@ export function setSecurityHeaders(
   // Permissions-Policy (formerly Feature-Policy)
   response.headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=()"
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), fullscreen=(), display-capture=(), encrypted-media=()"
   );
 
   // X-Frame-Options (legacy, but still useful)

@@ -567,7 +567,7 @@ route("POST", "/api/payments/verify", (req, ctx) => handlePaymentRequest(req, ct
 route("POST", "/api/payments/failed", (req, ctx) => handlePaymentRequest(req, ctx, [], "failed"), { auth: true });
 route("POST", "/api/payments/retry", (req, ctx) => handlePaymentRequest(req, ctx, [], "retry"), { auth: true });
 route("POST", "/api/payments/refund", (req, ctx) => handlePaymentRequest(req, ctx, [], "refund"), { auth: true, admin: true });
-route("POST", "/api/payments/webhook", (req, ctx) => handlePaymentRequest(req, ctx, [], "webhook"));
+route("POST", "/api/payments/webhook", (req, ctx) => handlePaymentRequest(req, ctx, [], "webhook"), { auth: false });
 
 // Admin Webhooks
 route("GET", "/api/admin/webhooks/events", (req, ctx) => handleAdminWebhookRequest(req, ctx, [], "events"), { auth: true, admin: true });
@@ -768,8 +768,19 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
       }
     }
 
-    // Rate limiting — applied AFTER route match and auth, so we can use userId
-    // and don't waste rate limit budget on 404s or OPTIONS preflights
+    // Turnstile verification — PERFORM BEFORE rate limiting to prevent
+    // attackers from exhausting rate limit budget with invalid tokens.
+    if (requiresTurnstile(versionedPath)) {
+      const turnstileResult = await verifyTurnstileToken(request, context);
+      if (turnstileResult) {
+        healthMonitor.recordRequest(Date.now() - startTime, true);
+        logger.logResponse(requestId, method, versionedPath, 400, Date.now() - startTime, context.userId);
+        return withCors(turnstileResult, request, versionedPath);
+      }
+    }
+
+    // Rate limiting — applied AFTER route match and auth (so we can use userId)
+    // but AFTER Turnstile so invalid tokens don't consume rate limit budget.
     let rateConfig = RATE_LIMIT_CONFIG.standard;
     if (isAuthPath(versionedPath)) {
       rateConfig = versionedPath.includes("/contact") ? RATE_LIMIT_CONFIG.contact : RATE_LIMIT_CONFIG.auth;
@@ -790,15 +801,6 @@ async function handleRequest(method: string, request: Request, env?: any): Promi
       healthMonitor.recordRequest(Date.now() - startTime, true);
       logger.logResponse(requestId, method, versionedPath, 429, Date.now() - startTime, context.userId);
       return response;
-    }
-
-    if (requiresTurnstile(versionedPath)) {
-      const turnstileResult = await verifyTurnstileToken(request, context);
-      if (turnstileResult) {
-        healthMonitor.recordRequest(Date.now() - startTime, true);
-        logger.logResponse(requestId, method, versionedPath, 400, Date.now() - startTime, context.userId);
-        return withCors(turnstileResult, request, versionedPath);
-      }
     }
 
     try {

@@ -8,12 +8,14 @@ export const ALLOWED_ORIGINS = [
 ] as const;
 
 export const SECURITY_HEADERS: Record<string, string> = {
-  "Content-Security-Policy": "default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://checkout.razorpay.com https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cloudflare-insights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob: https://*.unsplash.com https://images.unsplash.com https://res.cloudinary.com https://www.google-analytics.com; media-src 'self' blob: https://res.cloudinary.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com data:; connect-src 'self' https://*.supabase.co https://api.razorpay.com https://www.google-analytics.com https://region1.google-analytics.com https://challenges.cloudflare.com https://cloudflare-insights.com https://cloudflareinsights.com https://static.cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com https://res.cloudinary.com; frame-src https://checkout.razorpay.com https://api.razorpay.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+  "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://checkout.razorpay.com https://challenges.cloudflare.com https://static.cloudflareinsights.com https://cloudflare-insights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' data: blob: https://*.unsplash.com https://images.unsplash.com https://res.cloudinary.com https://www.google-analytics.com; media-src 'self' blob: https://res.cloudinary.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com data:; connect-src 'self' https://*.supabase.co https://api.razorpay.com https://www.google-analytics.com https://region1.google-analytics.com https://challenges.cloudflare.com https://cloudflare-insights.com https://cloudflareinsights.com https://static.cloudflareinsights.com https://fonts.googleapis.com https://fonts.gstatic.com https://res.cloudinary.com; frame-src https://checkout.razorpay.com https://api.razorpay.com https://challenges.cloudflare.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
   "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), fullscreen=(), display-capture=(), encrypted-media=()",
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Resource-Policy": "same-origin",
 };
 
 const STATIC_HEADER_RULES: Array<{ path: string; headers: Record<string, string> }> = [
@@ -87,7 +89,11 @@ export function isOriginAllowed(origin: string): boolean {
     return ALLOWED_ORIGINS.some((allowedOrigin) => {
       if (!allowedOrigin.startsWith("https://*.")) return false;
       const suffix = allowedOrigin.slice("https://*.".length);
-      return url.protocol === "https:" && url.hostname.endsWith(`.${suffix}`);
+      // Exact suffix match: hostname must equal suffix or be a subdomain of suffix
+      // Prevents bypass via hostname like "evil.nabome.pages.dev.evil.com"
+      if (url.protocol !== "https:") return false;
+      if (url.hostname === suffix) return true;
+      return url.hostname.endsWith("." + suffix);
     });
   } catch {
     return false;

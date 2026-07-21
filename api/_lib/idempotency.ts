@@ -16,20 +16,21 @@ function getCacheBinding(env: Env): Env["CACHE"] | null {
   return null;
 }
 
-function cacheKey(key: string): string {
-  return `idempotency:${key}`;
+function cacheKey(key: string, userId?: string): string {
+  const prefix = userId ? `user:${userId}` : "anonymous";
+  return `idempotency:${prefix}:${key}`;
 }
 
 /**
  * Check CACHE for an existing response for this idempotency key.
  * If found, returns the cached Response; otherwise returns null.
  */
-export async function getCachedResponse(key: string, env: Env): Promise<Response | null> {
+export async function getCachedResponse(key: string, env: Env, userId?: string): Promise<Response | null> {
   const kv = getCacheBinding(env);
   if (!kv) return null;
 
   try {
-    const raw = await kv.get(cacheKey(key));
+    const raw = await kv.get(cacheKey(key, userId));
     if (!raw) return null;
 
     const cached: CachedResponse = JSON.parse(raw);
@@ -45,7 +46,7 @@ export async function getCachedResponse(key: string, env: Env): Promise<Response
 /**
  * Store a Response in CACHE for the given idempotency key.
  */
-export async function storeResponse(key: string, response: Response, env: Env): Promise<void> {
+export async function storeResponse(key: string, response: Response, env: Env, userId?: string): Promise<void> {
   const kv = getCacheBinding(env);
   if (!kv) return;
 
@@ -62,11 +63,9 @@ export async function storeResponse(key: string, response: Response, env: Env): 
       headers,
     };
 
-    await kv.put(cacheKey(key), JSON.stringify(cached), {
+    await kv.put(cacheKey(key, userId), JSON.stringify(cached), {
       expirationTtl: IDEMPOTENCY_TTL,
     });
-
-    // Return a new Response since we consumed the original body
   } catch {
     // Silent failure - KV write error
   }
@@ -81,11 +80,12 @@ export async function storeResponse(key: string, response: Response, env: Env): 
 export async function withIdempotency(
   key: string | null,
   env: Env,
-  handler: () => Promise<Response>
+  handler: () => Promise<Response>,
+  userId?: string
 ): Promise<Response> {
   const idempotencyKey = key || crypto.randomUUID();
 
-  const cached = await getCachedResponse(idempotencyKey, env);
+  const cached = await getCachedResponse(idempotencyKey, env, userId);
   if (cached) {
     return cached;
   }
@@ -108,7 +108,7 @@ export async function withIdempotency(
           body,
           headers,
         };
-        await kv.put(cacheKey(idempotencyKey), JSON.stringify(cachedData), {
+        await kv.put(cacheKey(idempotencyKey, userId), JSON.stringify(cachedData), {
           expirationTtl: IDEMPOTENCY_TTL,
         });
       } catch {

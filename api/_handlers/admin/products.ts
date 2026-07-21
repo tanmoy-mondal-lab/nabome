@@ -180,7 +180,7 @@ async function handleCreate(req: Request, ctx: RequestContext): Promise<Response
       include: { images: true, variants: true },
     });
 
-    logAction(ctx.userId, "admin.product.create", {
+    void logAction(ctx.userId, "admin.product.create", {
       entity: "product",
       entityId: product.id,
       metadata: { name: product.name, slug: product.slug },
@@ -292,7 +292,7 @@ async function handleUpdate(productId: string, req: Request, ctx: RequestContext
       include: productInclude,
     });
 
-    logAction(ctx.userId, "admin.product.update", {
+    void logAction(ctx.userId, "admin.product.update", {
       entity: "product",
       entityId: productId,
       metadata: { name: product.name },
@@ -320,7 +320,7 @@ async function handleDelete(productId: string, req: Request, ctx: RequestContext
       where: { id: productId },
       data: { isActive: false },
     });
-    logAction(ctx.userId, "admin.product.delete", {
+    void logAction(ctx.userId, "admin.product.delete", {
       entity: "product",
       entityId: productId,
       metadata: {},
@@ -671,7 +671,7 @@ async function handleDuplicate(productId: string, req: Request, ctx: RequestCont
       });
     }
 
-    logAction(ctx.userId, "admin.product.duplicate", {
+    void logAction(ctx.userId, "admin.product.duplicate", {
       entity: "product",
       entityId: product.id,
       metadata: { sourceId: productId, name: product.name },
@@ -691,7 +691,7 @@ async function handleRestore(productId: string, req: Request, ctx: RequestContex
       where: { id: productId },
       data: { isActive: true, publishedAt: new Date() },
     });
-    logAction(ctx.userId, "admin.product.restore", {
+    void logAction(ctx.userId, "admin.product.restore", {
       entity: "product",
       entityId: productId,
       metadata: { name: product.name },
@@ -723,7 +723,7 @@ async function handleBulkStatus(req: Request, ctx: RequestContext): Promise<Resp
       where: { id: { in: ids } },
       data: { isActive: status, publishedAt: status ? new Date() : undefined },
     });
-    logAction(ctx.userId, "admin.product.bulk_status", {
+    void logAction(ctx.userId, "admin.product.bulk_status", {
       entity: "product",
       entityId: ids.join(","),
       metadata: { count: ids.length, status },
@@ -771,7 +771,7 @@ async function handleBulkDelete(req: Request, ctx: RequestContext): Promise<Resp
       where: { id: { in: ids }, isActive: true },
       data: { isActive: false },
     });
-    logAction(ctx.userId, "admin.product.bulk_delete", {
+    void logAction(ctx.userId, "admin.product.bulk_delete", {
       entity: "product",
       entityId: ids.join(","),
       metadata: { count: ids.length },
@@ -805,7 +805,7 @@ async function handlePermanentDelete(productId: string, req: Request, ctx: Reque
     // Delete from DB (cascades handle variants, images, tags, labels, etc.)
     await prisma.products.delete({ where: { id: productId } });
 
-    logAction(ctx.userId, "admin.product.permanent_delete", {
+    void logAction(ctx.userId, "admin.product.permanent_delete", {
       entity: "product",
       entityId: productId,
       metadata: { name: product.name },
@@ -846,7 +846,7 @@ async function handleBulkPermanentDelete(req: Request, ctx: RequestContext): Pro
 
     const result = await prisma.products.deleteMany({ where: { id: { in: ids } } });
 
-    logAction(ctx.userId, "admin.product.bulk_permanent_delete", {
+    void logAction(ctx.userId, "admin.product.bulk_permanent_delete", {
       entity: "product",
       entityId: ids.join(","),
       metadata: { count: result.count },

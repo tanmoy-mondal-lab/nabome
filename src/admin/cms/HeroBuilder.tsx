@@ -67,7 +67,7 @@ export default function HeroBuilder() {
     }
   }, []);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { void fetch(); }, [fetch]);
 
   const saveConfig = async (newConfig: HeroConfig) => {
     setSaving(true);
@@ -221,10 +221,10 @@ export default function HeroBuilder() {
                   }}
                 >
                   <div className="flex flex-col items-center gap-0.5">
-                    <button onClick={(e) => { e.stopPropagation(); moveSlide(i, -1); }} disabled={i === 0}
+                    <button onClick={(e) => { e.stopPropagation(); void moveSlide(i, -1); }} disabled={i === 0}
                       className="p-0.5 text-neutral-300 hover:text-neutral-600 disabled:opacity-30"><ChevronUp size={12} /></button>
                     <span className="text-[10px] font-mono text-neutral-400">#{i + 1}</span>
-                    <button onClick={(e) => { e.stopPropagation(); moveSlide(i, 1); }} disabled={i === config.slides.length - 1}
+                    <button onClick={(e) => { e.stopPropagation(); void moveSlide(i, 1); }} disabled={i === config.slides.length - 1}
                       className="p-0.5 text-neutral-300 hover:text-neutral-600 disabled:opacity-30"><ChevronDown size={12} /></button>
                   </div>
                   {isExpanded ? <ChevronDown size={14} className="text-neutral-400 shrink-0" /> : <ChevronRight size={14} className="text-neutral-400 shrink-0" />}

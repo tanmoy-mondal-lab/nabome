@@ -317,7 +317,7 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
       }
     }
 
-    logAction(ctx.userId, "admin.order.status_change", {
+    void logAction(ctx.userId, "admin.order.status_change", {
       entity: "order",
       entityId: orderId,
       metadata: { from: order.status, to: status },
@@ -352,7 +352,7 @@ async function handleInternalNotes(orderId: string, req: Request, ctx: RequestCo
       include: orderInclude,
     });
 
-    logAction(ctx.userId, "admin.order.internal_notes", {
+    void logAction(ctx.userId, "admin.order.internal_notes", {
       entity: "order",
       entityId: orderId,
       metadata: {},

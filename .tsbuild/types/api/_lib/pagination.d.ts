@@ -19,14 +19,14 @@ export declare const paginationQuerySchema: z.ZodObject<{
     sort: z.ZodOptional<z.ZodEnum<["asc", "desc"]>>;
     sortBy: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    limit: number;
     page: number;
-    sort?: "desc" | "asc" | undefined;
+    limit: number;
+    sort?: "asc" | "desc" | undefined;
     sortBy?: string | undefined;
 }, {
-    sort?: "desc" | "asc" | undefined;
-    limit?: number | undefined;
+    sort?: "asc" | "desc" | undefined;
     page?: number | undefined;
+    limit?: number | undefined;
     sortBy?: string | undefined;
 }>;
 export declare function parsePaginationParams(url: URL, requestId?: string): Promise<{

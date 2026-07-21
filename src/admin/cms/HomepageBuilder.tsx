@@ -719,7 +719,7 @@ export default function HomepageBuilder() {
       const wasEditing = !!editItem;
       toast(wasEditing ? "Section updated successfully" : "Section created successfully", "success");
       setModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
     },
     onError: (err: Error) => {
       toast(err.message || "Failed to save section", "error");
@@ -733,7 +733,7 @@ export default function HomepageBuilder() {
     onSuccess: () => {
       toast("Section deleted successfully", "success");
       setDeleteConfirm(null);
-      queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
     },
     onError: (err: Error) => {
       toast(err.message || "Failed to delete section", "error");
@@ -745,7 +745,7 @@ export default function HomepageBuilder() {
       await adminApi.updateHomeSection(sec.id, { isActive: !sec.isActive });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
     },
     onError: (err: Error) => {
       toast(err.message || "Failed to toggle section", "error");
@@ -758,7 +758,7 @@ export default function HomepageBuilder() {
     },
     onError: () => {
       toast("Failed to reorder sections", "error");
-      queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
     },
   });
 
@@ -777,7 +777,7 @@ export default function HomepageBuilder() {
     },
     onSuccess: () => {
       toast("Section duplicated", "success");
-      queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "homepage"] });
     },
     onError: (err: Error) => {
       toast(err.message || "Failed to duplicate section", "error");

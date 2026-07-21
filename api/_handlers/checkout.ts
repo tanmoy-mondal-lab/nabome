@@ -693,7 +693,7 @@ export async function handleCheckoutRequest(
       // Silent failure - email send error
     }
 
-    logAction(profileId, "order.placed", {
+    void logAction(profileId, "order.placed", {
       entity: "order",
       entityId: order.id,
       metadata: {

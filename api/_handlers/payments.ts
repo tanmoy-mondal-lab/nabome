@@ -6,6 +6,7 @@ import { sendEmailNotification } from "../_lib/email";
 import { logAction, extractRequestMeta } from "../_lib/audit";
 import { cleanSecret } from "../_lib/secrets";
 import { requireAdmin } from "../_lib/auth-middleware";
+import { withRateLimit } from "../_lib/rate-limit";
 import { ErrorCode } from "../_lib/types";
 import { validateBody, paymentVerifySchema, paymentFailedSchema, paymentRetrySchema, refundSchema } from "../_lib/validate";
 
@@ -114,7 +115,7 @@ async function handleVerify(req: Request, ctx: RequestContext, env: Env): Promis
     }
 
     if (order.paymentStatus === "paid") {
-      logAction(null, "payment.verify_duplicate", {
+      void logAction(null, "payment.verify_duplicate", {
         entity: "order",
         entityId: orderId,
         metadata: { razorpayPaymentId },
@@ -182,7 +183,7 @@ async function handleVerify(req: Request, ctx: RequestContext, env: Env): Promis
       // Silent failure - email send error
     }
 
-    logAction(null, "payment.verify", {
+    void logAction(null, "payment.verify", {
       entity: "order",
       entityId: order.id,
       metadata: { orderNumber: order.orderNumber, razorpayPaymentId },
@@ -295,7 +296,7 @@ async function handleFailed(req: Request, ctx: RequestContext, env: Env): Promis
       // Silent failure - email send error
     }
 
-    logAction(null, "payment.failed", {
+    void logAction(null, "payment.failed", {
       entity: "order",
       entityId: order.id,
       metadata: { orderNumber: order.orderNumber, errorCode, errorDescription },
@@ -451,7 +452,7 @@ async function handleRefund(req: Request, ctx: RequestContext, env: Env): Promis
       });
     });
 
-    logAction(ctx.userId, "payment.refund", {
+    void logAction(ctx.userId, "payment.refund", {
       entity: "order",
       entityId: orderId,
       metadata: {
@@ -814,6 +815,14 @@ const WEBHOOK_MAX_BODY_SIZE = 256_000;
 async function handleWebhook(req: Request, env: Env): Promise<Response> {
   const prisma = getPrisma(env);
 
+  const clientIp = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const rateLimitResponse = await withRateLimit(
+    `${clientIp}:webhook`,
+    { windowMs: 60_000, maxRequests: 30, message: "Too many webhook requests. Slow down." },
+    env
+  );
+  if (rateLimitResponse) return rateLimitResponse;
+
   const contentLength = parseInt(req.headers.get("content-length") || "0", 10);
   if (contentLength > WEBHOOK_MAX_BODY_SIZE) {
     return badRequest("Webhook payload too large");
@@ -873,7 +882,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       }
     }
   } catch (dedupErr) {
-    logAction(null, "payment.webhook_dedup_error", {
+    void logAction(null, "payment.webhook_dedup_error", {
       entity: "payment_webhook",
       entityId: eventId || "unknown",
       metadata: { error: (dedupErr as Error).message },
@@ -941,7 +950,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       },
     }).catch(() => {});
 
-    logAction(null, "payment.webhook", {
+    void logAction(null, "payment.webhook", {
       entity: "payment_webhook",
       entityId: eventId,
       metadata: { event: eventName, status: webhookStatus },
@@ -960,7 +969,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
       },
     }).catch(() => {});
 
-    logAction(null, "payment.webhook_error", {
+    void logAction(null, "payment.webhook_error", {
       entity: "payment_webhook",
       entityId: eventId,
       metadata: { event: eventName, status: "failed", error: errorMessage },

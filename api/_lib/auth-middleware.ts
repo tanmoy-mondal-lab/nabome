@@ -105,6 +105,8 @@ async function resolveActiveSession(
   await prisma.auth_sessions.update({
     where: { id: session.id },
     data: { lastActiveAt: now },
+  }).catch(() => {
+    // Non-critical: lastActiveAt update failure should not break the request
   });
 
   return {
@@ -122,7 +124,7 @@ export async function authenticate(
   env?: Env
 ): Promise<{ ctx: RequestContext } | Response> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
-  const clientIp = request.headers.get("x-forwarded-for") ?? request.headers.get("cf-connecting-ip") ?? "unknown";
+  const clientIp = request.headers.get("cf-connecting-ip") ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
   const path = new URL(request.url).pathname;
 
   // 1. Rate limiting
@@ -213,8 +215,9 @@ export async function authenticate(
           },
         };
       }
-    } catch {
-      // Ignore — proceed without auth
+    } catch (err) {
+      console.error("Optional auth error (continuing without auth):", err);
+      // Proceed without auth rather than failing the request
     }
   }
 

@@ -67,7 +67,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promis
     const brand = await prisma.brands.create({
       data: { name, slug: finalSlug, description, logoUrl, logoPublicId, websiteUrl, sortOrder: sortOrder ?? 0 },
     });
-    logAction(ctx.userId, "admin.brands.create", {
+    void logAction(ctx.userId, "admin.brands.create", {
       entity: "brand",
       entityId: brand.id,
       metadata: { name: brand.name, slug: brand.slug },
@@ -113,7 +113,7 @@ async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: 
       data.slug = slugExists ? `${newSlug}-${Date.now().toString(36)}` : newSlug;
     }
     const brand = await prisma.brands.update({ where: { id }, data: data as never });
-    logAction(ctx.userId, "admin.brands.update", {
+    void logAction(ctx.userId, "admin.brands.update", {
       entity: "brand",
       entityId: brand.id,
       metadata: { name: brand.name },
@@ -129,7 +129,7 @@ async function handleDelete(id: string, req: Request, ctx: RequestContext, env: 
     const existing = await prisma.brands.findUnique({ where: { id }, select: { id: true } });
     if (!existing) return notFound("Brand not found");
     await prisma.brands.update({ where: { id }, data: { isActive: false } });
-    logAction(ctx.userId, "admin.brands.delete", {
+    void logAction(ctx.userId, "admin.brands.delete", {
       entity: "brand",
       entityId: id,
       ...extractRequestMeta(req),

@@ -12,10 +12,10 @@
 // For pure SPA → API architectures with SameSite=Strict cookies,
 // CSRF is largely mitigated. This provides defense-in-depth.
 
-import { parseCookies } from "./cookies";
+import { parseCookies, COOKIE_CONFIG } from "./cookies";
 
 const TOKEN_LENGTH = 32;
-const CSRF_COOKIE_NAME = "csrf_token";
+const CSRF_COOKIE_NAME = COOKIE_CONFIG.CSRF_TOKEN.name;
 const CSRF_HEADER_NAME = "x-csrf-token";
 const textEncoder = new TextEncoder();
 
@@ -35,10 +35,21 @@ function timingSafeEqual(left: string, right: string): boolean {
 export function generateToken(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   let token = "";
-  const bytes = new Uint8Array(TOKEN_LENGTH);
+  let bytes = new Uint8Array(TOKEN_LENGTH);
   crypto.getRandomValues(bytes);
-  for (let i = 0; i < TOKEN_LENGTH; i++) {
-    token += chars[bytes[i] % chars.length];
+  const maxValid = 256 - (256 % chars.length);
+  let i = 0;
+  while (i < TOKEN_LENGTH) {
+    for (let j = 0; j < TOKEN_LENGTH && i < TOKEN_LENGTH; j++) {
+      if (bytes[j] < maxValid) {
+        token += chars[bytes[j] % chars.length];
+        i++;
+      }
+    }
+    if (i < TOKEN_LENGTH) {
+      bytes = new Uint8Array(TOKEN_LENGTH);
+      crypto.getRandomValues(bytes);
+    }
   }
   return token;
 }
@@ -46,6 +57,7 @@ export function generateToken(): string {
 /**
  * Creates a Response with a CSRF cookie set.
  * Call this on the first GET request to establish a CSRF token.
+ * Preserves existing valid CSRF tokens to support multi-tab browsing.
  */
 export function setCsrfCookie(response: Response, env?: any): Response {
   // Only set a new CSRF cookie if one doesn't already exist in the response.

@@ -137,7 +137,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
           },
         });
 
-        logAction(existingProfile.id, "auth.register_guest_convert", {
+        void logAction(existingProfile.id, "auth.register_guest_convert", {
           metadata: { email: normalizedEmail, firstName },
         }, ctx.env!);
 
@@ -184,7 +184,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
         console.error("[AUTH] Failed to resend verification for existing unverified account:", emailResult.error);
       }
 
-      logAction(existingProfile.id, "auth.resend_verification", {
+      void logAction(existingProfile.id, "auth.resend_verification", {
         metadata: { email: normalizedEmail, reason: "registration_attempt" },
       }, ctx.env!);
 
@@ -242,7 +242,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
         console.error("[AUTH] Profile create failed on orphan recovery:", err);
       }
 
-      logAction(orphanId, "auth.register_orphan_recover", {
+      void logAction(orphanId, "auth.register_orphan_recover", {
         metadata: { email: normalizedEmail, firstName },
       }, ctx.env!);
 
@@ -323,7 +323,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       return serverError(err);
     }
 
-    logAction(authData.user.id, "auth.register", {
+    void logAction(authData.user.id, "auth.register", {
       metadata: { email: normalizedEmail, firstName },
     }, ctx.env!);
 
@@ -478,7 +478,7 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
       },
     });
 
-    logAction(profile.id, "auth.email_verified", {
+    void logAction(profile.id, "auth.email_verified", {
       metadata: { email: profile.email },
     }, ctx.env!);
 
@@ -497,7 +497,7 @@ async function handleResendVerification(req: Request, ctx: RequestContext): Prom
     const { email } = parsed.data;
     const normalizedEmail = email.toLowerCase().trim();
 
-    const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
+  const clientIp = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
     // Per-IP rate limit: 3 per hour
     const ipRateLimitResponse = await withRateLimit(
@@ -548,7 +548,7 @@ async function handleResendVerification(req: Request, ctx: RequestContext): Prom
       console.error("[AUTH] Failed to resend verification email:", emailResult.error);
     }
 
-    logAction(profile.id, "auth.resend_verification", {
+    void logAction(profile.id, "auth.resend_verification", {
       metadata: { email: normalizedEmail, reason: "user_requested" },
     }, ctx.env!);
 
@@ -573,7 +573,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
     const normalizedEmail = String(email).trim().toLowerCase();
 
     const prisma = getPrisma(ctx.env!);
-    const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
+    const clientIp = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
     const userAgent = req.headers.get("user-agent");
 
     // Check IP block status (block after 5 consecutive failed attempts).
@@ -601,7 +601,8 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
 
     if (recentFailedAttempts >= 5) {
       // Check if IP is in whitelist
-      const ipWhitelist = process.env.IP_WHITELIST?.split(",") || [];
+      const whitelistVal = ctx.env?.IP_WHITELIST || (typeof process !== "undefined" ? process.env?.IP_WHITELIST : undefined);
+      const ipWhitelist = whitelistVal?.split(",") || [];
       if (!ipWhitelist.includes(clientIp)) {
         return unauthorized("Too many failed login attempts. Please try again in 15 minutes.");
       }
@@ -700,7 +701,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
         console.error("[AUTH] Failed to send verification email on login:", emailResult.error);
       }
 
-      logAction(existingProfile.id, "auth.resend_verification", {
+      void logAction(existingProfile.id, "auth.resend_verification", {
         metadata: { email, reason: "unverified_login_attempt" },
       }, ctx.env!);
 
@@ -772,7 +773,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
       },
     });
 
-    logAction(data.user.id, "auth.login", {
+    void logAction(data.user.id, "auth.login", {
       ipAddress: clientIp,
       userAgent: userAgent,
     }, ctx.env!);
@@ -942,7 +943,7 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
     return unauthorized("Session already refreshed — please try again");
   }
 
-  logAction(oldSession.profileId, "auth.token_refresh", {
+  void logAction(oldSession.profileId, "auth.token_refresh", {
     metadata: {
       rotatedFromSession: oldSession.id,
       newSessionId: result.type === "rotated" ? result.session.id : result.sessionId,
@@ -995,7 +996,7 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
     // Non-critical
   }
 
-  logAction(ctx.userId, "auth.logout", extractRequestMeta(req), ctx.env!);
+  void logAction(ctx.userId, "auth.logout", extractRequestMeta(req), ctx.env!);
 
   // Security: Clear httpOnly cookies
   const response = success({ message: "Logged out successfully" });
@@ -1244,7 +1245,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
     return serverError(new Error("Failed to update email. Please try again."));
   }
 
-  logAction(ctx.userId, "auth.email_changed", {
+  void logAction(ctx.userId, "auth.email_changed", {
     metadata: { oldEmail: profile.email, newEmail },
   }, ctx.env!);
 
@@ -1435,7 +1436,7 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
     // Non-critical
   }
 
-  logAction(null, "auth.password_reset", {
+  void logAction(null, "auth.password_reset", {
     metadata: { email: normalizedEmail },
     ...extractRequestMeta(req),
   }, ctx.env!);

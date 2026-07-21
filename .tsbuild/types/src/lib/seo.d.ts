@@ -5,7 +5,7 @@ export declare function websiteSchema(): {
     "@context": string;
     "@type": string;
     name: string;
-    url: any;
+    url: string;
     description: string;
     potentialAction: {
         "@type": string;

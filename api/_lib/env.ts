@@ -23,6 +23,7 @@ export interface Env {
   VITE_SITE_URL?: string;
   CF_PAGES?: string;
   ALERT_WEBHOOK_URL?: string;
+  IP_WHITELIST?: string;
   RATE_LIMIT_STORE?: { get: (key: string) => Promise<string | null>; put: (key: string, value: string, opts?: { expirationTtl?: number }) => Promise<void> };
   FEATURE_FLAGS_KV?: { get: (key: string) => Promise<string | null>; put: (key: string, value: string) => Promise<void> };
   HYPERDRIVE?: { connectionString: string };
@@ -61,6 +62,7 @@ export function getEnv(): Env {
       SITE_URL: process.env.SITE_URL || process.env.VITE_SITE_URL,
       VITE_SITE_URL: process.env.VITE_SITE_URL,
       CF_PAGES: process.env.CF_PAGES,
+      IP_WHITELIST: process.env.IP_WHITELIST,
     };
   }
   return {};

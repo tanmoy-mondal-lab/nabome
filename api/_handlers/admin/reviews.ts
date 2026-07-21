@@ -81,7 +81,7 @@ async function handleApprove(reviewId: string, req: Request, ctx: RequestContext
       },
     });
 
-    logAction(ctx.userId, approved ? "admin.reviews.approve" : "admin.reviews.unapprove", {
+    void logAction(ctx.userId, approved ? "admin.reviews.approve" : "admin.reviews.unapprove", {
       entity: "review",
       entityId: reviewId,
       metadata: { rating: updated.rating },
@@ -100,7 +100,7 @@ async function handleDelete(reviewId: string, req: Request, ctx: RequestContext)
     const review = await prisma.reviews.findUnique({ where: { id: reviewId } });
     if (!review) return notFound("Review not found");
     await prisma.reviews.delete({ where: { id: reviewId } });
-    logAction(ctx.userId, "admin.reviews.delete", {
+    void logAction(ctx.userId, "admin.reviews.delete", {
       entity: "review",
       entityId: reviewId,
       ...extractRequestMeta(req),

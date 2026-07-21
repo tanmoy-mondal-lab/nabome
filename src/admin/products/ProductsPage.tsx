@@ -617,7 +617,7 @@ export default function ProductsPage() {
                     <Copy size={14} />
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); navigate(`/admin/products/${p.id}/edit`); }}
+                    onClick={(e) => { e.stopPropagation(); void navigate(`/admin/products/${p.id}/edit`); }}
                     className="p-1.5 hover:bg-neutral-100 rounded-md text-neutral-400 hover:text-neutral-600 transition-colors"
                     title="Edit"
                   >

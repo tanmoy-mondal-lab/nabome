@@ -16,14 +16,14 @@ export declare const registerSchema: z.ZodObject<{
     lastName: z.ZodOptional<z.ZodString>;
     phone: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    email: string;
     firstName: string;
+    email: string;
     password: string;
     lastName?: string | undefined;
     phone?: string | undefined;
 }, {
-    email: string;
     firstName: string;
+    email: string;
     password: string;
     lastName?: string | undefined;
     phone?: string | undefined;

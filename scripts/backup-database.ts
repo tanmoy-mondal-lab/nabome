@@ -327,7 +327,7 @@ async function main() {
 
 // Run if executed directly
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  main();
+  void main();
 }
 
 export { DatabaseBackup, BackupOptions, BackupResult };

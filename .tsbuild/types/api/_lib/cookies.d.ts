@@ -43,7 +43,7 @@ export declare function buildCookieString(name: string, value: string, options: 
 /**
  * Clear a cookie by setting Max-Age to 0
  */
-export declare function clearCookie(response: Response, name: string, options: Pick<CookieOptions, "path" | "sameSite">, env?: any): Response;
+export declare function clearCookie(response: Response, name: string, options: Pick<CookieOptions, "path" | "sameSite">, env?: any, httpOnly?: boolean): Response;
 /**
  * Parse cookies from a Cookie header string
  */

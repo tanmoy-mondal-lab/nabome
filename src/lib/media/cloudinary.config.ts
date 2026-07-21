@@ -62,15 +62,17 @@ export function createCloudinaryConfig(
 
 /**
  * Gets Cloudinary configuration from environment variables
- * This is a convenience function for server-side environments
+ * SERVER-ONLY: This function accesses CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET
+ * and must never be imported from browser/client code.
+ * In Cloudflare Workers, use the env binding instead.
  * 
  * @returns The Cloudinary configuration
  * @throws CloudinaryConfigError if environment variables are missing
  */
 export function getCloudinaryConfigFromEnv(): CloudinaryConfig {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  const apiKey = process.env.CLOUDINARY_API_KEY;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  const cloudName = typeof process !== "undefined" ? process.env.CLOUDINARY_CLOUD_NAME : undefined;
+  const apiKey = typeof process !== "undefined" ? process.env.CLOUDINARY_API_KEY : undefined;
+  const apiSecret = typeof process !== "undefined" ? process.env.CLOUDINARY_API_SECRET : undefined;
 
   if (!cloudName) {
     throw new CloudinaryConfigError("CLOUDINARY_CLOUD_NAME environment variable is not set");
