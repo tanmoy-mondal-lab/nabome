@@ -30,7 +30,9 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { isAuthenticated, isAdmin, isLoading } = useAuthStore();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const isAdmin = useAuthStore((s) => s.isAdmin);
+  const isLoading = useAuthStore((s) => s.isLoading);
   const location = useLocation();
 
   const isOnline = typeof navigator !== "undefined" ? navigator.onLine : true;

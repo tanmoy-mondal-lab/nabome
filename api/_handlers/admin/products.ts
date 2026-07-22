@@ -56,7 +56,7 @@ export async function handleAdminProductRequest(
 async function handleList(req: Request, env: Env): Promise<Response> {
   const url = new URL(req.url);
   const page = parseInt(url.searchParams.get("page") ?? "1");
-  const limit = parseInt(url.searchParams.get("limit") ?? "25");
+  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "25"), 100);
   const status = url.searchParams.get("status");
   const search = url.searchParams.get("search");
 

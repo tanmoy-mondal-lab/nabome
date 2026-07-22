@@ -93,6 +93,7 @@ async function handleOverview(env: Env): Promise<Response> {
         createdAt: { gte: thirtyDaysAgo },
       },
       select: { createdAt: true, total: true },
+      take: 10000,
     });
 
     const salesByDay = new Map<string, { revenue: number; orders: number }>();

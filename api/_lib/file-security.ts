@@ -26,9 +26,10 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
 
 const DANGEROUS_EXTENSIONS = [
-  ".exe", ".bat", ".cmd", ".sh", ".ps1", ".vbs", ".js", ".jar",
+  ".exe", ".bat", ".cmd", ".sh", ".ps1", ".vbs", ".js", ".mjs", ".cjs", ".jar",
   ".php", ".asp", ".aspx", ".jsp", ".py", ".rb", ".pl", ".cgi",
   ".dll", ".so", ".dylib", ".app", ".deb", ".rpm", ".msi",
+  ".html", ".htm", ".svg", ".xhtml",
 ] as const;
 
 export interface FileValidationResult {
@@ -126,11 +127,12 @@ export function validateDocumentFile(file: File): FileValidationResult {
  * Sanitize filename
  */
 export function sanitizeFileName(fileName: string): string {
-  // Remove path traversal attempts
-  const sanitized = fileName.replace(/\.+\//g, "").replace(/\.\.+/g, "");
+  // Remove path traversal attempts - strip all directory components
+  const baseName = fileName.split("/").pop() ?? fileName;
+  const cleaned = baseName.replace(/\.\.+/g, "");
   
   // Remove non-alphanumeric characters except dots, hyphens, underscores
-  return sanitized.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return cleaned.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
 /**

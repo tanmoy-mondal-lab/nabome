@@ -158,7 +158,10 @@ export async function handleAdminMediaUploadRequest(
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return badRequest(msg);
+    const isClient = err instanceof TypeError || (err as any)?.status?.toString().startsWith("4");
+    if (isClient) return badRequest(msg);
+    const { serverError } = await import("../../_lib/response");
+    return serverError(err);
   }
 }
 
@@ -225,7 +228,10 @@ export async function handleAdminMediaMoveRequest(
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return badRequest(msg);
+    const isClient = err instanceof TypeError || (err as any)?.status?.toString().startsWith("4");
+    if (isClient) return badRequest(msg);
+    const { serverError } = await import("../../_lib/response");
+    return serverError(err);
   }
 }
 
@@ -300,7 +306,10 @@ export async function handleAdminMediaBulkDeleteRequest(
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return badRequest(msg);
+    const isClient = err instanceof TypeError || (err as any)?.status?.toString().startsWith("4");
+    if (isClient) return badRequest(msg);
+    const { serverError } = await import("../../_lib/response");
+    return serverError(err);
   }
 }
 
@@ -381,6 +390,9 @@ export async function handleAdminMediaBulkMoveRequest(
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    return badRequest(msg);
+    const isClient = err instanceof TypeError || (err as any)?.status?.toString().startsWith("4");
+    if (isClient) return badRequest(msg);
+    const { serverError } = await import("../../_lib/response");
+    return serverError(err);
   }
 }

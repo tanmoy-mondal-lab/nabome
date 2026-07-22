@@ -1,9 +1,10 @@
-import { lazy, type ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { Route } from "react-router-dom";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 import { AdminRoute } from "../components/auth/AdminRoute";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { StorefrontLayout } from "../storefront/layout/Layout";
+import { LoadingSpinner } from "../components/ui/LoadingSpinner";
 
 const LoginPage = lazy(() => import("../pages/LoginPage"));
 const RegisterPage = lazy(() => import("../pages/RegisterPage"));
@@ -39,7 +40,7 @@ const DashboardSupport = lazy(() => import("../storefront/pages/SupportTicketsPa
 const DashboardReturnRequest = lazy(() => import("../storefront/pages/ReturnRequestPage"));
 const DashboardOrderTracking = lazy(() => import("../storefront/pages/OrderTrackingPage"));
 
-const RB = (el: ReactNode) => <ErrorBoundary>{el}</ErrorBoundary>;
+const RB = (el: ReactNode) => <ErrorBoundary><Suspense fallback={<LoadingSpinner size="lg" className="min-h-[50vh] flex items-center justify-center" />}>{el}</Suspense></ErrorBoundary>;
 
 export const STOREFRONT_ROUTES = (
   <Route element={<StorefrontLayout />}>
@@ -77,11 +78,11 @@ export const STOREFRONT_ROUTES = (
 
 export const AUTH_ROUTES = (
   <>
-    <Route path="auth/login" element={<LoginPage />} />
-    <Route path="auth/register" element={<RegisterPage />} />
-    <Route path="auth/forgot-password" element={<ForgotPasswordPage />} />
-    <Route path="auth/reset-password" element={<ResetPasswordPage />} />
-    <Route path="auth/verify-email" element={<VerifyEmailPage />} />
+    <Route path="auth/login" element={RB(<LoginPage />)} />
+    <Route path="auth/register" element={RB(<RegisterPage />)} />
+    <Route path="auth/forgot-password" element={RB(<ForgotPasswordPage />)} />
+    <Route path="auth/reset-password" element={RB(<ResetPasswordPage />)} />
+    <Route path="auth/verify-email" element={RB(<VerifyEmailPage />)} />
   </>
 );
 
@@ -89,9 +90,13 @@ export const ADMIN_ROUTES = (
   <Route
     path="admin/*"
     element={
-      <AdminRoute>
-        <AdminRoutes />
-      </AdminRoute>
+      <ErrorBoundary>
+        <AdminRoute>
+          <Suspense fallback={<LoadingSpinner size="lg" className="min-h-[50vh] flex items-center justify-center" />}>
+            <AdminRoutes />
+          </Suspense>
+        </AdminRoute>
+      </ErrorBoundary>
     }
   />
 );

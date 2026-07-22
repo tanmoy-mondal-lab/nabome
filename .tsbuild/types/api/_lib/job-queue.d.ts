@@ -29,10 +29,10 @@ export declare function getNextJobs(limit: number | undefined, env: Env): Promis
     id: string;
     createdAt: Date;
     updatedAt: Date;
+    payload: Prisma.JsonValue;
     errorMessage: string | null;
     retryCount: number;
     priority: number;
-    payload: Prisma.JsonValue;
     jobType: string;
     maxRetries: number;
     retryAfter: Date | null;

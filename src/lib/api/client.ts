@@ -33,7 +33,7 @@ class ApiError extends Error {
 }
 
 let isRefreshing = false;
-let refreshPromise: Promise<boolean> | null = null;
+let refreshPromise: Promise<{ success: boolean; loggedOut: boolean }> | null = null;
 
 
 // Self-service auth endpoints that return their own user-facing errors.
@@ -54,7 +54,7 @@ function readCsrfToken(): string | null {
   return match ? match.split("=")[1] ?? null : null;
 }
 
-async function attemptTokenRefresh(): Promise<boolean> {
+async function attemptTokenRefresh(): Promise<{ success: boolean; loggedOut: boolean }> {
   // Security: Tokens are in httpOnly cookies, no need to send them
   // The server reads refresh token from cookie
   const csrfToken = readCsrfToken();
@@ -92,7 +92,7 @@ async function attemptTokenRefresh(): Promise<boolean> {
   // or expired. The session is truly over — log the user out.
   if (res?.status === 401) {
     await fireLogout();
-    return false;
+    return { success: false, loggedOut: true };
   }
 
   // Any other non-2xx response (5xx, 502/503/504 gateway errors, 429 rate
@@ -102,11 +102,11 @@ async function attemptTokenRefresh(): Promise<boolean> {
   // their session and the next request can retry the refresh once the
   // hiccup is over.
   if (!res || !res.ok) {
-    return false;
+    return { success: false, loggedOut: false };
   }
 
   // Server sets new cookies automatically, no need to update store
-  return true;
+  return { success: true, loggedOut: false };
 }
 
 function getAuthStateFromStore(): { isAuthenticated: boolean } {
@@ -203,11 +203,11 @@ async function request<T>(
         refreshPromise = attemptTokenRefresh();
       }
 
-      const refreshed = await refreshPromise;
+      const refreshResult = await refreshPromise;
       isRefreshing = false;
       refreshPromise = null;
 
-      if (refreshed) {
+      if (refreshResult?.success) {
         const retryController = new AbortController();
         const retryTimeoutId = setTimeout(() => retryController.abort(), timeout);
         const retryResponse = await fetch(url.toString(), {
@@ -224,7 +224,7 @@ async function request<T>(
 
         if (retryResponse.status === 204) {
           clearTimeout(retryTimeoutId);
-          return null as T;
+          return undefined as T;
         }
 
         if (!retryResponse.ok) {
@@ -245,12 +245,15 @@ async function request<T>(
       // attemptTokenRefresh has already fired the logout above. For transient
       // failures (5xx / network / rate limit) we must NOT log the user out —
       // just surface the error so this single request fails.
-      throw new ApiError("Session expired — please log in again", 401);
+      if (refreshResult?.loggedOut) {
+        throw new ApiError("Session expired — please log in again", 401);
+      }
+      throw new ApiError("Unable to refresh session. Please try again.", 503);
     }
   }
 
   if (response.status === 204) {
-    return null as T;
+    return undefined as T;
   }
 
   if (!response.ok) {

@@ -89,6 +89,7 @@ async function handleSales(req: Request, env: Env): Promise<Response> {
           createdAt: true,
         },
         orderBy: { createdAt: "asc" as const },
+        take: 10000,
       }),
       prisma.profiles.count({ where: { role: "customer", createdAt: { gte: start } } }),
       prisma.orders.count({ where: { paymentStatus: "paid", createdAt: { gte: start } } }),

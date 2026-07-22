@@ -176,6 +176,13 @@ async function handleCancel(req: Request, ctx: RequestContext, orderId: string, 
       );
     }
 
+    // Prevent cancellation of orders that have already been paid
+    if (order.paymentStatus === "paid" || order.paymentStatus === "partially_refunded") {
+      return badRequest(
+        "This order has already been paid. Please contact support to request a refund instead of cancelling."
+      );
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
       const cancelled = await tx.orders.update({
         where: { id: orderId },

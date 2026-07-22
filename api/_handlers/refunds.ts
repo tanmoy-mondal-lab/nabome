@@ -181,10 +181,25 @@ async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promis
     return badRequest("Type must be 'full' or 'partial'");
   }
 
+  if (typeof amount !== "number" || amount <= 0 || !isFinite(amount)) {
+    return badRequest("Amount must be a positive number");
+  }
+
   try {
     const prisma = getPrisma(env);
     const order = await prisma.orders.findUnique({ where: { id: orderId as string } });
     if (!order) return notFound("Order not found");
+
+    if (type === "partial") {
+      const existingRefunds = await prisma.refunds.findMany({
+        where: { orderId: orderId as string, status: "completed" },
+        select: { amount: true },
+      });
+      const totalRefunded = existingRefunds.reduce((sum, r) => sum + Number(r.amount), 0);
+      if (totalRefunded + amount > Number(order.total)) {
+        return badRequest("Partial refund amount exceeds order total");
+      }
+    }
 
     const refund = await prisma.refunds.create({
       data: {

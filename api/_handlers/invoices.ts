@@ -194,9 +194,9 @@ export async function handleInvoiceRequest(
     case "getByOrderNumber":
       return handleGetByOrderNumber(ctx, params[0], ctx.env!);
     case "adminGetInvoice":
-      return handleAdminGetInvoice(params[0], ctx.env!);
+      return handleAdminGetInvoice(params[0], ctx.env!, ctx);
     case "adminGenerateInvoice":
-      return handleAdminGenerateInvoice(params[0], ctx.env!);
+      return handleAdminGenerateInvoice(params[0], ctx.env!, ctx);
     default:
       return notFound();
   }
@@ -258,7 +258,8 @@ async function handleGetInvoice(ctx: RequestContext, orderId: string, env: Env):
   }
 }
 
-async function handleAdminGetInvoice(orderId: string, env: Env): Promise<Response> {
+async function handleAdminGetInvoice(orderId: string, env: Env, ctx?: RequestContext): Promise<Response> {
+  if (!ctx || ctx.userRole !== "admin") return unauthorized();
   try {
     const prisma = getPrisma(env);
     const order = await prisma.orders.findUnique({
@@ -283,7 +284,8 @@ async function handleAdminGetInvoice(orderId: string, env: Env): Promise<Respons
   }
 }
 
-async function handleAdminGenerateInvoice(orderId: string, env: Env): Promise<Response> {
+async function handleAdminGenerateInvoice(orderId: string, env: Env, ctx?: RequestContext): Promise<Response> {
+  if (!ctx || ctx.userRole !== "admin") return unauthorized();
   try {
     const prisma = getPrisma(env);
     const order = await prisma.orders.findUnique({

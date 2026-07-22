@@ -55,7 +55,7 @@ describe('registerSchema', () => {
   it('should accept valid registration', () => {
     const result = registerSchema.safeParse({
       email: 'test@example.com',
-      password: 'Password1',
+      password: 'Password1!',
       firstName: 'John',
     });
     expect(result.success).toBe(true);
@@ -64,7 +64,7 @@ describe('registerSchema', () => {
   it('should accept registration with optional fields', () => {
     const result = registerSchema.safeParse({
       email: 'test@example.com',
-      password: 'Password1',
+      password: 'Password1!',
       firstName: 'John',
       lastName: 'Doe',
       phone: '+919876543210',
@@ -111,7 +111,7 @@ describe('registerSchema', () => {
   it('should reject missing firstName', () => {
     const result = registerSchema.safeParse({
       email: 'test@example.com',
-      password: 'Password1',
+      password: 'Password1!',
     });
     expect(result.success).toBe(false);
   });
@@ -119,7 +119,7 @@ describe('registerSchema', () => {
   it('should reject invalid phone format', () => {
     const result = registerSchema.safeParse({
       email: 'test@example.com',
-      password: 'Password1',
+      password: 'Password1!',
       firstName: 'John',
       phone: 'abc',
     });
@@ -131,7 +131,7 @@ describe('registerSchema', () => {
     for (const phone of phones) {
       const result = registerSchema.safeParse({
         email: 'test@example.com',
-        password: 'Password1',
+        password: 'Password1!',
         firstName: 'John',
         phone,
       });

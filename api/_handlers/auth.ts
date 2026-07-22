@@ -820,144 +820,149 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
 // Uses Supabase `setSession` to get fresh tokens, then rotates local session record.
 
 async function handleRefresh(req: Request, ctx: RequestContext): Promise<Response> {
-  // Security: Read refresh token from httpOnly cookie instead of request body
-  const cookieHeader = req.headers.get("Cookie");
-  const cookies = cookieHeader ? parseCookies(cookieHeader) : {};
-  const refreshToken = cookies[COOKIE_CONFIG.REFRESH_TOKEN.name];
+  try {
+    // Security: Read refresh token from httpOnly cookie instead of request body
+    const cookieHeader = req.headers.get("Cookie");
+    const cookies = cookieHeader ? parseCookies(cookieHeader) : {};
+    const refreshToken = cookies[COOKIE_CONFIG.REFRESH_TOKEN.name];
 
-  if (!refreshToken || typeof refreshToken !== "string") {
-    return unauthorized("Refresh token not found in cookies");
-  }
-
-  const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
-
-  const rateLimitResponse = await withRateLimit(
-    `${clientIp}:refresh-token`,
-    { windowMs: 60_000, maxRequests: 10, message: "Too many refresh attempts. Try again in 1 minute." },
-    ctx.env
-  );
-  if (rateLimitResponse) return rateLimitResponse;
-
-  const prisma = getPrisma(ctx.env!);
-
-  // 1. Find the active session with this refresh token
-  const refreshTokenHash = await hashToken(refreshToken);
-  const oldSession = await prisma.auth_sessions.findFirst({
-    where: {
-      OR: [
-        { refreshToken: refreshTokenHash },
-        // One-time compatibility for sessions created before token hashing.
-        { refreshToken },
-      ],
-    },
-  });
-
-  if (!oldSession || !oldSession.isActive) {
-    return unauthorized("Invalid or revoked refresh token");
-  }
-
-  // 2. Check if refresh token itself is expired
-  if (oldSession.refreshTokenExpiresAt && new Date() > oldSession.refreshTokenExpiresAt) {
-    await prisma.auth_sessions.update({
-      where: { id: oldSession.id },
-      data: { isActive: false, revokedAt: new Date() },
-    });
-    return unauthorized("Refresh token expired — please log in again");
-  }
-
-  // 3. Call Supabase to exchange refresh token for new session tokens
-  const supabase = getAnonClient(ctx.env!);
-  const { data: sbData, error: sbError } = await supabase.auth.refreshSession({
-    refresh_token: refreshToken,
-  });
-
-  if (sbError || !sbData.session) {
-    // Supabase rejected the refresh — revoke the session
-    await prisma.auth_sessions.update({
-      where: { id: oldSession.id },
-      data: { isActive: false, revokedAt: new Date() },
-    }).catch(() => {});
-    return unauthorized("Session expired — please log in again");
-  }
-
-  const userAgent = req.headers.get("user-agent");
-  const newExpiresAt = new Date(Date.now() + sbData.session.expires_in * 1000);
-  const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days for refresh
-  const [newAccessTokenHash, newRefreshTokenHash] = await Promise.all([
-    hashToken(sbData.session.access_token),
-    hashToken(sbData.session.refresh_token),
-  ]);
-
-  // 4. Rotate within a transaction with row lock to prevent race conditions
-  //    Two concurrent refresh requests for the same session are serialized
-  //    via SELECT ... FOR UPDATE on the old session row.
-  const result = await prisma.$transaction(async (tx) => {
-    // Lock the old session row — blocks concurrent refreshes until this tx completes
-    const lockedRows = await tx.$queryRawUnsafe<Array<{ id: string; is_active: boolean }>>(
-      `SELECT id, is_active FROM auth_sessions WHERE id = $1::uuid FOR UPDATE`,
-      oldSession.id
-    );
-
-    if (!lockedRows.length || !lockedRows[0].is_active) {
-      // Another concurrent request already rotated this session
-      return { type: "conflict" as const };
+    if (!refreshToken || typeof refreshToken !== "string") {
+      return unauthorized("Refresh token not found in cookies");
     }
 
-    if (newRefreshTokenHash === refreshTokenHash) {
-      // Supabase returned the same refresh token; update the record in place
-      await tx.auth_sessions.update({
+    const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
+
+    const rateLimitResponse = await withRateLimit(
+      `${clientIp}:refresh-token`,
+      { windowMs: 60_000, maxRequests: 10, message: "Too many refresh attempts. Try again in 1 minute." },
+      ctx.env
+    );
+    if (rateLimitResponse) return rateLimitResponse;
+
+    const prisma = getPrisma(ctx.env!);
+
+    // 1. Find the active session with this refresh token
+    const refreshTokenHash = await hashToken(refreshToken);
+    const oldSession = await prisma.auth_sessions.findFirst({
+      where: {
+        OR: [
+          { refreshToken: refreshTokenHash },
+          // One-time compatibility for sessions created before token hashing.
+          { refreshToken },
+        ],
+      },
+    });
+
+    if (!oldSession || !oldSession.isActive) {
+      return unauthorized("Invalid or revoked refresh token");
+    }
+
+    // 2. Check if refresh token itself is expired
+    if (oldSession.refreshTokenExpiresAt && new Date() > oldSession.refreshTokenExpiresAt) {
+      await prisma.auth_sessions.update({
         where: { id: oldSession.id },
+        data: { isActive: false, revokedAt: new Date() },
+      });
+      return unauthorized("Refresh token expired — please log in again");
+    }
+
+    // 3. Call Supabase to exchange refresh token for new session tokens
+    const supabase = getAnonClient(ctx.env!);
+    const { data: sbData, error: sbError } = await supabase.auth.refreshSession({
+      refresh_token: refreshToken,
+    });
+
+    if (sbError || !sbData.session) {
+      // Supabase rejected the refresh — revoke the session
+      await prisma.auth_sessions.update({
+        where: { id: oldSession.id },
+        data: { isActive: false, revokedAt: new Date() },
+      }).catch(() => {});
+      return unauthorized("Session expired — please log in again");
+    }
+
+    const userAgent = req.headers.get("user-agent");
+    const newExpiresAt = new Date(Date.now() + sbData.session.expires_in * 1000);
+    const refreshExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days for refresh
+    const [newAccessTokenHash, newRefreshTokenHash] = await Promise.all([
+      hashToken(sbData.session.access_token),
+      hashToken(sbData.session.refresh_token),
+    ]);
+
+    // 4. Rotate within a transaction with row lock to prevent race conditions
+    //    Two concurrent refresh requests for the same session are serialized
+    //    via SELECT ... FOR UPDATE on the old session row.
+    const result = await prisma.$transaction(async (tx) => {
+      // Lock the old session row — blocks concurrent refreshes until this tx completes
+      const lockedRows = await tx.$queryRawUnsafe<Array<{ id: string; is_active: boolean }>>(
+        `SELECT id, is_active FROM auth_sessions WHERE id = $1::uuid FOR UPDATE`,
+        oldSession.id
+      );
+
+      if (!lockedRows.length || !lockedRows[0].is_active) {
+        // Another concurrent request already rotated this session
+        return { type: "conflict" as const };
+      }
+
+      if (newRefreshTokenHash === refreshTokenHash) {
+        // Supabase returned the same refresh token; update the record in place
+        await tx.auth_sessions.update({
+          where: { id: oldSession.id },
+          data: {
+            accessToken: newAccessTokenHash,
+            refreshToken: newRefreshTokenHash,
+            refreshTokenExpiresAt: refreshExpiresAt,
+            expiresAt: newExpiresAt,
+            lastActiveAt: new Date(),
+          },
+        });
+        return { type: "updated" as const, sessionId: oldSession.id };
+      }
+
+      // Create new session and revoke old one atomically
+      const created = await tx.auth_sessions.create({
         data: {
+          profileId: oldSession.profileId,
           accessToken: newAccessTokenHash,
           refreshToken: newRefreshTokenHash,
           refreshTokenExpiresAt: refreshExpiresAt,
+          userAgent: userAgent ?? oldSession.userAgent,
+          ipAddress: clientIp,
+          deviceName: oldSession.deviceName,
           expiresAt: newExpiresAt,
-          lastActiveAt: new Date(),
+          rotatedFromSessionId: oldSession.id,
         },
       });
-      return { type: "updated" as const, sessionId: oldSession.id };
+      await tx.auth_sessions.update({
+        where: { id: oldSession.id },
+        data: { isActive: false, revokedAt: new Date() },
+      });
+      return { type: "rotated" as const, session: created };
+    });
+
+    if (result.type === "conflict") {
+      return unauthorized("Session already refreshed — please try again");
     }
 
-    // Create new session and revoke old one atomically
-    const created = await tx.auth_sessions.create({
-      data: {
-        profileId: oldSession.profileId,
-        accessToken: newAccessTokenHash,
-        refreshToken: newRefreshTokenHash,
-        refreshTokenExpiresAt: refreshExpiresAt,
-        userAgent: userAgent ?? oldSession.userAgent,
-        ipAddress: clientIp,
-        deviceName: oldSession.deviceName,
-        expiresAt: newExpiresAt,
-        rotatedFromSessionId: oldSession.id,
+    void logAction(oldSession.profileId, "auth.token_refresh", {
+      metadata: {
+        rotatedFromSession: oldSession.id,
+        newSessionId: result.type === "rotated" ? result.session.id : result.sessionId,
       },
-    });
-    await tx.auth_sessions.update({
-      where: { id: oldSession.id },
-      data: { isActive: false, revokedAt: new Date() },
-    });
-    return { type: "rotated" as const, session: created };
-  });
+      ipAddress: clientIp,
+      userAgent: userAgent,
+    }, ctx.env!);
 
-  if (result.type === "conflict") {
-    return unauthorized("Session already refreshed — please try again");
+    let response = success({ message: "Token refreshed successfully" });
+
+    response = setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, sbData.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env!);
+    response = setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, sbData.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env!);
+
+    return response;
+  } catch (err) {
+    console.error("[AUTH] handleRefresh error:", err);
+    return serverError(err);
   }
-
-  void logAction(oldSession.profileId, "auth.token_refresh", {
-    metadata: {
-      rotatedFromSession: oldSession.id,
-      newSessionId: result.type === "rotated" ? result.session.id : result.sessionId,
-    },
-    ipAddress: clientIp,
-    userAgent: userAgent,
-  }, ctx.env!);
-
-  let response = success({ message: "Token refreshed successfully" });
-
-  response = setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, sbData.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env!);
-  response = setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, sbData.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env!);
-
-  return response;
 }
 
 // ─── LOGOUT ───
@@ -1255,193 +1260,208 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
 // ─── FORGOT PASSWORD (send 6-digit code) ───
 
 async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<Response> {
-  const parsed = await validateBody(req, forgotPasswordSchema);
-  if ("response" in parsed) return parsed.response;
-  const { email } = parsed.data;
+  try {
+    const parsed = await validateBody(req, forgotPasswordSchema);
+    if ("response" in parsed) return parsed.response;
+    const { email } = parsed.data;
 
-  const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = email.toLowerCase().trim();
 
-  const prisma = getPrisma(ctx.env!);
-  const profile = await prisma.profiles.findUnique({
-    where: { email: normalizedEmail },
-    select: { id: true, firstName: true, email: true },
-  });
+    const prisma = getPrisma(ctx.env!);
+    const profile = await prisma.profiles.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true, firstName: true, email: true },
+    });
 
-  if (!profile) {
-    return success({ message: "If an account exists with this email, a verification code has been sent." });
+    if (!profile) {
+      return success({ message: "If an account exists with this email, a verification code has been sent." });
+    }
+
+    // Generate 6-digit code
+    const resetPasswordToken = generateVerificationCode();
+    const resetPasswordTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await prisma.profiles.update({
+      where: { id: profile.id },
+      data: { resetPasswordToken, resetPasswordTokenExpiresAt },
+    });
+
+    const emailResult = await sendEmailNotification("password_reset", {
+      email: normalizedEmail,
+      firstName: profile.firstName,
+      verificationCode: resetPasswordToken,
+    }, ctx.env!, true);
+    
+    if (!emailResult.success) {
+      console.error("[AUTH] Failed to send password reset email:", emailResult.error);
+    }
+
+    return success({ 
+      message: "If an account exists with this email, a verification code has been sent." + (emailResult.success ? "" : " Note: There may be a delay in receiving the verification email."),
+      emailSent: emailResult.success,
+    });
+  } catch (err) {
+    console.error("[AUTH] handleForgotPassword error:", err);
+    return serverError(err);
   }
-
-  // Generate 6-digit code
-  const resetPasswordToken = generateVerificationCode();
-  const resetPasswordTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-  await prisma.profiles.update({
-    where: { id: profile.id },
-    data: { resetPasswordToken, resetPasswordTokenExpiresAt },
-  });
-
-  const emailResult = await sendEmailNotification("password_reset", {
-    email: normalizedEmail,
-    firstName: profile.firstName,
-    verificationCode: resetPasswordToken,
-  }, ctx.env!, true);
-  
-  if (!emailResult.success) {
-    console.error("[AUTH] Failed to send password reset email:", emailResult.error);
-  }
-
-  return success({ 
-    message: "If an account exists with this email, a verification code has been sent." + (emailResult.success ? "" : " Note: There may be a delay in receiving the verification email."),
-    emailSent: emailResult.success,
-  });
 }
 
 // ─── VERIFY RESET CODE ───
 
 async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise<Response> {
-  const parsed = await validateBody(req, verifyResetCodeSchema);
-  if ("response" in parsed) return parsed.response;
-  const { email, code } = parsed.data;
+  try {
+    const parsed = await validateBody(req, verifyResetCodeSchema);
+    if ("response" in parsed) return parsed.response;
+    const { email, code } = parsed.data;
 
-  const normalizedEmail = email.toLowerCase().trim();
-  const ipAddress = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "unknown";
+    const normalizedEmail = email.toLowerCase().trim();
+    const ipAddress = req.headers.get("CF-Connecting-IP") || req.headers.get("X-Forwarded-For") || "unknown";
 
-  const prisma = getPrisma(ctx.env!);
+    const prisma = getPrisma(ctx.env!);
 
-  // Check if this email is locked out. Count attempts by email (not by the
-  // submitted code) so a brute-forcer can't bypass the limit with new codes.
-  const recentAttempts = await prisma.verification_attempts.findMany({
-    where: {
-      email: normalizedEmail,
-      createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) }, // Last 10 minutes
-    },
-    orderBy: { createdAt: "desc" },
-  });
+    // Check if this email is locked out. Count attempts by email (not by the
+    // submitted code) so a brute-forcer can't bypass the limit with new codes.
+    const recentAttempts = await prisma.verification_attempts.findMany({
+      where: {
+        email: normalizedEmail,
+        createdAt: { gte: new Date(Date.now() - 10 * 60 * 1000) }, // Last 10 minutes
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
-  // Count failed attempts for this code
-  const failedAttempts = recentAttempts.filter(a => !a.success).length;
-  
-  // Check if locked out
-  const lockedAttempt = recentAttempts.find(a => a.lockedUntil && a.lockedUntil > new Date());
-  if (lockedAttempt && lockedAttempt.lockedUntil) {
-    const remainingTime = Math.ceil((lockedAttempt.lockedUntil.getTime() - Date.now()) / 60000);
-    return badRequest(`Too many failed attempts. Try again in ${remainingTime} minutes.`);
-  }
+    // Count failed attempts for this code
+    const failedAttempts = recentAttempts.filter(a => !a.success).length;
+    
+    // Check if locked out
+    const lockedAttempt = recentAttempts.find(a => a.lockedUntil && a.lockedUntil > new Date());
+    if (lockedAttempt && lockedAttempt.lockedUntil) {
+      const remainingTime = Math.ceil((lockedAttempt.lockedUntil.getTime() - Date.now()) / 60000);
+      return badRequest(`Too many failed attempts. Try again in ${remainingTime} minutes.`);
+    }
 
-  // Lockout after 5 failed attempts
-  if (failedAttempts >= 5) {
-    const lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+    // Lockout after 5 failed attempts
+    if (failedAttempts >= 5) {
+      const lockedUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+      await prisma.verification_attempts.create({
+        data: {
+          email: normalizedEmail,
+          code,
+          ipAddress,
+          success: false,
+          lockedUntil,
+        },
+      });
+      return badRequest("Too many failed attempts. Please request a new verification code.");
+    }
+
+    const profile = await prisma.profiles.findFirst({
+      where: { email: normalizedEmail, resetPasswordToken: code },
+      select: { id: true, email: true, resetPasswordTokenExpiresAt: true },
+    });
+
+    if (!profile) {
+      // Record failed attempt
+      await prisma.verification_attempts.create({
+        data: {
+          profileId: null,
+          email: normalizedEmail,
+          code,
+          ipAddress,
+          success: false,
+        },
+      });
+      return badRequest("Invalid verification code");
+    }
+
+    if (profile.resetPasswordTokenExpiresAt && profile.resetPasswordTokenExpiresAt < new Date()) {
+      return badRequest("Verification code has expired. Request a new one.");
+    }
+
+    // Record successful attempt
     await prisma.verification_attempts.create({
       data: {
+        profileId: profile.id,
         email: normalizedEmail,
         code,
         ipAddress,
-        success: false,
-        lockedUntil,
+        success: true,
       },
     });
-    return badRequest("Too many failed attempts. Please request a new verification code.");
+
+    return success({ message: "Code verified successfully" });
+  } catch (err) {
+    console.error("[AUTH] handleVerifyResetCode error:", err);
+    return serverError(err);
   }
-
-  const profile = await prisma.profiles.findFirst({
-    where: { email: normalizedEmail, resetPasswordToken: code },
-    select: { id: true, email: true, resetPasswordTokenExpiresAt: true },
-  });
-
-  if (!profile) {
-    // Record failed attempt
-    await prisma.verification_attempts.create({
-      data: {
-        profileId: null,
-        email: normalizedEmail,
-        code,
-        ipAddress,
-        success: false,
-      },
-    });
-    return badRequest("Invalid verification code");
-  }
-
-  if (profile.resetPasswordTokenExpiresAt && profile.resetPasswordTokenExpiresAt < new Date()) {
-    return badRequest("Verification code has expired. Request a new one.");
-  }
-
-  // Record successful attempt
-  await prisma.verification_attempts.create({
-    data: {
-      profileId: profile.id,
-      email: normalizedEmail,
-      code,
-      ipAddress,
-      success: true,
-    },
-  });
-
-  return success({ message: "Code verified successfully" });
 }
 
 // ─── RESET PASSWORD ───
 
 async function handleResetPassword(req: Request, ctx: RequestContext): Promise<Response> {
-  const parsed = await validateBody(req, resetPasswordSchema);
-  if ("response" in parsed) return parsed.response;
-  const { email, code, password } = parsed.data;
-
-  const normalizedEmail = email.toLowerCase().trim();
-
-  const prisma = getPrisma(ctx.env!);
-  
-  // Fix race condition by wrapping in transaction to prevent token reuse (R6)
-  const profileId = await prisma.$transaction(async (tx) => {
-    const profile = await tx.profiles.findFirst({
-      where: { email: normalizedEmail, resetPasswordToken: code },
-      select: { id: true, resetPasswordTokenExpiresAt: true },
-    });
-
-    if (!profile) {
-      throw new Error("Invalid verification code");
-    }
-
-    if (profile.resetPasswordTokenExpiresAt && profile.resetPasswordTokenExpiresAt < new Date()) {
-      throw new Error("Verification code has expired. Request a new one.");
-    }
-
-    // Clear reset token immediately to prevent reuse
-    await tx.profiles.update({
-      where: { id: profile.id },
-      data: {
-        resetPasswordToken: null,
-        resetPasswordTokenExpiresAt: null,
-      },
-    });
-
-    return profile.id;
-  });
-
-  // Update password via Supabase admin API (outside transaction due to external API)
-  const supabase = getAdminClient(ctx.env!);
-  const { error: updateError } = await supabase.auth.admin.updateUserById(profileId, {
-    password,
-  });
-
-  if (updateError) return badRequest(updateError.message);
-
   try {
-    await supabase.auth.admin.signOut(profileId);
-    await prisma.auth_sessions.updateMany({
-      where: { profileId, isActive: true },
-      data: { isActive: false },
-    }).catch(() => {});
-  } catch {
-    // Non-critical
+    const parsed = await validateBody(req, resetPasswordSchema);
+    if ("response" in parsed) return parsed.response;
+    const { email, code, password } = parsed.data;
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const prisma = getPrisma(ctx.env!);
+    
+    // Fix race condition by wrapping in transaction to prevent token reuse (R6)
+    const profileId = await prisma.$transaction(async (tx) => {
+      const profile = await tx.profiles.findFirst({
+        where: { email: normalizedEmail, resetPasswordToken: code },
+        select: { id: true, resetPasswordTokenExpiresAt: true },
+      });
+
+      if (!profile) {
+        throw new Error("Invalid verification code");
+      }
+
+      if (profile.resetPasswordTokenExpiresAt && profile.resetPasswordTokenExpiresAt < new Date()) {
+        throw new Error("Verification code has expired. Request a new one.");
+      }
+
+      // Clear reset token immediately to prevent reuse
+      await tx.profiles.update({
+        where: { id: profile.id },
+        data: {
+          resetPasswordToken: null,
+          resetPasswordTokenExpiresAt: null,
+        },
+      });
+
+      return profile.id;
+    });
+
+    // Update password via Supabase admin API (outside transaction due to external API)
+    const supabase = getAdminClient(ctx.env!);
+    const { error: updateError } = await supabase.auth.admin.updateUserById(profileId, {
+      password,
+    });
+
+    if (updateError) return badRequest(updateError.message);
+
+    try {
+      await supabase.auth.admin.signOut(profileId);
+      await prisma.auth_sessions.updateMany({
+        where: { profileId, isActive: true },
+        data: { isActive: false },
+      }).catch(() => {});
+    } catch {
+      // Non-critical
+    }
+
+    void logAction(null, "auth.password_reset", {
+      metadata: { email: normalizedEmail },
+      ...extractRequestMeta(req),
+    }, ctx.env!);
+
+    return success({ message: "Password updated successfully" });
+  } catch (err) {
+    console.error("[AUTH] handleResetPassword error:", err);
+    return serverError(err);
   }
-
-  void logAction(null, "auth.password_reset", {
-    metadata: { email: normalizedEmail },
-    ...extractRequestMeta(req),
-  }, ctx.env!);
-
-  return success({ message: "Password updated successfully" });
 }
 
 // ─── CHANGE PASSWORD ───

@@ -12,11 +12,11 @@ const VALID_ENTITY_TYPES = [
   "brands", "labels", "lookbooks", "blogs", "cms", "sellers", "users",
 ] as const satisfies readonly EntityType[];
 
-function resolveUploadEntityType(value: FormDataEntryValue | null): EntityType {
+function resolveUploadEntityType(value: FormDataEntryValue | null): { type: EntityType } | { error: Response } {
   if (typeof value === "string" && (VALID_ENTITY_TYPES as readonly string[]).includes(value)) {
-    return value as EntityType;
+    return { type: value as EntityType };
   }
-  return "cms";
+  return { error: badRequest(`Invalid entity type. Must be one of: ${VALID_ENTITY_TYPES.join(", ")}`) };
 }
 
 async function checkUploadRateLimit(req: Request, ctx: RequestContext): Promise<Response | null> {
@@ -57,7 +57,9 @@ async function doUpload(req: Request, ctx: RequestContext): Promise<Response> {
     const contentValidation = await validateFileContent(file, file.type);
     if (!contentValidation.valid) return badRequest(contentValidation.error!);
 
-    const entityType = resolveUploadEntityType(formData.get("entityType"));
+    const entityTypeResult = resolveUploadEntityType(formData.get("entityType"));
+    if ("error" in entityTypeResult) return entityTypeResult.error;
+    const entityType = entityTypeResult.type;
     const entityId = (formData.get("entityId") as string) || crypto.randomUUID();
     const slug = (formData.get("slug") as string) || `upload-${Date.now().toString(36)}`;
     const altText = (formData.get("altText") as string) || file.name;

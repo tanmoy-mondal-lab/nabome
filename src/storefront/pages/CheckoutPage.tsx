@@ -274,9 +274,14 @@ export default function CheckoutPage() {
         clearCart();
         setStep("success");
       } else {
+        if (!razorpayOrderId) {
+          setApiError("Failed to initialize payment. Please try again.");
+          setProcessing(false);
+          return;
+        }
         try {
           const result = await openRazorpay({
-            razorpayOrderId: razorpayOrderId!,
+            razorpayOrderId,
             amount: grandTotal,
             prefill: {
               name: shipping.fullName,

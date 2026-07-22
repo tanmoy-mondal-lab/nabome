@@ -150,6 +150,11 @@ async function handleSyncCart(req: Request, ctx: RequestContext): Promise<Respon
     return badRequest("Items array is required");
   }
 
+  const MAX_CART_ITEMS = 50;
+  if (items.length > MAX_CART_ITEMS) {
+    return badRequest(`Cart cannot have more than ${MAX_CART_ITEMS} items`);
+  }
+
   try {
     const prisma = getPrisma(ctx.env!);
     
@@ -215,6 +220,11 @@ async function handleMergeCart(req: Request, ctx: RequestContext): Promise<Respo
 
   if (!Array.isArray(items)) {
     return badRequest("Items array is required");
+  }
+
+  const MAX_CART_ITEMS = 50;
+  if (items.length > MAX_CART_ITEMS) {
+    return badRequest(`Cart cannot have more than ${MAX_CART_ITEMS} items`);
   }
 
   try {

@@ -18,8 +18,10 @@ export async function handleAddressRequest(
     case "POST":
       return handleCreate(ctx.userId, req, ctx.env!);
     case "PUT":
+      if (!params[0]) return notFound("Address ID required");
       return handleUpdate(ctx.userId, params[0], req, ctx.env!);
     case "DELETE":
+      if (!params[0]) return notFound("Address ID required");
       return handleDelete(ctx.userId, params[0], ctx.env!);
     default:
       return error(ErrorCode.INVALID_INPUT, "Method not allowed", 405);

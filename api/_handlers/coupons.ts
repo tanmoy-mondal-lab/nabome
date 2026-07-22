@@ -24,8 +24,13 @@ export async function handleCouponRequest(
 }
 
 async function handleValidate(ctx: RequestContext, req: Request, env: Env): Promise<Response> {
-  const body = await req.json();
-  const { code, subtotal, gender } = body;
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON");
+  }
+  const { code, subtotal, gender } = body as { code?: string; subtotal?: string; gender?: string };
 
   if (!code) return badRequest("Coupon code is required");
 
@@ -77,6 +82,7 @@ async function handleValidate(ctx: RequestContext, req: Request, env: Env): Prom
     }
 
     const orderValue = subtotal ? parseFloat(subtotal) : 0;
+    if (subtotal && isNaN(orderValue)) return badRequest("Invalid subtotal value");
     if (coupon.minOrderValue && orderValue < Number(coupon.minOrderValue)) {
       return success({
         valid: false,

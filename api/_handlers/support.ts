@@ -85,12 +85,12 @@ async function handleCreateTicket(ctx: RequestContext, req: Request, env: Env): 
     return badRequest("Subject and message are required");
   }
 
-  const prisma = getPrisma(env);
-  const profile = ctx.userId
-    ? await prisma.profiles.findUnique({ where: { id: ctx.userId }, select: { firstName: true, lastName: true, email: true } })
-    : null;
-
   try {
+    const prisma = getPrisma(env);
+    const profile = ctx.userId
+      ? await prisma.profiles.findUnique({ where: { id: ctx.userId }, select: { firstName: true, lastName: true, email: true } })
+      : null;
+
     const ticket = await prisma.support_tickets.create({
       data: {
         profileId: ctx.userId ?? null,

@@ -38,8 +38,10 @@ async function callRazorpay(
   body?: Record<string, unknown>,
   env?: Env
 ): Promise<Record<string, unknown>> {
-  const keyId = cleanSecret(env?.RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID);
-  const keySecret = cleanSecret(env?.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET);
+  const fallbackKeyId = typeof process !== "undefined" ? process.env?.RAZORPAY_KEY_ID : undefined;
+  const fallbackKeySecret = typeof process !== "undefined" ? process.env?.RAZORPAY_KEY_SECRET : undefined;
+  const keyId = cleanSecret(env?.RAZORPAY_KEY_ID || fallbackKeyId);
+  const keySecret = cleanSecret(env?.RAZORPAY_KEY_SECRET || fallbackKeySecret);
   if (!keyId || !keySecret) {
     throw new Error("Razorpay credentials not configured");
   }
@@ -92,7 +94,8 @@ async function handleVerify(req: Request, ctx: RequestContext, env: Env): Promis
 
     const prisma = getPrisma(env);
 
-    const keySecret = cleanSecret(env?.RAZORPAY_KEY_SECRET || process.env.RAZORPAY_KEY_SECRET);
+    const fallbackKeySecret = typeof process !== "undefined" ? process.env?.RAZORPAY_KEY_SECRET : undefined;
+    const keySecret = cleanSecret(env?.RAZORPAY_KEY_SECRET || fallbackKeySecret);
     if (!keySecret) {
       return serverError(new Error("Razorpay secret not configured"));
     }
@@ -831,7 +834,9 @@ async function handleRefundProcessed(event: WebhookEventPayload, ctx: { env: Env
     const allRefunds = await tx.refunds.findMany({
       where: { orderId: existingRefund.orderId, status: "completed" },
     });
-    const totalRefunded = allRefunds.reduce((sum, r) => sum + Number(r.amount), 0) + Number(refundAmount);
+    // Note: allRefunds already includes the current refund (just marked completed above),
+    // so we must NOT add refundAmount again to avoid double-counting.
+    const totalRefunded = allRefunds.reduce((sum, r) => sum + Number(r.amount), 0);
     const order = await tx.orders.findUnique({ where: { id: existingRefund.orderId } });
     if (!order) throw new Error(`Order not found: ${existingRefund.orderId}`);
 
@@ -899,7 +904,8 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
   const signature = req.headers.get("x-razorpay-signature");
 
   // ── 1. Verify secret is configured ──
-  const webhookSecret = cleanSecret(env?.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_WEBHOOK_SECRET);
+  const fallbackWebhookSecret = typeof process !== "undefined" ? process.env?.RAZORPAY_WEBHOOK_SECRET : undefined;
+  const webhookSecret = cleanSecret(env?.RAZORPAY_WEBHOOK_SECRET || fallbackWebhookSecret);
   if (!webhookSecret) {
     return serverError(new Error("Razorpay webhook secret not configured"));
   }

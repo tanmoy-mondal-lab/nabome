@@ -88,25 +88,26 @@ async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promis
       if (!item) return badRequest("Order item not found in this order");
     }
 
-    const returnRequest = await prisma.return_requests.create({
-      data: {
-        orderId: orderId as string,
-        orderItemId: orderItemId as string | null ?? null,
-        profileId: ctx.userId,
-        reason: reason as any,
-        reasonDetail: reasonDetail as string | null ?? null,
-        evidenceImages: evidenceImages as string[] | undefined ?? [],
-        status: "pending",
-      },
-      include: {
-        order: { select: { orderNumber: true } },
-      },
-    });
-
-    await prisma.orders.update({
-      where: { id: orderId as string },
-      data: { returnRequestedAt: new Date() },
-    });
+    const [returnRequest] = await prisma.$transaction([
+      prisma.return_requests.create({
+        data: {
+          orderId: orderId as string,
+          orderItemId: orderItemId as string | null ?? null,
+          profileId: ctx.userId,
+          reason: reason as any,
+          reasonDetail: reasonDetail as string | null ?? null,
+          evidenceImages: evidenceImages as string[] | undefined ?? [],
+          status: "pending",
+        },
+        include: {
+          order: { select: { orderNumber: true } },
+        },
+      }),
+      prisma.orders.update({
+        where: { id: orderId as string },
+        data: { returnRequestedAt: new Date() },
+      }),
+    ]);
 
     await createNotification(
       ctx.userId,
