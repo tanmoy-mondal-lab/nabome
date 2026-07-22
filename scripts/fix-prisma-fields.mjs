@@ -47,6 +47,7 @@ sorted.push(
   ['newPassword', 'new_password'],
 );
 
+// eslint-disable-next-line no-console
 console.log(`Generated ${sorted.length} field mappings from Prisma schema`);
 
 function escapeRegex(str) {
@@ -91,10 +92,12 @@ for (const dir of dirs) {
   
   for (const file of files) {
     if (fixFile(file)) {
+      // eslint-disable-next-line no-console
       console.log(`Fixed: ${file}`);
       fileCount++;
     }
   }
 }
 
+// eslint-disable-next-line no-console
 console.log(`\nDone! Fixed ${fileCount} files with Prisma field name mismatches.`);

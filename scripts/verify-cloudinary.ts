@@ -13,7 +13,7 @@ interface VerificationResult {
   category: string;
   status: 'PASS' | 'FAIL' | 'WARNING';
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 const results: VerificationResult[] = [];
@@ -27,6 +27,7 @@ function getCloudinaryConfig(): CloudinaryConfig {
 }
 
 async function verifyCloudinary() {
+  // eslint-disable-next-line no-console
   console.log('☁️  Starting Cloudinary Verification...\n');
 
   // 1. Check Cloudinary configuration
@@ -46,6 +47,7 @@ async function verifyCloudinary() {
 }
 
 async function checkCloudinaryConfig() {
+  // eslint-disable-next-line no-console
   console.log('🔧 Checking Cloudinary configuration...');
 
   const config = getCloudinaryConfig();
@@ -56,19 +58,21 @@ async function checkCloudinaryConfig() {
       status: 'FAIL',
       message: 'Cloudinary credentials not configured'
     });
+    // eslint-disable-next-line no-console
     console.log('  ✗ Cloudinary credentials missing\n');
     return;
   }
 
   try {
     // Test connection by listing a few resources
-    const result = await listAssetsInFolder('nabome', 'image', config, 1);
+    await listAssetsInFolder('nabome', 'image', config, 1);
     
     results.push({
       category: 'Cloudinary Config',
       status: 'PASS',
       message: 'Cloudinary connection successful'
     });
+    // eslint-disable-next-line no-console
     console.log('  ✓ Cloudinary connection successful\n');
   } catch (error) {
     results.push({
@@ -76,14 +80,17 @@ async function checkCloudinaryConfig() {
       status: 'FAIL',
       message: `Cloudinary connection failed: ${error instanceof Error ? error.message : String(error)}`
     });
+    // eslint-disable-next-line no-console
     console.log(`  ✗ Cloudinary connection failed: ${error}\n`);
   }
 }
 
 async function checkProductImages() {
+  // eslint-disable-next-line no-console
   console.log('🖼️  Checking product images...');
 
   const productImages = await prisma.productImage.findMany();
+  // eslint-disable-next-line no-console
   console.log(`  Total product images: ${productImages.length}`);
 
   let invalidUrlCount = 0;
@@ -131,10 +138,12 @@ async function checkProductImages() {
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log(`  ✓ Product image checks completed\n`);
 }
 
 async function checkOrphanCloudinaryAssets() {
+  // eslint-disable-next-line no-console
   console.log('👻 Checking for orphan Cloudinary assets...');
 
   const config = getCloudinaryConfig();
@@ -142,6 +151,7 @@ async function checkOrphanCloudinaryAssets() {
   try {
     // Get all Cloudinary assets in the nabome folder using the existing service
     const cloudinaryAssets = await getEntityAssets('nabome', config);
+    // eslint-disable-next-line no-console
     console.log(`  Total Cloudinary assets in nabome folder: ${cloudinaryAssets.length}`);
 
     // Get all product image public IDs
@@ -151,8 +161,8 @@ async function checkOrphanCloudinaryAssets() {
     const dbPublicIds = new Set(productImages.map(img => img.publicId));
 
     // Find orphan assets (in Cloudinary but not in DB)
-    const orphanAssets = cloudinaryAssets.filter((asset: any) => 
-      !dbPublicIds.has(asset.publicId)
+    const orphanAssets = cloudinaryAssets.filter((asset: Record<string, unknown>) => 
+      !dbPublicIds.has(asset.publicId as string)
     );
 
     if (orphanAssets.length > 0) {
@@ -162,9 +172,10 @@ async function checkOrphanCloudinaryAssets() {
         message: `${orphanAssets.length} orphan Cloudinary assets found`,
         details: { 
           count: orphanAssets.length,
-          assets: orphanAssets.map((a: any) => a.publicId).slice(0, 10) // Show first 10
+          assets: orphanAssets.map((a: Record<string, string>) => a.publicId).slice(0, 10) // Show first 10
         }
       });
+      // eslint-disable-next-line no-console
       console.log(`  ⚠️  Found ${orphanAssets.length} orphan assets`);
     } else {
       results.push({
@@ -172,12 +183,13 @@ async function checkOrphanCloudinaryAssets() {
         status: 'PASS',
         message: 'No orphan Cloudinary assets found'
       });
+      // eslint-disable-next-line no-console
       console.log('  ✓ No orphan assets found');
     }
 
     // Find missing assets (in DB but not in Cloudinary)
     const missingAssets = productImages.filter(img => 
-      img.publicId && !cloudinaryAssets.some((ca: any) => ca.publicId === img.publicId)
+      img.publicId && !cloudinaryAssets.some((ca: Record<string, string>) => ca.publicId === img.publicId)
     );
 
     if (missingAssets.length > 0) {
@@ -187,6 +199,7 @@ async function checkOrphanCloudinaryAssets() {
         message: `${missingAssets.length} database images reference missing Cloudinary assets`,
         details: { count: missingAssets.length }
       });
+      // eslint-disable-next-line no-console
       console.log(`  ✗ Found ${missingAssets.length} missing Cloudinary assets`);
     } else {
       results.push({
@@ -194,9 +207,11 @@ async function checkOrphanCloudinaryAssets() {
         status: 'PASS',
         message: 'All database images exist in Cloudinary'
       });
+      // eslint-disable-next-line no-console
       console.log('  ✓ All database images exist in Cloudinary');
     }
 
+    // eslint-disable-next-line no-console
     console.log('  ✓ Orphan asset checks completed\n');
   } catch (error) {
     results.push({
@@ -204,11 +219,13 @@ async function checkOrphanCloudinaryAssets() {
       status: 'WARNING',
       message: `Could not check orphan assets: ${error instanceof Error ? error.message : String(error)}`
     });
+    // eslint-disable-next-line no-console
     console.log(`  ⚠️  Could not check orphan assets: ${error}\n`);
   }
 }
 
 async function checkFolderStructure() {
+  // eslint-disable-next-line no-console
   console.log('📁 Checking folder structure...');
 
   const productImages = await prisma.productImage.findMany({
@@ -247,6 +264,7 @@ async function checkFolderStructure() {
         violations: folderViolations.slice(0, 10)
       }
     });
+    // eslint-disable-next-line no-console
     console.log(`  ✗ Found ${invalidFolderCount} folder structure violations`);
   } else {
     results.push({
@@ -254,24 +272,33 @@ async function checkFolderStructure() {
       status: 'PASS',
       message: 'All assets follow correct folder structure'
     });
+    // eslint-disable-next-line no-console
     console.log('  ✓ All assets follow correct folder structure');
   }
 
-  console.log('  ✓ Folder structure checks completed\n');
+    // eslint-disable-next-line no-console
+    console.log('  ✓ Folder structure checks completed\n');
 }
 
 function printSummary() {
+  // eslint-disable-next-line no-console
   console.log('📋 Cloudinary Verification Summary\n');
+  // eslint-disable-next-line no-console
   console.log('=' .repeat(60));
 
   const passed = results.filter(r => r.status === 'PASS').length;
   const failed = results.filter(r => r.status === 'FAIL').length;
   const warnings = results.filter(r => r.status === 'WARNING').length;
 
+  // eslint-disable-next-line no-console
   console.log(`Total Checks: ${results.length}`);
+  // eslint-disable-next-line no-console
   console.log(`✅ Passed: ${passed}`);
+  // eslint-disable-next-line no-console
   console.log(`❌ Failed: ${failed}`);
+  // eslint-disable-next-line no-console
   console.log(`⚠️  Warnings: ${warnings}`);
+  // eslint-disable-next-line no-console
   console.log('=' .repeat(60));
 
   // Group by category
@@ -283,27 +310,36 @@ function printSummary() {
     return acc;
   }, {} as Record<string, VerificationResult[]>);
 
+  // eslint-disable-next-line no-console
   console.log('\nDetailed Results:\n');
 
   for (const [category, categoryResults] of Object.entries(byCategory)) {
+    // eslint-disable-next-line no-console
     console.log(`${category}:`);
     for (const result of categoryResults) {
       const icon = result.status === 'PASS' ? '✅' : result.status === 'FAIL' ? '❌' : '⚠️';
+      // eslint-disable-next-line no-console
       console.log(`  ${icon} ${result.message}`);
       if (result.details) {
+        // eslint-disable-next-line no-console
         console.log(`     Details: ${JSON.stringify(result.details)}`);
       }
     }
+    // eslint-disable-next-line no-console
     console.log();
   }
 
   // Overall status
   const overallStatus = failed === 0 ? 'PASS' : 'FAIL';
+  // eslint-disable-next-line no-console
   console.log('=' .repeat(60));
+  // eslint-disable-next-line no-console
   console.log(`Overall Status: ${overallStatus}`);
+  // eslint-disable-next-line no-console
   console.log('=' .repeat(60));
 }
 
 verifyCloudinary()
+  // eslint-disable-next-line no-console
   .catch(console.error)
   .finally(() => prisma.$disconnect());

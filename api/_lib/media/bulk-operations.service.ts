@@ -308,7 +308,7 @@ export async function bulkPermanentDeleteWithSafety(
       const { deleteAsset } = await import('./cloudinary');
       const cloudinaryDeleted = await deleteAsset(
         asset.publicId || '',
-        asset.resourceType as any,
+        asset.resourceType as 'image' | 'video' | 'raw',
         config
       );
 

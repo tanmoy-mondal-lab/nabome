@@ -132,7 +132,7 @@ async function handleListFolderContents(req: Request, env: Env): Promise<Respons
 }
 
 async function handleCreateFolder(req: Request, env: Env): Promise<Response> {
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -163,7 +163,7 @@ async function handleCreateFolder(req: Request, env: Env): Promise<Response> {
 }
 
 async function handleRenameFolder(req: Request, env: Env): Promise<Response> {
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -248,7 +248,7 @@ async function handleDeleteFolder(req: Request, env: Env): Promise<Response> {
 }
 
 async function handleMoveFolder(req: Request, env: Env): Promise<Response> {
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -257,8 +257,8 @@ async function handleMoveFolder(req: Request, env: Env): Promise<Response> {
 
   const rawOldPath = body.oldPath;
   const rawNewPath = body.newPath;
-  const oldPath = sanitizeFolderPath(rawOldPath || "");
-  const newPath = sanitizeFolderPath(rawNewPath || "");
+  const oldPath = sanitizeFolderPath((rawOldPath || "") as string);
+  const newPath = sanitizeFolderPath((rawNewPath || "") as string);
 
   if (!rawOldPath || typeof rawOldPath !== "string") {
     return badRequest("Old folder path is required");

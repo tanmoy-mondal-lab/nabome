@@ -9,6 +9,7 @@ import { MARKETING_SLUGS } from '../utils/constants';
 import type { coupons } from '@prisma/client';
 
 export async function seedCoupon() {
+  // eslint-disable-next-line no-console
   console.log('🎟️  Seeding coupons...');
 
   // Use a fixed UUID for coupon to ensure idempotency
@@ -37,6 +38,7 @@ export async function seedCoupon() {
     'Coupon'
   );
 
+  // eslint-disable-next-line no-console
   console.log(`🎟️  Coupon code: ${MARKETING_SLUGS.coupon} (10% off, min ₹999)`);
 
   return coupon;

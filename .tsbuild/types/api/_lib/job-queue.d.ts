@@ -27,17 +27,17 @@ export declare function processJob(jobId: string, env: Env): Promise<JobResult>;
 export declare function getNextJobs(limit: number | undefined, env: Env): Promise<{
     status: import("@prisma/client").$Enums.JobStatus;
     id: string;
-    createdAt: Date;
-    updatedAt: Date;
-    payload: Prisma.JsonValue;
-    errorMessage: string | null;
-    retryCount: number;
-    priority: number;
     jobType: string;
+    payload: Prisma.JsonValue;
+    priority: number;
     maxRetries: number;
+    retryCount: number;
     retryAfter: Date | null;
+    errorMessage: string | null;
     startedAt: Date | null;
     completedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
 }[]>;
 /**
  * Process batch of jobs

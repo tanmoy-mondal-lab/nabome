@@ -13,6 +13,7 @@ import type { CloudinaryConfig } from "../../_lib/media/types";
 import { normalizeEntityTypeForDb } from "../../_lib/media/entity-type";
 import { getAssetReferences } from "../../_lib/media/usage.service";
 import { sanitizeFolderPath } from "../../_lib/media/validation";
+import { logger } from "../../_lib/logger";
 
 
 export async function handleAdminMediaRequest(
@@ -112,16 +113,13 @@ async function handleList(req: Request, env: Env): Promise<Response> {
       },
     });
   } catch (err) {
-    console.error("Media list error:", err);
-    if (err instanceof Error) {
-      console.error("Error message:", err.message);
-      console.error("Error stack:", err.stack);
-    }
+    logger.error("Media list error", { error: err });
     return serverError(err);
   }
 }
 
 async function handleCreate(req: Request, env: Env): Promise<Response> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let body: any;
   try {
     body = await req.json();
@@ -229,7 +227,7 @@ async function handleDelete(assetId: string, req: Request, env: Env, userId?: st
 }
 
 async function handleUpdate(assetId: string, req: Request, env: Env): Promise<Response> {
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -443,7 +441,7 @@ async function handleRestore(assetId: string, req: Request, env: Env, userId?: s
 }
 
 async function handlePermanentDelete(assetId: string, req: Request, env: Env, userId?: string): Promise<Response> {
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {

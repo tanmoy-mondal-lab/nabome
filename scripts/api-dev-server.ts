@@ -64,6 +64,7 @@ const server = http.createServer(async (req, res) => {
     const responseBody = await response.text();
     res.end(responseBody);
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error("[API DEV] Error:", err);
     res.writeHead(500, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ success: false, error: { message: "Internal server error", status: 500 } }));
@@ -71,5 +72,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
+  // eslint-disable-next-line no-console
   console.log(`[API DEV] Server running on http://localhost:${PORT}`);
 });

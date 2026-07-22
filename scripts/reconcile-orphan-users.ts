@@ -30,6 +30,7 @@ function generateResetCode(): string {
 }
 
 async function reconcile(dryRun: boolean) {
+  // eslint-disable-next-line no-console
   console.log(`\n${dryRun ? "DRY RUN" : "LIVE"} - Reconciling orphaned Supabase users\n`);
 
   const env = getEnv();
@@ -37,6 +38,7 @@ async function reconcile(dryRun: boolean) {
   const key = cleanSecret(env.SUPABASE_SERVICE_ROLE_KEY);
 
   if (!url || !key) {
+    // eslint-disable-next-line no-console
     console.error("❌ Missing Supabase credentials in environment");
     process.exit(1);
   }
@@ -56,6 +58,7 @@ async function reconcile(dryRun: boolean) {
   while (true) {
     const { data, error: listError } = await supabase.auth.admin.listUsers({ page, perPage });
     if (listError) {
+      // eslint-disable-next-line no-console
       console.error("❌ Error listing users:", listError.message);
       process.exit(1);
     }
@@ -76,9 +79,11 @@ async function reconcile(dryRun: boolean) {
 
       if (profile) continue; // healthy account
 
+      // eslint-disable-next-line no-console
       console.log(`🔎 Orphan found: ${email} (Supabase id: ${u.id})`);
 
       if (dryRun) {
+        // eslint-disable-next-line no-console
         console.log(`   → would create profile + send password-reset email\n`);
         continue;
       }
@@ -93,12 +98,13 @@ async function reconcile(dryRun: boolean) {
             email,
             role: "customer",
             firstName: email.split("@")[0] || "there",
-            emailVerified: true, // Supabase user was created with email_confirm:true
+            emailVerified: true,
             resetPasswordToken: resetToken,
             resetPasswordTokenExpiresAt: resetExpiry,
           },
         });
       } catch (err) {
+        // eslint-disable-next-line no-console
         console.error(`   ❌ Failed to create profile for ${email}:`, err);
         continue;
       }
@@ -115,8 +121,10 @@ async function reconcile(dryRun: boolean) {
       );
 
       if (emailResult.success) {
+        // eslint-disable-next-line no-console
         console.log(`   ✅ Profile created + password-reset email sent\n`);
       } else {
+        // eslint-disable-next-line no-console
         console.error(`   ⚠️  Profile created but email failed: ${emailResult.error}\n`);
       }
     }
@@ -135,13 +143,17 @@ async function reconcile(dryRun: boolean) {
       (p) => (p.preferences as Record<string, unknown> | null)?.guest === true
     );
     if (reverseOrphans.length > 0) {
+      // eslint-disable-next-line no-console
       console.log(`ℹ️  ${reverseOrphans.length} guest profile(s) have no Supabase user.`);
+      // eslint-disable-next-line no-console
       console.log(`   These are handled automatically the next time the user registers.\n`);
     }
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error("⚠️  Could not check for reverse orphans:", err);
   }
 
+  // eslint-disable-next-line no-console
   console.log(`Scanned ${totalUsers} Supabase users.\n`);
 }
 
@@ -151,6 +163,7 @@ async function main() {
   try {
     await reconcile(dryRun);
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("❌ Error:", error);
     process.exit(1);
   } finally {

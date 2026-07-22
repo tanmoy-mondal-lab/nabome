@@ -9,6 +9,7 @@ import { PRODUCT_SLUGS } from '../utils/constants';
 import type { categories } from '@prisma/client';
 
 export async function seedCategories() {
+  // eslint-disable-next-line no-console
   console.log('📂 Seeding categories...');
 
   // Use a fixed UUID for category to ensure idempotency

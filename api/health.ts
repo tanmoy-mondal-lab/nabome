@@ -200,7 +200,7 @@ async function probeMedia(env?: Env): Promise<ProbeResult> {
   }
 }
 
-async function probeWorker(_env?: Env): Promise<ProbeResult> {
+async function probeWorker(): Promise<ProbeResult> {
   // Cloudflare Pages Functions are serverless - check if runtime is available
   const configured = true; // Always configured in Cloudflare Pages
   const metrics = healthMonitor.getMetrics();
@@ -253,7 +253,7 @@ export async function GET(req: Request, opts?: { env?: Env }): Promise<Response>
       probePayments(env),
       probeEmail(env),
       probeMedia(env),
-      probeWorker(env),
+      probeWorker(),
       probeQueue(env),
     ]);
 
@@ -284,5 +284,5 @@ export async function GET(req: Request, opts?: { env?: Env }): Promise<Response>
   });
 
   // Security: Set CSRF cookie on health check for initial token establishment
-  return setCsrfCookie(response, env);
+  return setCsrfCookie(response, env as Record<string, unknown>);
 }

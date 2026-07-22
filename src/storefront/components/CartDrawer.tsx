@@ -14,7 +14,7 @@ export function CartDrawer() {
   const { items, removeItem, updateQuantity, subtotal, discountAmount, couponCode } = useCart();
   const { data: settings } = useSettings();
   const prefersReducedMotion = useReducedMotion();
-  const [syncError, _setSyncError] = useState<string | null>(null);
+  const [syncError] = useState<string | null>(null);
 
   const freeShippingThreshold = Number(settings?.preferences?.freeShippingThreshold ?? 500);
   const shippingCost = Number(settings?.preferences?.shippingCost ?? 99);

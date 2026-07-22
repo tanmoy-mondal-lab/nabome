@@ -167,6 +167,7 @@ class DatabaseBackup {
       const fileAge = now - stats.mtimeMs;
 
       if (fileAge > retentionMs) {
+        // eslint-disable-next-line no-console
         console.log(`Deleting old backup: ${file}`);
         unlinkSync(filePath);
       }
@@ -177,10 +178,12 @@ class DatabaseBackup {
    * Upload backup to cloud storage (S3/GCS)
    */
   private async uploadToCloud(filePath: string): Promise<void> {
+    void filePath;
     if (!this.options.cloudUpload) return;
 
     // Placeholder for cloud upload implementation
     // Would integrate with AWS S3 or Google Cloud Storage
+    // eslint-disable-next-line no-console
     console.log('Cloud upload not yet implemented');
   }
 
@@ -195,6 +198,7 @@ class DatabaseBackup {
     let currentFile = backupPath;
 
     try {
+      // eslint-disable-next-line no-console
       console.log(`Starting ${this.options.type} backup...`);
 
       // Step 1: Execute pg_dump
@@ -208,6 +212,7 @@ class DatabaseBackup {
 
       // Step 2: Compress if enabled
       if (this.options.compress) {
+        // eslint-disable-next-line no-console
         console.log('Compressing backup...');
         const compressedFile = backupPath;
         this.compressFile(currentFile, compressedFile);
@@ -216,6 +221,7 @@ class DatabaseBackup {
 
       // Step 3: Encrypt if enabled
       if (this.options.encrypt) {
+        // eslint-disable-next-line no-console
         console.log('Encrypting backup...');
         const encryptedFile = backupPath + '.enc';
         this.encryptFile(currentFile, encryptedFile);
@@ -223,6 +229,7 @@ class DatabaseBackup {
       }
 
       // Step 4: Calculate checksum
+      // eslint-disable-next-line no-console
       console.log('Calculating checksum...');
       const checksum = this.calculateChecksum(currentFile);
 
@@ -230,15 +237,20 @@ class DatabaseBackup {
       await this.uploadToCloud(currentFile);
 
       // Step 6: Cleanup old backups
+      // eslint-disable-next-line no-console
       console.log('Cleaning up old backups...');
       this.cleanupOldBackups();
 
       const duration = Date.now() - startTime;
       const stats = statSync(currentFile);
 
+      // eslint-disable-next-line no-console
       console.log(`Backup completed successfully in ${duration}ms`);
+      // eslint-disable-next-line no-console
       console.log(`Backup file: ${currentFile}`);
+      // eslint-disable-next-line no-console
       console.log(`Backup size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);
+      // eslint-disable-next-line no-console
       console.log(`Checksum: ${checksum}`);
 
       return {
@@ -250,6 +262,7 @@ class DatabaseBackup {
       };
     } catch (error) {
       const duration = Date.now() - startTime;
+      // eslint-disable-next-line no-console
       console.error(`Backup failed: ${error}`);
 
       return {
@@ -320,6 +333,7 @@ async function main() {
       process.exit(1);
     }
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Fatal error:', error);
     process.exit(1);
   }

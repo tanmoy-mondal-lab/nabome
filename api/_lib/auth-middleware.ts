@@ -9,6 +9,7 @@ import { withRateLimit, getRateLimitKey, RATE_LIMIT_CONFIG } from "./rate-limit"
 import { getPrisma } from "./prisma";
 import { cleanSecret } from "./secrets";
 import { hashToken } from "./token-hash";
+import { logger } from "./logger";
 import type { RequestContext } from "./types";
 import type { Env } from "./env";
 import { getEnv } from "./env";
@@ -216,7 +217,7 @@ export async function authenticate(
         };
       }
     } catch (err) {
-      console.error("Optional auth error (continuing without auth):", err);
+      logger.error("Optional auth error (continuing without auth):", { err });
       // Proceed without auth rather than failing the request
     }
   }

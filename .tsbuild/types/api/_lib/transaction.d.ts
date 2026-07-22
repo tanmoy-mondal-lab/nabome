@@ -24,7 +24,7 @@ export declare function withTransactionAndRollback<T>(callback: (tx: Omit<Prisma
 /**
  * Execute multiple operations in a transaction with atomicity guarantees
  */
-export declare function atomicOperations<T>(operations: Array<(tx: any) => Promise<T>>, env?: Env, options?: TransactionOptions): Promise<T[]>;
+export declare function atomicOperations<T>(operations: Array<(tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">) => Promise<T>>, env?: Env, options?: TransactionOptions): Promise<T[]>;
 /**
  * Execute a callback with transaction-like behavior for single operations
  */

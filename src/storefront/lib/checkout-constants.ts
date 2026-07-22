@@ -75,7 +75,6 @@ export function calculateTotal(
 export function calculateDiscountAmount(
   subtotal: number,
   discount: number,
-  _discountType: "percentage" | "fixed" | null
 ): number {
   // The /api/coupons/validate endpoint returns `discount` as an absolute
   // rupee amount (already computed for percentage coupons), so treat it
@@ -89,11 +88,10 @@ export function calculateDiscountAmount(
 export function calculateCheckout(
   subtotal: number,
   discount: number,
-  discountType: "percentage" | "fixed" | null,
   settings?: SiteSettings | null
 ) {
   const { shippingCost, taxRate, freeShippingThreshold } = getCheckoutSettings(settings);
-  const discountAmount = calculateDiscountAmount(subtotal, discount, discountType);
+  const discountAmount = calculateDiscountAmount(subtotal, discount);
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
   const shipping = calculateShipping(discountedSubtotal, shippingCost, freeShippingThreshold);
   const tax = calculateTax(discountedSubtotal, taxRate);

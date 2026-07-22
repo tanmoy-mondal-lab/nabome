@@ -33,6 +33,7 @@ export function NewsletterForm({ layout = "stacked" }: NewsletterFormProps) {
       setEmail("");
       setTimeout(() => setStatus("idle"), 4000);
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error("Newsletter subscription failed:", err);
       setStatus("error");
     } finally {

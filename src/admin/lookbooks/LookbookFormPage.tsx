@@ -369,7 +369,7 @@ export default function LookbookFormPage() {
       {showShopTheLook && id && (
         <ShopTheLookManager
           lookId={id}
-          onSave={(_data) => {
+          onSave={() => {
             toast("Shop The Look saved", "success");
             setShowShopTheLook(false);
           }}

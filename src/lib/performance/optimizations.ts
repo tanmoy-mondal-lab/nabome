@@ -199,6 +199,7 @@ export const QueryOptimizer = {
   /**
    * Debounce function to limit rapid calls
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   debounce<T extends (...args: any[]) => any>(
     func: T,
     wait: number
@@ -213,6 +214,7 @@ export const QueryOptimizer = {
   /**
    * Throttle function to limit call frequency
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   throttle<T extends (...args: any[]) => any>(
     func: T,
     limit: number
@@ -333,13 +335,11 @@ export const PerformanceMonitor = {
     const result = await fn();
     const duration = performance.now() - start;
     
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', 'timing_complete', {
-        name,
-        value: Math.round(duration),
-        event_category: 'Performance',
-      });
-    }
+    (window as Window & { gtag?: (...args: unknown[]) => void }).gtag?.('event', 'timing_complete', {
+      name,
+      value: Math.round(duration),
+      event_category: 'Performance',
+    });
     
     return { result, duration };
   },
@@ -352,13 +352,11 @@ export const PerformanceMonitor = {
     value: number;
     rating: 'good' | 'needs-improvement' | 'poor';
   }): void {
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-      (window as any).gtag('event', metric.name, {
-        value: Math.round(metric.value),
-        event_category: 'Web Vitals',
-        event_label: metric.rating,
-        non_interaction: true,
-      });
-    }
+    (window as Window & { gtag?: (...args: unknown[]) => void }).gtag?.('event', metric.name, {
+      value: Math.round(metric.value),
+      event_category: 'Web Vitals',
+      event_label: metric.rating,
+      non_interaction: true,
+    });
   },
 };

@@ -19,10 +19,10 @@ export interface OpenAPISpec {
     url: string;
     description: string;
   }>;
-  paths: Record<string, any>;
+  paths: Record<string, unknown>;
   components: {
-    schemas: Record<string, any>;
-    securitySchemes: Record<string, any>;
+    schemas: Record<string, unknown>;
+    securitySchemes: Record<string, unknown>;
   };
   security: Array<Record<string, string[]>>;
   tags: Array<{

@@ -1,3 +1,4 @@
+import { logger } from "../_lib/logger";
 import { badRequest, unauthorized, serverError, success, rateLimitExceeded } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { requireAdmin } from "../_lib/auth-middleware";
@@ -22,7 +23,8 @@ function resolveUploadEntityType(value: FormDataEntryValue | null): { type: Enti
 async function checkUploadRateLimit(req: Request, ctx: RequestContext): Promise<Response | null> {
   const clientIp = req.headers.get("x-forwarded-for") ?? req.headers.get("cf-connecting-ip") ?? "unknown";
   const key = getRateLimitKey(clientIp, "/api/upload", ctx.userId);
-  const result = await checkRateLimit(key, UPLOAD_RATE_LIMIT, ctx.env!);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = await checkRateLimit(key, UPLOAD_RATE_LIMIT, ctx.env as any);
   if (!result.allowed) return rateLimitExceeded("Upload rate limit exceeded. Please try again later.");
   return null;
 }
@@ -109,7 +111,7 @@ async function doUpload(req: Request, ctx: RequestContext): Promise<Response> {
       },
     });
   } catch (err) {
-    console.error("[Upload] Upload failed:", err);
+    logger.error("[Upload] Upload failed:", { error: err });
     const msg = err instanceof Error ? err.message : String(err);
     const isClientError = err instanceof Error && (
       msg.includes("Validation") || msg.includes("validation") ||

@@ -97,10 +97,10 @@ export default function ProductFormPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
-  const [_initialized, setInitialized] = useState(false);
+  const [, setInitialized] = useState(false);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [validationErrors, setValidationErrors] = useState<FormErrors>({});
-  const [_collapsed, _setCollapsed] = useState<Record<string, boolean>>({});
+
 
   const initialImageIdsRef = useRef<Set<string>>(new Set());
   const initialVariantIdsRef = useRef<Set<string>>(new Set());

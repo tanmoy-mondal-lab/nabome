@@ -16,6 +16,7 @@ import { generateAssetId } from "../../_lib/media/asset-id";
 import { moveResource } from "../../_lib/media/folders";
 import { deleteMedia } from "../../_lib/media-service";
 import { isAssetInUse } from "../../_lib/media/usage.service";
+import { logger } from "../../_lib/logger";
 
 
 function getCloudinaryConfig(env?: Env) {
@@ -152,13 +153,13 @@ export async function handleAdminMediaUploadRequest(
       try {
         await deleteAsset(uploadResult.publicId, fileConfig.type as "image" | "video" | "raw", config);
       } catch (cleanupError) {
-        console.error(`[AdminMediaUpload] DB insert failed AND Cloudinary cleanup failed for ${uploadResult.publicId}. Asset may be orphaned.`, cleanupError);
+        logger.error("[AdminMediaUpload] DB insert failed AND Cloudinary cleanup failed", { publicId: uploadResult.publicId, cleanupError });
       }
       throw dbError;
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    const isClient = err instanceof TypeError || (err as any)?.status?.toString().startsWith("4");
+    const isClient = err instanceof TypeError || (typeof err === "object" && err !== null && "status" in err && String((err as { status: string | number }).status).startsWith("4"));
     if (isClient) return badRequest(msg);
     const { serverError } = await import("../../_lib/response");
     return serverError(err);
@@ -172,7 +173,7 @@ export async function handleAdminMediaMoveRequest(
   const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
 
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -228,7 +229,7 @@ export async function handleAdminMediaMoveRequest(
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    const isClient = err instanceof TypeError || (err as any)?.status?.toString().startsWith("4");
+    const isClient = err instanceof TypeError || (typeof err === "object" && err !== null && "status" in err && String((err as { status: string | number }).status).startsWith("4"));
     if (isClient) return badRequest(msg);
     const { serverError } = await import("../../_lib/response");
     return serverError(err);
@@ -242,7 +243,7 @@ export async function handleAdminMediaBulkDeleteRequest(
   const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
 
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -292,7 +293,7 @@ export async function handleAdminMediaBulkDeleteRequest(
         await deleteMedia(assetId, deleteEnv);
         deleted++;
       } catch (err) {
-        console.error(`Failed to delete asset ${assetId}:`, err);
+        logger.error("Failed to delete asset", { assetId, error: err });
         failed++;
       }
     }
@@ -306,7 +307,7 @@ export async function handleAdminMediaBulkDeleteRequest(
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    const isClient = err instanceof TypeError || (err as any)?.status?.toString().startsWith("4");
+    const isClient = err instanceof TypeError || (typeof err === "object" && err !== null && "status" in err && String((err as { status: string | number }).status).startsWith("4"));
     if (isClient) return badRequest(msg);
     const { serverError } = await import("../../_lib/response");
     return serverError(err);
@@ -320,7 +321,7 @@ export async function handleAdminMediaBulkMoveRequest(
   const adminGuard = requireAdmin(ctx);
   if (adminGuard) return adminGuard;
 
-  let body: any;
+  let body: Record<string, unknown>;
   try {
     body = await req.json();
   } catch {
@@ -377,7 +378,7 @@ export async function handleAdminMediaBulkMoveRequest(
 
         moved++;
       } catch (err) {
-        console.error(`Failed to move asset ${assetId}:`, err);
+        logger.error("Failed to move asset", { assetId, error: err });
         failed++;
       }
     }
@@ -390,7 +391,7 @@ export async function handleAdminMediaBulkMoveRequest(
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    const isClient = err instanceof TypeError || (err as any)?.status?.toString().startsWith("4");
+    const isClient = err instanceof TypeError || (typeof err === "object" && err !== null && "status" in err && String((err as { status: string | number }).status).startsWith("4"));
     if (isClient) return badRequest(msg);
     const { serverError } = await import("../../_lib/response");
     return serverError(err);

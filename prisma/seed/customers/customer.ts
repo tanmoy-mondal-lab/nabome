@@ -9,6 +9,7 @@ import { CUSTOMER_CREDENTIALS } from '../utils/constants';
 import type { profiles } from '@prisma/client';
 
 export async function seedCustomer() {
+  // eslint-disable-next-line no-console
   console.log('👤 Seeding customer account...');
 
   // Use a fixed UUID for customer to ensure idempotency
@@ -75,10 +76,12 @@ export async function seedCustomer() {
       },
       update: {},
     });
-  } catch (err) {
+  } catch {
+    // eslint-disable-next-line no-console
     console.log('⚠️  Loyalty points model not found, skipping');
   }
 
+  // eslint-disable-next-line no-console
   console.log(`📧 Customer email: ${CUSTOMER_CREDENTIALS.email}`);
 
   return { customer, cart, loyaltyPoints };

@@ -54,7 +54,7 @@ export async function parsePaginationParams(
     return {
       params: { page, limit, offset },
     };
-  } catch (error) {
+  } catch {
     return {
       params: { page: 1, limit: 20, offset: 0 },
       response: badRequest("Invalid pagination parameters", undefined, requestId),
@@ -123,14 +123,15 @@ export interface FilterOptions {
 
 export function parseFilterOptions(
   url: URL,
-  allowedFilters: Record<string, (value: string) => any>
+  allowedFilters: Record<string, (value: string) => unknown>
 ): FilterOptions {
   const filters: FilterOptions = {};
   
   for (const [key, parser] of Object.entries(allowedFilters)) {
     const value = url.searchParams.get(key);
     if (value !== null) {
-      filters[key] = parser(value);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      filters[key] = parser(value) as any;
     }
   }
 

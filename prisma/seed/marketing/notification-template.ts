@@ -5,10 +5,10 @@
 
 import { prisma } from '../utils/helpers';
 import { upsertByField } from '../utils/upsert';
-import { MARKETING_SLUGS } from '../utils/constants';
 import type { notification_templates } from '@prisma/client';
 
 export async function seedNotificationTemplates() {
+  // eslint-disable-next-line no-console
   console.log('🔔 Seeding notification templates...');
 
   // Use fixed UUIDs for notification templates to ensure idempotency

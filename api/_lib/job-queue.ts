@@ -142,6 +142,7 @@ async function executeEmailJob(payload: JobPayload, env: Env): Promise<JobResult
   const { sendEmailNotification } = await import("./email");
   const { type, data } = payload as { type: string; data: Record<string, unknown> };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = await sendEmailNotification(type as any, data, env);
   return result;
 }

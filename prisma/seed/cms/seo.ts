@@ -5,9 +5,8 @@
  * This seed documents the SEO configuration
  */
 
-import { prisma } from '../utils/helpers';
-
 export async function seedSEO() {
+  // eslint-disable-next-line no-console
   console.log('🔍 Seeding SEO configuration...');
 
   // SEO is configured via site_settings
@@ -22,6 +21,7 @@ export async function seedSEO() {
     sitemap: true,
   };
 
+  // eslint-disable-next-line no-console
   console.log('SEO configuration:', seoConfig);
 
   return seoConfig;

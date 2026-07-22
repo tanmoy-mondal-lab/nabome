@@ -6,18 +6,19 @@
  * in the schema. This function exists to prevent import errors in checkout.ts.
  * Referral system implementation pending model addition to schema.
  */
+import { logger } from "../_lib/logger";
+
 export async function completeReferralForOrder(
   _prisma: unknown,
   checkoutEmail: string,
-  orderId: string,
-  _profileId: string
+  orderId: string
 ): Promise<void> {
   try {
     // Stub implementation - referral model not yet in schema
-    console.log(`Referral completion stub called for ${checkoutEmail}, order: ${orderId}`);
+    logger.info(`Referral completion stub called for ${checkoutEmail}, order: ${orderId}`);
     // When referral model is added to schema, implement proper logic here
   } catch (error) {
-    console.error("Error in referral completion stub:", error);
+    logger.error("Error in referral completion stub:", { error });
     // Don't throw - referral should never fail checkout
   }
 }

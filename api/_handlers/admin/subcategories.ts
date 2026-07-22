@@ -94,5 +94,5 @@ async function handleDelete(id: string, env: Env): Promise<Response> {
     const prisma = getPrisma(env);
     await prisma.subcategories.update({ where: { id }, data: { isActive: false } });
     return success({ message: "Subcategory archived" });
-  } catch (err) { return notFound("Subcategory not found"); }
+  } catch { return notFound("Subcategory not found"); }
 }

@@ -101,10 +101,10 @@ export default function AnnouncementsPage() {
   const openEdit = (a: Announcement) => {
     setEditItem(a);
     setForm({
-      text: (a as any).text ?? "", linkUrl: (a as any).linkUrl ?? "", linkText: (a as any).linkText ?? "",
-      bgColor: (a as any).bgColor ?? "#000000", textColor: (a as any).textColor ?? "#ffffff",
-      position: (a as any).position,
-      isActive: (a as any).isActive ?? true, startDate: a.startDate ?? "", endDate: a.endDate ?? "",
+      text: a.text ?? "", linkUrl: a.linkUrl ?? "", linkText: a.linkText ?? "",
+      bgColor: a.bgColor ?? "#000000", textColor: a.textColor ?? "#ffffff",
+      position: a.position ?? "top",
+      isActive: a.isActive ?? true, startDate: a.startDate ?? "", endDate: a.endDate ?? "",
     });
     setModalOpen(true);
   };
@@ -148,21 +148,21 @@ export default function AnnouncementsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {announcements.map((a) => (
+          {(announcements as Announcement[]).map((a) => (
             <div key={a.id} className="bg-white border border-neutral-200 rounded p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm text-neutral-900 font-medium truncate">{(a as any).text}</span>
+                        <span className="text-sm text-neutral-900 font-medium truncate">{a.text}</span>
                         <StatusBadge status={a.isActive ? "active" : "inactive"} />
-                        {(a as any).position && <span className="text-xs px-1.5 py-0.5 bg-neutral-100 rounded capitalize">{(a as any).position}</span>}
+                        {a.position && <span className="text-xs px-1.5 py-0.5 bg-neutral-100 rounded capitalize">{a.position}</span>}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-neutral-400">
-                        {(a as any).linkText && (a as any).linkUrl && <span>Link: {(a as any).linkText}</span>}
-                        {(a as any).bgColor && <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>Color: <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 2, backgroundColor: (a as any).bgColor }} /></span>}
-                        {a.startDate && <span>From: {formatDate(a.startDate)}</span>}
-                        {a.endDate && <span>Until: {formatDate(a.endDate)}</span>}
-                        <span>Created: {formatDate(a.createdAt)}</span>
+                        {a.linkText && a.linkUrl && <span>Link: {a.linkText}</span>}
+                        {a.bgColor && <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>Color: <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: 2, backgroundColor: a.bgColor }} /></span>}
+                        {a.startDate && <span>From: {formatDate(a.startDate ?? null)}</span>}
+                        {a.endDate && <span>Until: {formatDate(a.endDate ?? null)}</span>}
+                        <span>Created: {formatDate(a.createdAt ?? null)}</span>
                       </div>
                     </div>
                 <div className="flex items-center gap-1 ml-4">

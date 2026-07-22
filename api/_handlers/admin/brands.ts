@@ -51,6 +51,7 @@ async function handleDetail(id: string, env: Env): Promise<Response> {
 }
 
 async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let body: any;
   try {
     body = await req.json();
@@ -78,6 +79,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promis
 }
 
 async function handleUpdate(id: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let body: any;
   try {
     body = await req.json();

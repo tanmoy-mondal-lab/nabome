@@ -11,12 +11,13 @@ interface VerificationResult {
   category: string;
   status: 'PASS' | 'FAIL' | 'WARNING';
   message: string;
-  details?: any;
+  details?: unknown;
 }
 
 const results: VerificationResult[] = [];
 
 async function verifyDatabase() {
+  // eslint-disable-next-line no-console
   console.log('🔍 Starting Database Verification...\n');
 
   // 1. Check all tables exist and have data
@@ -42,6 +43,7 @@ async function verifyDatabase() {
 }
 
 async function checkTableCounts() {
+  // eslint-disable-next-line no-console
   console.log('📊 Checking table counts...');
   
   const tables = [
@@ -66,7 +68,8 @@ async function checkTableCounts() {
   for (const table of tables) {
     try {
       // @ts-expect-error dynamic table access
-      const count = await prisma[table].count();
+      const count = await prisma[table as keyof typeof prisma].count();
+      // eslint-disable-next-line no-console
       console.log(`  ✓ ${table}: ${count} records`);
       results.push({
         category: 'Table Counts',
@@ -75,6 +78,7 @@ async function checkTableCounts() {
         details: { table, count }
       });
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.log(`  ✗ ${table}: Error - ${error}`);
       results.push({
         category: 'Table Counts',
@@ -84,10 +88,12 @@ async function checkTableCounts() {
       });
     }
   }
+  // eslint-disable-next-line no-console
   console.log();
 }
 
 async function checkForeignKeys() {
+  // eslint-disable-next-line no-console
   console.log('🔗 Checking foreign key relationships...');
 
   // Check products with invalid category references
@@ -158,10 +164,12 @@ async function checkForeignKeys() {
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log('  ✓ Foreign key checks completed\n');
 }
 
 async function checkOrphanRecords() {
+  // eslint-disable-next-line no-console
   console.log('👻 Checking for orphan records...');
 
   // Check product images without valid products
@@ -230,10 +238,12 @@ async function checkOrphanRecords() {
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log('  ✓ Orphan record checks completed\n');
 }
 
 async function checkDuplicateRecords() {
+  // eslint-disable-next-line no-console
   console.log('🔍 Checking for duplicate records...');
 
   // Check duplicate emails in profiles
@@ -305,10 +315,12 @@ async function checkDuplicateRecords() {
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log('  ✓ Duplicate record checks completed\n');
 }
 
 async function checkMediaRelationships() {
+  // eslint-disable-next-line no-console
   console.log('🖼️  Checking media relationships...');
 
   // Check media assets with invalid entity references
@@ -391,10 +403,12 @@ async function checkMediaRelationships() {
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log('  ✓ Media relationship checks completed\n');
 }
 
 async function checkDataIntegrity() {
+  // eslint-disable-next-line no-console
   console.log('🔐 Checking data integrity...');
 
   // Check orders with invalid profile references
@@ -464,21 +478,29 @@ async function checkDataIntegrity() {
     });
   }
 
+  // eslint-disable-next-line no-console
   console.log('  ✓ Data integrity checks completed\n');
 }
 
 function printSummary() {
+  // eslint-disable-next-line no-console
   console.log('📋 Verification Summary\n');
+  // eslint-disable-next-line no-console
   console.log('=' .repeat(60));
 
   const passed = results.filter(r => r.status === 'PASS').length;
   const failed = results.filter(r => r.status === 'FAIL').length;
   const warnings = results.filter(r => r.status === 'WARNING').length;
 
+  // eslint-disable-next-line no-console
   console.log(`Total Checks: ${results.length}`);
+  // eslint-disable-next-line no-console
   console.log(`✅ Passed: ${passed}`);
+  // eslint-disable-next-line no-console
   console.log(`❌ Failed: ${failed}`);
+  // eslint-disable-next-line no-console
   console.log(`⚠️  Warnings: ${warnings}`);
+  // eslint-disable-next-line no-console
   console.log('=' .repeat(60));
 
   // Group by category
@@ -490,27 +512,36 @@ function printSummary() {
     return acc;
   }, {} as Record<string, VerificationResult[]>);
 
+  // eslint-disable-next-line no-console
   console.log('\nDetailed Results:\n');
 
   for (const [category, categoryResults] of Object.entries(byCategory)) {
+    // eslint-disable-next-line no-console
     console.log(`${category}:`);
     for (const result of categoryResults) {
       const icon = result.status === 'PASS' ? '✅' : result.status === 'FAIL' ? '❌' : '⚠️';
+      // eslint-disable-next-line no-console
       console.log(`  ${icon} ${result.message}`);
       if (result.details) {
+        // eslint-disable-next-line no-console
         console.log(`     Details: ${JSON.stringify(result.details)}`);
       }
     }
-    console.log();
+  // eslint-disable-next-line no-console
+  console.log();
   }
 
   // Overall status
   const overallStatus = failed === 0 ? 'PASS' : 'FAIL';
+  // eslint-disable-next-line no-console
   console.log('=' .repeat(60));
+  // eslint-disable-next-line no-console
   console.log(`Overall Status: ${overallStatus}`);
+  // eslint-disable-next-line no-console
   console.log('=' .repeat(60));
 }
 
 verifyDatabase()
+  // eslint-disable-next-line no-console
   .catch(console.error)
   .finally(() => prisma.$disconnect());

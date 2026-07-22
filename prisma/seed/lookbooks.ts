@@ -72,11 +72,11 @@ export async function seedLookbooks(prisma: PrismaClient) {
     });
 
     // Add lookbook items
-    await seedLookbookItems(prisma, created.id, lookbook.slug);
+    await seedLookbookItems(prisma, created.id);
   }
 }
 
-async function seedLookbookItems(prisma: PrismaClient, lookbookId: string, lookbookSlug: string) {
+async function seedLookbookItems(prisma: PrismaClient, lookbookId: string) {
   const items = [
     {
       imageUrl: 'https://images.unsplash.com/photo-1515372039744-b287c3f9f4e6?w=800&q=80',

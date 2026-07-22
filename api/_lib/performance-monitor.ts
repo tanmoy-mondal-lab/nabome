@@ -242,7 +242,7 @@ export function trackWebVitals(): void {
     try {
       const lcpObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        const lastEntry = entries[entries.length - 1] as any;
+        const lastEntry = entries[entries.length - 1] as PerformanceEntry;
         if (lastEntry) {
           performanceMonitor.recordLCP(lastEntry.startTime);
         }
@@ -257,9 +257,9 @@ export function trackWebVitals(): void {
   if ('PerformanceObserver' in window) {
     try {
       const clsObserver = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries() as any[]) {
-          if (!entry.hadRecentInput) {
-            performanceMonitor.recordCLS(entry.value);
+        for (const entry of list.getEntries() as unknown as PerformanceEntry[]) {
+          if (!(entry as unknown as Record<string, unknown>).hadRecentInput) {
+            performanceMonitor.recordCLS((entry as unknown as Record<string, unknown>).value as number);
           }
         }
       });
@@ -273,8 +273,9 @@ export function trackWebVitals(): void {
   if ('PerformanceObserver' in window) {
     try {
       const fidObserver = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries() as any[]) {
-          performanceMonitor.recordFID(entry.processingStart - entry.startTime);
+        for (const entry of list.getEntries() as PerformanceEntry[]) {
+          const fidEntry = entry as unknown as { processingStart: number; startTime: number };
+          performanceMonitor.recordFID(fidEntry.processingStart - fidEntry.startTime);
         }
       });
       fidObserver.observe({ entryTypes: ['first-input'] });
@@ -287,7 +288,7 @@ export function trackWebVitals(): void {
   if ('PerformanceObserver' in window) {
     try {
       const inpObserver = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries() as any[]) {
+        for (const entry of list.getEntries() as PerformanceEntry[]) {
           performanceMonitor.recordINP(entry.duration);
         }
       });

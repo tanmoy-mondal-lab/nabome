@@ -59,7 +59,8 @@ export function SearchOverlay() {
   }, [query]);
 
   useEffect(() => {
-    try { setRecent(JSON.parse(localStorage.getItem(`${SEARCH_KEY}-${getUserKey()}`) || "[]")); } catch (err) { /* non-critical */ if (import.meta.env.DEV) console.debug("Failed to load recent searches:", err); }
+    try { setRecent(JSON.parse(localStorage.getItem(`${SEARCH_KEY}-${getUserKey()}`) || "[]")); } catch (err) { /* non-critical */ // eslint-disable-next-line no-console
+    if (import.meta.env.DEV) console.debug("Failed to load recent searches:", err); }
   }, []);
 
   useEffect(() => {
@@ -79,7 +80,8 @@ export function SearchOverlay() {
   function handleSearch(term: string) {
     const updated = [term, ...recent.filter((s) => s !== term)].slice(0, 5);
     setRecent(updated);
-    try { localStorage.setItem(`${SEARCH_KEY}-${getUserKey()}`, JSON.stringify(updated)); } catch (err) { /* non-critical */ if (import.meta.env.DEV) console.debug("Failed to save recent searches:", err); }
+    try { localStorage.setItem(`${SEARCH_KEY}-${getUserKey()}`, JSON.stringify(updated)); } catch (err) { /* non-critical */ // eslint-disable-next-line no-console
+    if (import.meta.env.DEV) console.debug("Failed to save recent searches:", err); }
     closeSearch();
   }
 

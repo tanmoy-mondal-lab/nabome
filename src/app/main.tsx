@@ -9,9 +9,11 @@ import { ConnectivityProvider } from "../storefront/components/ConnectivityIndic
 // Initialize enhanced offline support for mobile and desktop
 registerServiceWorker()
   .then(() => {
+    // eslint-disable-next-line no-console
     if (import.meta.env.DEV) console.log("[main.tsx] Service worker initialized successfully");
   })
   .catch((error) => {
+    // eslint-disable-next-line no-console
     if (import.meta.env.DEV) console.warn("[main.tsx] Service worker registration failed:", error);
     // App works without service worker
   });
@@ -21,6 +23,7 @@ function mountApp() {
   const rootElement = document.getElementById("root");
 
   if (!rootElement) {
+    // eslint-disable-next-line no-console
     if (import.meta.env.DEV) console.error("[main.tsx] CRITICAL: Root element not found in DOM");
     document.body.innerHTML = `
       <div style="padding: 40px; font-family: monospace; color: red; background: #fee; border: 2px solid red;">
@@ -37,6 +40,7 @@ function mountApp() {
     return;
   }
 
+  // eslint-disable-next-line no-console
   if (import.meta.env.DEV) console.log("[main.tsx] Root element found, attempting to mount React");
 
   try {
@@ -52,6 +56,7 @@ function mountApp() {
       </StrictMode>
     );
   } catch (error) {
+    // eslint-disable-next-line no-console
     if (import.meta.env.DEV) console.error("[main.tsx] CRITICAL: React mount failed with error:", error);
     const safeMessage = error instanceof Error
       ? error.message.replace(/[<>&"']/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] ?? c))
@@ -68,9 +73,11 @@ function mountApp() {
 
 // Mount when DOM is ready
 if (document.readyState === "loading") {
+  // eslint-disable-next-line no-console
   if (import.meta.env.DEV) console.log("[main.tsx] DOM still loading, waiting for DOMContentLoaded");
   document.addEventListener("DOMContentLoaded", mountApp);
 } else {
+  // eslint-disable-next-line no-console
   if (import.meta.env.DEV) console.log("[main.tsx] DOM already ready, mounting immediately");
   mountApp();
 }

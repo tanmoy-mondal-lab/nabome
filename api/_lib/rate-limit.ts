@@ -2,6 +2,14 @@
 // RATE LIMITER — Cloudflare KV sliding window with in-memory fallback
 // ─────────────────────────────────────────────────────────────
 
+import { logger } from "./logger";
+import type { Env } from "./env";
+
+interface KvStore {
+  get: (key: string, options?: { type?: string }) => Promise<string | null>;
+  put: (key: string, value: string, options?: { expirationTtl?: number }) => Promise<void>;
+}
+
 interface RateLimitEntry {
   count: number;
   resetAt: number;
@@ -33,37 +41,37 @@ const DEFAULTS = {
   resendVerification: { windowMs: 3_600_000, maxRequests: 3, message: "Too many verification requests. Please try again later." },
 };
 
-function getKVBinding(env?: any): any | null {
+function getKVBinding(env?: Env): KvStore | null {
   if (!env) return null;
   // Cloudflare Pages binds KV as a property on the env object
-  const kv = env.RATE_LIMIT_STORE;
+  const kv = env.RATE_LIMIT_STORE as KvStore | undefined;
   if (kv && typeof kv.get === "function" && typeof kv.put === "function") {
     return kv;
   }
   return null;
 }
 
-function isProductionRuntime(env?: any): boolean {
+function isProductionRuntime(env?: Env): boolean {
   const nodeEnv = env?.NODE_ENV ?? (typeof process !== "undefined" ? process.env?.NODE_ENV : undefined);
   const cfPages = env?.CF_PAGES ?? (typeof process !== "undefined" ? process.env?.CF_PAGES : undefined);
   return nodeEnv === "production" || cfPages === "1" || cfPages === "true";
 }
 
-async function getFromKV(kv: any, key: string): Promise<RateLimitEntry | null> {
+async function getFromKV(kv: KvStore, key: string): Promise<RateLimitEntry | null> {
   try {
     const value = await kv.get(key, { type: "json" });
-    return value ? (value as RateLimitEntry) : null;
-  } catch (error) {
+    return value ? (value as unknown as RateLimitEntry) : null;
+  } catch {
     return null;
   }
 }
 
-async function setKV(kv: any, key: string, value: RateLimitEntry): Promise<void> {
+async function setKV(kv: KvStore, key: string, value: RateLimitEntry): Promise<void> {
   try {
     await kv.put(key, JSON.stringify(value), {
       expirationTtl: Math.ceil((value.resetAt - Date.now()) / 1000),
     });
-  } catch (error) {
+  } catch {
     // Silent failure - KV write error
   }
 }
@@ -71,7 +79,7 @@ async function setKV(kv: any, key: string, value: RateLimitEntry): Promise<void>
 export async function checkRateLimit(
   key: string,
   config: RateLimitConfig = DEFAULTS.auth,
-  env?: any
+  env?: Env
 ): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
   const now = Date.now();
   const kv = getKVBinding(env);
@@ -101,7 +109,7 @@ export async function checkRateLimit(
   }
 
   if (isProductionRuntime(env)) {
-    console.warn(
+    logger.warn(
       `[rate-limit] KV unavailable in production — falling back to in-memory rate limiting for key "${key.split(":")[0]}"`
     );
     // Lazy cleanup of expired entries
@@ -142,7 +150,7 @@ export function rateLimitResponse(message: string, resetAt: number): Response {
 export async function withRateLimit(
   key: string,
   config?: RateLimitConfig,
-  env?: any
+  env?: Env
 ): Promise<Response | null> {
   const result = await checkRateLimit(key, config, env);
   if (!result.allowed) {

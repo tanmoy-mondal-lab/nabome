@@ -62,6 +62,7 @@ export function sleep(ms: number): Promise<void> {
 export function logSeed(operation: string, entity: string, status: 'START' | 'SUCCESS' | 'ERROR'): void {
   const timestamp = new Date().toISOString();
   const statusEmoji = status === 'START' ? '🔄' : status === 'SUCCESS' ? '✅' : '❌';
+  // eslint-disable-next-line no-console
   console.log(`[${timestamp}] ${statusEmoji} ${operation}: ${entity}`);
 }
 
@@ -70,6 +71,7 @@ export function logSeed(operation: string, entity: string, status: 'START' | 'SU
  */
 export function handleSeedError(error: unknown, entity: string): never {
   logSeed('SEED', entity, 'ERROR');
+  // eslint-disable-next-line no-console
   console.error(error);
   throw error;
 }

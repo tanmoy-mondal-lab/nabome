@@ -5,6 +5,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import { getPrisma } from "./prisma";
+import { logger } from "./logger";
 import type { Env } from "./env";
 
 export interface ConnectionRetryOptions {
@@ -63,7 +64,7 @@ export async function testConnection(env?: Env): Promise<boolean> {
     await prisma.$queryRaw`SELECT 1`;
     return true;
   } catch (error) {
-    console.error("Database connection test failed:", error);
+    logger.error("Database connection test failed:", { error });
     return false;
   }
 }

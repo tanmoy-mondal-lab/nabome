@@ -6,6 +6,7 @@ import { cleanSecret } from "../../_lib/secrets";
 import type { Env } from "../../_lib/env";
 import { createMediaIntegrityService } from "../../../src/lib/media/integrity.service";
 import type { CloudinaryConfig } from "../../../src/lib/media/media.types";
+import { logger } from "../../_lib/logger";
 
 /**
  * Handles media integrity requests
@@ -56,7 +57,7 @@ async function handleHealthCheck(_req: Request, env: Env | undefined): Promise<R
 
     return success(health);
   } catch (error) {
-    console.error("[MediaIntegrity] Health check failed:", error);
+    logger.error("[MediaIntegrity] Health check failed", { error });
     return serverError(error);
   }
 }
@@ -75,7 +76,7 @@ async function handleScan(req: Request, env: Env | undefined, scanId?: string): 
   // Otherwise, trigger a new scan
   try {
     const url = new URL(req.url);
-    const entityType = url.searchParams.get("entityType") as any;
+    const entityType = url.searchParams.get("entityType") ?? undefined;
     const entityId = url.searchParams.get("entityId") || undefined;
     const includeOrphans = url.searchParams.get("includeOrphans") !== "false";
     const includeDuplicates = url.searchParams.get("includeDuplicates") !== "false";
@@ -89,7 +90,8 @@ async function handleScan(req: Request, env: Env | undefined, scanId?: string): 
     const integrityService = createMediaIntegrityService(prisma, config);
 
     const scanResult = await integrityService.performFullScan({
-      entityType,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      entityType: entityType as any,
       entityId,
       includeOrphans,
       includeDuplicates,
@@ -101,7 +103,7 @@ async function handleScan(req: Request, env: Env | undefined, scanId?: string): 
 
     return success(scanResult);
   } catch (error) {
-    console.error("[MediaIntegrity] Scan failed:", error);
+    logger.error("[MediaIntegrity] Scan failed", { error });
     return serverError(error);
   }
 }
@@ -122,7 +124,7 @@ async function handleGetScanById(_req: Request, env: Env, scanId: string): Promi
 
     return success(scanResult);
   } catch (error) {
-    console.error("[MediaIntegrity] Get scan failed:", error);
+    logger.error("[MediaIntegrity] Get scan failed", { error });
     return serverError(error);
   }
 }
@@ -145,7 +147,7 @@ async function handleHistory(req: Request, env: Env | undefined): Promise<Respon
 
     return success({ history, count: history.length });
   } catch (error) {
-    console.error("[MediaIntegrity] Get history failed:", error);
+    logger.error("[MediaIntegrity] Get history failed", { error });
     return serverError(error);
   }
 }
@@ -162,6 +164,7 @@ async function handleRepair(req: Request, env: Env | undefined, ctx: RequestCont
   if (adminGuard) return adminGuard;
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let body: any;
     try {
       body = await req.json();
@@ -207,7 +210,7 @@ async function handleRepair(req: Request, env: Env | undefined, ctx: RequestCont
 
     return success(repairResult);
   } catch (error) {
-    console.error("[MediaIntegrity] Repair failed:", error);
+    logger.error("[MediaIntegrity] Repair failed", { error });
     return serverError(error);
   }
 }

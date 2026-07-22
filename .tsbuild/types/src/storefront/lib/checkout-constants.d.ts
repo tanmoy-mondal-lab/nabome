@@ -35,11 +35,11 @@ export declare function calculateTotal(subtotal: number, discountAmount: number,
  * Calculates discount amount from coupon.
  * The API returns discount as absolute rupee amount.
  */
-export declare function calculateDiscountAmount(subtotal: number, discount: number, _discountType: "percentage" | "fixed" | null): number;
+export declare function calculateDiscountAmount(subtotal: number, discount: number): number;
 /**
  * Full checkout calculation returning all derived values.
  */
-export declare function calculateCheckout(subtotal: number, discount: number, discountType: "percentage" | "fixed" | null, settings?: SiteSettings | null): {
+export declare function calculateCheckout(subtotal: number, discount: number, settings?: SiteSettings | null): {
     shippingCost: number;
     taxRate: number;
     freeShippingThreshold: number;

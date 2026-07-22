@@ -5,9 +5,8 @@
  * This seed documents the available roles
  */
 
-import { prisma } from '../utils/helpers';
-
 export async function seedRoles() {
+  // eslint-disable-next-line no-console
   console.log('🔑 Seeding roles...');
 
   // Roles are stored as enum in the profiles table
@@ -52,6 +51,7 @@ export async function seedRoles() {
     },
   ];
 
+  // eslint-disable-next-line no-console
   console.log('Available roles:', roles.map(r => r.name).join(', '));
 
   return roles;

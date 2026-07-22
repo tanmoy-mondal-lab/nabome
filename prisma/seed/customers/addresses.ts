@@ -8,6 +8,7 @@ import { upsertByField } from '../utils/upsert';
 import { CUSTOMER_CREDENTIALS } from '../utils/constants';
 
 export async function seedCustomerAddresses(customerId: string) {
+  // eslint-disable-next-line no-console
   console.log('📍 Seeding customer addresses...');
 
   // Use a fixed UUID for address to ensure idempotency

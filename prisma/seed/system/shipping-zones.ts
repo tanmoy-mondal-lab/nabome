@@ -5,9 +5,8 @@
  * This seed documents the default shipping configuration
  */
 
-import { prisma } from '../utils/helpers';
-
 export async function seedShippingZones() {
+  // eslint-disable-next-line no-console
   console.log('🚚 Seeding shipping zones...');
 
   // Shipping zones are typically configured in site settings or a dedicated table
@@ -20,6 +19,7 @@ export async function seedShippingZones() {
     estimated_days: '3-5 business days',
   };
 
+  // eslint-disable-next-line no-console
   console.log('Default shipping zone:', defaultShippingZone);
 
   return defaultShippingZone;

@@ -6,5 +6,5 @@ interface ProductGridProps {
     view?: "grid" | "list";
     onQuickView?: (product: Product) => void;
 }
-export declare function ProductGrid({ products, columns: _columns, isLoading, view, onQuickView }: ProductGridProps): import("react").JSX.Element;
+export declare function ProductGrid({ products, isLoading, view, onQuickView }: ProductGridProps): import("react").JSX.Element;
 export {};

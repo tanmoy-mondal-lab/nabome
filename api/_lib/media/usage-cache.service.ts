@@ -6,7 +6,8 @@
  * that is invalidated when entities are updated.
  */
 
-import type { PrismaClient } from '@prisma/client';
+import { logger } from '../logger';
+import type { PrismaClient, Prisma } from '@prisma/client';
 
 export interface UsageReference {
   type: string;
@@ -50,7 +51,7 @@ export async function getCachedUsage(
 
     return asset.usageCache as unknown as UsageCacheData;
   } catch (error) {
-    console.error('[UsageCache] Failed to get cached usage:', error);
+    logger.error('[UsageCache] Failed to get cached usage:', { error });
     return null;
   }
 }
@@ -67,13 +68,13 @@ export async function setCachedUsage(
     await prisma.media_assets.update({
       where: { id: assetId },
       data: {
-        usageCache: usageData as any,
+        usageCache: usageData as unknown as Prisma.InputJsonValue,
         usageCacheValid: true,
         usageCacheAt: new Date(),
       },
     });
   } catch (error) {
-    console.error('[UsageCache] Failed to set cached usage:', error);
+    logger.error('[UsageCache] Failed to set cached usage:', { error });
   }
 }
 
@@ -92,7 +93,7 @@ export async function invalidateAssetCache(
       },
     });
   } catch (error) {
-    console.error('[UsageCache] Failed to invalidate asset cache:', error);
+    logger.error('[UsageCache] Failed to invalidate asset cache:', { error });
   }
 }
 
@@ -109,6 +110,7 @@ export async function invalidateEntityCache(
     // Find all assets that might reference this entity
     const assets = await prisma.media_assets.findMany({
       where: {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         entityType: entityType as any,
         entityId,
       },
@@ -127,7 +129,7 @@ export async function invalidateEntityCache(
       });
     }
   } catch (error) {
-    console.error('[UsageCache] Failed to invalidate entity cache:', error);
+    logger.error('[UsageCache] Failed to invalidate entity cache:', { error });
   }
 }
 
@@ -149,7 +151,7 @@ export async function invalidatePublicIdCache(
       },
     });
   } catch (error) {
-    console.error('[UsageCache] Failed to invalidate public ID cache:', error);
+    logger.error('[UsageCache] Failed to invalidate public ID cache:', { error });
   }
 }
 
@@ -202,7 +204,7 @@ export async function clearInvalidCacheEntries(
 
     return result.count;
   } catch (error) {
-    console.error('[UsageCache] Failed to clear invalid cache entries:', error);
+    logger.error('[UsageCache] Failed to clear invalid cache entries:', { error });
     return 0;
   }
 }
@@ -240,7 +242,7 @@ export async function getCacheStatistics(
       staleCache: stale,
     };
   } catch (error) {
-    console.error('[UsageCache] Failed to get cache statistics:', error);
+    logger.error('[UsageCache] Failed to get cache statistics:', { error });
     return {
       totalAssets: 0,
       validCache: 0,

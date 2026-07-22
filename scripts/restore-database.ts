@@ -20,7 +20,7 @@
  */
 
 import { execSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import * as readline from 'node:readline';
@@ -113,6 +113,7 @@ class DatabaseRestore {
    * Verify backup integrity
    */
   private verifyBackup(filePath: string): boolean {
+    // eslint-disable-next-line no-console
     console.log('Verifying backup integrity...');
     
     try {
@@ -130,12 +131,15 @@ class DatabaseRestore {
         if (checksum !== this.options.verifyChecksum) {
           throw new Error(`Checksum mismatch. Expected: ${this.options.verifyChecksum}, Got: ${checksum}`);
         }
+        // eslint-disable-next-line no-console
         console.log('Checksum verified successfully');
       }
 
+      // eslint-disable-next-line no-console
       console.log('Backup integrity verified');
       return true;
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Backup verification failed:', error);
       return false;
     }
@@ -184,10 +188,12 @@ class DatabaseRestore {
     let currentFile = this.backupFile;
 
     try {
+      // eslint-disable-next-line no-console
       console.log(`Starting restore from: ${this.backupFile}`);
 
       // Step 1: Decrypt if encrypted
       if (this.backupFile.endsWith('.enc')) {
+        // eslint-disable-next-line no-console
         console.log('Decrypting backup...');
         const decryptedFile = join(this.options.outputDir, 'decrypted.sql.gz');
         this.decryptFile(currentFile, decryptedFile);
@@ -196,6 +202,7 @@ class DatabaseRestore {
 
       // Step 2: Decompress if compressed
       if (currentFile.endsWith('.gz')) {
+        // eslint-disable-next-line no-console
         console.log('Decompressing backup...');
         const decompressedFile = join(this.options.outputDir, 'restored.sql');
         this.decompressFile(currentFile, decompressedFile);
@@ -209,7 +216,9 @@ class DatabaseRestore {
 
       // Step 4: Dry run - just verify and exit
       if (this.options.dryRun) {
+        // eslint-disable-next-line no-console
         console.log('Dry run completed successfully');
+        // eslint-disable-next-line no-console
         console.log('Backup is ready for restore');
         
         // Cleanup temp files
@@ -227,6 +236,7 @@ class DatabaseRestore {
       // Step 5: Confirm restore
       const confirmed = await this.confirmRestore();
       if (!confirmed) {
+        // eslint-disable-next-line no-console
         console.log('Restore cancelled by user');
         
         // Cleanup temp files
@@ -243,6 +253,7 @@ class DatabaseRestore {
       }
 
       // Step 6: Restore database
+      // eslint-disable-next-line no-console
       console.log('Restoring database...');
       this.restoreDatabase(currentFile);
 
@@ -252,6 +263,7 @@ class DatabaseRestore {
       }
 
       const duration = Date.now() - startTime;
+      // eslint-disable-next-line no-console
       console.log(`Restore completed successfully in ${duration}ms`);
 
       return {
@@ -261,6 +273,7 @@ class DatabaseRestore {
       };
     } catch (error) {
       const duration = Date.now() - startTime;
+      // eslint-disable-next-line no-console
       console.error(`Restore failed: ${error}`);
 
       // Cleanup temp files on error
@@ -311,7 +324,9 @@ function parseArgs(): { backupFile: string; options: Partial<RestoreOptions> } {
   }
 
   if (!backupFile) {
+    // eslint-disable-next-line no-console
     console.error('Error: Backup file is required');
+    // eslint-disable-next-line no-console
     console.error('Usage: npx tsx scripts/restore-database.ts <backup-file> [options]');
     process.exit(1);
   }
@@ -330,6 +345,7 @@ async function main() {
       process.exit(1);
     }
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Fatal error:', error);
     process.exit(1);
   }

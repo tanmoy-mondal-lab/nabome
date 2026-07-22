@@ -59,7 +59,7 @@ export function generateToken(): string {
  * Call this on the first GET request to establish a CSRF token.
  * Preserves existing valid CSRF tokens to support multi-tab browsing.
  */
-export function setCsrfCookie(response: Response, env?: any): Response {
+export function setCsrfCookie(response: Response, env?: Record<string, unknown>): Response {
   // Only set a new CSRF cookie if one doesn't already exist in the response.
   // This avoids regenerating on every GET request (reduces Set-Cookie headers for CDN caching).
   // Use getSetCookie() where available (Cloudflare Workers, modern runtimes), fall back to

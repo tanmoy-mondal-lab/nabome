@@ -163,6 +163,7 @@ export function validateFile(file: File): ValidationResult {
 }
 
 export async function validateFileContent(file: File, _mimeType: string): Promise<ValidationResult> {
+  void _mimeType;
   const headerSlice = file.slice(0, 12);
   const buffer = await headerSlice.arrayBuffer();
   const bytes = new Uint8Array(buffer);

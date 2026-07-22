@@ -156,8 +156,6 @@ export class MediaIntegrityService {
     const scanId = crypto.randomUUID();
     const startTime = Date.now();
 
-    console.log(`[MediaIntegrity] Starting full integrity scan: ${scanId}`);
-
     const issues: IntegrityIssues = {
       missingInCloudinary: [],
       missingInDatabase: [],
@@ -278,11 +276,8 @@ export class MediaIntegrityService {
       this.scanHistory.set(scanId, result);
       this.lastHealthCheck = await this.generateHealthCheck(result);
 
-      console.log(`[MediaIntegrity] Scan complete: ${scanId} - Score: ${integrityScore}% - Status: ${status}`);
-
       return result;
     } catch (error) {
-      console.error(`[MediaIntegrity] Scan failed: ${scanId}`, error);
       throw new Error(`Media integrity scan failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -308,6 +303,7 @@ export class MediaIntegrityService {
     }>,
     _options: ScanOptions
   ): Promise<Partial<IntegrityIssues>> {
+    void _options;
     const issues: Partial<IntegrityIssues> = {
       missingInCloudinary: [],
       missingInDatabase: [],
@@ -370,8 +366,8 @@ export class MediaIntegrityService {
           });
         }
       }
-    } catch (error) {
-      console.error(`[MediaIntegrity] Failed to scan entity folder ${entityFolder}:`, error);
+    } catch {
+      // scan failed - skip
     }
 
     return issues;
@@ -423,8 +419,8 @@ export class MediaIntegrityService {
           });
         }
       }
-    } catch (error) {
-      console.error("[MediaIntegrity] Failed to detect orphaned Cloudinary assets:", error);
+    } catch {
+      // detection failed - skip
     }
 
     return { orphanedAssets };
@@ -478,6 +474,7 @@ export class MediaIntegrityService {
   private async validateFolderStructure(
     _options: ScanOptions
   ): Promise<{ broken: Array<{ folder: string; reason: string }>; empty: Array<{ folder: string }> }> {
+    void _options;
     const broken: Array<{ folder: string; reason: string }> = [];
     const empty: Array<{ folder: string }> = [];
 
@@ -518,8 +515,8 @@ export class MediaIntegrityService {
           empty.push({ folder });
         }
       }
-    } catch (error) {
-      console.error("[MediaIntegrity] Failed to validate folder structure:", error);
+    } catch {
+      // validation failed - skip
     }
 
     return { broken, empty };
@@ -636,8 +633,7 @@ export class MediaIntegrityService {
       const videos = await listAssetsInFolder("nabome", "video", this.config, 500);
       const rawFiles = await listAssetsInFolder("nabome", "raw", this.config, 500);
       return images.length + videos.length + rawFiles.length;
-    } catch (error) {
-      console.error("[MediaIntegrity] Failed to count Cloudinary assets:", error);
+    } catch {
       return 0;
     }
   }

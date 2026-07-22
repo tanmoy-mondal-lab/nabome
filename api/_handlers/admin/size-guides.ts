@@ -112,5 +112,5 @@ async function handleDelete(id: string, env: Env): Promise<Response> {
     }
     await prisma.size_guides.delete({ where: { id } });
     return success({ message: "Size guide deleted" });
-  } catch (err) { return notFound("Size guide not found"); }
+  } catch { return notFound("Size guide not found"); }
 }

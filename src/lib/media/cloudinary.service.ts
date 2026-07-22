@@ -27,6 +27,7 @@ import {
  */
 function logOperation(operation: string, details: Record<string, unknown>): void {
   if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
     console.debug(`[CloudinaryService] ${operation}`, details);
   }
 }
@@ -34,6 +35,7 @@ function logOperation(operation: string, details: Record<string, unknown>): void
 function logError(operation: string, error: unknown): void {
   const msg = error instanceof Error ? error.message : String(error);
   if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
     console.error(`[CloudinaryService] ${operation} failed:`, msg);
   }
 }
@@ -741,24 +743,24 @@ export async function getEntityAssets(
   try {
     const images = await listAssetsInFolder(folder, "image", config);
     allAssets.push(...images);
-  } catch (err) {
-    console.error(`[CloudinaryService] Failed to list images in folder ${folder}:`, err);
+  } catch {
+    // list failed - skip resource type
   }
 
   // Get videos
   try {
     const videos = await listAssetsInFolder(folder, "video", config);
     allAssets.push(...videos);
-  } catch (err) {
-    console.error(`[CloudinaryService] Failed to list videos in folder ${folder}:`, err);
+  } catch {
+    // list failed - skip resource type
   }
 
   // Get raw files (documents)
   try {
     const rawFiles = await listAssetsInFolder(folder, "raw", config);
     allAssets.push(...rawFiles);
-  } catch (err) {
-    console.error(`[CloudinaryService] Failed to list raw files in folder ${folder}:`, err);
+  } catch {
+    // list failed - skip resource type
   }
 
   logOperation("getEntityAssets complete", { folder, count: allAssets.length });
@@ -859,10 +861,9 @@ export async function cleanupOrphanedAssets(
         const success = await deleteAsset(asset.publicId, asset.resourceType, config);
         if (success) {
           deletedCount++;
-          console.log(`[CloudinaryService] Deleted orphaned asset: ${asset.publicId}`);
         }
-      } catch (err) {
-        console.error(`[CloudinaryService] Failed to delete orphaned asset ${asset.publicId}:`, err);
+      } catch {
+        // delete failed - non-critical
       }
     }
   }

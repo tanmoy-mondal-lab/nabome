@@ -46,7 +46,7 @@ export function setCookie(
   name: string,
   value: string,
   options: CookieOptions,
-  env?: any
+  env?: Record<string, unknown>
 ): Response {
   const nodeEnv = env?.NODE_ENV ?? (typeof process !== "undefined" ? process.env?.NODE_ENV : undefined);
   const cfPages = env?.CF_PAGES ?? (typeof process !== "undefined" ? process.env?.CF_PAGES : undefined);
@@ -82,7 +82,7 @@ export function buildCookieString(
   name: string,
   value: string,
   options: CookieOptions,
-  env?: any
+  env?: Record<string, unknown>
 ): string {
   const nodeEnv = env?.NODE_ENV ?? (typeof process !== "undefined" ? process.env?.NODE_ENV : undefined);
   const cfPages = env?.CF_PAGES ?? (typeof process !== "undefined" ? process.env?.CF_PAGES : undefined);
@@ -107,7 +107,7 @@ export function clearCookie(
   response: Response,
   name: string,
   options: Pick<CookieOptions, "path" | "sameSite">,
-  env?: any,
+  env?: Record<string, unknown>,
   httpOnly?: boolean
 ): Response {
   const nodeEnv = env?.NODE_ENV ?? (typeof process !== "undefined" ? process.env?.NODE_ENV : undefined);

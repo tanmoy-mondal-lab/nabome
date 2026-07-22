@@ -35,7 +35,7 @@ export async function handleAdminSearchIndexRequest(
 
   switch (action) {
     case "status":
-      return handleStatus(ctx.env!);
+      return handleStatus();
     case "build":
       return handleBuild(ctx.env!);
     case "search":
@@ -45,7 +45,7 @@ export async function handleAdminSearchIndexRequest(
   }
 }
 
-async function handleStatus(_env: Env): Promise<Response> {
+async function handleStatus(): Promise<Response> {
   return success({
     indexed: memoryIndex.length > 0,
     count: memoryIndex.length,
@@ -190,7 +190,11 @@ async function handleSearch(req: Request, env: Env): Promise<Response> {
 
   const total = results.length;
   const start = (page - 1) * limit;
-  const paged = results.slice(start, start + limit).map(({ score, ...doc }) => doc);
+  const paged = results.slice(start, start + limit).map((doc) => {
+    const { score, ...rest } = doc;
+    void score;
+    return rest;
+  });
 
   return success({ results: paged, total, page, limit, query: q });
 }

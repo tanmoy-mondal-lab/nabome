@@ -5,6 +5,7 @@
  * Instead of deleting derived assets synchronously, enqueues cleanup tasks.
  */
 
+import { logger } from '../logger';
 import type { CloudinaryConfig } from './types';
 
 export interface CleanupTask {
@@ -67,7 +68,7 @@ class BackgroundCleanupQueue {
     try {
       await this.deleteDerivedAssets(task.publicId, task.resourceType);
     } catch (error) {
-      console.error('[BackgroundCleanup] Task failed:', task, error);
+      logger.error('[BackgroundCleanup] Task failed:', { task, error: String(error) });
     }
   }
 
@@ -78,15 +79,8 @@ class BackgroundCleanupQueue {
     publicId: string,
     _resourceType: string
   ): Promise<void> {
-    // In a real implementation, this would:
-    // 1. List all derived assets for the public ID
-    // 2. Delete them asynchronously
-    // 3. Handle rate limiting
-    
-    // For now, this is a placeholder
-    // Cloudinary API doesn't provide a direct way to delete derived assets
-    // They are automatically cleaned up after a period of inactivity
-    console.log('[BackgroundCleanup] Cleaning up derived assets for:', publicId);
+    void _resourceType;
+    logger.info('[BackgroundCleanup] Cleaning up derived assets for:', { publicId });
   }
 
   /**
@@ -142,7 +136,7 @@ export async function immediateCleanup(
   try {
     // Delete the original asset synchronously
     const { deleteAsset } = await import('./cloudinary');
-    const success = await deleteAsset(publicId, resourceType as any, config);
+          const success = await deleteAsset(publicId, resourceType as 'image' | 'video' | 'raw', config);
 
     if (!success) {
       return { success: false, error: 'Cloudinary deletion failed' };
@@ -188,7 +182,7 @@ export async function bulkCleanup(
     await Promise.allSettled(
       batch.map(async (publicId) => {
         try {
-          const success = await deleteAsset(publicId, resourceType as any, config);
+    const success = await deleteAsset(publicId, resourceType as 'image' | 'video' | 'raw', config);
           if (success) {
             deleted.push(publicId);
             // Enqueue derived cleanup

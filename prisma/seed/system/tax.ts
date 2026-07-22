@@ -5,9 +5,8 @@
  * This seed documents the default tax configuration
  */
 
-import { prisma } from '../utils/helpers';
-
 export async function seedTax() {
+  // eslint-disable-next-line no-console
   console.log('🧾 Seeding tax configuration...');
 
   // Tax configuration is typically handled in business logic
@@ -24,6 +23,7 @@ export async function seedTax() {
     inclusive: true,
   };
 
+  // eslint-disable-next-line no-console
   console.log('Default tax configuration:', defaultTaxConfig);
 
   return defaultTaxConfig;

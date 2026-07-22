@@ -5,10 +5,10 @@
 
 import { prisma } from '../utils/helpers';
 import { upsertByField } from '../utils/upsert';
-import { CMS_SLUGS } from '../utils/constants';
 import type { homepage_sections } from '@prisma/client';
 
 export async function seedHomepage() {
+  // eslint-disable-next-line no-console
   console.log('🏠 Seeding homepage...');
 
   // Use fixed UUIDs for homepage sections to ensure idempotency

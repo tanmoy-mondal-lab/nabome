@@ -44,15 +44,15 @@ export declare function logBulkMediaOperation(prisma: PrismaClient, options: Med
 /**
  * Retrieves audit history for a specific asset
  */
-export declare function getAssetAuditHistory(prisma: PrismaClient, assetId: string, limit?: number): Promise<any[]>;
+export declare function getAssetAuditHistory(prisma: PrismaClient, assetId: string, limit?: number): Promise<Record<string, unknown>[]>;
 /**
  * Retrieves audit history for a specific admin
  */
-export declare function getAdminAuditHistory(prisma: PrismaClient, performedBy: string, limit?: number): Promise<any[]>;
+export declare function getAdminAuditHistory(prisma: PrismaClient, performedBy: string, limit?: number): Promise<Record<string, unknown>[]>;
 /**
  * Retrieves recent audit logs across all assets
  */
-export declare function getRecentAuditLogs(prisma: PrismaClient, limit?: number, action?: MediaAuditAction): Promise<any[]>;
+export declare function getRecentAuditLogs(prisma: PrismaClient, limit?: number, action?: MediaAuditAction): Promise<Record<string, unknown>[]>;
 /**
  * Extracts IP address and user agent from request
  */

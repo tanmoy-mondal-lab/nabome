@@ -67,8 +67,8 @@ class PerformanceMonitor {
       });
       observer.observe({ type: 'paint', buffered: true });
       this.observers.push(observer);
-    } catch (e) {
-      console.warn('FCP observation not supported');
+    } catch {
+      // FCP observation not supported
     }
   }
 
@@ -84,8 +84,8 @@ class PerformanceMonitor {
       });
       observer.observe({ type: 'largest-contentful-paint', buffered: true });
       this.observers.push(observer);
-    } catch (e) {
-      console.warn('LCP observation not supported');
+    } catch {
+      // LCP observation not supported
     }
   }
 
@@ -128,6 +128,7 @@ class PerformanceMonitor {
 
   private logMetric(name: string, value: number) {
     if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
       console.log(`[Performance] ${name}: ${value.toFixed(2)}ms`);
     }
     if (import.meta.env.PROD && typeof window !== 'undefined' && window.gtag) {

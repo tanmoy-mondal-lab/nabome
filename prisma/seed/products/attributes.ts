@@ -6,6 +6,7 @@
 import { prisma } from '../utils/helpers';
 
 export async function seedAttributes(productId: string) {
+  // eslint-disable-next-line no-console
   console.log('🔖 Seeding product attributes...');
 
   const attributes = [

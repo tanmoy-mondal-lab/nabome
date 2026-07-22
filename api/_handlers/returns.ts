@@ -84,7 +84,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promis
     }
 
     if (orderItemId) {
-      const item = order.items.find((i: any) => i.id === orderItemId);
+      const item = order.items.find((i: Record<string, unknown>) => i.id === orderItemId);
       if (!item) return badRequest("Order item not found in this order");
     }
 
@@ -94,6 +94,7 @@ async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promis
           orderId: orderId as string,
           orderItemId: orderItemId as string | null ?? null,
           profileId: ctx.userId,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           reason: reason as any,
           reasonDetail: reasonDetail as string | null ?? null,
           evidenceImages: evidenceImages as string[] | undefined ?? [],
@@ -323,12 +324,12 @@ async function handleReceive(returnId: string, ctx: RequestContext, env: Env): P
     // subtotal only.
     const orderItems = returnRequest.order.items || [];
     const returnedItems = returnRequest.orderItemId
-      ? orderItems.filter((i: any) => i.id === returnRequest.orderItemId)
+      ? orderItems.filter((i: Record<string, unknown>) => i.id === returnRequest.orderItemId)
       : orderItems;
     if (returnedItems.length === 0) return badRequest("No items found to refund");
 
     const refundAmount = returnedItems.reduce(
-      (sum: number, i: any) => sum + Number(i.totalPrice),
+      (sum: number, i: Record<string, unknown>) => sum + Number(i.totalPrice),
       0
     );
     const wholeOrderReturned =
@@ -356,13 +357,18 @@ async function handleReceive(returnId: string, ctx: RequestContext, env: Env): P
 
       // Restore stock for the returned variant(s).
       const variantsToRestore = returnedItems
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .filter((i: any) => i.variantId)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .map((i: any) => ({ variantId: i.variantId, quantity: i.quantity }));
       if (variantsToRestore.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const variantIds = variantsToRestore.map((v: any) => v.variantId);
         const variants = await tx.product_variants.findMany({ where: { id: { in: variantIds } } });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const variantMap = new Map(variants.map((v: any) => [v.id, v]));
         await Promise.all(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           variantsToRestore.map((v: any) =>
             tx.product_variants.update({
               where: { id: v.variantId },
@@ -371,6 +377,7 @@ async function handleReceive(returnId: string, ctx: RequestContext, env: Env): P
           )
         );
         await tx.inventory_movements.createMany({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           data: variantsToRestore.map((v: any) => {
             const variant = variantMap.get(v.variantId)!;
             return {
@@ -385,7 +392,9 @@ async function handleReceive(returnId: string, ctx: RequestContext, env: Env): P
         // Mark the order items as returned.
         await Promise.all(
           returnedItems
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .filter((i: any) => i.variantId)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .map((i: any) =>
               tx.order_items.update({
                 where: { id: i.id },

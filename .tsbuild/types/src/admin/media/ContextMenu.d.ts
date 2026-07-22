@@ -1,4 +1,4 @@
-interface ContextMenuItem {
+export interface ContextMenuItem {
     label?: string;
     icon?: React.ReactNode;
     onClick?: () => void;
@@ -24,5 +24,7 @@ interface UseContextMenuReturn {
 }
 export declare function useContextMenu(): UseContextMenuReturn;
 export declare function getFolderContextMenuItems(onRename: () => void, onDelete: () => void, onCreateSubfolder: () => void): ContextMenuItem[];
-export declare function getAssetContextMenuItems(asset: any, onCopyUrl: () => void, onCopyHTML: () => void, onCopyMarkdown: () => void, onDownload: () => void, onRename: () => void, onMove: () => void, onDelete: () => void, onAddToFavorites: () => void): ContextMenuItem[];
+export declare function getAssetContextMenuItems(asset: {
+    resource_type: string;
+}, onCopyUrl: () => void, onCopyHTML: () => void, onCopyMarkdown: () => void, onDownload: () => void, onRename: () => void, onMove: () => void, onDelete: () => void, onAddToFavorites: () => void): ContextMenuItem[];
 export {};

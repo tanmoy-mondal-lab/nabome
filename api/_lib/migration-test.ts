@@ -57,9 +57,9 @@ export class MigrationTester {
     }
   }
 
-  private async tableExists(prisma: any, tableName: string): Promise<boolean> {
+  private async tableExists(prisma: ReturnType<typeof getPrisma>, tableName: string): Promise<boolean> {
     try {
-      const result = await prisma.$queryRaw`
+      const result = await prisma.$queryRaw<{ exists: boolean }[]>`
         SELECT EXISTS (
           SELECT FROM information_schema.tables 
           WHERE table_name = ${tableName}
@@ -71,7 +71,7 @@ export class MigrationTester {
     }
   }
 
-  private async checkForeignKeys(prisma: any): Promise<{
+  private async checkForeignKeys(prisma: ReturnType<typeof getPrisma>): Promise<{
     valid: boolean;
     warnings: string[];
   }> {
@@ -79,7 +79,7 @@ export class MigrationTester {
 
     try {
       // Check for orphaned records (basic check)
-      const tables = await prisma.$queryRaw`
+      const tables = await prisma.$queryRaw<{ table_name: string }[]>`
         SELECT table_name 
         FROM information_schema.tables 
         WHERE table_schema = 'public' 
@@ -91,10 +91,9 @@ export class MigrationTester {
         if (table.table_name.startsWith("_")) continue;
 
         // This is a simplified check - in production, you'd want more thorough validation
-        await prisma.$queryRaw`
-          SELECT COUNT(*) as count 
-          FROM ${prisma.$raw(`"${table.table_name}"`)}
-        `;
+        await prisma.$queryRawUnsafe(
+          `SELECT COUNT(*) as count FROM "${table.table_name}"`
+        );
       }
 
       return { valid: true, warnings };

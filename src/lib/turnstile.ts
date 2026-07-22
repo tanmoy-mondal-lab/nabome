@@ -31,6 +31,7 @@ export function loadTurnstileScript(): Promise<void> {
         () => {
           turnstileScriptPromise = null;
           if (import.meta.env.DEV) {
+            // eslint-disable-next-line no-console
             console.warn("Failed to load Cloudflare Turnstile");
           }
           reject(new Error("Failed to load Cloudflare Turnstile"));
@@ -49,6 +50,7 @@ export function loadTurnstileScript(): Promise<void> {
     script.onerror = () => {
       turnstileScriptPromise = null;
       if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
         console.warn("Failed to load Cloudflare Turnstile");
       }
       reject(new Error("Failed to load Cloudflare Turnstile"));

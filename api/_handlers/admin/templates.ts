@@ -139,7 +139,7 @@ async function handleDelete(templateId: string, env: Env): Promise<Response> {
     }
     await prisma.page_templates.delete({ where: { id: templateId } });
     return success({ message: "Template deleted" });
-  } catch (err) {
+  } catch {
     return notFound("Template not found");
   }
 }

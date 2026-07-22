@@ -5,9 +5,8 @@
  * This seed documents the supported countries for reference
  */
 
-import { prisma } from '../utils/helpers';
-
 export async function seedCountries() {
+  // eslint-disable-next-line no-console
   console.log('🌍 Seeding countries...');
 
   // Countries are stored as string fields in the addresses table
@@ -23,6 +22,7 @@ export async function seedCountries() {
     { code: 'MY', name: 'Malaysia', dialCode: '+60' },
   ];
 
+  // eslint-disable-next-line no-console
   console.log('Supported countries:', supportedCountries.map(c => c.name).join(', '));
 
   return supportedCountries;

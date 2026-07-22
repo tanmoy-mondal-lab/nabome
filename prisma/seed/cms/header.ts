@@ -5,9 +5,8 @@
  * This seed documents the header configuration
  */
 
-import { prisma } from '../utils/helpers';
-
 export async function seedHeader() {
+  // eslint-disable-next-line no-console
   console.log('📋 Seeding header configuration...');
 
   // Header is configured via navigation_menus with location 'header'
@@ -33,6 +32,7 @@ export async function seedHeader() {
     },
   };
 
+  // eslint-disable-next-line no-console
   console.log('Header configuration:', headerConfig);
 
   return headerConfig;

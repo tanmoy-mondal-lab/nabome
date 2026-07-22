@@ -42,8 +42,7 @@ export default function SocialLinksPage() {
         const { id, ...rest } = payload;
         await adminApi.updateSocialLink(id, rest);
       } else {
-        const { id: _, ...rest } = payload;
-        await adminApi.createSocialLink(rest);
+        await adminApi.createSocialLink({ platform: payload.platform, url: payload.url, label: payload.label, sortOrder: payload.sortOrder, isActive: payload.isActive });
       }
     },
     onSuccess: () => {

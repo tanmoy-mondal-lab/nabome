@@ -9,6 +9,7 @@ import { PRODUCT_SLUGS } from '../utils/constants';
 import type { collections } from '@prisma/client';
 
 export async function seedCollections() {
+  // eslint-disable-next-line no-console
   console.log('🎨 Seeding collections...');
 
   // Use a fixed UUID for collection to ensure idempotency

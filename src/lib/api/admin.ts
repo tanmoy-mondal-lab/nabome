@@ -162,7 +162,7 @@ export const adminApi = {
   // Media folder management
   getMediaFolders: () => api.get<{ folders: Array<{ path: string; name: string }> }>("/admin/media-folders"),
   getMediaFolderContents: (path: string, params?: { maxResults?: number; nextCursor?: string; resourceType?: "image" | "video" | "raw" }) =>
-    api.get<{ folders: Array<{ path: string; name: string }>; resources: Array<{ public_id: string; resource_type: string; format: string; bytes: number; width: number | null; height: number | null; url: string; secure_url: string; created_at: string; filename: string; metadata: any }>; nextCursor?: string }>("/admin/media-folders/contents", { params: { path, ...params } }),
+    api.get<{ folders: Array<{ path: string; name: string }>; resources: Array<{ public_id: string; resource_type: string; format: string; bytes: number; width: number | null; height: number | null; url: string; secure_url: string; created_at: string; filename: string; metadata: Record<string, unknown> }>; nextCursor?: string }>("/admin/media-folders/contents", { params: { path, ...params } }),
   createMediaFolder: (path: string) => api.post("/admin/media-folders", { path }),
   renameMediaFolder: (oldPath: string, newPath: string) => api.put("/admin/media-folders/rename", { oldPath, newPath }),
   deleteMediaFolder: (path: string) => api.delete(`/admin/media-folders?path=${encodeURIComponent(path)}`),

@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -29,6 +28,7 @@ async function updatePagesSecrets() {
   const envFile = resolve(cwd, ".env");
 
   if (!existsSync(envFile)) {
+    // eslint-disable-next-line no-console
     console.error("Error: .env file not found");
     process.exit(1);
   }
@@ -50,6 +50,7 @@ async function updatePagesSecrets() {
   try {
     await import("wrangler");
   } catch {
+    // eslint-disable-next-line no-console
     console.error("Error: wrangler not found. Install with 'npm install wrangler'");
     process.exit(1);
   }
@@ -61,12 +62,15 @@ async function updatePagesSecrets() {
     const secretValue = envVars[secretName];
 
     if (!secretValue) {
+      // eslint-disable-next-line no-console
       console.error(`Error: ${secretName} not found in .env file`);
       errors.push(secretName);
       continue;
     }
 
+    // eslint-disable-next-line no-console
     console.log(`\nUpdating ${secretName} in Cloudflare Pages...`);
+    // eslint-disable-next-line no-console
     console.log(`Value: ${secretName === "RAZORPAY_WEBHOOK_SECRET" ? "..." : secretValue.replace(/./g, "*")}`);
 
     // Use wrangler to update the secret
@@ -77,22 +81,27 @@ async function updatePagesSecrets() {
         stdio: "inherit",
         cwd,
       });
+      // eslint-disable-next-line no-console
       console.log(`✓ ${secretName} updated successfully`);
     } catch (error) {
-      console.error(`✗ Failed to update ${secretName}: ${error.message}`);
+      // eslint-disable-next-line no-console
+      console.error(`✗ Failed to update ${secretName}: ${(error as Error).message}`);
       errors.push(secretName);
     }
   }
 
   if (errors.length > 0) {
+    // eslint-disable-next-line no-console
     console.error(`\n❌ Failed to update ${errors.length} secret(s): ${errors.join(", ")}`);
     process.exit(1);
   }
 
+  // eslint-disable-next-line no-console
   console.log("\n✅ All Razorpay secrets updated in Cloudflare Pages successfully!");
 }
 
 updatePagesSecrets().catch((error) => {
-  console.error(`Error: ${error.message}`);
+  // eslint-disable-next-line no-console
+  console.error(`Error: ${(error as Error).message}`);
   process.exit(1);
 });

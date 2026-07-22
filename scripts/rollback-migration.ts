@@ -79,7 +79,6 @@ class MigrationRollback {
       }
 
       const migrationPath = join(this.migrationsDir, entry.name);
-      const migrationSqlPath = join(migrationPath, 'migration.sql');
       const rollbackSqlPath = join(migrationPath, 'rollback.sql');
 
       const hasRollback = existsSync(rollbackSqlPath);
@@ -100,13 +99,18 @@ class MigrationRollback {
    * Display migration list
    */
   private displayMigrations(migrations: MigrationInfo[]): void {
+    // eslint-disable-next-line no-console
     console.log('\nAvailable Migrations:');
+    // eslint-disable-next-line no-console
     console.log('─'.repeat(80));
+    // eslint-disable-next-line no-console
     console.log('Name'.padEnd(50) + 'Timestamp'.padEnd(20) + 'Rollback');
+    // eslint-disable-next-line no-console
     console.log('─'.repeat(80));
 
     for (const migration of migrations) {
       const status = migration.hasRollback ? '✓' : '✗';
+      // eslint-disable-next-line no-console
       console.log(
         migration.name.padEnd(50) +
         migration.timestamp.padEnd(20) +
@@ -114,6 +118,7 @@ class MigrationRollback {
       );
     }
 
+    // eslint-disable-next-line no-console
     console.log('─'.repeat(80));
   }
 
@@ -129,6 +134,7 @@ class MigrationRollback {
 
       return result || null;
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Failed to get current migration:', error);
       return null;
     }
@@ -167,9 +173,10 @@ class MigrationRollback {
   /**
    * Update Prisma migration history
    */
-  private updateMigrationHistory(migrationName: string, isRollback: boolean): void {
+  private updateMigrationHistory(migrationName: string): void {
     // This would typically be handled by Prisma's internal migration system
     // For manual rollbacks, we may need to update the _prisma_migrations table
+    // eslint-disable-next-line no-console
     console.log(`Note: Migration history update for ${migrationName} may be required`);
   }
 
@@ -184,8 +191,10 @@ class MigrationRollback {
       output: process.stdout,
     });
 
+    // eslint-disable-next-line no-console
     console.log('\n⚠️  WARNING: You are about to rollback the following migrations:');
     for (const migration of migrations) {
+      // eslint-disable-next-line no-console
       console.log(`  - ${migration.name}`);
     }
 
@@ -211,6 +220,7 @@ class MigrationRollback {
 
     // Get current migration
     const currentMigration = this.getCurrentMigration();
+    // eslint-disable-next-line no-console
     console.log(`Current migration: ${currentMigration || 'None'}`);
 
     // Determine migrations to rollback
@@ -233,6 +243,7 @@ class MigrationRollback {
     }
 
     if (migrationsToRollback.length === 0) {
+      // eslint-disable-next-line no-console
       console.log('No migrations to rollback');
       return;
     }
@@ -240,8 +251,10 @@ class MigrationRollback {
     // Check if all migrations have rollback scripts
     const missingRollback = migrationsToRollback.filter(m => !m.hasRollback);
     if (missingRollback.length > 0) {
+      // eslint-disable-next-line no-console
       console.error('Error: The following migrations do not have rollback scripts:');
       for (const migration of missingRollback) {
+        // eslint-disable-next-line no-console
         console.error(`  - ${migration.name}`);
       }
       throw new Error('Cannot rollback without rollback scripts');
@@ -249,8 +262,10 @@ class MigrationRollback {
 
     // Dry run mode
     if (this.options.dryRun) {
+      // eslint-disable-next-line no-console
       console.log('\nDry run mode - would rollback the following migrations:');
       for (const migration of migrationsToRollback) {
+        // eslint-disable-next-line no-console
         console.log(`  - ${migration.name}`);
       }
       return;
@@ -259,26 +274,32 @@ class MigrationRollback {
     // Confirm rollback
     const confirmed = await this.confirmRollback(migrationsToRollback);
     if (!confirmed) {
+      // eslint-disable-next-line no-console
       console.log('Rollback cancelled by user');
       return;
     }
 
     // Execute rollbacks in reverse order
+    // eslint-disable-next-line no-console
     console.log('\nExecuting rollbacks...');
     for (const migration of migrationsToRollback) {
+      // eslint-disable-next-line no-console
       console.log(`Rolling back: ${migration.name}`);
 
       try {
         const rollbackSql = this.readRollbackSql(migration.path);
         this.executeRollback(rollbackSql);
-        this.updateMigrationHistory(migration.name, true);
+        this.updateMigrationHistory(migration.name);
+        // eslint-disable-next-line no-console
         console.log(`✓ Rolled back: ${migration.name}`);
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.error(`✗ Failed to rollback ${migration.name}:`, error);
         throw error;
       }
     }
 
+    // eslint-disable-next-line no-console
     console.log('\nRollback completed successfully');
   }
 
@@ -299,6 +320,7 @@ class MigrationRollback {
     const rollbackSql = MigrationRollback.generateRollbackFromMigration(migrationSql);
 
     writeFileSync(rollbackSqlPath, rollbackSql);
+    // eslint-disable-next-line no-console
     console.log(`Generated rollback script: ${rollbackSqlPath}`);
   }
 
@@ -402,10 +424,11 @@ function parseArgs(): { migrationName?: string; options: Partial<RollbackOptions
 // Main execution
 async function main() {
   try {
-    const { migrationName, options } = parseArgs();
+    const { options } = parseArgs();
     const rollback = new MigrationRollback(options);
     await rollback.performRollback();
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Fatal error:', error);
     process.exit(1);
   }

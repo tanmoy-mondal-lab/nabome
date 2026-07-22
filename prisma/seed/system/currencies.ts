@@ -8,6 +8,7 @@ import { upsertByField } from '../utils/upsert';
 import { SYSTEM_SLUGS } from '../utils/constants';
 
 export async function seedCurrencies() {
+  // eslint-disable-next-line no-console
   console.log('💰 Seeding currencies...');
 
   const inr = await upsertByField(

@@ -120,7 +120,7 @@ export async function withTransactionAndRollback<T>(
  * Execute multiple operations in a transaction with atomicity guarantees
  */
 export async function atomicOperations<T>(
-  operations: Array<(tx: any) => Promise<T>>,
+  operations: Array<(tx: Omit<PrismaClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">) => Promise<T>>,
   env?: Env,
   options: TransactionOptions = {}
 ): Promise<T[]> {

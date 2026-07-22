@@ -7,6 +7,7 @@ import { logAction, extractRequestMeta } from "../../_lib/audit";
 import { deleteMedia, deleteEntityMedia } from "../../_lib/media-service";
 import { slugify } from "../../_lib/utils";
 import { toNull } from "../../_lib/sanitize";
+import { logger } from "../../_lib/logger";
 
 const productInclude = {
   category: { select: { id: true, name: true, slug: true } },
@@ -407,7 +408,7 @@ async function handleUpdateVariants(productId: string, req: Request, env: Env): 
       );
       const failures = results.filter((r) => r.status === "rejected");
       if (failures.length > 0) {
-        console.error(`[Admin] Failed to destroy ${failures.length}/${mediaAssets.length} replaced/removed variant videos for product ${productId}`);
+        logger.error("[Admin] Failed to destroy replaced/removed variant videos for product", { productId, failures: failures.length, total: mediaAssets.length });
       }
     }
 
@@ -431,7 +432,7 @@ async function handleUpdateVariants(productId: string, req: Request, env: Env): 
         );
         const failures = results.filter((r) => r.status === "rejected");
         if (failures.length > 0) {
-          console.error(`[Admin] Failed to destroy ${failures.length}/${mediaAssets.length} variant images for product ${productId}`);
+          logger.error("[Admin] Failed to destroy variant images for product", { productId, failures: failures.length, total: mediaAssets.length });
         }
       }
 

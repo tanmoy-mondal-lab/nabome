@@ -12,6 +12,7 @@ import { cleanSecret } from "../api/_lib/secrets";
 config();
 
 async function listSupabaseUsers() {
+  // eslint-disable-next-line no-console
   console.log(`\n📋 Listing all Supabase Auth users...\n`);
 
   const env = getEnv();
@@ -19,6 +20,7 @@ async function listSupabaseUsers() {
   const key = cleanSecret(env.SUPABASE_SERVICE_ROLE_KEY);
 
   if (!url || !key) {
+    // eslint-disable-next-line no-console
     console.error("❌ Missing Supabase credentials in environment");
     process.exit(1);
   }
@@ -30,21 +32,32 @@ async function listSupabaseUsers() {
   const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
   
   if (listError) {
+    // eslint-disable-next-line no-console
     console.error("❌ Error listing users:", listError.message);
     process.exit(1);
   }
 
+  // eslint-disable-next-line no-console
   console.log(`Total users: ${users.length}\n`);
 
   users.forEach((user, index) => {
+    // eslint-disable-next-line no-console
     console.log(`${index + 1}. ${user.email}`);
+    // eslint-disable-next-line no-console
     console.log(`   ID: ${user.id}`);
+    // eslint-disable-next-line no-console
     console.log(`   Created: ${user.created_at}`);
+    // eslint-disable-next-line no-console
     console.log(`   Last sign in: ${user.last_sign_in_at || "Never"}`);
+    // eslint-disable-next-line no-console
     console.log(`   Email confirmed: ${user.email_confirmed_at ? "Yes" : "No"}`);
+    // eslint-disable-next-line no-console
     console.log(`   Role: ${user.user_metadata?.role || "N/A"}`);
+    // eslint-disable-next-line no-console
     console.log('');
   });
 }
 
-listSupabaseUsers().catch(console.error);
+listSupabaseUsers()
+  // eslint-disable-next-line no-console
+  .catch(console.error);

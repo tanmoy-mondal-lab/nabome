@@ -8,6 +8,7 @@ import { upsertByField } from '../utils/upsert';
 import { SEED_CONFIG } from '../utils/constants';
 
 export async function seedSiteSettings() {
+  // eslint-disable-next-line no-console
   console.log('🌐 Seeding site settings...');
 
   // Use a fixed UUID for site settings to ensure idempotency

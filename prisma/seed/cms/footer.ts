@@ -8,6 +8,7 @@ import { upsertByField } from '../utils/upsert';
 import type { footer_sections } from '@prisma/client';
 
 export async function seedFooter() {
+  // eslint-disable-next-line no-console
   console.log('📝 Seeding footer sections...');
 
   // Use fixed UUIDs for footer sections to ensure idempotency

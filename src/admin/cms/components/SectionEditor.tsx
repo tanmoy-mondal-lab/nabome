@@ -27,7 +27,8 @@ function VideoField({
     try {
       const res = await adminApi.uploadFile(file, "page-builder");
       onChange(field.key, res.url);
-    } catch (err) { console.error("Upload failed:", err); setError("Upload failed"); }
+    } catch (err) { // eslint-disable-next-line no-console
+    if (import.meta.env.DEV) console.error("Upload failed:", err); setError("Upload failed"); }
     finally { setUploading(false); }
   }, [field.key, onChange]);
 
@@ -133,7 +134,7 @@ function CollectionSelectField({
     queryFn: () => adminApi.getCollections(),
     staleTime: 1000 * 60 * 10,
   });
-  const collections = (res as any)?.collections ?? [];
+  const collections = (res as Record<string, unknown>)?.collections ?? [];
   const selected = Array.isArray(value) ? value as string[] : value ? [String(value)] : [];
 
   const handleToggle = (slug: string) => {
@@ -151,7 +152,7 @@ function CollectionSelectField({
           <p className="text-xs text-neutral-400">Loading…</p>
         ) : collections.length === 0 ? (
           <p className="text-xs text-neutral-400">No collections found</p>
-        ) : collections.map((c: any) => (
+        ) : (collections as { id: string; slug: string; name: string }[]).map((c) => (
           <label key={c.id} className="flex items-center gap-2 cursor-pointer py-0.5">
             <input type="checkbox" checked={selected.includes(c.slug)}
               onChange={() => handleToggle(c.slug)}
@@ -175,7 +176,7 @@ function CategorySelectField({
     queryFn: () => adminApi.getCategories(),
     staleTime: 1000 * 60 * 10,
   });
-  const categories = (res as any)?.categories ?? [];
+  const categories = (res as Record<string, unknown>)?.categories ?? [];
   const selected = Array.isArray(value) ? value as string[] : value ? [String(value)] : [];
 
   const handleToggle = (slug: string) => {
@@ -193,7 +194,7 @@ function CategorySelectField({
           <p className="text-xs text-neutral-400">Loading…</p>
         ) : categories.length === 0 ? (
           <p className="text-xs text-neutral-400">No categories found</p>
-        ) : categories.map((c: any) => (
+        ) : (categories as { id: string; slug: string; name: string }[]).map((c) => (
           <label key={c.id} className="flex items-center gap-2 cursor-pointer py-0.5">
             <input type="checkbox" checked={selected.includes(c.slug)}
               onChange={() => handleToggle(c.slug)}
@@ -218,9 +219,11 @@ function ProductSelectField({
     queryFn: () => adminApi.getProducts({ limit: 100 }),
     staleTime: 1000 * 60 * 5,
   });
-  const products = Array.isArray((res as any)?.products) ? (res as any).products : [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const resData = res as any;
+  const products = Array.isArray(resData?.products) ? resData.products as { id: string; slug: string; name: string; title: string }[] : [];
   const filtered = search
-    ? products.filter((p: any) => (p.name || p.title || "").toLowerCase().includes(search.toLowerCase()))
+    ? products.filter((p) => (p.name || p.title || "").toLowerCase().includes(search.toLowerCase()))
     : products;
 
   return (
@@ -237,7 +240,7 @@ function ProductSelectField({
         className="w-full px-3 py-2 text-sm border border-neutral-200 rounded focus:outline-none focus:ring-1 focus:ring-brand-500"
       >
         <option value="">Select product…</option>
-        {filtered.map((p: any) => (
+        {filtered.map((p) => (
           <option key={p.id} value={p.id || p.slug}>{p.name || p.title}</option>
         ))}
       </select>

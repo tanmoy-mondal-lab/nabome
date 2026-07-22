@@ -98,7 +98,7 @@ export interface SlugMigrationResult {
  * Gets recent lifecycle events (deprecated - use logging service instead)
  * @deprecated Use the logging service for persistent logging
  */
-export declare function getLifecycleEvents(_limit?: number): LifecycleEventLog[];
+export declare function getLifecycleEvents(): LifecycleEventLog[];
 /**
  * Clears the lifecycle event log (deprecated - no-op)
  * @deprecated Logging is now persistent, no need to clear

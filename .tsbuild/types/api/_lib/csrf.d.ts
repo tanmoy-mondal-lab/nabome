@@ -4,7 +4,7 @@ export declare function generateToken(): string;
  * Call this on the first GET request to establish a CSRF token.
  * Preserves existing valid CSRF tokens to support multi-tab browsing.
  */
-export declare function setCsrfCookie(response: Response, env?: any): Response;
+export declare function setCsrfCookie(response: Response, env?: Record<string, unknown>): Response;
 /**
  * Validates that the CSRF token in the request header matches the cookie.
  * Returns true if valid, false if mismatch or missing.

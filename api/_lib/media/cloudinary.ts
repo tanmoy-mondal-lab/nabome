@@ -60,7 +60,7 @@ export async function deleteAsset(
     return true;
   } catch (error) {
     clearTimeout(timeout);
-    console.error("[Cloudinary] deleteAsset failed:", publicId, error);
+    console.error("[Cloudinary] deleteAsset failed:", publicId, error); // eslint-disable-line no-console
     return false;
   }
 }

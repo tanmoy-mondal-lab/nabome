@@ -7,6 +7,7 @@ import { prisma } from '../utils/helpers';
 import type { product_variants } from '@prisma/client';
 
 export async function seedVariants(productId: string) {
+  // eslint-disable-next-line no-console
   console.log('🎨 Seeding product variants...');
 
   const variants = [

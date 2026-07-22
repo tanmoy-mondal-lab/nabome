@@ -5,9 +5,8 @@
  * This seed documents the hero configuration
  */
 
-import { prisma } from '../utils/helpers';
-
 export async function seedHero() {
+  // eslint-disable-next-line no-console
   console.log('🎨 Seeding hero configuration...');
 
   // Hero is configured via homepage_sections with section_type 'hero_slider'
@@ -20,6 +19,7 @@ export async function seedHero() {
     animation: 'fade',
   };
 
+  // eslint-disable-next-line no-console
   console.log('Hero configuration:', heroConfig);
 
   return heroConfig;

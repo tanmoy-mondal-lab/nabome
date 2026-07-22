@@ -19,7 +19,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import { execSync } from "child_process";
-import { readFileSync, existsSync, readdirSync, statSync } from "fs";
+import { existsSync, readdirSync, statSync } from "fs";
 import { join } from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -68,12 +68,16 @@ function log(message: string, level: "info" | "success" | "error" | "warning" = 
     error: "❌",
     warning: "⚠️",
   }[level];
+  // eslint-disable-next-line no-console
   console.log(`${prefix} [${timestamp}] ${message}`);
 }
 
 function logSection(title: string) {
+  // eslint-disable-next-line no-console
   console.log("\n" + "=".repeat(60));
+  // eslint-disable-next-line no-console
   console.log(`  ${title}`);
+  // eslint-disable-next-line no-console
   console.log("=".repeat(60) + "\n");
 }
 
@@ -154,7 +158,7 @@ async function deleteFolderAssets(folder: string, resourceType: string, config: 
   }
 }
 
-async function listAssetsInFolder(folder: string, resourceType: string, config: CloudinaryConfig): Promise<any[]> {
+async function listAssetsInFolder(folder: string, resourceType: string, config: CloudinaryConfig): Promise<Record<string, unknown>[]> {
   const timestamp = Math.round(Date.now() / 1000);
   const params: Record<string, string> = {
     prefix: folder,
@@ -178,7 +182,7 @@ async function listAssetsInFolder(folder: string, resourceType: string, config: 
       throw new Error(`Cloudinary list failed (${res.status}): ${errorData.error?.message ?? "Unknown error"}`);
     }
 
-    const data = await res.json() as { resources: any[] };
+    const data = await res.json() as { resources: Record<string, unknown>[] };
     return data.resources || [];
   } catch (err) {
     throw new Error(`Failed to list ${resourceType} assets in folder ${folder}: ${err instanceof Error ? err.message : String(err)}`);
@@ -265,6 +269,7 @@ async function seedDatabase(): Promise<boolean> {
 }
 
 // ─── Media Upload Operations ───
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function uploadSeedMedia(config: CloudinaryConfig): Promise<{ uploaded: number; failed: number }> {
   log("Uploading seed media...", "info");
   
@@ -331,7 +336,7 @@ async function verifySynchronization(): Promise<{
 
     // Get all assets from Cloudinary
     const config = getCloudinaryConfig();
-    const cloudinaryAssets: any[] = [];
+    const cloudinaryAssets: Record<string, unknown>[] = [];
     
     for (const resourceType of ["image", "video", "raw"]) {
       try {
@@ -344,7 +349,7 @@ async function verifySynchronization(): Promise<{
 
     // Check for orphaned assets (in Cloudinary but not in DB)
     const dbPublicIds = new Set(mediaRecords.map(r => r.publicId).filter(Boolean));
-    const cloudinaryPublicIds = new Set(cloudinaryAssets.map(a => a.public_id));
+    const cloudinaryPublicIds = new Set(cloudinaryAssets.map(a => (a as Record<string, string>).public_id));
     
     for (const cloudinaryId of cloudinaryPublicIds) {
       if (!dbPublicIds.has(cloudinaryId)) {
@@ -366,7 +371,7 @@ async function verifySynchronization(): Promise<{
         publicIdCount.set(record.publicId, (publicIdCount.get(record.publicId) || 0) + 1);
       }
     }
-    for (const [_, count] of publicIdCount) {
+    for (const [, count] of publicIdCount) {
       if (count > 1) {
         duplicateRecords += count - 1;
       }
@@ -374,9 +379,9 @@ async function verifySynchronization(): Promise<{
 
     const cloudinaryPublicIdCount = new Map<string, number>();
     for (const asset of cloudinaryAssets) {
-      cloudinaryPublicIdCount.set(asset.public_id, (cloudinaryPublicIdCount.get(asset.public_id) || 0) + 1);
+      cloudinaryPublicIdCount.set((asset as Record<string, string>).public_id, ((cloudinaryPublicIdCount.get((asset as Record<string, string>).public_id) || 0)) + 1);
     }
-    for (const [_, count] of cloudinaryPublicIdCount) {
+    for (const [, count] of cloudinaryPublicIdCount) {
       if (count > 1) {
         duplicateAssets += count - 1;
       }
@@ -415,43 +420,75 @@ async function getEntityCounts(): Promise<number> {
 function generateReport(stats: ResetStats): void {
   logSection("RESET STORAGE REPORT");
   
+  // eslint-disable-next-line no-console
   console.log("Environment:");
+  // eslint-disable-next-line no-console
   console.log(`  NODE_ENV: ${process.env.NODE_ENV}`);
+  // eslint-disable-next-line no-console
   console.log(`  Cloudinary Cloud: ${process.env.CLOUDINARY_CLOUD_NAME}`);
+  // eslint-disable-next-line no-console
   console.log("");
   
+  // eslint-disable-next-line no-console
   console.log("Cloudinary Operations:");
+  // eslint-disable-next-line no-console
   console.log(`  Assets Deleted: ${stats.cloudinaryDeleted}`);
+  // eslint-disable-next-line no-console
   console.log(`  Assets Remaining: ${stats.cloudinaryRemaining}`);
+  // eslint-disable-next-line no-console
   console.log("");
   
+  // eslint-disable-next-line no-console
   console.log("Database Operations:");
+  // eslint-disable-next-line no-console
   console.log(`  Database Reset: ${stats.databaseReset ? "✅" : "❌"}`);
+  // eslint-disable-next-line no-console
   console.log(`  Migrations: ${stats.migrationSuccess ? "✅" : "❌"}`);
+  // eslint-disable-next-line no-console
   console.log(`  Seeding: ${stats.seedSuccess ? "✅" : "❌"}`);
+  // eslint-disable-next-line no-console
   console.log("");
   
+  // eslint-disable-next-line no-console
   console.log("Media Operations:");
+  // eslint-disable-next-line no-console
   console.log(`  Media Uploaded: ${stats.mediaUploaded}`);
+  // eslint-disable-next-line no-console
   console.log(`  Media Failed: ${stats.mediaFailed}`);
+  // eslint-disable-next-line no-console
   console.log(`  Media Records Created: ${stats.mediaRecordsCreated}`);
+  // eslint-disable-next-line no-console
   console.log("");
   
+  // eslint-disable-next-line no-console
   console.log("Entity Statistics:");
+  // eslint-disable-next-line no-console
   console.log(`  Total Entities Created: ${stats.entitiesCreated}`);
+  // eslint-disable-next-line no-console
   console.log("");
   
+  // eslint-disable-next-line no-console
   console.log("Synchronization Verification:");
+  // eslint-disable-next-line no-console
   console.log(`  Orphan Assets: ${stats.orphanAssets}`);
+  // eslint-disable-next-line no-console
   console.log(`  Orphan Records: ${stats.orphanRecords}`);
+  // eslint-disable-next-line no-console
   console.log(`  Duplicate Assets: ${stats.duplicateAssets}`);
+  // eslint-disable-next-line no-console
   console.log(`  Duplicate Records: ${stats.duplicateRecords}`);
+  // eslint-disable-next-line no-console
   console.log("");
   
+  // eslint-disable-next-line no-console
   console.log("Performance:");
+  // eslint-disable-next-line no-console
   console.log(`  Start Time: ${stats.startTime.toISOString()}`);
+  // eslint-disable-next-line no-console
   console.log(`  End Time: ${stats.endTime.toISOString()}`);
+  // eslint-disable-next-line no-console
   console.log(`  Duration: ${stats.duration}ms (${(stats.duration / 1000).toFixed(2)}s)`);
+  // eslint-disable-next-line no-console
   console.log("");
   
   const hasErrors = 
@@ -471,6 +508,7 @@ function generateReport(stats: ResetStats): void {
     log("Reset completed successfully", "success");
   }
   
+  // eslint-disable-next-line no-console
   console.log("=".repeat(60) + "\n");
 }
 
@@ -553,6 +591,7 @@ async function main() {
     
   } catch (err) {
     log(`Fatal error: ${err instanceof Error ? err.message : String(err)}`, "error");
+    // eslint-disable-next-line no-console
     console.error(err);
     process.exit(1);
   } finally {

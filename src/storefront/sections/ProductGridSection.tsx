@@ -106,7 +106,7 @@ function useProductSource(content: Record<string, unknown>, sectionTitleFallback
 
 export default function ProductGridSection({ section }: ProductGridSectionProps) {
   const content = section.content ?? {};
-  const { products, loading, isNew, sectionTitle, sectionCaption, sortParam: _sortParam, viewAllUrl } = useProductSource(content, section.title, section.subtitle);
+  const { products, loading, isNew, sectionTitle, sectionCaption, viewAllUrl } = useProductSource(content, section.title, section.subtitle);
 
   if (loading) {
     return (

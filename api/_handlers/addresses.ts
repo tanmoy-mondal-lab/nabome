@@ -7,8 +7,7 @@ import { ErrorCode } from "../_lib/types";
 export async function handleAddressRequest(
   req: Request,
   ctx: RequestContext,
-  params: string[],
-  _action?: string
+  params: string[]
 ): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 

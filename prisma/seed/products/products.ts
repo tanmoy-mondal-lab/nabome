@@ -15,6 +15,7 @@ export async function seedProducts(
   brandId: string,
   sizeGuideId: string
 ) {
+  // eslint-disable-next-line no-console
   console.log('👕 Seeding products...');
 
   // Use a fixed UUID for product to ensure idempotency

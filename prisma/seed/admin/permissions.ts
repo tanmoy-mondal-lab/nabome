@@ -5,9 +5,8 @@
  * This seed documents the permission system
  */
 
-import { prisma } from '../utils/helpers';
-
 export async function seedPermissions() {
+  // eslint-disable-next-line no-console
   console.log('🔐 Seeding permissions...');
 
   // Permissions are enforced via API middleware
@@ -54,6 +53,7 @@ export async function seedPermissions() {
     ],
   };
 
+  // eslint-disable-next-line no-console
   console.log('Permission groups:', Object.keys(permissions).join(', '));
 
   return permissions;

@@ -48,6 +48,7 @@ export default function CartPage() {
         setCouponError(data.message || "Invalid coupon code");
       }
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error("Coupon validation failed:", err);
       setCouponError("Failed to validate coupon");
     }

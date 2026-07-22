@@ -8,12 +8,11 @@ import { upsertByField } from '../utils/upsert';
 import { ADMIN_CREDENTIALS } from '../utils/constants';
 
 export async function seedAdmin() {
+  // eslint-disable-next-line no-console
   console.log('👤 Seeding admin account...');
 
   // Note: Password should be hashed in production
   // For seed purposes, we use a placeholder that should be changed on first login
-  const defaultPassword = 'Admin@123'; // CHANGE ON FIRST LOGIN
-
   // Use a fixed UUID for admin to ensure idempotency
   const adminId = '00000000-0000-0000-0000-000000000002';
 
@@ -50,7 +49,9 @@ export async function seedAdmin() {
   );
 
   // Log warning about default password
+  // eslint-disable-next-line no-console
   console.log('⚠️  WARNING: Default admin password is "Admin@123" - CHANGE ON FIRST LOGIN');
+  // eslint-disable-next-line no-console
   console.log(`📧 Admin email: ${ADMIN_CREDENTIALS.email}`);
 
   return admin;

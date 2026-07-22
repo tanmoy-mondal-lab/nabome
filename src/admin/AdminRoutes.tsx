@@ -6,7 +6,7 @@ import { AdminRoute } from "../components/auth/AdminRoute";
 
 function lazyWithRetry(factory: () => Promise<{ default: React.ComponentType<unknown> }>) {
   return lazy(() =>
-    factory().catch((_err: unknown) => {
+    factory().catch(() => {
       return new Promise<{ default: React.ComponentType<unknown> }>((resolve) => {
         setTimeout(() => resolve(factory()), 1000);
       });

@@ -90,7 +90,8 @@ export function Footer() {
                 const contentType = section.contentType as string;
                 const content = typeof section.content === "string"
                   ? (() => {
-                      try { return JSON.parse(section.content) as Record<string, unknown>; } catch (err) { if (import.meta.env.DEV) console.debug("Failed to parse footer section:", err); return {} as Record<string, unknown>; }
+                      try { return JSON.parse(section.content) as Record<string, unknown>; } catch (err) { // eslint-disable-next-line no-console
+                      if (import.meta.env.DEV) console.debug("Failed to parse footer section:", err); return {} as Record<string, unknown>; }
                     })()
                   : (section.content as Record<string, unknown> | null);
                 const links = contentType === "links" ? (content?.links as { label: string; url: string }[] ?? []) : [];

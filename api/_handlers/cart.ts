@@ -6,7 +6,6 @@ import { authenticate } from "../_lib/auth-middleware";
 export async function handleCartRequest(
   req: Request,
   ctx: RequestContext,
-  _params: string[] = [],
   action: string = "get"
 ): Promise<Response> {
   // For guest carts, we don't require auth

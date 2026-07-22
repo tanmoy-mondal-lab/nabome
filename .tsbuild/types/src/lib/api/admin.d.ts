@@ -272,7 +272,7 @@ export declare const adminApi: {
             secure_url: string;
             created_at: string;
             filename: string;
-            metadata: any;
+            metadata: Record<string, unknown>;
         }>;
         nextCursor?: string;
     }>;

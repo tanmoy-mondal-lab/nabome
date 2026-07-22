@@ -8,7 +8,7 @@ export declare class SoftDeleteManager {
     softDelete(table: string, id: string, options?: SoftDeleteOptions, env?: Env): Promise<boolean>;
     restore(table: string, id: string, options?: SoftDeleteOptions, env?: Env): Promise<boolean>;
     permanentDelete(table: string, id: string, env?: Env): Promise<boolean>;
-    getDeletedRecords(table: string, options?: SoftDeleteOptions, env?: Env): Promise<any[]>;
+    getDeletedRecords(table: string, options?: SoftDeleteOptions, env?: Env): Promise<Record<string, unknown>[]>;
     private hasColumn;
 }
 export declare const softDeleteManager: SoftDeleteManager;

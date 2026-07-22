@@ -6,7 +6,9 @@
  * Essential for debugging, accountability, and compliance.
  */
 
+import { logger } from '../logger';
 import type { PrismaClient } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 export type MediaAuditAction =
   | 'upload'
@@ -59,14 +61,14 @@ export async function logMediaOperation(
         assetId: options.assetId,
         action: options.action,
         performedBy: options.performedBy,
-        metadata: options.metadata as any,
+        metadata: options.metadata as Prisma.InputJsonValue,
         ipAddress: options.ipAddress,
         userAgent: options.userAgent,
       },
     });
   } catch (error) {
     // Audit log failures should not block the main operation
-    console.error('[MediaAuditLog] Failed to log operation:', error);
+    logger.error('[MediaAuditLog] Failed to log operation:', { error });
   }
 }
 
@@ -98,7 +100,7 @@ export async function getAssetAuditHistory(
   prisma: PrismaClient,
   assetId: string,
   limit: number = 50
-): Promise<any[]> {
+): Promise<Record<string, unknown>[]> {
   return prisma.media_audit_logs.findMany({
     where: { assetId },
     orderBy: { createdAt: 'desc' },
@@ -113,7 +115,7 @@ export async function getAdminAuditHistory(
   prisma: PrismaClient,
   performedBy: string,
   limit: number = 100
-): Promise<any[]> {
+): Promise<Record<string, unknown>[]> {
   return prisma.media_audit_logs.findMany({
     where: { performedBy },
     orderBy: { createdAt: 'desc' },
@@ -128,8 +130,8 @@ export async function getRecentAuditLogs(
   prisma: PrismaClient,
   limit: number = 100,
   action?: MediaAuditAction
-): Promise<any[]> {
-  const where: any = {};
+): Promise<Record<string, unknown>[]> {
+  const where: Record<string, unknown> = {};
   if (action) {
     where.action = action;
   }

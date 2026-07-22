@@ -231,7 +231,7 @@ async function handleDelete(lookbookId: string, env: Env): Promise<Response> {
     await deleteEntityMedia("lookbooks", lookbookId, lookbook.slug, env);
     await prisma.lookbooks.delete({ where: { id: lookbookId } });
     return success({ message: "Lookbook deleted" });
-  } catch (err) {
+  } catch {
     return notFound("Lookbook not found");
   }
 }
@@ -294,7 +294,7 @@ async function handleUpdateItem(_lookbookId: string, itemId: string, req: Reques
       data: data as never,
     });
     return success(item);
-  } catch (err) {
+  } catch {
     return notFound("Item not found");
   }
 }
@@ -320,7 +320,7 @@ async function handleRemoveItem(lookbookId: string, itemId: string, env: Env): P
       where: { id: itemId },
     });
     return success({ message: "Item removed from lookbook" });
-  } catch (err) {
+  } catch {
     return notFound("Item not found");
   }
 }

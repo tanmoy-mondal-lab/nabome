@@ -6,6 +6,7 @@ import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, serverError } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { requireAdmin } from "../_lib/auth-middleware";
+import type { PrismaClient } from "@prisma/client";
 
 export async function handleSecurityDashboardRequest(
   _req: Request,
@@ -40,7 +41,7 @@ export async function handleSecurityDashboardRequest(
   }
 }
 
-async function handleOverview(prisma: any): Promise<Response> {
+async function handleOverview(prisma: PrismaClient): Promise<Response> {
   try {
     const now = new Date();
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -84,7 +85,7 @@ async function handleOverview(prisma: any): Promise<Response> {
           action: { startsWith: "security:" },
           severity: "warning",
           createdAt: { gte: yesterday },
-        },
+        } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       }),
     ]);
 
@@ -112,7 +113,7 @@ async function handleOverview(prisma: any): Promise<Response> {
   }
 }
 
-async function handleAuthEvents(prisma: any): Promise<Response> {
+async function handleAuthEvents(prisma: PrismaClient): Promise<Response> {
   try {
     const events = await prisma.user_action_logs.findMany({
       where: {
@@ -131,7 +132,8 @@ async function handleAuthEvents(prisma: any): Promise<Response> {
         userAgent: true,
         createdAt: true,
         severity: true,
-      },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
     });
 
     return success({ events });
@@ -140,7 +142,7 @@ async function handleAuthEvents(prisma: any): Promise<Response> {
   }
 }
 
-async function handleFailedLogins(prisma: any): Promise<Response> {
+async function handleFailedLogins(prisma: PrismaClient): Promise<Response> {
   try {
     const failedLogins = await prisma.user_action_logs.findMany({
       where: {
@@ -160,6 +162,7 @@ async function handleFailedLogins(prisma: any): Promise<Response> {
 
     // Group by IP to identify potential attackers
     const ipGroups = new Map<string, number>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     failedLogins.forEach((login: any) => {
       if (login.ipAddress) {
         ipGroups.set(login.ipAddress, (ipGroups.get(login.ipAddress) || 0) + 1);
@@ -167,7 +170,7 @@ async function handleFailedLogins(prisma: any): Promise<Response> {
     });
 
     const suspiciousIPs = Array.from(ipGroups.entries())
-      .filter(([_, count]) => count >= 5)
+      .filter(([, count]) => count >= 5)
       .map(([ip, count]) => ({ ip, count }))
       .sort((a, b) => b.count - a.count);
 
@@ -180,7 +183,7 @@ async function handleFailedLogins(prisma: any): Promise<Response> {
   }
 }
 
-async function handleSuspiciousActivity(prisma: any): Promise<Response> {
+async function handleSuspiciousActivity(prisma: PrismaClient): Promise<Response> {
   try {
     const now = new Date();
     const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -203,7 +206,8 @@ async function handleSuspiciousActivity(prisma: any): Promise<Response> {
         userAgent: true,
         createdAt: true,
         severity: true,
-      },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any,
     });
 
     return success({ events });
@@ -212,7 +216,7 @@ async function handleSuspiciousActivity(prisma: any): Promise<Response> {
   }
 }
 
-async function handlePermissionDenials(prisma: any): Promise<Response> {
+async function handlePermissionDenials(prisma: PrismaClient): Promise<Response> {
   try {
     const now = new Date();
     const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -237,6 +241,7 @@ async function handlePermissionDenials(prisma: any): Promise<Response> {
 
     // Group by permission to identify commonly denied permissions
     const permissionGroups = new Map<string, number>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     events.forEach((event: any) => {
       const permission = event.metadata?.permission;
       if (permission) {
@@ -258,7 +263,7 @@ async function handlePermissionDenials(prisma: any): Promise<Response> {
   }
 }
 
-async function handleActiveSessions(prisma: any): Promise<Response> {
+async function handleActiveSessions(prisma: PrismaClient): Promise<Response> {
   try {
     const now = new Date();
 
@@ -292,7 +297,7 @@ async function handleActiveSessions(prisma: any): Promise<Response> {
   }
 }
 
-async function handleRateLimitViolations(prisma: any): Promise<Response> {
+async function handleRateLimitViolations(prisma: PrismaClient): Promise<Response> {
   try {
     const now = new Date();
     const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -315,6 +320,7 @@ async function handleRateLimitViolations(prisma: any): Promise<Response> {
 
     // Group by IP to identify rate limit abusers
     const ipGroups = new Map<string, number>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     events.forEach((event: any) => {
       if (event.ipAddress) {
         ipGroups.set(event.ipAddress, (ipGroups.get(event.ipAddress) || 0) + 1);
@@ -322,7 +328,7 @@ async function handleRateLimitViolations(prisma: any): Promise<Response> {
     });
 
     const abusiveIPs = Array.from(ipGroups.entries())
-      .filter(([_, count]) => count >= 10)
+      .filter(([, count]) => count >= 10)
       .map(([ip, count]) => ({ ip, count }))
       .sort((a, b) => b.count - a.count);
 
@@ -335,7 +341,7 @@ async function handleRateLimitViolations(prisma: any): Promise<Response> {
   }
 }
 
-async function handleSecurityScore(prisma: any): Promise<Response> {
+async function handleSecurityScore(prisma: PrismaClient): Promise<Response> {
   try {
     const now = new Date();
     const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -360,7 +366,7 @@ async function handleSecurityScore(prisma: any): Promise<Response> {
           action: { startsWith: "security:" },
           severity: "warning",
           createdAt: { gte: last7d },
-        },
+        } as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       }),
       prisma.user_action_logs.count({
         where: {

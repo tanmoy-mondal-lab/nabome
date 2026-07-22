@@ -312,7 +312,7 @@ async function handleUpdateStatus(orderId: string, req: Request, ctx: RequestCon
             orderId: order.id,
           }, env);
         }
-      } catch (emailErr) {
+      } catch {
         // Silent failure - email send error
       }
     }

@@ -152,7 +152,7 @@ export async function setFeatureFlag(
   env?: { FEATURE_FLAGS_KV?: { put: (key: string, value: string) => Promise<void> } }
 ): Promise<void> {
   if (!env?.FEATURE_FLAGS_KV) return;
-  const current = await getFeatureFlags(env as any);
+  const current = await getFeatureFlags(env as { FEATURE_FLAGS_KV?: { get: (key: string) => Promise<string | null>; put: (key: string, value: string) => Promise<void> } });
   current[key] = value;
   await env.FEATURE_FLAGS_KV.put("feature_flags", JSON.stringify(current));
 }

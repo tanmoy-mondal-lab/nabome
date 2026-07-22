@@ -4,9 +4,9 @@
  */
 
 import { prisma } from '../utils/helpers';
-import { PRODUCT_SLUGS } from '../utils/constants';
 
 export async function seedPricing(productId: string, labelId: string, tagId: string) {
+  // eslint-disable-next-line no-console
   console.log('💰 Seeding pricing and associations...');
 
   // Associate product with label
@@ -39,6 +39,7 @@ export async function seedPricing(productId: string, labelId: string, tagId: str
     update: {},
   });
 
+  // eslint-disable-next-line no-console
   console.log('Associated product with label and tag');
 
   return { productId, labelId, tagId };

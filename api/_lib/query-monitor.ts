@@ -12,6 +12,8 @@ export interface QueryMetrics {
   error?: string;
 }
 
+import { logger } from "./logger";
+
 export class QueryMonitor {
   private queries: QueryMetrics[] = [];
   private maxQueries: number = 1000;
@@ -36,7 +38,7 @@ export class QueryMonitor {
 
     // Log slow queries
     if (duration > this.slowQueryThreshold) {
-      console.warn(`Slow query detected (${duration}ms):`, query);
+      logger.warn(`Slow query detected (${duration}ms):`, { query });
     }
 
     // Rotate logs if needed

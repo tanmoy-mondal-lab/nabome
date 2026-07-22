@@ -8,6 +8,7 @@ import { upsertByField } from '../utils/upsert';
 import type { announcement_bars } from '@prisma/client';
 
 export async function seedAnnouncements() {
+  // eslint-disable-next-line no-console
   console.log('📢 Seeding announcements...');
 
   // Use a fixed UUID for announcement to ensure idempotency

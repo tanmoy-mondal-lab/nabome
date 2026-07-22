@@ -1,3 +1,4 @@
+import { logger } from "../_lib/logger";
 import { getPrisma } from "../_lib/prisma";
 import { success, badRequest, serverError, unauthorized } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
@@ -63,7 +64,6 @@ async function createRazorpayOrder(
 export async function handleCheckoutRequest(
   req: Request,
   ctx: RequestContext,
-  _params: string[] = [],
   action: string = "checkout"
 ): Promise<Response> {
   const idempotencyKey = req.headers.get("Idempotency-Key");
@@ -691,7 +691,7 @@ export async function handleCheckoutRequest(
         })) || [],
         orderId: order.id,
       }, ctx.env!);
-    } catch (emailErr) {
+    } catch {
       // Silent failure - email send error
     }
 
@@ -710,11 +710,11 @@ export async function handleCheckoutRequest(
     // Complete any pending referral for this order's email and credit the referrer.
     try {
       if (profileId) {
-        await completeReferralForOrder(prisma, checkoutEmail, order.id, profileId);
+        await completeReferralForOrder(prisma, checkoutEmail, order.id);
       }
     } catch (referralErr) {
       // Never fail checkout because of referral accounting.
-      console.error("Referral completion failed:", referralErr);
+      logger.error("Referral completion failed:", { error: referralErr });
     }
 
     return success({ order, razorpayOrderId: order.razorpayOrderId });
@@ -726,7 +726,7 @@ export async function handleCheckoutRequest(
         await prisma.addresses.deleteMany({
           where: { id: { in: createdAddressIds } },
         });
-      } catch (cleanupErr) {
+      } catch {
         // Silent failure - cleanup error
       }
     }

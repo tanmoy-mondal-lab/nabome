@@ -188,10 +188,10 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 }
 
 function SortableSectionCard({
-  section, index: _index, isLast: _isLast, isReordering: _isReordering,
+  section,
   onEdit, onToggle, onDuplicate, onDelete,
 }: {
-  section: HomeSection; index: number; isLast: boolean; isReordering: boolean;
+  section: HomeSection;
   onEdit: () => void; onToggle: () => void; onDuplicate: () => void; onDelete: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id });
@@ -500,36 +500,36 @@ function TestimonialEditor({
 // ─── Product Grid Source Selector ───
 
 function ProductGridFields({
-  sourceType, sourceValue, sourceLabel: _sourceLabel, limit, viewAllUrl, errors,
+  sourceType, sourceValue, limit, viewAllUrl, errors,
   onUpdate,
 }: {
-  sourceType: string; sourceValue: string; sourceLabel: string;
+  sourceType: string; sourceValue: string;
   limit: number; viewAllUrl: string; errors: FormErrors;
   onUpdate: (patch: Partial<FormState>) => void;
 }) {
   const { data: catRes } = useQuery({
     queryKey: ["admin", "categories"],
-    queryFn: async () => { const r = await adminApi.getCategories(); return (r as any).categories ?? []; },
+    queryFn: async () => { const r = await adminApi.getCategories(); return (r as Record<string, unknown>).categories ?? []; },
     staleTime: 1000 * 60 * 10,
   });
   const { data: colRes } = useQuery({
     queryKey: ["admin", "collections"],
-    queryFn: async () => { const r = await adminApi.getCollections(); return (r as any).collections ?? []; },
+    queryFn: async () => { const r = await adminApi.getCollections(); return (r as Record<string, unknown>).collections ?? []; },
     staleTime: 1000 * 60 * 10,
   });
   const { data: labelRes } = useQuery({
     queryKey: ["admin", "labels"],
-    queryFn: async () => { const r = await adminApi.getLabels(); return (r as any).labels ?? []; },
+    queryFn: async () => { const r = await adminApi.getLabels(); return (r as Record<string, unknown>).labels ?? []; },
     staleTime: 1000 * 60 * 10,
   });
   const { data: tagRes } = useQuery({
     queryKey: ["admin", "tags"],
-    queryFn: async () => { const r = await adminApi.getTags(); return (r as any).tags ?? []; },
+    queryFn: async () => { const r = await adminApi.getTags(); return (r as Record<string, unknown>).tags ?? []; },
     staleTime: 1000 * 60 * 10,
   });
   const { data: brandRes } = useQuery({
     queryKey: ["admin", "brands"],
-    queryFn: async () => { const r = await adminApi.getBrands(); return (r as any).brands ?? []; },
+    queryFn: async () => { const r = await adminApi.getBrands(); return (r as Record<string, unknown>).brands ?? []; },
     staleTime: 1000 * 60 * 10,
   });
 
@@ -547,11 +547,11 @@ function ProductGridFields({
         return (
           <Field label="Category">
             <select value={sourceValue} onChange={(e) => {
-              const opt = categories.find((c: any) => c.slug === e.target.value);
+              const opt = categories.find((c: Record<string, unknown>) => c.slug === e.target.value);
               onUpdate({ productSourceValue: e.target.value, productSourceLabel: opt?.name ?? "" });
             }} className={inputClass}>
               <option value="">Select category…</option>
-              {categories.map((c: any) => (
+              {categories.map((c: { id: string; slug: string; name: string; _count?: { products: number } }) => (
                 <option key={c.id} value={c.slug}>
                   {c.name}{c._count?.products != null ? ` (${c._count.products})` : ""}
                 </option>
@@ -563,11 +563,11 @@ function ProductGridFields({
         return (
           <Field label="Collection">
             <select value={sourceValue} onChange={(e) => {
-              const opt = collections.find((c: any) => c.slug === e.target.value);
+              const opt = collections.find((c: Record<string, unknown>) => c.slug === e.target.value);
               onUpdate({ productSourceValue: e.target.value, productSourceLabel: opt?.name ?? "" });
             }} className={inputClass}>
               <option value="">Select collection…</option>
-              {collections.map((c: any) => (
+              {collections.map((c: { id: string; slug: string; name: string; _count?: { products: number } }) => (
                 <option key={c.id} value={c.slug}>
                   {c.name}{c._count?.products != null ? ` (${c._count.products})` : ""}
                 </option>
@@ -579,11 +579,11 @@ function ProductGridFields({
         return (
           <Field label="Label">
             <select value={sourceValue} onChange={(e) => {
-              const opt = labels.find((l: any) => l.slug === e.target.value);
+              const opt = labels.find((l: Record<string, unknown>) => l.slug === e.target.value);
               onUpdate({ productSourceValue: e.target.value, productSourceLabel: opt?.name ?? "" });
             }} className={inputClass}>
               <option value="">Select label…</option>
-              {labels.map((l: any) => (
+              {labels.map((l: { id: string; slug: string; name: string; _count?: { products: number } }) => (
                 <option key={l.id} value={l.slug}>
                   {l.name}{l._count?.products != null ? ` (${l._count.products})` : ""}
                 </option>
@@ -595,11 +595,11 @@ function ProductGridFields({
         return (
           <Field label="Tag">
             <select value={sourceValue} onChange={(e) => {
-              const opt = tags.find((t: any) => t.slug === e.target.value);
+              const opt = tags.find((t: Record<string, unknown>) => t.slug === e.target.value);
               onUpdate({ productSourceValue: e.target.value, productSourceLabel: opt?.name ?? "" });
             }} className={inputClass}>
               <option value="">Select tag…</option>
-              {tags.map((t: any) => (
+              {tags.map((t: { id: string; slug: string; name: string; _count?: { products: number } }) => (
                 <option key={t.id} value={t.slug}>
                   {t.name}{t._count?.products != null ? ` (${t._count.products})` : ""}
                 </option>
@@ -611,11 +611,11 @@ function ProductGridFields({
         return (
           <Field label="Brand">
             <select value={sourceValue} onChange={(e) => {
-              const opt = brands.find((b: any) => b.slug === e.target.value);
+              const opt = brands.find((b: Record<string, unknown>) => b.slug === e.target.value);
               onUpdate({ productSourceValue: e.target.value, productSourceLabel: opt?.name ?? "" });
             }} className={inputClass}>
               <option value="">Select brand…</option>
-              {brands.map((b: any) => (
+              {brands.map((b: { id: string; slug: string; name: string; _count?: { products: number } }) => (
                 <option key={b.id} value={b.slug}>
                   {b.name}{b._count?.products != null ? ` (${b._count.products})` : ""}
                 </option>
@@ -886,7 +886,7 @@ export default function HomepageBuilder() {
   const openEdit = (sec: HomeSection) => {
     setEditItem(sec);
     const c = (sec.content ?? {}) as Record<string, unknown>;
-    const s = ((sec as any).styles ?? {}) as Record<string, string>;
+    const s = ((sec as unknown as Record<string, unknown>).styles ?? {}) as Record<string, string>;
     const items = (c.items as Record<string, string>[] | undefined) ?? [];
     const stats = (c.stats as { label: string; value: string }[] | undefined) ?? [];
     const slides = normalizeHeroSlides(c.slides, {
@@ -936,8 +936,8 @@ export default function HomepageBuilder() {
       instagramLayout: (c.layout as string) ?? "grid",
       newArrivalsLimit: (c.limit as number) ?? 8,
       categoryColumns: (c.columns as number) ?? 4,
-      publishAt: (sec as any).publishAt ? String((sec as any).publishAt).slice(0, 16) : "",
-      expireAt: (sec as any).expireAt ? String((sec as any).expireAt).slice(0, 16) : "",
+      publishAt: (sec as unknown as Record<string, unknown>).publishAt ? String((sec as unknown as Record<string, unknown>).publishAt).slice(0, 16) : "",
+      expireAt: (sec as unknown as Record<string, unknown>).expireAt ? String((sec as unknown as Record<string, unknown>).expireAt).slice(0, 16) : "",
       bgColor: (s?.bgColor as string) ?? "",
       textColor: (s?.textColor as string) ?? "",
       paddingTop: (s?.paddingTop as string) ?? "",
@@ -975,7 +975,7 @@ export default function HomepageBuilder() {
       expireAt: form.expireAt || null,
     };
     if (Object.keys(styles).length > 0) payload.styles = styles;
-    saveMutation.mutate(payload as any);
+    saveMutation.mutate(payload as unknown as Record<string, unknown>);
   };
 
   const handleDelete = (id: string) => {
@@ -1005,7 +1005,7 @@ export default function HomepageBuilder() {
     if (oldIndex === -1 || newIndex === -1) return;
 
     const reordered = arrayMove(sections, oldIndex, newIndex);
-    queryClient.setQueryData<any[]>(["admin", "homepage"], reordered);
+    queryClient.setQueryData<unknown[]>(["admin", "homepage"], reordered);
     reorderMutation.mutate(reordered.map((s, i) => ({ id: s.id, sortOrder: i })));
   };
 
@@ -1018,7 +1018,6 @@ export default function HomepageBuilder() {
           <ProductGridFields
             sourceType={form.productSourceType}
             sourceValue={form.productSourceValue}
-            sourceLabel={form.productSourceLabel}
             limit={form.productLimit}
             viewAllUrl={form.productViewAllUrl}
             errors={formErrors}
@@ -1270,16 +1269,13 @@ export default function HomepageBuilder() {
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={filteredSections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
-              {filteredSections.map((sec, i) => (
+              {filteredSections.map((sec) => (
                 <SortableSectionCard
                   key={sec.id}
-                  section={sec as any}
-                  index={i}
-                  isLast={i === filteredSections.length - 1}
-                  isReordering={reorderMutation.isPending}
-                  onEdit={() => openEdit(sec as any)}
-                  onToggle={() => toggleActive(sec as any)}
-                  onDuplicate={() => handleDuplicate(sec as any)}
+                  section={sec as unknown as HomeSection}
+                  onEdit={() => openEdit(sec as unknown as HomeSection)}
+                  onToggle={() => toggleActive(sec as unknown as HomeSection)}
+                  onDuplicate={() => handleDuplicate(sec as unknown as HomeSection)}
                   onDelete={() => handleDelete(sec.id)}
                 />
               ))}

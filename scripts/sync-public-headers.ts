@@ -4,4 +4,5 @@ import { renderStaticHeadersFile } from "../api/_lib/http-headers";
 
 const outputPath = resolve(process.cwd(), "public/_headers");
 writeFileSync(outputPath, renderStaticHeadersFile(), "utf8");
+// eslint-disable-next-line no-console
 console.log(`[headers] Wrote ${outputPath}`);

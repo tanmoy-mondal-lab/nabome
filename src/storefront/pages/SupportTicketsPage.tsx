@@ -46,7 +46,7 @@ export default function SupportTicketsPage() {
   const [createForm, setCreateForm] = useState({ subject: "", message: "", orderId: "" });
   const [replyText, setReplyText] = useState("");
 
-  const [_fetchError, _setFetchError] = useState<string | null>(null);
+  
 
   const { data: ticketsData, isLoading, isError } = useQuery({
     queryKey: ["customer", "support-tickets"],

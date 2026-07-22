@@ -29,7 +29,7 @@ async function sha1Hex(input: string): Promise<string> {
 async function fetchCloudinaryApi(
   endpoint: string,
   params: Record<string, string> = {}
-): Promise<any> {
+): Promise<Record<string, unknown>> {
   const timestamp = Math.round(Date.now() / 1000);
   const allParams = { ...params, timestamp: String(timestamp), api_key: CLOUDINARY_API_KEY };
   const sortedKeys = Object.keys(allParams).sort();
@@ -73,6 +73,7 @@ async function listCloudinaryAssets(cursor?: string): Promise<{
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function deleteCloudinaryFolder(folderPath: string): Promise<void> {
   const params: Record<string, string> = {
     folder: folderPath,
@@ -91,14 +92,17 @@ async function deleteCloudinaryFolder(folderPath: string): Promise<void> {
   try {
     const res = await fetch(url.toString(), { method: "DELETE" });
     if (res.ok) {
+      // eslint-disable-next-line no-console
       console.log(`  Deleted folder: ${folderPath}`);
     }
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error(`  Failed to delete folder ${folderPath}:`, err);
   }
 }
 
 async function migrateExistingRecords(): Promise<number> {
+  // eslint-disable-next-line no-console
   console.log("\n=== Migrating Existing MediaAsset Records ===");
   let migrated = 0;
 
@@ -143,11 +147,13 @@ async function migrateExistingRecords(): Promise<number> {
     }
   }
 
+  // eslint-disable-next-line no-console
   console.log(`  Migrated ${migrated} records`);
   return migrated;
 }
 
 async function cleanupMediaAssets(): Promise<void> {
+  // eslint-disable-next-line no-console
   console.log("\n=== Media Asset Cleanup ===");
   let cleaned = 0;
 
@@ -158,12 +164,14 @@ async function cleanupMediaAssets(): Promise<void> {
   for (const asset of assets) {
     if (!asset.publicId) {
       await prisma.mediaAsset.delete({ where: { id: asset.id } });
+      // eslint-disable-next-line no-console
       console.log(`  Removed asset with no publicId: ${asset.id}`);
       cleaned++;
       continue;
     }
   }
 
+  // eslint-disable-next-line no-console
   console.log(`  Cleaned ${cleaned} invalid records`);
 }
 
@@ -171,6 +179,7 @@ async function findOrphanedCloudinaryAssets(): Promise<{
   orphaned: CloudinaryResource[];
   dbOnly: { id: string; publicId: string | null }[];
 }> {
+  // eslint-disable-next-line no-console
   console.log("\n=== Finding Orphaned Assets ===");
   let allCloudinary: CloudinaryResource[] = [];
   let cursor: string | null = null;
@@ -180,6 +189,7 @@ async function findOrphanedCloudinaryAssets(): Promise<{
     cursor = result.next_cursor;
   } while (cursor);
 
+  // eslint-disable-next-line no-console
   console.log(`  Total Cloudinary assets under ${ROOT_FOLDER}/: ${allCloudinary.length}`);
 
   const cloudinaryPublicIds = new Set(allCloudinary.map((r) => r.public_id));
@@ -191,7 +201,9 @@ async function findOrphanedCloudinaryAssets(): Promise<{
   const orphaned = allCloudinary.filter((r) => !dbPublicIds.has(r.public_id));
   const dbOnly = dbAssets.filter((a) => a.publicId && !cloudinaryPublicIds.has(a.publicId));
 
+  // eslint-disable-next-line no-console
   console.log(`  Orphaned Cloudinary assets (not in DB): ${orphaned.length}`);
+  // eslint-disable-next-line no-console
   console.log(`  DB records with missing Cloudinary assets: ${dbOnly.length}`);
 
   return { orphaned, dbOnly };
@@ -201,46 +213,61 @@ async function cleanupOrphanedAssets(): Promise<void> {
   const { orphaned, dbOnly } = await findOrphanedCloudinaryAssets();
 
   if (orphaned.length > 0) {
+    // eslint-disable-next-line no-console
     console.log("\n  Orphaned Cloudinary assets to investigate:");
     for (const asset of orphaned.slice(0, 20)) {
+      // eslint-disable-next-line no-console
       console.log(`    ${asset.public_id} (${asset.resource_type})`);
     }
     if (orphaned.length > 20) {
+      // eslint-disable-next-line no-console
       console.log(`    ... and ${orphaned.length - 20} more`);
     }
   }
 
   if (dbOnly.length > 0) {
+    // eslint-disable-next-line no-console
     console.log("\n  DB records pointing to missing Cloudinary assets:");
     for (const asset of dbOnly.slice(0, 20)) {
+      // eslint-disable-next-line no-console
       console.log(`    ${asset.id} -> ${asset.publicId}`);
     }
     if (dbOnly.length > 20) {
+      // eslint-disable-next-line no-console
       console.log(`    ... and ${dbOnly.length - 20} more`);
     }
   }
 }
 
 async function main() {
+  // eslint-disable-next-line no-console
   console.log("=== NABOME Media Cleanup Script ===");
+  // eslint-disable-next-line no-console
   console.log(`Cloudinary Cloud: ${CLOUDINARY_CLOUD_NAME}`);
+  // eslint-disable-next-line no-console
   console.log(`Root Folder: ${ROOT_FOLDER}`);
 
   const migrated = await migrateExistingRecords();
   const cleaned = await cleanupMediaAssets();
   await cleanupOrphanedAssets();
 
+  // eslint-disable-next-line no-console
   console.log("\n=== Summary ===");
+  // eslint-disable-next-line no-console
   console.log(`  Records migrated: ${migrated}`);
+  // eslint-disable-next-line no-console
   console.log(`  Records cleaned: ${cleaned}`);
 
   const totalAssets = await prisma.mediaAsset.count();
+  // eslint-disable-next-line no-console
   console.log(`  Total MediaAsset records: ${totalAssets}`);
+  // eslint-disable-next-line no-console
   console.log("\n=== Cleanup Complete ===");
 }
 
 main()
   .catch((e) => {
+    // eslint-disable-next-line no-console
     console.error("Error during cleanup:", e);
     process.exit(1);
   })

@@ -6,6 +6,7 @@
 // due to database issues, enum mismatches, or Prisma errors.
 // ─────────────────────────────────────────────────────────────
 
+import { logger } from "./logger";
 import { getEmailTemplate } from "./email-templates";
 import type { EmailType } from "./email-templates";
 import { cleanSecret } from "./secrets";
@@ -100,7 +101,7 @@ export async function sendEmailNotification(
   // ── 1. Validate env ──
   const resendApiKey = cleanSecret(env?.RESEND_API_KEY);
   if (!resendApiKey) {
-    console.error(`[EMAIL] RESEND_API_KEY not configured for email type: ${type}`);
+    logger.error(`[EMAIL] RESEND_API_KEY not configured for email type: ${type}`);
     return { success: false, error: "Email service not configured" };
   }
 
@@ -111,7 +112,7 @@ export async function sendEmailNotification(
   };
   const template = getEmailTemplate(type, templateData);
   if (!template) {
-    console.error(`[EMAIL] No template found for email type: ${type}`);
+    logger.error(`[EMAIL] No template found for email type: ${type}`);
     return { success: false, error: "Email template not found" };
   }
 
@@ -124,13 +125,13 @@ export async function sendEmailNotification(
     const raw = cleanSecret(env?.ADMIN_EMAILS);
     recipients = raw.split(",").map((e) => e.trim()).filter(Boolean);
     if (recipients.length === 0) {
-      console.error(`[EMAIL] No admin emails configured for type: ${type}`);
+      logger.error(`[EMAIL] No admin emails configured for type: ${type}`);
       return { success: false, error: "No admin recipients configured" };
     }
   } else {
     const email = data.email as string | undefined;
     if (!email) {
-      console.error(`[EMAIL] No email address provided for type: ${type}`);
+      logger.error(`[EMAIL] No email address provided for type: ${type}`);
       return { success: false, error: "No email address provided" };
     }
     recipients = [email];
@@ -154,7 +155,7 @@ export async function sendEmailNotification(
 
     const failed = results.filter((r) => !r.success);
     if (failed.length > 0) {
-      console.error(`[EMAIL] Failed to send ${failed.length} email(s) for type: ${type}`, failed);
+      logger.error(`[EMAIL] Failed to send ${failed.length} email(s) for type: ${type}`, { failed });
       return { success: false, error: `Failed to send ${failed.length} email(s)` };
     }
 
@@ -171,7 +172,7 @@ export async function sendEmailNotification(
         ));
         for (const { adminEmail, result } of adminResults) {
           if (!result.success) {
-            console.error(`[EMAIL] Failed to send admin notification to ${adminEmail}:`, result.error);
+            logger.error(`[EMAIL] Failed to send admin notification to ${adminEmail}:`, { error: result.error });
           }
         }
       }
@@ -187,7 +188,7 @@ export async function sendEmailNotification(
         await enqueueJob("send_email", {
           type,
           data: { ...templateData, email: to, from, replyTo: data.replyTo },
-        }, { priority: 5 }, env as any);
+        }, { priority: 5 }, env as Record<string, unknown>);
       }
 
       // Enqueue admin notifications if needed
@@ -201,14 +202,14 @@ export async function sendEmailNotification(
             await enqueueJob("send_email", {
               type: adminType,
               data: { ...templateData, email: adminEmail, from },
-            }, { priority: 3 }, env as any);
+            }, { priority: 3 }, env as Record<string, unknown>);
           }
         }
       }
 
       return { success: true };
     } catch (err) {
-      console.error(`[EMAIL] Failed to enqueue email job:`, err);
+      logger.error(`[EMAIL] Failed to enqueue email job:`, { err });
       // Fallback to sync send if queue fails
       const results: EmailSendResult[] = [];
       for (const to of recipients) {

@@ -62,7 +62,7 @@ export async function uploadMedia(
   options: UploadOptions,
   config: CloudinaryConfig
 ): Promise<UploadResult> {
-  const { entityType, entityId: _entityId, slug, file, altText: _altText, displayName: _displayName, sortOrder: _sortOrder, isPrimary: _isPrimary } = options;
+  const { entityType, slug, file } = options;
 
   // Validate the file
   const fileValidation = validateFile(file);
@@ -141,7 +141,7 @@ export async function replaceMedia(
   options: ReplaceOptions,
   config: CloudinaryConfig
 ): Promise<ReplaceResult> {
-  const { entityType, entityId: _entityId, slug, file, oldAssetId, oldPublicId, altText: _altText, displayName: _displayName } = options;
+  const { entityType, slug, file, oldAssetId, oldPublicId } = options;
 
   // Validate the file
   const fileValidation = validateFile(file);
@@ -203,8 +203,8 @@ export async function replaceMedia(
     // Clean up temp upload
     try {
       await deleteAsset(tempResult.publicId, fileConfig.resourceType, config);
-    } catch (cleanupErr) {
-      console.error("[MediaService] Failed to cleanup temp upload:", cleanupErr);
+    } catch {
+      // temp cleanup is non-critical
     }
     throw new ReplaceFailedError(
       err instanceof Error ? err.message : String(err),

@@ -21,10 +21,8 @@ export interface CreateMediaResult {
 export async function createMediaAsset(
   file: File,
   entityType: EntityType,
-  _entityId: string,
   slug: string,
   config: CloudinaryConfig,
-  _metadata?: { altText?: string; displayName?: string; sortOrder?: number; isPrimary?: boolean }
 ): Promise<CreateMediaResult> {
   const assetId = generateAssetId();
   const entityFolder = getEntityFolder(entityType, slug);
@@ -69,28 +67,23 @@ export interface ReplaceMediaResult {
 export async function replaceMediaAsset(
   file: File,
   entityType: EntityType,
-  entityId: string,
+  _entityId: string,
   slug: string,
   _oldAssetId: string,
   _oldPublicId: string,
   _oldResourceType: CloudinaryResourceType,
   config: CloudinaryConfig,
-  metadata?: { altText?: string; displayName?: string }
 ): Promise<ReplaceMediaResult> {
   // Upload new asset FIRST — never delete the old one before the new one is confirmed.
   // The caller (replaceMedia in media-service.ts) is responsible for deleting the old
   // Cloudinary asset ONLY after the new DB record is successfully committed.
-  return createMediaAsset(file, entityType, entityId, slug, config, metadata);
+  return createMediaAsset(file, entityType, slug, config);
 }
 
 export async function deleteMediaAsset(
-  _assetId: string,
   publicId: string,
   resourceType: CloudinaryResourceType,
   config: CloudinaryConfig,
-  _entityType?: EntityType,
-  _entityId?: string,
-  _folder?: string
 ): Promise<void> {
   await deleteAsset(publicId, resourceType, config);
 }

@@ -55,7 +55,8 @@ async function handleList(req: Request, env: Env): Promise<Response> {
 }
 
 async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promise<Response> {
-  let body: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: any;
   try {
     body = await req.json();
   } catch {
@@ -101,7 +102,8 @@ async function handleCreate(req: Request, ctx: RequestContext, env: Env): Promis
 }
 
 async function handleUpdate(couponId: string, req: Request, ctx: RequestContext, env: Env): Promise<Response> {
-  let body: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: any;
   try {
     body = await req.json();
   } catch {

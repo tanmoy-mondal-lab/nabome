@@ -1,5 +1,6 @@
 import type { Env } from "../_lib/env";
 import { getPrisma } from "../_lib/prisma";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { success, badRequest, notFound, error, serverError, unauthorized } from "../_lib/response";
 import type { RequestContext } from "../_lib/types";
 import { sendEmailNotification } from "../_lib/email";
@@ -10,7 +11,7 @@ import { withRateLimit } from "../_lib/rate-limit";
 import { ErrorCode } from "../_lib/types";
 import { validateBody, paymentVerifySchema, paymentFailedSchema, paymentRetrySchema, refundSchema } from "../_lib/validate";
 
-async function createHMACSHA256(secret: string, data: string, _env: Env): Promise<string> {
+async function createHMACSHA256(secret: string, data: string): Promise<string> {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw", enc.encode(secret),
@@ -63,7 +64,6 @@ async function callRazorpay(
 export async function handlePaymentRequest(
   req: Request,
   ctx: RequestContext,
-  _params: string[],
   action?: string
 ): Promise<Response> {
   if (req.method !== "POST") {
@@ -112,7 +112,7 @@ async function handleVerify(req: Request, ctx: RequestContext, env: Env): Promis
       return badRequest("Payment order does not match this order");
     }
 
-    const expected = await createHMACSHA256(keySecret, `${razorpayOrderId}|${razorpayPaymentId}`, env);
+    const expected = await createHMACSHA256(keySecret, `${razorpayOrderId}|${razorpayPaymentId}`);
     if (!timingSafeEqualHex(expected, razorpaySignature)) {
       return badRequest("Invalid payment signature");
     }
@@ -208,7 +208,7 @@ async function handleVerify(req: Request, ctx: RequestContext, env: Env): Promis
         transactionId: razorpayPaymentId,
         orderId: order.id,
       }, env);
-    } catch (emailErr) {
+    } catch {
       // Silent failure - email send error
     }
 
@@ -226,7 +226,7 @@ async function handleVerify(req: Request, ctx: RequestContext, env: Env): Promis
 }
 
 async function releaseReservedInventory(
-  tx: any,
+  tx: PrismaClient,
   order: { id: string; orderNumber: string; items: Array<{ variantId: string | null; quantity: number }> }
 ): Promise<void> {
   const orderItems = (order.items || []).filter((i) => i.variantId) as Array<{ variantId: string; quantity: number }>;
@@ -294,7 +294,8 @@ async function handleFailed(req: Request, ctx: RequestContext, env: Env): Promis
       });
 
       // Release stock that was reserved when the order was placed.
-      await releaseReservedInventory(tx, order);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await releaseReservedInventory(tx as any, order);
 
       if (order.profileId) {
         await tx.notifications.create({
@@ -321,7 +322,7 @@ async function handleFailed(req: Request, ctx: RequestContext, env: Env): Promis
         reason: errorDescription || "Payment was declined by the bank or card issuer.",
         orderId: order.id,
       }, env);
-    } catch (emailErr) {
+    } catch {
       // Silent failure - email send error
     }
 
@@ -678,7 +679,8 @@ async function handlePaymentFailed(event: WebhookEventPayload, ctx: { env: Env }
     });
 
     // Release stock that was reserved when the order was placed.
-    if (orderWithItems) await releaseReservedInventory(tx, orderWithItems);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (orderWithItems) await releaseReservedInventory(tx as any, orderWithItems);
 
     if (order.profileId) {
       await tx.notifications.create({
@@ -887,7 +889,8 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
   const rateLimitResponse = await withRateLimit(
     `${clientIp}:webhook`,
     { windowMs: 60_000, maxRequests: 30, message: "Too many webhook requests. Slow down." },
-    env
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    env as any
   );
   if (rateLimitResponse) return rateLimitResponse;
 
@@ -915,7 +918,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
     return unauthorized("Missing Razorpay webhook signature");
   }
 
-  const expected = await createHMACSHA256(webhookSecret, rawBody, env);
+  const expected = await createHMACSHA256(webhookSecret, rawBody);
 
   if (!timingSafeEqualHex(expected, signature)) {
     return unauthorized("Invalid Razorpay webhook signature");
@@ -991,7 +994,7 @@ async function handleWebhook(req: Request, env: Env): Promise<Response> {
         },
       });
       webhookEventId = record.id;
-    } catch (createErr) {
+    } catch {
       return serverError(new Error("Failed to persist webhook event"));
     }
   }
@@ -1085,12 +1088,12 @@ async function handleListWebhookEvents(req: Request, env: Env): Promise<Response
 
   const [events, total] = await Promise.all([
     prisma.webhook_events.findMany({
-      where: where as any,
+      where: where as Prisma.webhook_eventsWhereInput,
       orderBy: { createdAt: "desc" },
       skip: (page - 1) * limit,
       take: limit,
     }),
-    prisma.webhook_events.count({ where: where as any }),
+    prisma.webhook_events.count({ where: where as Prisma.webhook_eventsWhereInput }),
   ]);
 
   return success({

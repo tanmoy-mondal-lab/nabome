@@ -48,7 +48,7 @@ export default function HeroBuilder() {
       const heroSection = sections.find((s) => s.sectionType === "hero_slider");
       if (heroSection) {
         setSectionId(heroSection.id);
-        const content = (heroSection.content as any as HeroConfig | null) || (typeof heroSection.content === 'string' ? null : heroSection.content as any as HeroConfig | null);
+        const content = (heroSection.content as unknown as HeroConfig | null) || (typeof heroSection.content === 'string' ? null : heroSection.content as unknown as HeroConfig | null);
         setConfig({
           slides: normalizeHeroSlides(content?.slides, {
             title: heroSection.title,
@@ -60,7 +60,7 @@ export default function HeroBuilder() {
         setConfig({ slides: [], interval: 7000 });
         setSectionId(null);
       }
-    } catch (error) {
+    } catch {
       setError("Failed to load hero slides.");
     } finally {
       setLoading(false);
@@ -90,7 +90,8 @@ export default function HeroBuilder() {
         if (created?.id) setSectionId(created.id);
       }
       setConfig(newConfig);
-    } catch (err) { console.error("Failed to save hero config:", err); setError("Failed to save hero config."); } finally {
+    } catch (err) { // eslint-disable-next-line no-console
+    if (import.meta.env.DEV) console.error("Failed to save hero config:", err); setError("Failed to save hero config."); } finally {
       setSaving(false);
     }
   };
@@ -140,7 +141,8 @@ export default function HeroBuilder() {
     try {
       const res = await adminApi.uploadFile(file, "hero-banners");
       setForm((prev) => ({ ...prev, [field]: res.url }));
-    } catch (err) { console.error("Failed to upload file:", err); setError("Failed to upload file."); } finally {
+    } catch (err) { // eslint-disable-next-line no-console
+    if (import.meta.env.DEV) console.error("Failed to upload file:", err); setError("Failed to upload file."); } finally {
       setUploadingFor(null);
       if (fileRef.current) fileRef.current.value = "";
       if (posterRef.current) posterRef.current.value = "";

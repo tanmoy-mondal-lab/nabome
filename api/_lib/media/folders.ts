@@ -3,6 +3,7 @@
 // Create, rename, delete, move, and list folders in Cloudinary
 // ─────────────────────────────────────────────────────────────
 
+import { logger } from "../logger";
 import type { CloudinaryConfig } from "./types";
 
 const CLOUDINARY_API_TIMEOUT = 15000;
@@ -84,13 +85,13 @@ export async function listFolders(config: CloudinaryConfig): Promise<CloudinaryF
     }
 
     const result = await res.json();
-    return result.folders?.map((f: any) => ({
+    return result.folders?.map((f: { path: string; name: string }) => ({
       path: f.path,
       name: f.name,
     })) ?? [];
   } catch (error) {
     clearTimeout(timeout);
-    console.error("[Cloudinary] listFolders failed:", error);
+    logger.error("[Cloudinary] listFolders failed:", { error });
     throw error;
   }
 }
@@ -149,7 +150,9 @@ export async function listFolderContents(
     
     // Extract folders from the resources
     const folderSet = new Set<string>();
-    const resources: CloudinaryResource[] = result.resources?.map((r: any) => {
+    const resources: CloudinaryResource[] = result.resources?.map((raw: Record<string, unknown>) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const r = raw as any;
       const pathParts = r.public_id.split('/');
       if (pathParts.length > 1) {
         // Add parent folders
@@ -184,7 +187,7 @@ export async function listFolderContents(
     };
   } catch (error) {
     clearTimeout(timeout);
-    console.error("[Cloudinary] listFolderContents failed:", error);
+    logger.error("[Cloudinary] listFolderContents failed:", { error });
     throw error;
   }
 }
@@ -259,7 +262,7 @@ export async function renameFolder(
       await moveResource(oldPublicId, newPublicId, resource.resource_type, config);
       moved++;
     } catch (error) {
-      console.error(`[Cloudinary] Failed to move resource ${resource.public_id}:`, error);
+      logger.error(`[Cloudinary] Failed to move resource ${resource.public_id}:`, { error });
       failed++;
     }
   }
@@ -346,7 +349,7 @@ export async function moveResource(
     return true;
   } catch (error) {
     clearTimeout(timeout);
-    console.error("[Cloudinary] moveResource failed:", oldPublicId, error);
+    logger.error("[Cloudinary] moveResource failed:", { oldPublicId, error });
     throw error;
   }
 }
@@ -403,7 +406,7 @@ export async function getStorageInfo(config: CloudinaryConfig): Promise<{
     
     // Get counts for each resource type
     const imageCount = result.resources?.length ?? 0;
-    const imageBytes = result.resources?.reduce((sum: number, r: any) => sum + (r.bytes || 0), 0) ?? 0;
+    const imageBytes = result.resources?.reduce((sum: number, r: { bytes?: number }) => sum + (r.bytes || 0), 0) ?? 0;
 
     // Note: This is a simplified implementation
     // A production implementation would fetch all resource types and aggregate
@@ -416,7 +419,7 @@ export async function getStorageInfo(config: CloudinaryConfig): Promise<{
     };
   } catch (error) {
     clearTimeout(timeout);
-    console.error("[Cloudinary] getStorageInfo failed:", error);
+    logger.error("[Cloudinary] getStorageInfo failed:", { error });
     return {
       totalFiles: 0,
       totalImages: 0,

@@ -63,16 +63,16 @@ export class ApiLogger {
 
     switch (entry.level) {
       case LogLevel.DEBUG:
-        console.debug(message, metadata);
+        console.debug(message, metadata); // eslint-disable-line no-console
         break;
       case LogLevel.INFO:
-        console.info(message, metadata);
+        console.info(message, metadata); // eslint-disable-line no-console
         break;
       case LogLevel.WARN:
-        console.warn(message, metadata);
+        console.warn(message, metadata); // eslint-disable-line no-console
         break;
       case LogLevel.ERROR:
-        console.error(message, metadata);
+        console.error(message, metadata); // eslint-disable-line no-console
         break;
     }
   }

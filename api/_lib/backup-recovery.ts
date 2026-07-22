@@ -6,7 +6,21 @@
 
 import { logger } from "./logger";
 import { getPrisma } from "./prisma";
+import type { PrismaClient } from "@prisma/client";
 import type { Env } from "./env";
+
+type DynamicPrismaTable = {
+  [K in keyof PrismaClient]: PrismaClient[K] extends {
+    findMany: (...args: unknown[]) => Promise<unknown>;
+    deleteMany: (...args: unknown[]) => Promise<unknown>;
+    createMany: (...args: unknown[]) => Promise<unknown>;
+  } ? PrismaClient[K] : never;
+}[keyof PrismaClient];
+
+// Dynamic table access helper - cast prisma to access tables by string name
+function tableAccess(prisma: PrismaClient): Record<string, DynamicPrismaTable> {
+  return prisma as unknown as Record<string, DynamicPrismaTable>;
+}
 
 export interface BackupConfig {
   database: boolean;
@@ -76,7 +90,8 @@ export class BackupRecoveryService {
 
       for (const table of tables) {
         try {
-          const data = await (prisma as any)[table].findMany();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const data = await (tableAccess(prisma) as any)[table].findMany();
           backupData[table] = data;
           logger.debug(`Backed up table: ${table}`, { count: data.length });
         } catch (error) {
@@ -269,12 +284,15 @@ export class BackupRecoveryService {
           logger.info(`Restoring table: ${table}`, { count: data.length });
           
           // Clear existing data
-          await (prisma as any)[table].deleteMany({});
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (tableAccess(prisma) as any)[table].deleteMany({});
           
           // Restore data
           if (data.length > 0) {
-            await (prisma as any)[table].createMany({
-              data: data as any[],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            await (tableAccess(prisma) as any)[table].createMany({
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              data: data as any,
               skipDuplicates: true,
             });
           }
@@ -326,7 +344,8 @@ export class BackupRecoveryService {
       if (backupData.mediaAssets) {
         await prisma.media_assets.deleteMany({});
         await prisma.media_assets.createMany({
-          data: backupData.mediaAssets as any[],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data: backupData.mediaAssets as any,
           skipDuplicates: true,
         });
       }
@@ -376,9 +395,12 @@ export class BackupRecoveryService {
 
       for (const table of tables) {
         if (backupData[table]) {
-          await (prisma as any)[table].deleteMany({});
-          await (prisma as any)[table].createMany({
-            data: backupData[table] as any[],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (tableAccess(prisma) as any)[table].deleteMany({});
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (tableAccess(prisma) as any)[table].createMany({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data: backupData[table] as any,
             skipDuplicates: true,
           });
         }

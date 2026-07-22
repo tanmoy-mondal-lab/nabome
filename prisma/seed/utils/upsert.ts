@@ -28,9 +28,10 @@ export async function safeUpsert<T>(
  * Upsert by unique field
  */
 export async function upsertByField<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   model: any,
-  where: Record<string, any>,
-  data: Record<string, any>,
+  where: Record<string, any>, // eslint-disable-line @typescript-eslint/no-explicit-any
+  data: Record<string, any>, // eslint-disable-line @typescript-eslint/no-explicit-any
   entityName: string
 ): Promise<T> {
   return safeUpsert('UPSERT', entityName, () =>
@@ -46,9 +47,10 @@ export async function upsertByField<T>(
  * Create or find helper
  */
 export async function createOrFind<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   model: any,
-  where: Record<string, any>,
-  data: Record<string, any>,
+  where: Record<string, any>, // eslint-disable-line @typescript-eslint/no-explicit-any
+  data: Record<string, any>, // eslint-disable-line @typescript-eslint/no-explicit-any
   entityName: string
 ): Promise<T> {
   logSeed('FIND_OR_CREATE', entityName, 'START');
@@ -71,8 +73,9 @@ export async function createOrFind<T>(
  * Batch upsert helper
  */
 export async function batchUpsert<T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   model: any,
-  items: Array<{ where: Record<string, any>; data: Record<string, any> }>,
+  items: Array<{ where: Record<string, any>; data: Record<string, any> }>, // eslint-disable-line @typescript-eslint/no-explicit-any
   entityName: string
 ): Promise<T[]> {
   logSeed('BATCH_UPSERT', entityName, 'START');

@@ -8,6 +8,7 @@ import { upsertByField } from '../utils/upsert';
 import type { newsletter_subscribers } from '@prisma/client';
 
 export async function seedNewsletter() {
+  // eslint-disable-next-line no-console
   console.log('📧 Seeding newsletter configuration...');
 
   // Use a fixed UUID for newsletter subscriber to ensure idempotency
@@ -34,6 +35,7 @@ export async function seedNewsletter() {
     promotionalEmails: true,
   };
 
+  // eslint-disable-next-line no-console
   console.log('Newsletter configuration:', newsletterConfig);
 
   return { subscriber, newsletterConfig };

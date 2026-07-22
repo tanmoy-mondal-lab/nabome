@@ -165,10 +165,10 @@ export default function NotificationsPage() {
               ) : templates.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-8 text-center text-neutral-500">No templates found</td></tr>
               ) : (
-                templates.map((t) => (
+                templates.map((t: NotificationTemplate) => (
                   <tr key={t.id} className="border-b border-neutral-100 hover:bg-neutral-50">
-                    <td className="px-4 py-3 font-mono text-xs text-neutral-900">{(t as any).event || t.type || ""}</td>
-                    <td className="px-4 py-3 text-neutral-900 max-w-[200px] truncate">{(t as any).subject || t.emailSubject || ""}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-neutral-900">{t.event || t.type || ""}</td>
+                    <td className="px-4 py-3 text-neutral-900 max-w-[200px] truncate">{t.subject || t.emailSubject || ""}</td>
                     <td className="px-4 py-3 text-xs">{t.emailBody ? <span className="text-green-600">Yes</span> : <span className="text-neutral-300">-</span>}</td>
                     <td className="px-4 py-3 text-xs">{t.smsBody ? <span className="text-green-600">Yes</span> : <span className="text-neutral-300">-</span>}</td>
                     <td className="px-4 py-3 text-xs">{t.inAppBody ? <span className="text-green-600">Yes</span> : <span className="text-neutral-300">-</span>}</td>

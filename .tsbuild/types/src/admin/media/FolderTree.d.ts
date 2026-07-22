@@ -1,4 +1,4 @@
-interface FolderNode {
+export interface FolderNode {
     path: string;
     name: string;
     children?: FolderNode[];

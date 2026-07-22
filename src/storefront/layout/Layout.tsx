@@ -26,7 +26,8 @@ function parseStructuredData(value: unknown): Record<string, unknown> | null {
   try {
     const parsed = JSON.parse(value);
     return parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
-  } catch (err) { if (import.meta.env.DEV) console.debug("Failed to load settings:", err);
+  } catch (err) { // eslint-disable-next-line no-console
+    if (import.meta.env.DEV) console.debug("Failed to load settings:", err);
     return null;
   }
 }

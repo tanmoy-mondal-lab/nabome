@@ -35,15 +35,15 @@ export declare const COOKIE_CONFIG: {
 /**
  * Set a cookie with the given options
  */
-export declare function setCookie(response: Response, name: string, value: string, options: CookieOptions, env?: any): Response;
+export declare function setCookie(response: Response, name: string, value: string, options: CookieOptions, env?: Record<string, unknown>): Response;
 /**
  * Build a cookie string without setting it (for batch setting)
  */
-export declare function buildCookieString(name: string, value: string, options: CookieOptions, env?: any): string;
+export declare function buildCookieString(name: string, value: string, options: CookieOptions, env?: Record<string, unknown>): string;
 /**
  * Clear a cookie by setting Max-Age to 0
  */
-export declare function clearCookie(response: Response, name: string, options: Pick<CookieOptions, "path" | "sameSite">, env?: any, httpOnly?: boolean): Response;
+export declare function clearCookie(response: Response, name: string, options: Pick<CookieOptions, "path" | "sameSite">, env?: Record<string, unknown>, httpOnly?: boolean): Response;
 /**
  * Parse cookies from a Cookie header string
  */

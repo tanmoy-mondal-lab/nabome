@@ -1,10 +1,5 @@
 import { readFileSync, writeFileSync } from 'fs';
 
-const replacements = [
-  ['prisma.product_label_on_product', 'prisma.product_labels_products'], // no match, skip
-  ['prisma.product_tag_on_product', 'prisma.product_tags_products'],     // no match, skip
-];
-
 // All wrong camelCase -> correct snake_case mappings
 // Sorted by wrong-name length (longest first) to avoid partial matches
 const RENAMES = [
@@ -108,7 +103,6 @@ const dirs = [
   '/Users/tanmoymondal/nabome/src',
 ];
 
-let fixedCount = 0;
 let fileCount = 0;
 
 for (const dir of dirs) {
@@ -117,10 +111,12 @@ for (const dir of dirs) {
   
   for (const file of files) {
     if (fixFile(file)) {
+      // eslint-disable-next-line no-console
       console.log(`Fixed: ${file}`);
       fileCount++;
     }
   }
 }
 
+// eslint-disable-next-line no-console
 console.log(`\nDone! Fixed ${fileCount} files with Prisma model name mismatches.`);

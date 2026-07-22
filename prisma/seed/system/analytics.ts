@@ -5,9 +5,8 @@
  * This seed documents the default analytics configuration
  */
 
-import { prisma } from '../utils/helpers';
-
 export async function seedAnalytics() {
+  // eslint-disable-next-line no-console
   console.log('📊 Seeding analytics configuration...');
 
   // Analytics configuration is stored in site_settings
@@ -23,6 +22,7 @@ export async function seedAnalytics() {
     retention_days: 90,
   };
 
+  // eslint-disable-next-line no-console
   console.log('Default analytics configuration:', defaultAnalyticsConfig);
 
   return defaultAnalyticsConfig;

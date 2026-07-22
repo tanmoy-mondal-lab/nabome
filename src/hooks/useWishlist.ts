@@ -17,8 +17,8 @@ export function useWishlist() {
     if (stored) {
       try {
         setWishlist(JSON.parse(stored));
-      } catch (e) {
-        console.error("Failed to parse wishlist:", e);
+      } catch {
+        // Ignore parse errors
       }
     }
     setIsLoaded(true);

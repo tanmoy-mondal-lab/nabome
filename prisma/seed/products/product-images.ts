@@ -5,7 +5,8 @@
 
 import { prisma } from '../utils/helpers';
 
-export async function seedProductImages(productId: string, variantIds: string[]) {
+export async function seedProductImages(productId: string) {
+  // eslint-disable-next-line no-console
   console.log('🖼️  Seeding product images...');
 
   // Note: In production, images would be uploaded to Cloudinary

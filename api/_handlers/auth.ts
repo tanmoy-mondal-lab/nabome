@@ -3,6 +3,7 @@
 // Security: Rate limiting, brute force protection, session tracking
 // ─────────────────────────────────────────────────────────────
 
+import { logger } from "../_lib/logger";
 import { createClient } from "@supabase/supabase-js";
 import { getPrisma } from "../_lib/prisma";
 import {
@@ -148,7 +149,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
         }, ctx.env!, true);
 
         if (!emailResult.success) {
-          console.error("[AUTH] Failed to send verification email (guest convert):", emailResult.error);
+          logger.error("[AUTH] Failed to send verification email (guest convert):", { error: emailResult.error });
         }
 
         return created({
@@ -181,7 +182,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       }, ctx.env!, true);
 
       if (!emailResult.success) {
-        console.error("[AUTH] Failed to resend verification for existing unverified account:", emailResult.error);
+        logger.error("[AUTH] Failed to resend verification for existing unverified account:", { error: emailResult.error });
       }
 
       void logAction(existingProfile.id, "auth.resend_verification", {
@@ -239,7 +240,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       } catch (err) {
         // Profile is keyed by the Supabase user id, so a repeated attempt is
         // naturally idempotent. Log but continue — the auth password is set.
-        console.error("[AUTH] Profile create failed on orphan recovery:", err);
+        logger.error("[AUTH] Profile create failed on orphan recovery:", { error: err });
       }
 
       void logAction(orphanId, "auth.register_orphan_recover", {
@@ -253,7 +254,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       }, ctx.env!, true);
 
       if (!emailResult.success) {
-        console.error("[AUTH] Failed to send verification email (orphan recover):", emailResult.error);
+        logger.error("[AUTH] Failed to send verification email (orphan recover):", { error: emailResult.error });
       }
 
       return created({
@@ -319,7 +320,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
       });
     } catch (err) {
       await supabase.auth.admin.deleteUser(authData.user.id).catch(() => {});
-      console.error("[AUTH] Profile create failed, rolled back Supabase user:", err);
+      logger.error("[AUTH] Profile create failed, rolled back Supabase user:", { error: err });
       return serverError(err);
     }
 
@@ -334,7 +335,7 @@ async function handleRegister(req: Request, ctx: RequestContext): Promise<Respon
     }, ctx.env!, true);
 
     if (!emailResult.success) {
-      console.error("[AUTH] Failed to send verification email:", emailResult.error);
+      logger.error("[AUTH] Failed to send verification email:", { error: emailResult.error });
     }
 
     return created({
@@ -451,7 +452,7 @@ async function handleVerifyEmail(req: Request, ctx: RequestContext): Promise<Res
       }).catch(() => {});
 
       if (!emailResult.success) {
-        console.error("[AUTH] Failed to resend verification after expired code:", emailResult.error);
+        logger.error("[AUTH] Failed to resend verification after expired code:", { error: emailResult.error });
         return badRequest("Your verification code has expired. We couldn't send a new verification email. Please try again.");
       }
 
@@ -503,7 +504,8 @@ async function handleResendVerification(req: Request, ctx: RequestContext): Prom
     const ipRateLimitResponse = await withRateLimit(
       `${clientIp}:resend-verification`,
       RATE_LIMIT_CONFIG.resendVerification,
-      ctx.env
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ctx.env as any
     );
     if (ipRateLimitResponse) return ipRateLimitResponse;
 
@@ -511,7 +513,8 @@ async function handleResendVerification(req: Request, ctx: RequestContext): Prom
     const emailRateLimitResponse = await withRateLimit(
       `email:${normalizedEmail}:resend-verification`,
       RATE_LIMIT_CONFIG.resendVerification,
-      ctx.env
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ctx.env as any
     );
     if (emailRateLimitResponse) return emailRateLimitResponse;
 
@@ -545,7 +548,7 @@ async function handleResendVerification(req: Request, ctx: RequestContext): Prom
     }, ctx.env!, true);
 
     if (!emailResult.success) {
-      console.error("[AUTH] Failed to resend verification email:", emailResult.error);
+      logger.error("[AUTH] Failed to resend verification email:", { error: emailResult.error });
     }
 
     void logAction(profile.id, "auth.resend_verification", {
@@ -698,7 +701,7 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
       }, ctx.env!, true);
 
       if (!emailResult.success) {
-        console.error("[AUTH] Failed to send verification email on login:", emailResult.error);
+        logger.error("[AUTH] Failed to send verification email on login:", { error: emailResult.error });
       }
 
       void logAction(existingProfile.id, "auth.resend_verification", {
@@ -792,13 +795,15 @@ async function handleLogin(req: Request, ctx: RequestContext): Promise<Response>
       COOKIE_CONFIG.ACCESS_TOKEN.name,
       data.session.access_token,
       COOKIE_CONFIG.ACCESS_TOKEN,
-      ctx.env
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ctx.env as any
     );
     const refreshTokenCookie = buildCookieString(
       COOKIE_CONFIG.REFRESH_TOKEN.name,
       data.session.refresh_token,
       COOKIE_CONFIG.REFRESH_TOKEN,
-      ctx.env
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ctx.env as any
     );
 
     const response = new Response(JSON.stringify(body), {
@@ -835,7 +840,8 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
     const rateLimitResponse = await withRateLimit(
       `${clientIp}:refresh-token`,
       { windowMs: 60_000, maxRequests: 10, message: "Too many refresh attempts. Try again in 1 minute." },
-      ctx.env
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ctx.env as any
     );
     if (rateLimitResponse) return rateLimitResponse;
 
@@ -955,12 +961,14 @@ async function handleRefresh(req: Request, ctx: RequestContext): Promise<Respons
 
     let response = success({ message: "Token refreshed successfully" });
 
-    response = setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, sbData.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env!);
-    response = setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, sbData.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env!);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    response = setCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, sbData.session.access_token, COOKIE_CONFIG.ACCESS_TOKEN, ctx.env as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    response = setCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, sbData.session.refresh_token, COOKIE_CONFIG.REFRESH_TOKEN, ctx.env as any);
 
     return response;
   } catch (err) {
-    console.error("[AUTH] handleRefresh error:", err);
+    logger.error("[AUTH] handleRefresh error:", { error: err });
     return serverError(err);
   }
 }
@@ -1005,8 +1013,10 @@ async function handleLogout(req: Request, ctx: RequestContext): Promise<Response
 
   // Security: Clear httpOnly cookies
   const response = success({ message: "Logged out successfully" });
-  clearCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, { path: "/", sameSite: "lax" }, ctx.env!);
-  clearCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, { path: "/", sameSite: "strict" }, ctx.env!);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  clearCookie(response, COOKIE_CONFIG.ACCESS_TOKEN.name, { path: "/", sameSite: "lax" }, ctx.env as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  clearCookie(response, COOKIE_CONFIG.REFRESH_TOKEN.name, { path: "/", sameSite: "strict" }, ctx.env as any);
 
   return response;
 }
@@ -1080,7 +1090,7 @@ async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Respon
 
     return success({ user: updated });
   } catch (err) {
-    console.error("[AUTH] Failed to update profile:", err);
+    logger.error("[AUTH] Failed to update profile:", { error: err });
     return serverError(err);
   }
 }
@@ -1090,11 +1100,12 @@ async function handleUpdateMe(req: Request, ctx: RequestContext): Promise<Respon
 async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const rateLimitResponse = await withRateLimit(
-    `user:${ctx.userId}:change-email`,
-    RATE_LIMIT_CONFIG.auth,
-    ctx.env
-  );
+    const rateLimitResponse = await withRateLimit(
+      `user:${ctx.userId}:change-email`,
+      RATE_LIMIT_CONFIG.auth,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ctx.env as any
+    );
   if (rateLimitResponse) return rateLimitResponse;
 
   const parsed = await validateBody(req, emailChangeSchema);
@@ -1142,7 +1153,7 @@ async function handleChangeEmail(req: Request, ctx: RequestContext): Promise<Res
   }, ctx.env!, true);
   
   if (!emailResult.success) {
-    console.error("[AUTH] Failed to send email change verification:", emailResult.error);
+    logger.error("[AUTH] Failed to send email change verification:", { error: emailResult.error });
   }
 
   return success({ 
@@ -1211,7 +1222,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
       },
     });
   } catch (err) {
-    console.error("[AUTH] Failed to update profile email:", err);
+    logger.error("[AUTH] Failed to update profile email:", { error: err });
     return serverError(new Error("Failed to update email. Please try again."));
   }
 
@@ -1224,7 +1235,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
     });
 
     if (supabaseError) {
-      console.error("[AUTH] Supabase email update failed after Prisma update:", supabaseError);
+      logger.error("[AUTH] Supabase email update failed after Prisma update:", { error: supabaseError });
       // Attempt to roll back Prisma change
       try {
         await prisma.profiles.update({
@@ -1232,12 +1243,12 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
           data: { email: profile.email, pendingEmail: newEmail },
         });
       } catch (rollbackErr) {
-        console.error("[AUTH] Failed to rollback Prisma email after Supabase error:", rollbackErr);
+        logger.error("[AUTH] Failed to rollback Prisma email after Supabase error:", { error: rollbackErr });
       }
       return serverError(new Error("Failed to update email. Please try again."));
     }
   } catch (err) {
-    console.error("[AUTH] Supabase email update threw after Prisma update:", err);
+    logger.error("[AUTH] Supabase email update threw after Prisma update:", { error: err });
     // Attempt to roll back Prisma change
     try {
       await prisma.profiles.update({
@@ -1245,7 +1256,7 @@ async function handleVerifyEmailChange(req: Request, ctx: RequestContext): Promi
         data: { email: profile.email, pendingEmail: newEmail },
       });
     } catch (rollbackErr) {
-      console.error("[AUTH] Failed to rollback Prisma email after Supabase error:", rollbackErr);
+      logger.error("[AUTH] Failed to rollback Prisma email after Supabase error:", { error: rollbackErr });
     }
     return serverError(new Error("Failed to update email. Please try again."));
   }
@@ -1293,7 +1304,7 @@ async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<
     }, ctx.env!, true);
     
     if (!emailResult.success) {
-      console.error("[AUTH] Failed to send password reset email:", emailResult.error);
+      logger.error("[AUTH] Failed to send password reset email:", { error: emailResult.error });
     }
 
     return success({ 
@@ -1301,7 +1312,7 @@ async function handleForgotPassword(req: Request, ctx: RequestContext): Promise<
       emailSent: emailResult.success,
     });
   } catch (err) {
-    console.error("[AUTH] handleForgotPassword error:", err);
+    logger.error("[AUTH] handleForgotPassword error:", { error: err });
     return serverError(err);
   }
 }
@@ -1390,7 +1401,7 @@ async function handleVerifyResetCode(req: Request, ctx: RequestContext): Promise
 
     return success({ message: "Code verified successfully" });
   } catch (err) {
-    console.error("[AUTH] handleVerifyResetCode error:", err);
+    logger.error("[AUTH] handleVerifyResetCode error:", { error: err });
     return serverError(err);
   }
 }
@@ -1459,7 +1470,7 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
 
     return success({ message: "Password updated successfully" });
   } catch (err) {
-    console.error("[AUTH] handleResetPassword error:", err);
+    logger.error("[AUTH] handleResetPassword error:", { error: err });
     return serverError(err);
   }
 }
@@ -1469,11 +1480,12 @@ async function handleResetPassword(req: Request, ctx: RequestContext): Promise<R
 async function handleChangePassword(req: Request, ctx: RequestContext): Promise<Response> {
   if (!ctx.userId) return unauthorized();
 
-  const rateLimitResponse = await withRateLimit(
-    `user:${ctx.userId}:change-password`,
-    RATE_LIMIT_CONFIG.auth,
-    ctx.env
-  );
+    const rateLimitResponse = await withRateLimit(
+      `user:${ctx.userId}:change-password`,
+      RATE_LIMIT_CONFIG.auth,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ctx.env as any
+    );
   if (rateLimitResponse) return rateLimitResponse;
 
   const parsed = await validateBody(req, changePasswordSchema);

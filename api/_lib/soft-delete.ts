@@ -1,4 +1,5 @@
 import { getPrisma } from "./prisma";
+import { logger } from "./logger";
 import type { Env } from "./env";
 
 const VALID_TABLES = new Set([
@@ -74,7 +75,7 @@ export class SoftDeleteManager {
       await prisma.$executeRawUnsafe(sql, ...params);
       return true;
     } catch (error) {
-      console.error(`Failed to soft delete ${table} with id ${id}:`, error);
+      logger.error(`Failed to soft delete ${table} with id ${id}:`, { error });
       return false;
     }
   }
@@ -98,7 +99,7 @@ export class SoftDeleteManager {
       );
       return true;
     } catch (error) {
-      console.error(`Failed to restore ${table} with id ${id}:`, error);
+      logger.error(`Failed to restore ${table} with id ${id}:`, { error });
       return false;
     }
   }
@@ -119,7 +120,7 @@ export class SoftDeleteManager {
       );
       return true;
     } catch (error) {
-      console.error(`Failed to permanently delete ${table} with id ${id}:`, error);
+      logger.error(`Failed to permanently delete ${table} with id ${id}:`, { error });
       return false;
     }
   }
@@ -128,7 +129,7 @@ export class SoftDeleteManager {
     table: string,
     options: SoftDeleteOptions = {},
     env?: Env
-  ): Promise<any[]> {
+  ): Promise<Record<string, unknown>[]> {
     validateTable(table);
     const deletedAtField = options.deletedAtField || "deletedAt";
     validateField(deletedAtField);
@@ -138,14 +139,14 @@ export class SoftDeleteManager {
       const records = await prisma.$queryRawUnsafe(
         `SELECT * FROM "${table}" WHERE "${deletedAtField}" IS NOT NULL ORDER BY "${deletedAtField}" DESC LIMIT 100`
       );
-      return records as any[];
+      return records as Record<string, unknown>[];
     } catch (error) {
-      console.error(`Failed to get deleted records from ${table}:`, error);
+      logger.error(`Failed to get deleted records from ${table}:`, { error });
       return [];
     }
   }
 
-  private async hasColumn(prisma: any, table: string, column: string): Promise<boolean> {
+  private async hasColumn(prisma: ReturnType<typeof getPrisma>, table: string, column: string): Promise<boolean> {
     validateTable(table);
     validateField(column);
     try {

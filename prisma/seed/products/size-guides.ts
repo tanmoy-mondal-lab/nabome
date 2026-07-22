@@ -9,6 +9,7 @@ import { PRODUCT_SLUGS } from '../utils/constants';
 import type { size_guides } from '@prisma/client';
 
 export async function seedSizeGuides(categoryId: string) {
+  // eslint-disable-next-line no-console
   console.log('📏 Seeding size guides...');
 
   // Use a fixed UUID for size guide to ensure idempotency

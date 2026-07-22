@@ -174,7 +174,7 @@ import { healthMonitor } from "./_lib/health-monitor";
 import { queryMonitor } from "./_lib/query-monitor";
 
 // ─── OpenAPI Docs Handler ───
-async function handleOpenApiDocs(req: Request, _ctx: RequestContext): Promise<Response> {
+async function handleOpenApiDocs(req: Request): Promise<Response> {
   const spec = generateOpenAPISpec();
   const url = new URL(req.url);
   const format = url.searchParams.get("format") || "json";
@@ -214,7 +214,7 @@ paths: ${Object.keys(spec.paths).length} endpoints documented`;
 route("GET", "/api/health", (req, ctx) => handleHealth(req, { env: ctx.env }));
 
 // OpenAPI documentation
-route("GET", "/api/docs", (req, ctx) => handleOpenApiDocs(req, ctx));
+route("GET", "/api/docs", (req) => handleOpenApiDocs(req));
 
 // Metrics endpoint (admin-only)
 route("GET", "/api/metrics", async (_req, ctx) => {
@@ -225,6 +225,7 @@ route("GET", "/api/metrics", async (_req, ctx) => {
   return success({
     health: healthMonitor.getMetrics(),
     query: queryMonitor.getQueryStats(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     uptime: Date.now() - (healthMonitor as any).startTime,
   });
 }, { auth: true, admin: true });
@@ -312,19 +313,19 @@ route("GET", "/api/orders/:id", (req, ctx, p) => handleOrderRequest(req, ctx, p,
 route("POST", "/api/orders/:id/cancel", (req, ctx, p) => handleOrderRequest(req, ctx, p, "cancel"), { auth: true });
 route("GET", "/api/orders/:id/tracking", (req, ctx, p) => handleOrderRequest(req, ctx, p, "tracking"), { auth: true });
 
-route("POST", "/api/checkout", handleCheckoutRequest, { auth: true });
-route("POST", "/api/checkout/guest", (req, ctx) => handleCheckoutRequest(req, ctx, [], "guest"));
+route("POST", "/api/checkout", (req, ctx) => handleCheckoutRequest(req, ctx), { auth: true });
+route("POST", "/api/checkout/guest", (req, ctx) => handleCheckoutRequest(req, ctx, "guest"));
 
 // Cart routes
-route("GET", "/api/cart", (req, ctx) => handleCartRequest(req, ctx, [], "get"), { auth: true });
-route("POST", "/api/cart/sync", (req, ctx) => handleCartRequest(req, ctx, [], "sync"), { auth: true });
-route("POST", "/api/cart/merge", (req, ctx) => handleCartRequest(req, ctx, [], "merge"), { auth: true });
-route("POST", "/api/cart/clear", (req, ctx) => handleCartRequest(req, ctx, [], "clear"), { auth: true });
+route("GET", "/api/cart", (req, ctx) => handleCartRequest(req, ctx, "get"), { auth: true });
+route("POST", "/api/cart/sync", (req, ctx) => handleCartRequest(req, ctx, "sync"), { auth: true });
+route("POST", "/api/cart/merge", (req, ctx) => handleCartRequest(req, ctx, "merge"), { auth: true });
+route("POST", "/api/cart/clear", (req, ctx) => handleCartRequest(req, ctx, "clear"), { auth: true });
 
 route("GET", "/api/addresses", handleAddressRequest, { auth: true });
 route("POST", "/api/addresses", handleAddressRequest, { auth: true });
-route("PUT", "/api/addresses/:id", (req, ctx, p) => handleAddressRequest(req, ctx, p, "update"), { auth: true });
-route("DELETE", "/api/addresses/:id", (req, ctx, p) => handleAddressRequest(req, ctx, p, "delete"), { auth: true });
+route("PUT", "/api/addresses/:id", (req, ctx, p) => handleAddressRequest(req, ctx, p), { auth: true });
+route("DELETE", "/api/addresses/:id", (req, ctx, p) => handleAddressRequest(req, ctx, p), { auth: true });
 
 route("GET", "/api/wishlist", handleWishlistRequest, { auth: true });
 route("POST", "/api/wishlist", (req, ctx) => handleWishlistRequest(req, ctx, [], "add"), { auth: true });
@@ -563,11 +564,11 @@ route("GET", "/api/orders/:id/invoice", (req, ctx, p) => handleInvoiceRequest(re
 route("GET", "/api/invoices/:orderNumber", (req, ctx, p) => handleInvoiceRequest(req, ctx, p, "getByOrderNumber"), { auth: true });
 
 // Payments
-route("POST", "/api/payments/verify", (req, ctx) => handlePaymentRequest(req, ctx, [], "verify"), { auth: true });
-route("POST", "/api/payments/failed", (req, ctx) => handlePaymentRequest(req, ctx, [], "failed"), { auth: true });
-route("POST", "/api/payments/retry", (req, ctx) => handlePaymentRequest(req, ctx, [], "retry"), { auth: true });
-route("POST", "/api/payments/refund", (req, ctx) => handlePaymentRequest(req, ctx, [], "refund"), { auth: true, admin: true });
-route("POST", "/api/payments/webhook", (req, ctx) => handlePaymentRequest(req, ctx, [], "webhook"), { auth: false });
+route("POST", "/api/payments/verify", (req, ctx) => handlePaymentRequest(req, ctx, "verify"), { auth: true });
+route("POST", "/api/payments/failed", (req, ctx) => handlePaymentRequest(req, ctx, "failed"), { auth: true });
+route("POST", "/api/payments/retry", (req, ctx) => handlePaymentRequest(req, ctx, "retry"), { auth: true });
+route("POST", "/api/payments/refund", (req, ctx) => handlePaymentRequest(req, ctx, "refund"), { auth: true, admin: true });
+route("POST", "/api/payments/webhook", (req, ctx) => handlePaymentRequest(req, ctx, "webhook"), { auth: false });
 
 // Admin Webhooks
 route("GET", "/api/admin/webhooks/events", (req, ctx) => handleAdminWebhookRequest(req, ctx, [], "events"), { auth: true, admin: true });
@@ -660,31 +661,31 @@ route("GET", "/api/admin/login-attempts", (req, ctx) => handleAdminLoginAttemptR
 // ─── Router ───
 
 // Cloudflare Pages Functions format
-export async function GET(request: Request, opts?: { env?: any }): Promise<Response> {
+export async function GET(request: Request, opts?: { env?: Record<string, unknown> }): Promise<Response> {
   return handleRequest("GET", request, opts?.env);
 }
 
-export async function POST(request: Request, opts?: { env?: any }): Promise<Response> {
+export async function POST(request: Request, opts?: { env?: Record<string, unknown> }): Promise<Response> {
   return handleRequest("POST", request, opts?.env);
 }
 
-export async function PUT(request: Request, opts?: { env?: any }): Promise<Response> {
+export async function PUT(request: Request, opts?: { env?: Record<string, unknown> }): Promise<Response> {
   return handleRequest("PUT", request, opts?.env);
 }
 
-export async function DELETE(request: Request, opts?: { env?: any }): Promise<Response> {
+export async function DELETE(request: Request, opts?: { env?: Record<string, unknown> }): Promise<Response> {
   return handleRequest("DELETE", request, opts?.env);
 }
 
-export async function PATCH(request: Request, opts?: { env?: any }): Promise<Response> {
+export async function PATCH(request: Request, opts?: { env?: Record<string, unknown> }): Promise<Response> {
   return handleRequest("PATCH", request, opts?.env);
 }
 
-export async function OPTIONS(request: Request, opts?: { env?: any }): Promise<Response> {
+export async function OPTIONS(request: Request, opts?: { env?: Record<string, unknown> }): Promise<Response> {
   return handleRequest("OPTIONS", request, opts?.env);
 }
 
-async function handleRequest(method: string, request: Request, env?: any): Promise<Response> {
+async function handleRequest(method: string, request: Request, env?: Record<string, unknown>): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname;
   const startTime = Date.now();

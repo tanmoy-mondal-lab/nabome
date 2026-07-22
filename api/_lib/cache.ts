@@ -3,6 +3,7 @@
 // Supports Cloudflare KV for production and in-memory for development
 // ─────────────────────────────────────────────────────────────
 
+import { logger } from "./logger";
 import type { Env } from "./env.js";
 
 interface CacheEntry {
@@ -55,7 +56,7 @@ export class CacheService {
         const value = await this.env.CACHE.get(cacheKey);
         return value;
       } catch (error) {
-        console.error("Cache get error:", error);
+        logger.error("Cache get error:", { error });
         return null;
       }
     } else {
@@ -87,7 +88,7 @@ export class CacheService {
           metadata: { tags: options.tags ?? [] },
         });
       } catch (error) {
-        console.error("Cache set error:", error);
+        logger.error("Cache set error:", { error });
       }
     } else {
       cleanupExpiredMemoryEntries();
@@ -106,7 +107,7 @@ export class CacheService {
       try {
         await this.env.CACHE.delete(cacheKey);
       } catch (error) {
-        console.error("Cache delete error:", error);
+        logger.error("Cache delete error:", { error });
       }
     } else {
       memoryCache.delete(cacheKey);
@@ -124,7 +125,7 @@ export class CacheService {
           }
         }
       } catch (error) {
-        console.error("Cache invalidation error:", error);
+        logger.error("Cache invalidation error:", { error });
       }
     } else {
       for (const [key, entry] of memoryCache.entries()) {
@@ -143,7 +144,7 @@ export class CacheService {
           await this.env.CACHE.delete(key.name);
         }
       } catch (error) {
-        console.error("Cache invalidation error:", error);
+        logger.error("Cache invalidation error:", { error });
       }
     } else {
       const prefixKey = `${prefix}:`;
@@ -163,7 +164,7 @@ export class CacheService {
           await this.env.CACHE.delete(key.name);
         }
       } catch (error) {
-        console.error("Cache clear error:", error);
+        logger.error("Cache clear error:", { error });
       }
     } else {
       memoryCache.clear();

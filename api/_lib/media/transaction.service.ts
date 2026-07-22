@@ -5,6 +5,7 @@
  * Ensures database and Cloudinary stay in sync during critical operations.
  */
 
+import { logger } from '../logger';
 import type { PrismaClient } from '@prisma/client';
 import type { CloudinaryConfig } from './types';
 import { deleteAsset } from './cloudinary';
@@ -56,7 +57,7 @@ export async function permanentDeleteWithTransaction(
     // 2. Delete from Cloudinary BEFORE the transaction
     const cloudinaryDeleted = await deleteAsset(
       asset.publicId || publicId,
-      resourceType as any,
+      resourceType as 'image' | 'video' | 'raw',
       config
     );
 
@@ -69,6 +70,7 @@ export async function permanentDeleteWithTransaction(
       await tx.media_assets.delete({
         where: { id: assetId },
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await invalidateAssetCache(tx as any, assetId);
     });
 
@@ -90,7 +92,7 @@ export async function permanentDeleteWithTransaction(
 
     return { success: true };
   } catch (error) {
-    console.error('[TransactionService] Permanent delete failed:', error);
+    logger.error('[TransactionService] Permanent delete failed:', { error });
     
     // Log the failure
     await logMediaOperation(prisma, {
@@ -154,7 +156,7 @@ export async function batchPermanentDeleteWithTransaction(
     try {
       const cloudinaryDeleted = await deleteAsset(
         asset.publicId || '',
-        (asset.resourceType || 'image') as any,
+        (asset.resourceType || 'image') as 'image' | 'video' | 'raw',
         config
       );
       if (!cloudinaryDeleted) {
@@ -227,6 +229,7 @@ export async function softDeleteWithCacheInvalidation(
       });
 
       // Invalidate cache
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await invalidateAssetCache(tx as any, assetId);
     });
 
@@ -249,7 +252,7 @@ export async function softDeleteWithCacheInvalidation(
 
     return { success: true };
   } catch (error) {
-    console.error('[TransactionService] Soft delete failed:', error);
+    logger.error('[TransactionService] Soft delete failed:', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -284,6 +287,7 @@ export async function restoreWithCacheInvalidation(
       });
 
       // Invalidate cache
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await invalidateAssetCache(tx as any, assetId);
     });
 
@@ -305,7 +309,7 @@ export async function restoreWithCacheInvalidation(
 
     return { success: true };
   } catch (error) {
-    console.error('[TransactionService] Restore failed:', error);
+    logger.error('[TransactionService] Restore failed:', { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),

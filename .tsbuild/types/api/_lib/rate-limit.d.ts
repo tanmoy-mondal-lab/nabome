@@ -1,3 +1,4 @@
+import type { Env } from "./env";
 export interface RateLimitConfig {
     windowMs: number;
     maxRequests: number;
@@ -30,12 +31,12 @@ declare const DEFAULTS: {
         message: string;
     };
 };
-export declare function checkRateLimit(key: string, config?: RateLimitConfig, env?: any): Promise<{
+export declare function checkRateLimit(key: string, config?: RateLimitConfig, env?: Env): Promise<{
     allowed: boolean;
     remaining: number;
     resetAt: number;
 }>;
 export declare function rateLimitResponse(message: string, resetAt: number): Response;
-export declare function withRateLimit(key: string, config?: RateLimitConfig, env?: any): Promise<Response | null>;
+export declare function withRateLimit(key: string, config?: RateLimitConfig, env?: Env): Promise<Response | null>;
 export declare function getRateLimitKey(ip: string, endpoint: string, userId?: string): string;
 export { DEFAULTS as RATE_LIMIT_CONFIG };

@@ -9,6 +9,7 @@ import { CMS_SLUGS } from '../utils/constants';
 import type { page_templates } from '@prisma/client';
 
 export async function seedPageTemplates() {
+  // eslint-disable-next-line no-console
   console.log('📄 Seeding page templates...');
 
   // Use a fixed UUID for page template to ensure idempotency

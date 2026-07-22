@@ -7,7 +7,11 @@ async function main() {
     where: { email: 'testadmin@nabome.online' },
     data: { role: 'admin', emailVerified: true }
   });
+  // eslint-disable-next-line no-console
   console.log('Updated test user to admin');
 }
 
-main().catch(console.error).finally(() => prisma.$disconnect());
+main()
+  // eslint-disable-next-line no-console
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());

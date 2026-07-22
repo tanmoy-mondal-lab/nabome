@@ -1,6 +1,4 @@
-import { type PrismaClient } from '@prisma/client';
-
-export async function seedSettings(prisma: PrismaClient) {
+export async function seedSettings() {
   // Note: Settings are typically stored in a separate settings table or as key-value pairs
   // For now, we'll document what settings should be configured
   
@@ -45,7 +43,9 @@ export async function seedSettings(prisma: PrismaClient) {
 
   // In a real implementation, these would be stored in a settings table
   // For now, we'll log them for documentation
+  // eslint-disable-next-line no-console
   console.log('Settings to configure:');
+  // eslint-disable-next-line no-console
   console.log(JSON.stringify(settings, null, 2));
   
   // Note: These settings should be configured via the Admin Settings page

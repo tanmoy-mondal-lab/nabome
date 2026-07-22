@@ -7,7 +7,7 @@ import { useCartStore } from "../stores/cart-store";
 import { useCartSync } from "./useCartSync";
 
 export function useConnectivityManager() {
-  const { setOnline, setAuthenticated, addToOfflineQueue, clearOfflineQueue: _clearOfflineQueue, setConnectionType, setNotificationShown, setEmergencyMode, isOnline, isAuthenticated, isMobile, isDesktop, emergencyMode } = useConnectivityStore();
+  const { setOnline, setAuthenticated, addToOfflineQueue, setConnectionType, setNotificationShown, setEmergencyMode, isOnline, isAuthenticated, isMobile, isDesktop, emergencyMode } = useConnectivityStore();
   const { items } = useCartStore();
   const { mergeGuestCartOnServer } = useCartSync(items);
 

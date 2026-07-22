@@ -280,6 +280,7 @@ async function ensureCsrfToken(): Promise<void> {
   } catch (error) {
     // If health check fails, we'll try again on the next request
     if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
       console.warn("CSRF token initialization failed:", error);
     }
   }

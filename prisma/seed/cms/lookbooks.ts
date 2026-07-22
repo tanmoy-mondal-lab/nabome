@@ -9,6 +9,7 @@ import { CMS_SLUGS } from '../utils/constants';
 import type { lookbooks } from '@prisma/client';
 
 export async function seedLookbooks() {
+  // eslint-disable-next-line no-console
   console.log('📸 Seeding lookbooks...');
 
   // Use a fixed UUID for lookbook to ensure idempotency

@@ -25,7 +25,7 @@ export default function SizeGuidesPage() {
     },
   });
 
-  const { data: categoriesData, error: _categoriesError } = useQuery({
+  const { data: categoriesData } = useQuery({
     queryKey: ["admin", "categories"],
     queryFn: async () => {
       const c = await adminApi.getCategories();

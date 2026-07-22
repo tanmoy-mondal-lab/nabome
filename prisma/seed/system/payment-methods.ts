@@ -5,9 +5,8 @@
  * This seed documents the supported payment methods
  */
 
-import { prisma } from '../utils/helpers';
-
 export async function seedPaymentMethods() {
+  // eslint-disable-next-line no-console
   console.log('💳 Seeding payment methods...');
 
   // Payment methods are configured via Razorpay
@@ -21,6 +20,7 @@ export async function seedPaymentMethods() {
     },
   };
 
+  // eslint-disable-next-line no-console
   console.log('Supported payment methods:', Object.keys(supportedPaymentMethods));
 
   return supportedPaymentMethods;

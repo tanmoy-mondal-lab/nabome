@@ -5,8 +5,8 @@ import { adminApi } from "../../lib/api/admin";
 import { Modal } from "../common/Modal";
 import { EmptyState } from "../common/EmptyState";
 import { SafeImage } from "../../components/SafeImage";
-import { FolderTree } from "./FolderTree";
-import { ContextMenu, getFolderContextMenuItems, getAssetContextMenuItems } from "./ContextMenu";
+import { FolderTree, type FolderNode } from "./FolderTree";
+import { ContextMenu, getFolderContextMenuItems, getAssetContextMenuItems, type ContextMenuItem } from "./ContextMenu";
 import {
   Upload, Trash2, Copy, Image, Folder, Search, File, Film,
   FileText, Download, Plus, ChevronRight,
@@ -24,7 +24,7 @@ interface CloudinaryResource {
   secure_url: string;
   created_at: string;
   filename: string;
-  metadata: any;
+  metadata: unknown;
 }
 
 interface CloudinaryFolder {
@@ -140,7 +140,7 @@ export default function MediaLibraryNew() {
   const [focusedIndex, setFocusedIndex] = useState(-1);
   
   // Context menu state
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: any[] } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: unknown[] } | null>(null);
   
   // Drag & drop state
   const [draggedItems, setDraggedItems] = useState<string[]>([]);
@@ -152,7 +152,7 @@ export default function MediaLibraryNew() {
   const [renameValue, setRenameValue] = useState("");
   
   // Asset usage detection state
-  const [assetUsage, _setAssetUsage] = useState<{ count: number; entity: string; items: string[] } | null>(null);
+  const [assetUsage] = useState<{ count: number; entity: string; items: string[] } | null>(null);
   // Refs
   const fileRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
@@ -164,7 +164,8 @@ export default function MediaLibraryNew() {
       try {
         return await adminApi.getMediaFolderContents(currentPath || "media-library");
       } catch (err) {
-        console.error("Media folder contents fetch error:", err);
+        // eslint-disable-next-line no-console
+        if (import.meta.env.DEV) console.error("Media folder contents fetch error:", err);
         throw err;
       }
     },
@@ -192,25 +193,23 @@ export default function MediaLibraryNew() {
     setNextCursor(folderContents?.nextCursor);
   }, [folderContents]);
   
-  const buildFolderTree = (folderList: { path: string; name: string }[]): any[] => {
-    const tree: any[] = [];
-    const nodeMap = new Map<string, any>();
-    const childMap = new Map<string, any[]>();
+  const buildFolderTree = (folderList: { path: string; name: string }[]): FolderNode[] => {
+    const tree: FolderNode[] = [];
+    const nodeMap = new Map<string, FolderNode>();
 
     folderList.forEach(folder => {
       const parts = folder.path.split("/");
       parts.forEach((part, index) => {
         const currentPath = parts.slice(0, index + 1).join("/");
         if (nodeMap.has(currentPath)) return;
-        const node = { path: currentPath, name: part, children: [] };
+        const node: FolderNode = { path: currentPath, name: part, children: [] };
         nodeMap.set(currentPath, node);
-        childMap.set(currentPath, node.children);
         if (index === 0) {
           tree.push(node);
         } else {
           const parentPath = parts.slice(0, index).join("/");
           const parent = nodeMap.get(parentPath);
-          if (parent) parent.children.push(node);
+          if (parent) (parent.children ??= []).push(node);
         }
       });
     });
@@ -234,7 +233,7 @@ export default function MediaLibraryNew() {
           await adminApi.uploadMediaToFolder(item.file, folder);
           setUploadQueue(prev => prev.map((q, idx) => idx === i ? { ...q, status: "success" as const, progress: 100 } : q));
           completed++;
-        } catch (err) {
+        } catch {
           setUploadQueue(prev => prev.map((q, idx) => idx === i ? { ...q, status: "error" as const, error: "Upload failed" } : q));
         }
       }
@@ -248,7 +247,8 @@ export default function MediaLibraryNew() {
       setUploadQueue([]);
     },
     onError: (error) => {
-      console.error("Upload error:", error);
+      // eslint-disable-next-line no-console
+      if (import.meta.env.DEV) console.error("Upload error:", error);
       toast("Upload failed. Please try again.", "error");
     },
   });
@@ -274,7 +274,8 @@ export default function MediaLibraryNew() {
       setDeleteConfirmFolder(null);
     },
     onError: error => {
-      console.error("Delete folder error:", error);
+      // eslint-disable-next-line no-console
+      if (import.meta.env.DEV) console.error("Delete folder error:", error);
       toast("Failed to delete folder", "error");
     },
   });
@@ -413,7 +414,8 @@ export default function MediaLibraryNew() {
       setExtraResources(prev => [...prev, ...(res.resources || [])]);
       setNextCursor(res.nextCursor);
     } catch (err) {
-      console.error("Load more failed:", err);
+      // eslint-disable-next-line no-console
+      if (import.meta.env.DEV) console.error("Load more failed:", err);
       toast("Failed to load more assets", "error");
     } finally {
       setLoadingMore(false);
@@ -444,21 +446,23 @@ export default function MediaLibraryNew() {
   }, [toast]);
   
   // Context menu handlers
-  const handleFolderContextMenu = useCallback((e: React.MouseEvent, folder: any) => {
+  const handleFolderContextMenu = useCallback((e: React.MouseEvent, folder: CloudinaryFolder) => {
     e.preventDefault();
     const folderAssets = resources.filter(r => isDirectChildOfFolder(r.public_id, folder.path));
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
       items: getFolderContextMenuItems(
-        () => console.log("Rename folder:", folder.path),
+        // eslint-disable-next-line no-console
+        () => { if (import.meta.env.DEV) console.log("Rename folder:", folder.path); },
         () => setDeleteConfirmFolder({ folder, assetCount: folderAssets.length }),
-        () => console.log("Create subfolder in:", folder.path)
+        // eslint-disable-next-line no-console
+        () => { if (import.meta.env.DEV) console.log("Create subfolder in:", folder.path); }
       )
     });
   }, [resources]);
 
-  const handleAssetContextMenu = useCallback((e: React.MouseEvent, resource: any) => {
+  const handleAssetContextMenu = useCallback((e: React.MouseEvent, resource: CloudinaryResource) => {
     e.preventDefault();
     setContextMenu({
       x: e.clientX,
@@ -469,10 +473,13 @@ export default function MediaLibraryNew() {
         () => handleCopyHTML(resource.secure_url, resource.filename),
         () => handleCopyMarkdown(resource.secure_url, resource.filename),
         () => window.open(resource.url, "_blank"),
-        () => console.log("Rename asset:", resource.public_id),
-        () => console.log("Move asset:", resource.public_id),
+        // eslint-disable-next-line no-console
+        () => { if (import.meta.env.DEV) console.log("Rename asset:", resource.public_id); },
+        // eslint-disable-next-line no-console
+        () => { if (import.meta.env.DEV) console.log("Move asset:", resource.public_id); },
         () => setDeleteConfirmItem(resource),
-        () => console.log("Add to favorites:", resource.public_id)
+        // eslint-disable-next-line no-console
+        () => { if (import.meta.env.DEV) console.log("Add to favorites:", resource.public_id); }
       )
     });
   }, [handleCopyUrl, handleCopyHTML, handleCopyMarkdown]);
@@ -480,7 +487,7 @@ export default function MediaLibraryNew() {
   const handleBulkDelete = useCallback(() => {
     const assetIds = Array.from(selectedItems).map(publicId => {
       const resource = resources.find(r => r.public_id === publicId);
-      return resource?.metadata?.id || "";
+      return (resource?.metadata as { id?: string } | undefined)?.id || "";
     }).filter(Boolean);
     if (assetIds.length === 0) return;
     bulkDeleteMutation.mutate(assetIds);
@@ -489,7 +496,7 @@ export default function MediaLibraryNew() {
   const handleBulkMove = useCallback(() => {
     const assetIds = Array.from(selectedItems).map(publicId => {
       const resource = resources.find(r => r.public_id === publicId);
-      return resource?.metadata?.id || "";
+      return (resource?.metadata as { id?: string } | undefined)?.id || "";
     }).filter(Boolean);
     if (assetIds.length === 0) return;
     setMoveItems(assetIds);
@@ -531,7 +538,7 @@ export default function MediaLibraryNew() {
       // Move assets to folder
       const assetIds = draggedItems.map(publicId => {
         const resource = resources.find(r => r.public_id === publicId);
-        return resource?.metadata?.id || "";
+        return (resource?.metadata as { id?: string } | undefined)?.id || "";
       }).filter(Boolean);
       
       if (assetIds.length > 0) {
@@ -644,7 +651,7 @@ export default function MediaLibraryNew() {
         if ("path" in item) {
           handleNavigateToFolder(item.path);
         } else if ("public_id" in item) {
-          setPreviewItem(item as any);
+          setPreviewItem(item as CloudinaryResource);
         }
         return;
       }
@@ -1310,7 +1317,7 @@ export default function MediaLibraryNew() {
                 Cancel
               </button>
               <button
-                onClick={() => deleteMutation.mutate(deleteConfirmItem.metadata?.id || deleteConfirmItem.public_id)}
+                onClick={() => deleteMutation.mutate((deleteConfirmItem.metadata as { id?: string } | undefined)?.id || deleteConfirmItem.public_id)}
                 disabled={!!assetUsage && assetUsage.count > 0}
                 className="bg-red-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -1631,7 +1638,7 @@ export default function MediaLibraryNew() {
         <ContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
-          items={contextMenu.items}
+          items={contextMenu.items as ContextMenuItem[]}
           onClose={() => setContextMenu(null)}
         />
       )}

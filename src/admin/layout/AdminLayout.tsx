@@ -102,7 +102,8 @@ export default function AdminLayout() {
   useEffect(() => {
     try {
       localStorage.setItem("admin-sidebar-expanded", JSON.stringify(expandedMenus));
-    } catch (err) { /* localStorage might be full */ console.error("Failed to persist sidebar state:", err); }
+    } catch (err) { /* localStorage might be full */ // eslint-disable-next-line no-console
+    if (import.meta.env.DEV) console.error("Failed to persist sidebar state:", err); }
   }, [expandedMenus]);
 
   // Save scroll position before SPA navigation (beforeunload only fires on full reload)
@@ -113,7 +114,8 @@ export default function AdminLayout() {
       if (sidebarNavRef.current) {
         try {
           localStorage.setItem("admin-sidebar-scroll", sidebarNavRef.current.scrollTop.toString());
-        } catch (err) { console.error("Failed to save sidebar scroll:", err); }
+        } catch (err) { // eslint-disable-next-line no-console
+        if (import.meta.env.DEV) console.error("Failed to save sidebar scroll:", err); }
       }
       prevPathRef.current = location.pathname;
     }
@@ -127,7 +129,8 @@ export default function AdminLayout() {
         if (savedScroll) {
           sidebarNavRef.current.scrollTop = parseInt(savedScroll, 10);
         }
-      } catch (err) { console.error("Failed to restore sidebar scroll:", err); }
+      } catch (err) { // eslint-disable-next-line no-console
+      if (import.meta.env.DEV) console.error("Failed to restore sidebar scroll:", err); }
     }
   }, [location.pathname]);
 

@@ -38,7 +38,7 @@ export async function buildRobotsResponse(env?: Env): Promise<Response> {
     if (typeof seo.robotsTxt === "string") {
       content = seo.robotsTxt.trim();
     }
-  } catch (error) {
+  } catch {
     // Silent failure - falling back to defaults
   }
 
@@ -170,7 +170,7 @@ export async function buildSitemapResponse(env?: Env): Promise<Response> {
         "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
       },
     });
-  } catch (err) {
+  } catch {
     return new Response(xml([
       { loc: baseUrl + "/", changefreq: "weekly", priority: "1.0" },
     ]), {

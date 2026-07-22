@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { ChevronRight, Folder, FolderOpen, MoreVertical } from "lucide-react";
 
-interface FolderNode {
+export interface FolderNode {
   path: string;
   name: string;
   children?: FolderNode[];

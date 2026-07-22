@@ -13,6 +13,7 @@ import { cleanSecret } from "../api/_lib/secrets";
 config();
 
 async function deleteSupabaseUser(email: string, dryRun: boolean = true) {
+  // eslint-disable-next-line no-console
   console.log(`\n${dryRun ? "DRY RUN" : "LIVE"} - Deleting Supabase user: ${email}\n`);
 
   const env = getEnv();
@@ -20,6 +21,7 @@ async function deleteSupabaseUser(email: string, dryRun: boolean = true) {
   const key = cleanSecret(env.SUPABASE_SERVICE_ROLE_KEY);
 
   if (!url || !key) {
+    // eslint-disable-next-line no-console
     console.error("❌ Missing Supabase credentials in environment");
     process.exit(1);
   }
@@ -32,6 +34,7 @@ async function deleteSupabaseUser(email: string, dryRun: boolean = true) {
   const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
   
   if (listError) {
+    // eslint-disable-next-line no-console
     console.error("❌ Error listing users:", listError.message);
     process.exit(1);
   }
@@ -39,32 +42,44 @@ async function deleteSupabaseUser(email: string, dryRun: boolean = true) {
   const targetUser = users.find(u => u.email === email.toLowerCase());
 
   if (!targetUser) {
+    // eslint-disable-next-line no-console
     console.log(`❌ No user found with email: ${email}`);
     return;
   }
 
+  // eslint-disable-next-line no-console
   console.log(`📊 Found user:`);
+  // eslint-disable-next-line no-console
   console.log(`   ID: ${targetUser.id}`);
+  // eslint-disable-next-line no-console
   console.log(`   Email: ${targetUser.email}`);
+  // eslint-disable-next-line no-console
   console.log(`   Created: ${targetUser.created_at}`);
+  // eslint-disable-next-line no-console
   console.log(`   Last sign in: ${targetUser.last_sign_in_at || "Never"}`);
+  // eslint-disable-next-line no-console
   console.log(`   Email confirmed: ${targetUser.email_confirmed_at ? "Yes" : "No"}`);
 
   if (dryRun) {
+    // eslint-disable-next-line no-console
     console.log(`\n⚠️  DRY RUN - No data will be deleted`);
+    // eslint-disable-next-line no-console
     console.log(`   Run with --live to actually delete the user\n`);
     return;
   }
 
+  // eslint-disable-next-line no-console
   console.log(`\n🗑️  Deleting user from Supabase Auth...`);
 
   const { error: deleteError } = await supabase.auth.admin.deleteUser(targetUser.id);
 
   if (deleteError) {
+    // eslint-disable-next-line no-console
     console.error("❌ Error deleting user:", deleteError.message);
     process.exit(1);
   }
 
+  // eslint-disable-next-line no-console
   console.log(`✅ User successfully deleted from Supabase Auth: ${email}\n`);
 }
 
@@ -75,7 +90,9 @@ async function main() {
   const dryRun = !args.includes("--live");
 
   if (!email) {
+    // eslint-disable-next-line no-console
     console.error("Usage: tsx scripts/delete-supabase-user.ts <email> [--live]");
+    // eslint-disable-next-line no-console
     console.error("Example: tsx scripts/delete-supabase-user.ts user@example.com --live");
     process.exit(1);
   }
@@ -83,6 +100,7 @@ async function main() {
   try {
     await deleteSupabaseUser(email, dryRun);
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error("❌ Error:", error);
     process.exit(1);
   }

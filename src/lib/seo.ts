@@ -6,6 +6,7 @@ const SITE_NAME = "নবME — Premium Fashion";
 // Validate SITE_URL to prevent console errors
 if (typeof SITE_URL !== "string" || !SITE_URL.startsWith("http")) {
   if (import.meta.env.DEV) {
+    // eslint-disable-next-line no-console
     console.warn("Invalid SITE_URL, using default");
   }
 }
@@ -225,6 +226,7 @@ export function img(url: string | undefined | null, options?: ImgOptions): strin
     return toCloudinaryFetchUrl(cleanUrl, transforms);
   } catch (error) {
     if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
       console.warn("Image processing failed:", error);
     }
     return url;
@@ -245,6 +247,7 @@ export function imgSet(
     return { src: img(url, { width: widths[1], format: "webp" }), srcSet };
   } catch (error) {
     if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
       console.warn("Image srcSet generation failed:", error);
     }
     return { src: url || "/placeholder.svg" };

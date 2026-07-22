@@ -241,7 +241,6 @@ function normalizeTheme(value: unknown): Theme {
 export default function ThemeBuilder() {
   const [activeTheme, setActiveTheme] = useState<Theme>(DEFAULT_THEME);
   const [activeTab, setActiveTab] = useState<"branding" | "colors" | "typography" | "buttons" | "layout" | "header" | "footer" | "css">("branding");
-  const [_themeListOpen, _setThemeListOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 

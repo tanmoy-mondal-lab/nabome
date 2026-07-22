@@ -300,7 +300,7 @@ async function handleDeleteSocialLink(linkId: string, req: Request, ctx: Request
       ...extractRequestMeta(req),
     });
     return success({ message: "Social link deleted" });
-  } catch (err) {
+  } catch {
     return notFound("Link not found");
   }
 }

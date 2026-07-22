@@ -1,4 +1,5 @@
 import type { Env } from "./env";
+import { logger } from "./logger";
 
 export interface AlertContext {
   message: string;
@@ -48,14 +49,14 @@ export class AlertService {
     };
 
     if (this.isDevelopment()) {
-      console.warn(`[ALERT:${alertType}]`, JSON.stringify(payload));
+      logger.warn(`[ALERT:${alertType}]`, { payload });
       this.markSent(alertType);
       return;
     }
 
     const webhookUrl = this.env?.ALERT_WEBHOOK_URL;
     if (!webhookUrl) {
-      console.error("[AlertService] ALERT_WEBHOOK_URL not configured, dropping alert", payload);
+      logger.error("[AlertService] ALERT_WEBHOOK_URL not configured, dropping alert", { payload });
       return;
     }
 
@@ -67,15 +68,15 @@ export class AlertService {
       });
 
       if (!response.ok) {
-        console.error(`[AlertService] Webhook returned ${response.status}`);
+        logger.error(`[AlertService] Webhook returned ${response.status}`);
         return;
       }
 
       this.markSent(alertType);
     } catch (error) {
-      console.error(
+      logger.error(
         "[AlertService] Failed to send alert:",
-        error instanceof Error ? error.message : error,
+        { error: error instanceof Error ? error.message : error },
       );
     }
   }

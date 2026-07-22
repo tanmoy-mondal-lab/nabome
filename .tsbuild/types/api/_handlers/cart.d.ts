@@ -1,2 +1,2 @@
 import type { RequestContext } from "../_lib/types";
-export declare function handleCartRequest(req: Request, ctx: RequestContext, _params?: string[], action?: string): Promise<Response>;
+export declare function handleCartRequest(req: Request, ctx: RequestContext, action?: string): Promise<Response>;

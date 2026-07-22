@@ -5,9 +5,8 @@
  * This seed documents the email template configuration
  */
 
-import { prisma } from '../utils/helpers';
-
 export async function seedEmailTemplates() {
+  // eslint-disable-next-line no-console
   console.log('📧 Seeding email template configuration...');
 
   // Email templates are configured via notification_templates
@@ -32,6 +31,7 @@ export async function seedEmailTemplates() {
     },
   };
 
+  // eslint-disable-next-line no-console
   console.log('Email template configuration:', emailTemplateConfig);
 
   return emailTemplateConfig;

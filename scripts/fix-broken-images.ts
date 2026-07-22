@@ -30,21 +30,16 @@ const REPLACEMENT_IMAGES = {
 
 function isBrokenCloudinaryUrl(url: string | null): boolean {
   if (!url) return false;
-  // Check if it's a Cloudinary URL with timestamp-based filename (likely broken)
-  // The 13-digit timestamp appears in the filename after the last / or as a version prefix
   return url.includes("res.cloudinary.com") && /\b\d{13}/.test(url);
 }
 
 function isPartialUnsplashUrl(url: string | null): boolean {
   if (!url) return false;
-  // Check if it's a partial Unsplash URL (just the photo ID without domain)
   return /^photo-[a-z0-9-]+$/.test(url) && !url.includes("unsplash.com");
 }
 
 function isBareFilename(url: string | null): boolean {
   if (!url) return false;
-  // Check if it's a bare filename (no protocol/domain) that ends in an image extension
-  // but is not a partial Unsplash URL (already handled above)
   return (
     !url.startsWith("http://") &&
     !url.startsWith("https://") &&
@@ -55,7 +50,6 @@ function isBareFilename(url: string | null): boolean {
 }
 
 function fixPartialUnsplashUrl(url: string): string {
-  // Add the full Unsplash domain and parameters
   return `https://images.unsplash.com/${url}?w=600&h=800&fit=crop&crop=center`;
 }
 
@@ -65,13 +59,16 @@ function getReplacementImage(type: keyof typeof REPLACEMENT_IMAGES, index: numbe
 }
 
 async function main() {
+  // eslint-disable-next-line no-console
   console.log("🔧 Fixing broken Cloudinary image URLs...");
 
   let totalFixed = 0;
 
   // Debug: Check what URLs exist in the database
   const sampleImages = await prisma.productImage.findMany({ take: 10 });
+  // eslint-disable-next-line no-console
   console.log("🔍 Sample product image URLs:", sampleImages.map(img => img.url));
+  // eslint-disable-next-line no-console
   console.log("🔍 Database URL:", process.env.DATABASE_URL?.substring(0, 30) + "...");
   
   // Debug: Check products with primary images
@@ -86,15 +83,19 @@ async function main() {
     },
     take: 5,
   });
+  // eslint-disable-next-line no-console
   console.log("🔍 Products with primary images:", productsWithImages.map(p => ({ name: p.name, hasPrimaryImage: p.images.length > 0, imageUrl: p.images[0]?.url })));
   
   // Debug: Check if images have isPrimary flag set correctly
   const allImages = await prisma.productImage.findMany({ take: 20 });
   const primaryCount = allImages.filter(img => img.isPrimary).length;
+  // eslint-disable-next-line no-console
   console.log(`🔍 Total images checked: ${allImages.length}, Primary images: ${primaryCount}`);
+  // eslint-disable-next-line no-console
   console.log("🔍 Image sample with flags:", allImages.slice(0, 5).map(img => ({ url: img.url, isPrimary: img.isPrimary })));
   
   // Fix: Ensure each product has at least one primary image
+  // eslint-disable-next-line no-console
   console.log("🔧 Ensuring each product has a primary image...");
   const allProducts = await prisma.product.findMany({
     select: { id: true, name: true },
@@ -109,11 +110,11 @@ async function main() {
     if (productImages.length > 0) {
       const hasPrimary = productImages.some(img => img.isPrimary);
       if (!hasPrimary) {
-        // Mark the first image as primary
         await prisma.productImage.update({
           where: { id: productImages[0].id },
           data: { isPrimary: true },
         });
+        // eslint-disable-next-line no-console
         console.log(`✅ Set primary image for product: ${product.name}`);
         totalFixed++;
       }
@@ -129,6 +130,7 @@ async function main() {
         where: { id: image.id },
         data: { url: replacement },
       });
+      // eslint-disable-next-line no-console
       console.log(`✅ Fixed product image: ${image.url} → ${replacement}`);
       totalFixed++;
     } else if (isPartialUnsplashUrl(image.url)) {
@@ -137,6 +139,7 @@ async function main() {
         where: { id: image.id },
         data: { url: fixedUrl },
       });
+      // eslint-disable-next-line no-console
       console.log(`✅ Fixed partial Unsplash URL: ${image.url} → ${fixedUrl}`);
       totalFixed++;
     } else if (isBareFilename(image.url)) {
@@ -145,6 +148,7 @@ async function main() {
         where: { id: image.id },
         data: { url: replacement },
       });
+      // eslint-disable-next-line no-console
       console.log(`✅ Fixed bare filename: ${image.url} → ${replacement}`);
       totalFixed++;
     }
@@ -159,6 +163,7 @@ async function main() {
         where: { id: category.id },
         data: { imageUrl: replacement },
       });
+      // eslint-disable-next-line no-console
       console.log(`✅ Fixed category image: ${category.imageUrl} → ${replacement}`);
       totalFixed++;
     } else if (isPartialUnsplashUrl(category.imageUrl)) {
@@ -167,6 +172,7 @@ async function main() {
         where: { id: category.id },
         data: { imageUrl: fixedUrl },
       });
+      // eslint-disable-next-line no-console
       console.log(`✅ Fixed partial Unsplash URL: ${category.imageUrl} → ${fixedUrl}`);
       totalFixed++;
     } else if (isBareFilename(category.imageUrl)) {
@@ -175,6 +181,7 @@ async function main() {
         where: { id: category.id },
         data: { imageUrl: replacement },
       });
+      // eslint-disable-next-line no-console
       console.log(`✅ Fixed bare filename: ${category.imageUrl} → ${replacement}`);
       totalFixed++;
     }
@@ -189,6 +196,7 @@ async function main() {
         where: { id: collection.id },
         data: { heroImageUrl: replacement },
       });
+      // eslint-disable-next-line no-console
       console.log(`✅ Fixed collection image: ${collection.heroImageUrl} → ${replacement}`);
       totalFixed++;
     } else if (isPartialUnsplashUrl(collection.heroImageUrl)) {
@@ -197,6 +205,7 @@ async function main() {
         where: { id: collection.id },
         data: { heroImageUrl: fixedUrl },
       });
+      // eslint-disable-next-line no-console
       console.log(`✅ Fixed partial Unsplash URL: ${collection.heroImageUrl} → ${fixedUrl}`);
       totalFixed++;
     } else if (isBareFilename(collection.heroImageUrl)) {
@@ -205,6 +214,7 @@ async function main() {
         where: { id: collection.id },
         data: { heroImageUrl: replacement },
       });
+      // eslint-disable-next-line no-console
       console.log(`✅ Fixed bare filename: ${collection.heroImageUrl} → ${replacement}`);
       totalFixed++;
     }
@@ -219,6 +229,7 @@ async function main() {
         where: { id: asset.id },
         data: { url: replacement },
       });
+      // eslint-disable-next-line no-console
       console.log(`✅ Fixed media asset: ${asset.url} → ${replacement}`);
       totalFixed++;
     } else if (isPartialUnsplashUrl(asset.url)) {
@@ -227,6 +238,7 @@ async function main() {
         where: { id: asset.id },
         data: { url: fixedUrl },
       });
+      // eslint-disable-next-line no-console
       console.log(`✅ Fixed media asset partial Unsplash: ${asset.url} → ${fixedUrl}`);
       totalFixed++;
     } else if (isBareFilename(asset.url)) {
@@ -235,6 +247,7 @@ async function main() {
         where: { id: asset.id },
         data: { url: replacement },
       });
+      // eslint-disable-next-line no-console
       console.log(`✅ Fixed media asset bare filename: ${asset.url} → ${replacement}`);
       totalFixed++;
     }
@@ -245,23 +258,28 @@ async function main() {
     where: { sectionType: "hero_slider" },
   });
   for (const section of homepageSections) {
-    const content = section.content as any;
-    if (content?.slides) {
+    const content = section.content as Record<string, unknown>;
+    if ((content as Record<string, unknown>)?.["slides"]) {
+      const slides = (content as Record<string, unknown[]>)["slides"];
       let updated = false;
-      for (const slide of content.slides) {
-        if (isBrokenCloudinaryUrl(slide.image)) {
-          slide.image = getReplacementImage("hero", Math.floor(Math.random() * REPLACEMENT_IMAGES.hero.length));
+      for (const slide of slides) {
+        const slideRecord = slide as Record<string, string>;
+        if (isBrokenCloudinaryUrl(slideRecord.image)) {
+          slideRecord.image = getReplacementImage("hero", Math.floor(Math.random() * REPLACEMENT_IMAGES.hero.length));
           updated = true;
+          // eslint-disable-next-line no-console
           console.log(`✅ Fixed hero slide image`);
           totalFixed++;
-        } else if (isPartialUnsplashUrl(slide.image)) {
-          slide.image = fixPartialUnsplashUrl(slide.image);
+        } else if (isPartialUnsplashUrl(slideRecord.image)) {
+          slideRecord.image = fixPartialUnsplashUrl(slideRecord.image);
           updated = true;
+          // eslint-disable-next-line no-console
           console.log(`✅ Fixed partial Unsplash URL in hero slide`);
           totalFixed++;
-        } else if (isBareFilename(slide.image)) {
-          slide.image = getReplacementImage("hero", Math.floor(Math.random() * REPLACEMENT_IMAGES.hero.length));
+        } else if (isBareFilename(slideRecord.image)) {
+          slideRecord.image = getReplacementImage("hero", Math.floor(Math.random() * REPLACEMENT_IMAGES.hero.length));
           updated = true;
+          // eslint-disable-next-line no-console
           console.log(`✅ Fixed bare filename in hero slide`);
           totalFixed++;
         }
@@ -269,18 +287,21 @@ async function main() {
       if (updated) {
         await prisma.homepageSection.update({
           where: { id: section.id },
-          data: { content },
+          data: { content: content as never },
         });
       }
     }
   }
 
+  // eslint-disable-next-line no-console
   console.log(`\n✨ Total images fixed: ${totalFixed}`);
+  // eslint-disable-next-line no-console
   console.log("🎉 Broken image URLs have been replaced with working Unsplash images");
 }
 
 main()
   .catch((e) => {
+    // eslint-disable-next-line no-console
     console.error("❌ Error fixing images:", e);
     process.exit(1);
   })

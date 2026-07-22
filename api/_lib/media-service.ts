@@ -1,4 +1,5 @@
 import type { Env } from "./env";
+import { logger } from "./logger";
 import type { EntityType, CloudinaryConfig } from "./media/types";
 import { generateAssetId } from "./media/asset-id";
 import { getAssetFolder, getEntityFolder } from "./media/folder";
@@ -80,10 +81,8 @@ export async function uploadMedia(options: UploadOptions, env: Env): Promise<Med
   const lifecycleResult = await createMediaAsset(
     file,
     entityType,
-    entityId,
     slug,
     config,
-    { altText, displayName, sortOrder, isPrimary }
   );
 
   try {
@@ -130,7 +129,7 @@ export async function uploadMedia(options: UploadOptions, env: Env): Promise<Med
     try {
       await deleteAsset(lifecycleResult.publicId, lifecycleResult.resourceType, config);
     } catch (cleanupError) {
-      console.error(`[MediaService] DB insert failed AND Cloudinary cleanup failed for ${lifecycleResult.publicId}. Asset may be orphaned.`, cleanupError);
+      logger.error(`[MediaService] DB insert failed AND Cloudinary cleanup failed for ${lifecycleResult.publicId}. Asset may be orphaned.`, { error: cleanupError });
     }
     throw dbError;
   }
@@ -166,7 +165,6 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
     oldPublicId,
     oldResourceType,
     config,
-    { altText, displayName }
   );
 
   try {
@@ -198,7 +196,7 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
       try {
         await deleteAsset(oldPublicId, oldResourceType, config);
       } catch (cloudinaryError) {
-        console.error(`[MediaService] Failed to delete old Cloudinary asset ${oldPublicId}. Database record preserved.`, cloudinaryError);
+        logger.error(`[MediaService] Failed to delete old Cloudinary asset ${oldPublicId}. Database record preserved.`, { error: cloudinaryError });
       }
     }
 
@@ -225,7 +223,7 @@ export async function replaceMedia(options: ReplaceOptions, env: Env): Promise<M
     try {
       await deleteAsset(lifecycleResult.publicId, lifecycleResult.resourceType, config);
     } catch (cleanupError) {
-      console.error(`[MediaService] DB operation failed AND Cloudinary cleanup failed for ${lifecycleResult.publicId}. Asset may be orphaned.`, cleanupError);
+      logger.error(`[MediaService] DB operation failed AND Cloudinary cleanup failed for ${lifecycleResult.publicId}. Asset may be orphaned.`, { error: cleanupError });
     }
     // Note: old Cloudinary asset is intentionally NOT deleted here since the
     // old DB record is still intact and points to it.
@@ -246,7 +244,7 @@ export async function deleteMedia(assetId: string, env: Env): Promise<void> {
     const resourceType = (asset.resourceType ?? "image") as CloudinaryResourceType;
     const result = await deleteAsset(asset.publicId, resourceType, config).catch(() => false);
     if (!result) {
-      console.error(`[MediaService] Cloudinary deletion failed for ${asset.publicId}, preserving DB record`);
+      logger.error(`[MediaService] Cloudinary deletion failed for ${asset.publicId}, preserving DB record`);
       cloudinarySuccess = false;
     }
   }
@@ -318,7 +316,7 @@ export async function deleteEntityMedia(entityType: EntityType, entityId: string
   }
 
   if (failedAssets.length > 0) {
-    console.error(`[MediaService] Failed to delete ${failedAssets.length} assets from Cloudinary. DB records preserved.`);
+    logger.error(`[MediaService] Failed to delete ${failedAssets.length} assets from Cloudinary. DB records preserved.`);
   }
 
   return deletedCount;
@@ -385,11 +383,11 @@ export async function migrateEntitySlug(
       });
       migrationIndex++;
     } catch (error) {
-      console.error(`[MediaService] Failed to update database record for asset ${asset.id}:`, error);
+      logger.error(`[MediaService] Failed to update database record for asset ${asset.id}:`, { error });
     }
   }
 
   if (result.failedMigrations > 0) {
-    console.error(`[MediaService] Failed to migrate ${result.failedMigrations}/${assets.length} assets`);
+    logger.error(`[MediaService] Failed to migrate ${result.failedMigrations}/${assets.length} assets`);
   }
 }

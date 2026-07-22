@@ -9,6 +9,7 @@ import { PRODUCT_SLUGS } from '../utils/constants';
 import type { product_labels } from '@prisma/client';
 
 export async function seedLabels() {
+  // eslint-disable-next-line no-console
   console.log('🏷️  Seeding product labels...');
 
   // Use a fixed UUID for label to ensure idempotency

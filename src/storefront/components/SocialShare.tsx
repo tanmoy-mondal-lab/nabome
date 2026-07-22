@@ -10,7 +10,7 @@ interface SocialShareProps {
   className?: string;
 }
 
-export function SocialShare({ url, title, description, image: _image, className }: SocialShareProps) {
+export function SocialShare({ url, title, description, className }: SocialShareProps) {
   const [copied, setCopied] = useState(false);
 
   const encodedUrl = encodeURIComponent(url);
@@ -46,6 +46,7 @@ export function SocialShare({ url, title, description, image: _image, className 
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
+      // eslint-disable-next-line no-console
       if (import.meta.env.DEV) console.debug("Clipboard write failed:", err);
     }
   }

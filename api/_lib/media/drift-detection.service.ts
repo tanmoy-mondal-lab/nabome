@@ -8,6 +8,7 @@
  * - Metadata mismatches
  */
 
+import { logger } from '../logger';
 import type { PrismaClient } from '@prisma/client';
 import type { CloudinaryConfig } from './types';
 
@@ -115,7 +116,7 @@ export async function detectDrift(
             cloudinaryValue: cloudinaryAsset.bytes,
           });
         }
-      } catch (error) {
+      } catch {
         // Error checking asset - mark as missing
         report.missingInCloudinary.push({
           assetId: asset.assetId,
@@ -131,7 +132,7 @@ export async function detectDrift(
 
     return report;
   } catch (error) {
-    console.error('[DriftDetection] Failed to detect drift:', error);
+    logger.error('[DriftDetection] Failed to detect drift:', { error });
     return report;
   }
 }
@@ -176,7 +177,7 @@ async function getCloudinaryAsset(
       bytes: result.bytes ?? 0,
     };
   } catch (error) {
-    console.error('[DriftDetection] Failed to get Cloudinary asset:', error);
+    logger.error('[DriftDetection] Failed to get Cloudinary asset:', { error });
     return null;
   }
 }
@@ -227,7 +228,7 @@ export async function repairDrift(
 
       repaired++;
     } catch (error) {
-      console.error('[DriftDetection] Failed to repair mismatch:', mismatch, error);
+      logger.error('[DriftDetection] Failed to repair mismatch:', { mismatch, error });
       failed++;
     }
   }
@@ -253,10 +254,10 @@ export function scheduleDriftDetection(
         report.missingInCloudinary.length > 0 ||
         report.metadataMismatches.length > 0
       ) {
-        console.warn('[DriftDetection] Drift detected:', report);
+        logger.warn('[DriftDetection] Drift detected:', { report });
       }
     } catch (error) {
-      console.error('[DriftDetection] Scheduled检测 failed:', error);
+      logger.error('[DriftDetection] Scheduled drift detection failed:', { error });
     }
   }, intervalMs);
 

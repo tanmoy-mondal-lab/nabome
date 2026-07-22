@@ -44,7 +44,7 @@ export async function createNotification(
         }, env);
       }
     }
-  } catch (err) {
+  } catch {
     // Silent failure - notification creation error
   }
 }

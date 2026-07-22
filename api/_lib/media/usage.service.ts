@@ -2,6 +2,7 @@
 // Mirrors the reference checks performed in the admin media usage endpoint so
 // that both single and bulk deletes enforce the same integrity guarantees.
 
+import { logger } from "../logger";
 import type { PrismaClient } from "@prisma/client";
 
 export interface UsageReference {
@@ -125,7 +126,7 @@ export async function getAssetReferences(
       if (siteSettings.ogImagePublicId === publicId) references.push({ type: "Site Settings", id: siteSettings.id, name: "OG Image" });
     }
   } catch (err) {
-    console.error("[UsageService] Failed to compute asset references:", err);
+    logger.error("[UsageService] Failed to compute asset references:", { err });
   }
 
   return references;

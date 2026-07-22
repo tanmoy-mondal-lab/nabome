@@ -14,6 +14,7 @@ export function loadRazorpayScript(): Promise<void> {
     script.onload = () => resolve();
     script.onerror = () => {
       if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
         console.warn("Failed to load Razorpay Checkout SDK");
       }
       reject(new Error("Failed to load Razorpay Checkout SDK"));

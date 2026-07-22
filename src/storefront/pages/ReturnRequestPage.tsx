@@ -73,6 +73,7 @@ export default function ReturnRequestPage() {
         setEvidenceImages((prev) => [...prev, url]);
       }
     } catch (err) {
+      // eslint-disable-next-line no-console
       console.error("Image upload failed:", err);
       setSubmitError("Failed to upload image. Please try again.");
     } finally {

@@ -9,6 +9,7 @@ import { PRODUCT_SLUGS } from '../utils/constants';
 import type { brands } from '@prisma/client';
 
 export async function seedBrands() {
+  // eslint-disable-next-line no-console
   console.log('🏷️  Seeding brands...');
 
   // Use a fixed UUID for brand to ensure idempotency

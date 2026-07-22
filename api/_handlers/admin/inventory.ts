@@ -167,5 +167,5 @@ async function handleResolveAlert(alertId: string, env: Env): Promise<Response> 
       data: { isResolved: true, resolvedAt: new Date() },
     });
     return success(alert);
-  } catch (err) { return notFound("Alert not found"); }
+  } catch { return notFound("Alert not found"); }
 }

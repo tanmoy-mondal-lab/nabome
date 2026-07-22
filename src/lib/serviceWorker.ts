@@ -56,6 +56,7 @@ export function registerServiceWorker(): Promise<void> {
       // Don't reject - app should work without service worker
       // Log error in development only
       if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
         console.warn("Service worker registration failed:", error.message);
       }
       resolve();

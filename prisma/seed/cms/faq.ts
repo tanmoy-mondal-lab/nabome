@@ -4,11 +4,9 @@
  */
 
 import { prisma } from '../utils/helpers';
-import { upsertByField } from '../utils/upsert';
-import { CMS_SLUGS } from '../utils/constants';
-import type { faqs } from '@prisma/client';
 
 export async function seedFAQ() {
+  // eslint-disable-next-line no-console
   console.log('❓ Seeding FAQs...');
 
   const faqs = [

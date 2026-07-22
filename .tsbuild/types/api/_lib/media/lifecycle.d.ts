@@ -13,12 +13,7 @@ export interface CreateMediaResult {
     format: string;
     originalFilename: string;
 }
-export declare function createMediaAsset(file: File, entityType: EntityType, _entityId: string, slug: string, config: CloudinaryConfig, _metadata?: {
-    altText?: string;
-    displayName?: string;
-    sortOrder?: number;
-    isPrimary?: boolean;
-}): Promise<CreateMediaResult>;
+export declare function createMediaAsset(file: File, entityType: EntityType, slug: string, config: CloudinaryConfig): Promise<CreateMediaResult>;
 export interface ReplaceMediaResult {
     assetId: string;
     url: string;
@@ -33,11 +28,8 @@ export interface ReplaceMediaResult {
     format: string;
     originalFilename: string;
 }
-export declare function replaceMediaAsset(file: File, entityType: EntityType, entityId: string, slug: string, _oldAssetId: string, _oldPublicId: string, _oldResourceType: CloudinaryResourceType, config: CloudinaryConfig, metadata?: {
-    altText?: string;
-    displayName?: string;
-}): Promise<ReplaceMediaResult>;
-export declare function deleteMediaAsset(_assetId: string, publicId: string, resourceType: CloudinaryResourceType, config: CloudinaryConfig, _entityType?: EntityType, _entityId?: string, _folder?: string): Promise<void>;
+export declare function replaceMediaAsset(file: File, entityType: EntityType, _entityId: string, slug: string, _oldAssetId: string, _oldPublicId: string, _oldResourceType: CloudinaryResourceType, config: CloudinaryConfig): Promise<ReplaceMediaResult>;
+export declare function deleteMediaAsset(publicId: string, resourceType: CloudinaryResourceType, config: CloudinaryConfig): Promise<void>;
 export interface DeleteEntityResult {
     deletedCount: number;
     migratedAssets: number;

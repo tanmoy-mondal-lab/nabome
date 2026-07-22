@@ -39,12 +39,10 @@ const cardVariants = cva(
 
 export interface CardProps
   extends HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof cardVariants> {
-  asChild?: boolean;
-}
+    VariantProps<typeof cardVariants> {}
 
 const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, variant, padding, rounded, asChild: _asChild = false, ...props }, ref) => {
+  ({ className, variant, padding, rounded, ...props }, ref) => {
     return (
       <div
         ref={ref}

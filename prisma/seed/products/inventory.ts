@@ -6,6 +6,7 @@
 import { prisma } from '../utils/helpers';
 
 export async function seedInventory(variantIds: string[]) {
+  // eslint-disable-next-line no-console
   console.log('📦 Seeding inventory...');
 
   // Create inventory movements for initial stock
@@ -29,6 +30,7 @@ export async function seedInventory(variantIds: string[]) {
     }
   }
 
+  // eslint-disable-next-line no-console
   console.log(`Created inventory movements for ${variantIds.length} variants`);
 
   return variantIds;

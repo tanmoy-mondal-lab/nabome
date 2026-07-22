@@ -67,7 +67,7 @@ async function handleDelete(id: string, env: Env): Promise<Response> {
     const prisma = getPrisma(env);
     await prisma.related_products.delete({ where: { id } });
     return success({ message: "Relation removed" });
-  } catch (err) { return notFound("Relation not found"); }
+  } catch { return notFound("Relation not found"); }
 }
 
 async function handleReorder(_productId: string, req: Request, env: Env): Promise<Response> {

@@ -9,6 +9,7 @@ import { CMS_SLUGS } from '../utils/constants';
 import type { navigation_menus } from '@prisma/client';
 
 export async function seedNavigation() {
+  // eslint-disable-next-line no-console
   console.log('🧭 Seeding navigation menus...');
 
   // Use fixed UUIDs for navigation menus to ensure idempotency

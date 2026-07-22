@@ -101,7 +101,8 @@ export default function MediaLibrary() {
           entityTypes: res.folders ?? [],
         };
       } catch (err) {
-        console.error("Media library fetch error:", err);
+        // eslint-disable-next-line no-console
+        if (import.meta.env.DEV) console.error("Media library fetch error:", err);
         throw err;
       }
     },
@@ -153,6 +154,7 @@ export default function MediaLibrary() {
         completed++;
       } catch (err) {
         failed++;
+        // eslint-disable-next-line no-console
         if (import.meta.env.DEV) console.warn("Upload failed:", err);
       }
     }

@@ -53,7 +53,7 @@ export default function AddressesPage() {
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const [_fetchError, _setFetchError] = useState<string | null>(null);
+  
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery({

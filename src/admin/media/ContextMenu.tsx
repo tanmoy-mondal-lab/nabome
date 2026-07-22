@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Copy, Download, Trash2, Edit3, Move, FileText, Image as ImageIcon, Film, Folder } from "lucide-react";
 
-interface ContextMenuItem {
+export interface ContextMenuItem {
   label?: string;
   icon?: React.ReactNode;
   onClick?: () => void;
@@ -144,7 +144,7 @@ export function getFolderContextMenuItems(
 }
 
 export function getAssetContextMenuItems(
-  asset: any,
+  asset: { resource_type: string },
   onCopyUrl: () => void,
   onCopyHTML: () => void,
   onCopyMarkdown: () => void,
