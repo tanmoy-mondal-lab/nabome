@@ -1,2 +1,0 @@
-ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS seo JSONB;
-ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS preferences JSONB;

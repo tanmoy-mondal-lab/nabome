@@ -1,9 +1,0 @@
-# SPA client-side routing fallback is handled in functions/_middleware.ts.
-#
-# The classic `/* /index.html 200` rule is intentionally NOT used here:
-# current Cloudflare Pages / wrangler versions flag it as an infinite loop
-# and silently drop it ("Parsed 0 valid redirect rules"), which breaks deep
-# links and page refreshes. The middleware serves index.html for unmatched
-# HTML routes instead.
-#
-# Static assets and /api/* are served directly by Pages, so no rules are needed.
