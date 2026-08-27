@@ -1,0 +1,23 @@
+{
+  "name": "@nabome/api-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nabome API contracts: response envelope, error registry, pagination meta (pure — no zod)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

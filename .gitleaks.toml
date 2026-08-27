@@ -1,0 +1,61 @@
+# Nabome gitleaks configuration (v8)
+#
+# Secret scanning readiness: CI and local machines can run
+#   gitleaks detect --source . --config .gitleaks.toml --verbose
+# against the repo. The tracked example files and the lockfile are
+# allowlisted below because they deliberately carry placeholder material;
+# `scripts/validate-env.mjs` enforces the same guarantee inside `pnpm check`.
+
+title = "Nabome gitleaks config"
+
+[extend]
+useDefault = true
+
+# ── Repo-specific secrets ─────────────────────────────────────────────────────
+# Provider-specific credential shapes used by Nabome. Values in the example
+# files match these patterns, so the allowlist below keeps them safe while
+# still flagging any real key that sneaks into the tree.
+
+[[rules]]
+id = "razorpay-key-id"
+description = "Razorpay key ID"
+regex = '''rzp_(live|test)_[a-zA-Z0-9]{14,}'''
+secret-group = 0
+
+[[rules]]
+id = "razorpay-key-secret"
+description = "Razorpay key secret"
+regex = '''(?i)rzp_[a-zA-Z0-9]{20,}'''
+secret-group = 0
+
+[[rules]]
+id = "resend-api-key"
+description = "Resend API key"
+regex = '''re_[a-zA-Z0-9]{20,}'''
+secret-group = 0
+
+[[rules]]
+id = "supabase-keys"
+description = "Supabase anon/service-role key"
+regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]+\.(?:[A-Za-z0-9_-]+)'''
+secret-group = 0
+
+# ── Allowlist ─────────────────────────────────────────────────────────────────
+# Only tracked example files and the lockfile may contain placeholder values.
+
+[allowlist]
+description = "Tracked example files and lockfile carry placeholders only"
+paths = [
+  '''\.env\.example$''',
+  '''\.dev\.vars\.example$''',
+  '''pnpm-lock\.yaml$''',
+]
+regexes = [
+  '''your-[a-z0-9-]+''',
+  '''change-me-[a-z0-9-]+''',
+  '''xxxxxxxx''',
+  '''localhost''',
+  '''supabase\.co''',
+  '''rzp_test_xxxxxxxxxxxxxxxx''',
+  '''re_xxxxxxxxxxxxxxxx''',
+]

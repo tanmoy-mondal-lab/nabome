@@ -1,0 +1,16 @@
+import { parseClientEnv } from '@nabome/config';
+
+const env: any = import.meta.env;
+
+const source = {
+  NODE_ENV: env.VITE_NODE_ENV ?? env.NODE_ENV,
+  ENVIRONMENT: env.VITE_ENVIRONMENT ?? env.ENVIRONMENT,
+  APP_URL: env.VITE_APP_URL ?? env.APP_URL,
+  PUBLIC_API_URL: env.VITE_PUBLIC_API_URL ?? env.PUBLIC_API_URL,
+  LOG_LEVEL: env.VITE_LOG_LEVEL ?? env.LOG_LEVEL,
+  SENTRY_DSN: env.VITE_SENTRY_DSN ?? env.SENTRY_DSN,
+  SESSION_COOKIE_NAME: env.VITE_SESSION_COOKIE_NAME ?? env.SESSION_COOKIE_NAME,
+  VITE_TURNSTILE_SITE_KEY: env.VITE_TURNSTILE_SITE_KEY,
+};
+
+export const appConfig = parseClientEnv(source);

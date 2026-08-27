@@ -1,0 +1,44 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev:customer",
+      "type": "shell",
+      "command": "pnpm dev:customer",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "dev:admin",
+      "type": "shell",
+      "command": "pnpm dev:admin",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "dev:shop",
+      "type": "shell",
+      "command": "pnpm dev:shop",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "check",
+      "type": "shell",
+      "command": "pnpm check",
+      "problemMatcher": []
+    },
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "pnpm build",
+      "problemMatcher": []
+    },
+    {
+      "label": "unit tests",
+      "type": "shell",
+      "command": "pnpm test:unit",
+      "problemMatcher": []
+    }
+  ]
+}

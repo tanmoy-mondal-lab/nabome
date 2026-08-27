@@ -1,0 +1,35 @@
+{
+  "name": "@nabome/design-tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nabome design tokens — CSS custom properties (raw, alias, component) and programmatic token values",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./theme-engine": "./src/theme-engine.ts",
+    "./styles/tokens.css": "./styles/tokens.css",
+    "./styles/primitives.css": "./styles/primitives.css",
+    "./styles/global.css": "./styles/global.css",
+    "./styles/typography.css": "./styles/typography.css",
+    "./styles/animations.css": "./styles/animations.css",
+    "./styles/themes/light.css": "./styles/themes/light.css",
+    "./styles/themes/dark.css": "./styles/themes/dark.css",
+    "./styles/themes/admin.css": "./styles/themes/admin.css",
+    "./styles/themes/shop.css": "./styles/themes/shop.css",
+    "./styles/tailwind-theme.css": "./styles/tailwind-theme.css"
+  },
+  "files": [
+    "src",
+    "styles"
+  ],
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

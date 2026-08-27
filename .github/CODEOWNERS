@@ -1,0 +1,11 @@
+# CODEOWNERS
+#
+# Fill in the owner handles once the GitHub organization exists, e.g.:
+#   * @nabome/platform
+#   /apps/api/ @nabome/backend
+#   /apps/customer/ @nabome/frontend
+#
+# Until then, every line below is intentionally commented out so that no
+# invalid owner breaks PR review assignment.
+
+# * @nabome/platform

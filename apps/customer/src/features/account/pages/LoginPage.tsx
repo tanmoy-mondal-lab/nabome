@@ -1,0 +1,212 @@
+import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router';
+
+import { useCart } from '@/features/cart/hooks';
+
+import { login } from '@/lib/api/auth';
+
+import { useAuthStore } from '@/stores/auth-store';
+
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const { setUser } = useAuthStore();
+  const { mergeCart } = useCart();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Load Turnstile widget
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (turnstileRef.current && window.turnstile) {
+      turnstileRef.current.innerHTML = '';
+      window.turnstile.render(turnstileRef.current, {
+        sitekey:
+          import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAAxxxxxxxx',
+        callback: (token: string) => {
+          setTurnstileToken(token);
+        },
+      });
+    }
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    if (!turnstileToken) {
+      setError('Please complete the CAPTCHA');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const result = await login({
+        email,
+        password,
+        rememberMe,
+        turnstileToken,
+      });
+
+      setUser(result.user as any);
+
+      // Merge guest cart after successful login
+      try {
+        await mergeCart();
+      } catch (cartError) {
+        // Don't block login if cart merge fails
+        console.error('Cart merge failed:', cartError);
+      }
+
+      navigate('/');
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+        <div>
+          <h2 className="text-3xl font-bold text-center text-gray-900">
+            Sign in
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            to your নবME account
+          </p>
+        </div>
+
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Email address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-900"
+                >
+                  Remember me
+                </label>
+              </div>
+
+              <div className="text-sm">
+                <a
+                  href="/forgot-password"
+                  className="font-medium text-indigo-600 hover:text-indigo-500"
+                >
+                  Forgot password?
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="turnstile"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Security verification
+              </label>
+              <div
+                ref={turnstileRef}
+                id="turnstile-container"
+                className="mt-2"
+              />
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+          </div>
+
+          <div className="text-center">
+            <span className="text-sm text-gray-600">
+              Don't have an account?{' '}
+            </span>
+            <a
+              href="/register"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              Sign up
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

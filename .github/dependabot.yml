@@ -1,0 +1,39 @@
+# Dependabot — weekly dependency updates for the pnpm workspace.
+#
+# Update cadence: weekly on Monday. Group minor/patch bumps to keep PR noise
+# low; separate PRs for majors (they must pass the full `pnpm check` gate).
+
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    versioning-strategy: increase
+    open-pull-requests-limit: 8
+    ignore:
+      - dependency-name: 'prisma'
+        versions: ['>=7.0.0']
+      - dependency-name: '@prisma/client'
+        versions: ['>=7.0.0']
+      - dependency-name: 'vite'
+        versions: ['>=7.0.0']
+      - dependency-name: '@vitejs/plugin-react'
+        versions: ['>=7.0.0']
+      - dependency-name: 'typescript'
+        versions: ['>=6.0.0']
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ['*']

@@ -1,0 +1,2264 @@
+// ---------------------------------------------------------------------------
+// নবME (Nabome) Commerce OS — canonical Prisma schema
+// Source of truth: MASTER_ARCHITECTURE_BLUEPRINT.md Appendix B (data model).
+// Conventions: snake_case names, UUIDv4 ids, Decimal(10,2) money, enums as
+// listed in B.4–B.7, soft delete via isActive, timestamps via @@map.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums (binding: B.4) ─────────────────────────────────────────────────────
+
+enum UserRole {
+  guest
+  customer
+  shop_owner
+  admin
+  system
+}
+
+enum UserStatus {
+  active
+  suspended
+  banned
+  pending_verification
+}
+
+enum ProductStatus {
+  draft
+  scheduled
+  published
+  archived
+}
+
+enum InventoryStatus {
+  in_stock
+  low_stock
+  out_of_stock
+  backorder
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  processing
+  shipped
+  delivered
+  cancelled
+  refunded
+  returned
+  archived
+  failed_delivery
+  held
+  awaiting_payment
+  partially_shipped
+  partially_delivered
+  partially_cancelled
+  partially_returned
+  partially_refunded
+  ready_for_pickup
+}
+
+enum CustomerVisibleOrderStatus {
+  pending
+  confirmed
+  processing
+  shipped
+  delivered
+  cancelled
+  refunded
+  returned
+  held
+  failed_delivery
+}
+
+// Payment lifecycle (binding: Blueprint B.3, PAYMENT §4.4, ML-02):
+// created → initiated → processing → authorized → captured → completed,
+// with failed (→ created retry), cancelled, expired (→ created retry), and
+// refund transitions captured/completed → partially_refunded → refunded.
+// Legacy values (pending/processing/succeeded) remain valid for existing rows.
+enum PaymentStatus {
+  pending
+  processing
+  succeeded
+  created
+  initiated
+  authorized
+  captured
+  completed
+  failed
+  cancelled
+  expired
+  partially_refunded
+  refunded
+  refunding
+}
+
+// Order payment sub-status (binding: CC-28 — pending|authorized|captured|refunding|refunded|failed).
+// Legacy awaiting_* values remain valid for existing rows.
+enum OrderPaymentSubStatus {
+  pending
+  authorized
+  captured
+  refunding
+  refunded
+  failed
+  awaiting_bank_confirmation
+  awaiting_upi_confirmation
+  awaiting_authorization
+  awaiting_capture
+}
+
+// Refund operational lifecycle (binding: PAYMENT §7.9, ML-03):
+// initiated → processing → completed → settled, failed (retry).
+// Legacy value succeeded maps from completed/settled.
+enum RefundStatus {
+  pending
+  processing
+  succeeded
+  failed
+  initiated
+  completed
+  settled
+}
+
+enum RefundType {
+  full
+  partial
+}
+
+// Settlement lifecycle (binding: Blueprint B.4, FINANCE §4.5, ML-09/12):
+// PENDING → ELIGIBLE → CREATED → REVIEW → APPROVED → PROCESSING → COMPLETED → PAID,
+// plus REJECTED → PENDING, FAILED (from PROCESSING), REVERSED (from COMPLETED or PAID).
+// Legacy values (settled/on_hold/initiated/retry_pending/partially_settled/manual_review/cancelled)
+// remain valid for existing rows.
+enum SettlementStatus {
+  pending
+  eligible
+  created
+  review
+  approved
+  processing
+  completed
+  paid
+  rejected
+  failed
+  reversed
+  settled
+  on_hold
+  cancelled
+  initiated
+  retry_pending
+  partially_settled
+  manual_review
+}
+
+enum ShopStatus {
+  pending
+  active
+  suspended
+}
+
+enum PayoutMethod {
+  digital
+  manual
+}
+
+enum PayoutAccountType {
+  upi
+  bank
+}
+
+enum PayoutStatus {
+  queued
+  processing
+  completed
+  failed
+  reversed
+}
+
+enum CommissionScope {
+  platform
+  shop
+  category
+}
+
+// Finance records (binding: DATABASE §4.9.1, FINANCE §5.5). Append-only facts;
+// corrections are new rows with type=reversal.
+enum FinanceRecordType {
+  sale
+  commission
+  hold
+  release
+  settlement
+  refund
+  reversal
+  adjustment
+  cod_collected
+  gateway_fee
+}
+
+enum FinanceRecordStatus {
+  pending
+  posted
+  reversed
+}
+
+enum LedgerSide {
+  debit
+  credit
+}
+
+// Canonical chart of accounts (binding: DATABASE §4.9.2).
+enum LedgerAccount {
+  seller_payable
+  commission_income
+  cash
+  refunds
+  gateway_fees
+  cod_payable
+  shipping_income
+  adjustments
+}
+
+enum PaymentTransactionType {
+  authorize
+  capture
+  refund
+  void
+}
+
+enum PaymentTransactionStatus {
+  pending
+  succeeded
+  failed
+}
+
+enum WebhookEventStatus {
+  received
+  processing
+  processed
+  failed
+}
+
+enum CodOrderStatus {
+  awaiting_pickup
+  in_transit
+  delivered
+  failed
+  paid_to_seller
+}
+
+enum ShipmentStatus {
+  shipment_created
+  ready_to_pack
+  packed
+  ready_for_pickup
+  picked_up
+  in_transit
+  out_for_delivery
+  delivered
+  delivery_failed
+  exception
+  returned_to_sender
+  cancelled
+  closed
+}
+
+enum Gender {
+  men
+  women
+  unisex
+}
+
+enum CollectionType {
+  manual
+  dynamic
+  smart
+}
+
+enum AddressType {
+  home
+  work
+  other
+}
+
+enum PaymentMethod {
+  card
+  upi
+  netbanking
+  wallet
+  cod
+}
+
+enum NotificationType {
+  order_update
+  shipment_update
+  payment_update
+  promotional
+  system
+}
+
+enum NotificationChannel {
+  email
+  sms
+  push
+  in_app
+}
+
+enum NotificationStatus {
+  unread
+  read
+}
+
+enum CouponType {
+  percentage
+  fixed
+  free_shipping
+}
+
+enum CheckoutStatus {
+  started
+  address_entered
+  payment_pending
+  payment_processing
+  completed
+  abandoned
+  expired
+}
+
+enum ReturnRequestStatus {
+  return_requested
+  return_approved
+  return_rejected
+  pickup_scheduled
+  pickup_completed
+  in_inspection
+  inspection_passed
+  inspection_failed
+  refund_pending
+  refund_approved
+  refund_completed
+  return_closed
+}
+
+enum ReturnType {
+  full_order
+  partial_return
+  variant_return
+  quantity_return
+  exchange
+  replacement
+}
+
+enum RefundMethod {
+  original_payment
+  store_credit
+  bank_transfer
+  upi
+  wallet
+}
+
+enum InspectionResult {
+  passed
+  failed
+  partial
+  pending
+}
+
+enum InspectionFailureReason {
+  damaged_beyond_repair
+  missing_parts
+  used_worn
+  different_item
+  counterfeit
+  tampered
+  exceeded_return_window
+  no_proof_of_purchase
+  other
+}
+
+enum DisputeStatus {
+  open
+  under_review
+  escalated
+  resolved
+  closed
+}
+
+enum DisputeResolution {
+  customer_favored
+  seller_favored
+  partial_refund
+  full_refund
+  replacement
+  exchange
+  rejected
+}
+
+enum ReturnPolicyType {
+  standard
+  extended
+  no_returns
+  final_sale
+}
+
+enum ReverseLogisticsStatus {
+  awaiting_pickup
+  pickup_scheduled
+  pickup_assigned
+  in_transit
+  warehouse_received
+  inspection_queued
+  inspection_in_progress
+  inspection_completed
+  restocking
+  disposal
+  completed
+}
+
+enum RestockStatus {
+  pending
+  in_progress
+  completed
+  cannot_restock
+}
+
+enum DispositionAction {
+  restock
+  refurbish
+  repair
+  dispose
+  return_to_vendor
+  donate
+  hold
+}
+
+enum TimelineEventType {
+  order_created
+  payment_initiated
+  payment_completed
+  payment_failed
+  order_confirmed
+  order_processing
+  order_packed
+  order_ready_for_shipment
+  order_shipped
+  order_delivered
+  order_cancelled
+  return_requested
+  return_approved
+  return_rejected
+  return_completed
+  refund_initiated
+  refund_completed
+  refund_failed
+  note_added
+  status_updated
+}
+
+enum TimelineEventPriority {
+  low
+  normal
+  high
+  critical
+}
+
+enum StockMovementType {
+  initial_stock
+  purchase
+  sale
+  reservation
+  release
+  return
+  refund
+  damage
+  adjustment
+  transfer
+  manual_update
+}
+
+enum ReservationStatus {
+  active
+  released
+  expired
+  converted
+}
+
+enum WarehouseStatus {
+  active
+  inactive
+  maintenance
+}
+
+// Shipping & Fulfillment Enums
+enum CarrierType {
+  manual
+  shiprocket
+  delhivery
+  bluedart
+  dtdc
+  ekart
+  india_post
+  dhl
+  fedex
+  ups
+  custom
+}
+
+enum ShippingMethod {
+  standard
+  express
+  same_day
+  pickup
+  international
+}
+
+enum TrackingEventType {
+  shipment_created
+  ready_to_pack
+  packed
+  ready_for_pickup
+  picked_up
+  in_transit
+  out_for_delivery
+  delivered
+  delivery_failed
+  exception
+  returned_to_sender
+  cancelled
+}
+
+enum ActorType {
+  customer
+  shop_owner
+  admin
+  courier
+  system
+}
+
+enum FulfillmentStatus {
+  pending
+  in_progress
+  completed
+  failed
+  cancelled
+}
+
+enum PackageType {
+  standard
+  fragile
+  oversized
+  liquid
+  perishable
+}
+
+enum DeliveryConfirmationType {
+  signature
+  photo
+  otp
+  none
+}
+
+enum ExceptionType {
+  weather
+  address_issue
+  customs_hold
+  damage
+  lost
+  delayed
+  recipient_unavailable
+  other
+}
+
+enum ReturnReason {
+  damaged
+  wrong_item
+  not_as_described
+  no_longer_needed
+  defective
+  arrived_late
+  other
+}
+
+enum CarrierStatus {
+  active
+  inactive
+  maintenance
+  disabled
+}
+
+enum RateCalculationStatus {
+  success
+  failed
+  pending
+}
+
+enum LabelGenerationStatus {
+  success
+  failed
+  pending
+}
+
+// ── Base tables ──────────────────────────────────────────────────────────────
+
+model User {
+  // V1: JWT + bcrypt authentication
+  // Password hash stored locally for self-contained auth
+  id               String     @id @default(uuid()) @db.Uuid
+  email            String     @unique @db.VarChar(320)
+  phone            String?    @unique @db.VarChar(20)
+  firstName        String?    @db.VarChar(120)
+  lastName         String?    @db.VarChar(120)
+  passwordHash     String?    @db.Text
+  role             UserRole   @default(customer)
+  status           UserStatus @default(pending_verification)
+  emailVerifiedAt  DateTime?  @db.Timestamptz(6)
+  locale           String     @default("en-IN") @db.VarChar(10)
+  avatarUrl        String?    @db.Text
+  isActive         Boolean    @default(true)
+  lastLoginAt      DateTime?  @db.Timestamptz(6)
+  createdAt        DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime   @updatedAt @db.Timestamptz(6)
+
+  addresses        Address[]
+  orders           Order[]
+  shops            Shop[]
+  wishlists        Wishlist[]
+  reviews          Review[]
+  sessions         Session[]
+  notifications    Notification[]
+  loginHistory     LoginHistory[]
+  passwordResets   PasswordReset[]
+  emailVerifications EmailVerification[]
+  savedPaymentMethods SavedPaymentMethod[]
+  customerPreference CustomerPreference?
+  notificationPreference NotificationPreference?
+  recentlyViewed   RecentlyViewed[]
+
+  @@index([status])
+  @@index([role])
+  @@index([email])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  refreshToken String   @unique @db.Text
+  csrfToken    String   @db.Text
+  userAgent    String?  @db.Text
+  ipAddress    String?  @db.VarChar(45)
+  expiresAt    DateTime @db.Timestamptz(6)
+  revokedAt    DateTime? @db.Timestamptz(6)
+  createdAt    DateTime @default(now()) @db.Timestamptz(6)
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([refreshToken])
+  @@map("sessions")
+}
+
+model LoginHistory {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  ipAddress     String?  @db.VarChar(45)
+  userAgent     String?  @db.Text
+  success       Boolean  @default(true)
+  failureReason String?  @db.Text
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([success])
+  @@map("login_history")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @db.Timestamptz(6)
+  used      Boolean  @default(false)
+  usedAt    DateTime? @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("password_resets")
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @db.Timestamptz(6)
+  used      Boolean  @default(false)
+  usedAt    DateTime? @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("email_verifications")
+}
+
+model Address {
+  id        String      @id @default(uuid()) @db.Uuid
+  userId    String      @db.Uuid
+  type      AddressType @default(home)
+  label     String?     @db.VarChar(60)
+  line1     String      @db.VarChar(255)
+  line2     String?     @db.VarChar(255)
+  city      String      @db.VarChar(120)
+  state     String      @db.VarChar(120)
+  postalCode String     @db.VarChar(12)
+  country   String      @default("IN") @db.VarChar(2)
+  phone     String      @db.VarChar(20)
+  isDefault Boolean     @default(false)
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime    @updatedAt @db.Timestamptz(6)
+
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+// ── Catalog (binding: B.3) ───────────────────────────────────────────────────
+
+model Category {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique @db.VarChar(120)
+  slug        String    @unique @db.VarChar(160)
+  description String?   @db.Text
+  parentId    String?   @db.Uuid
+  iconUrl     String?   @db.Text
+  banner      String?   @db.Text
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  isHidden    Boolean   @default(false)
+  metaTitle       String? @db.VarChar(300)
+  metaDescription String? @db.VarChar(500)
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+
+  parent      Category? @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  products    Product[] @relation("ProductCategory")
+  commissionRates CommissionRate[]
+
+  @@index([parentId])
+  @@index([isActive])
+  @@index([isHidden])
+  @@index([parentId, sortOrder])
+  @@index([isActive, parentId])
+  @@map("categories")
+}
+
+model Brand {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique @db.VarChar(120)
+  slug      String   @unique @db.VarChar(160)
+  logoUrl   String?  @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  products  Product[]
+
+  @@map("brands")
+}
+
+model Collection {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique @db.VarChar(120)
+  slug        String    @unique @db.VarChar(160)
+  description String?   @db.Text
+  imageUrl    String?   @db.Text
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  isFeatured  Boolean   @default(false)
+  type        CollectionType @default(manual)
+  startsAt    DateTime? @db.Timestamptz(6)
+  endsAt      DateTime? @db.Timestamptz(6)
+  metaTitle       String? @db.VarChar(300)
+  metaDescription String? @db.VarChar(500)
+  rules       Json?
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+
+  products    ProductCollection[]
+
+  @@index([isActive])
+  @@index([isFeatured])
+  @@index([type])
+  @@index([startsAt, endsAt])
+  @@index([isActive, isFeatured])
+  @@map("collections")
+}
+
+model Product {
+  id              String          @id @default(uuid()) @db.Uuid
+  categoryId      String          @db.Uuid
+  brandId         String?         @db.Uuid
+  shopId          String          @db.Uuid
+  name            String          @db.VarChar(255)
+  slug            String          @unique @db.VarChar(190)
+  shortDescription String?        @db.Text
+  description     String?         @db.Text
+  status          ProductStatus   @default(draft)
+  isFeatured      Boolean         @default(false)
+  isNew           Boolean         @default(false)
+  isTrending      Boolean         @default(false)
+  gender          Gender          @default(unisex)
+  sortOrder       Int             @default(0)
+  basePrice       Decimal         @db.Decimal(10, 2)
+  compareAtPrice  Decimal?        @db.Decimal(10, 2)
+  costPrice       Decimal?        @db.Decimal(10, 2)
+  weightGrams     Int?            @db.Integer
+  isActive        Boolean         @default(true)
+  metaTitle       String?         @db.VarChar(300)
+  metaDescription String?         @db.VarChar(500)
+  ogImage         String?         @db.Text
+  reviewCount     Int             @default(0)
+  averageRating   Decimal         @db.Decimal(3, 2) @default(0)
+  totalSold       Int             @default(0)
+  tags            String[]
+  meta            Json?
+  createdAt       DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime        @updatedAt @db.Timestamptz(6)
+
+  category        Category        @relation("ProductCategory", fields: [categoryId], references: [id])
+  brand           Brand?          @relation(fields: [brandId], references: [id])
+  shop            Shop            @relation(fields: [shopId], references: [id])
+  collections     ProductCollection[]
+  variants        ProductVariant[]
+  media           ProductMedia[]
+  attributes      ProductAttribute[]
+  reviews         Review[]
+  wishlistItems   WishlistItem[]
+  orderItems      OrderItem[]
+  cartItems       CartItem[]
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([shopId])
+  @@index([status])
+  @@index([status, isFeatured])
+  @@index([status, isNew])
+  @@index([status, isTrending])
+  @@index([status, gender, createdAt])
+  @@index([status, categoryId, sortOrder])
+  @@index([status, basePrice])
+  @@index([createdAt])
+  @@index([sortOrder])
+  @@map("products")
+}
+
+model ProductVariant {
+  id              String          @id @default(uuid()) @db.Uuid
+  productId       String          @db.Uuid
+  sku             String          @unique @db.VarChar(120)
+  name            String          @db.VarChar(255)
+  attributes      Json?           @db.Json
+  price           Decimal         @db.Decimal(10, 2)
+  compareAtPrice  Decimal?        @db.Decimal(10, 2)
+  availableStock  Int             @default(0) @db.Integer
+  reservedStock   Int             @default(0) @db.Integer
+  inventoryStatus InventoryStatus @default(out_of_stock)
+  lowStockThreshold Int           @default(10) @db.Integer
+  isActive        Boolean         @default(true)
+  sortOrder       Int             @default(0)
+  version         Int             @default(0) @db.Integer
+  createdAt       DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime        @updatedAt @db.Timestamptz(6)
+
+  product         Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  media           ProductMedia[]
+  wishlistItems   WishlistItem[]
+  orderItems      OrderItem[]
+  stockMovements  StockMovement[]
+  stockReservations StockReservation[]
+  cartItems       CartItem[]
+
+  @@index([productId, isActive])
+  @@index([isActive, availableStock])
+  @@index([inventoryStatus])
+  @@map("product_variants")
+}
+
+model ProductMedia {
+  id        String          @id @default(uuid()) @db.Uuid
+  productId String          @db.Uuid
+  variantId String?         @db.Uuid
+  type      String          @default("image") @db.VarChar(20)
+  url       String          @db.Text
+  altText   String?         @db.VarChar(255)
+  sortOrder Int             @default(0) @db.Integer
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now()) @db.Timestamptz(6)
+
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([productId])
+  @@map("product_media")
+}
+
+model ProductAttribute {
+  id        String  @id @default(uuid()) @db.Uuid
+  productId String  @db.Uuid
+  name      String  @db.VarChar(120)
+  value     String  @db.VarChar(255)
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_attributes")
+}
+
+model ProductCollection {
+  productId    String     @db.Uuid
+  collectionId String     @db.Uuid
+  createdAt    DateTime   @default(now()) @db.Timestamptz(6)
+
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([productId, collectionId])
+  @@map("product_collections")
+}
+
+model Review {
+  id        String   @id @default(uuid()) @db.Uuid
+  productId String   @db.Uuid
+  userId    String   @db.Uuid
+  rating    Int      @db.Integer
+  title     String?  @db.VarChar(255)
+  body      String?  @db.Text
+  isApproved Boolean @default(false)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([userId])
+  @@map("reviews")
+}
+
+// ── Cart & wishlist ──────────────────────────────────────────────────────────
+
+model CartItem {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String?  @db.Uuid
+  guestId         String?  @db.VarChar(64)
+  productId       String   @db.Uuid
+  variantId       String   @db.Uuid
+  quantity        Int      @default(1) @db.Integer
+  unitPrice       Decimal  @db.Decimal(10, 2)
+  lineTotal       Decimal  @db.Decimal(10, 2)
+  priceSnapshot   Json?    @db.Json
+  variantSnapshot Json?    @db.Json
+  reservedStock   Int      @default(0) @db.Integer
+  reservationId   String?  @db.Uuid
+  isActive        Boolean  @default(true)
+  addedAt         DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
+
+  product         Product        @relation(fields: [productId], references: [id])
+  variant         ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@index([userId])
+  @@index([guestId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([reservationId])
+  @@index([isActive])
+  @@unique([userId, variantId])
+  @@map("cart_items")
+}
+
+model Wishlist {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  name        String   @default("Default") @db.VarChar(100)
+  description String?  @db.Text
+  isDefault   Boolean  @default(true)
+  isShared    Boolean  @default(false)
+  shareToken  String?  @unique @db.VarChar(64)
+  shareExpiresAt DateTime? @db.Timestamptz(6)
+  itemCount   Int      @default(0) @db.Integer
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       WishlistItem[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([shareToken])
+  @@index([isActive])
+  @@map("wishlists")
+}
+
+model WishlistItem {
+  id           String   @id @default(uuid()) @db.Uuid
+  wishlistId   String   @db.Uuid
+  productId    String   @db.Uuid
+  variantId    String?  @db.Uuid
+  priceSnapshot Decimal? @db.Decimal(10, 2)
+  addedAt      DateTime @default(now()) @db.Timestamptz(6)
+  isActive     Boolean  @default(true)
+
+  wishlist     Wishlist        @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  product      Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant      ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@unique([wishlistId, productId, variantId])
+  @@index([wishlistId])
+  @@index([productId])
+  @@index([variantId])
+  @@index([addedAt])
+  @@index([isActive])
+  @@map("wishlist_items")
+}
+
+// ── Checkout ───────────────────────────────────────────────────────────────────
+
+model CheckoutSession {
+  id                String         @id @default(uuid()) @db.Uuid
+  cartId            String         @db.Uuid
+  userId            String?        @db.Uuid
+  status            CheckoutStatus @default(started)
+  shippingAddressId String?        @db.Uuid
+  billingAddressId  String?        @db.Uuid
+  shippingRateId    String?        @db.Uuid
+  shippingFee       Decimal?       @db.Decimal(10, 2)
+  totals            Json?          @db.Json
+  couponCode        String?        @db.VarChar(60)
+  couponDiscount    Decimal?       @db.Decimal(10, 2)
+  expiresAt         DateTime       @db.Timestamptz(6)
+  createdAt         DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime       @updatedAt @db.Timestamptz(6)
+
+  @@index([cartId])
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("checkout_sessions")
+}
+
+model ShippingRate {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String   @db.VarChar(255)
+  description     String?  @db.Text
+  baseRate        Decimal  @db.Decimal(10, 2)
+  ratePerKg       Decimal? @db.Decimal(10, 2)
+  freeAboveAmount Decimal? @db.Decimal(10, 2)
+  estimatedDays   Int?     @db.Integer
+  isActive        Boolean  @default(true)
+  applicableRegions Json?  @db.Json
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([isActive])
+  @@map("shipping_rates")
+}
+
+model TaxRule {
+  id                String   @id @default(uuid()) @db.Uuid
+  name              String   @db.VarChar(255)
+  rate              Decimal  @db.Decimal(5, 2)
+  type              String   @db.VarChar(50)
+  isInclusive       Boolean  @default(false)
+  applicableRegions Json?    @db.Json
+  applicableCategories Json? @db.Json
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([type])
+  @@map("tax_rules")
+}
+
+// ── Orders, payments, shipments (binding: B.4–B.6) ──────────────────────────
+
+model Order {
+  id                     String                  @id @default(uuid()) @db.Uuid
+  orderNumber            String                  @unique @db.VarChar(30)
+  userId                 String                  @db.Uuid
+  shopId                 String?                 @db.Uuid
+  status                 OrderStatus             @default(pending)
+  customerVisibleStatus  CustomerVisibleOrderStatus @default(pending)
+  paymentStatus          PaymentStatus           @default(pending)
+  paymentSubStatus       OrderPaymentSubStatus?
+  refundStatus           RefundStatus?
+  shipmentStatus         ShipmentStatus?
+  settlementStatus       SettlementStatus?
+  itemsSubtotal          Decimal                 @db.Decimal(10, 2)
+  shippingTotal          Decimal                 @default(0) @db.Decimal(10, 2)
+  discountTotal          Decimal                 @default(0) @db.Decimal(10, 2)
+  taxTotal               Decimal                 @default(0) @db.Decimal(10, 2)
+  grandTotal             Decimal                 @db.Decimal(10, 2)
+  currency               String                  @default("INR") @db.VarChar(3)
+  billingAddressId       String?                 @db.Uuid
+  shippingAddressId      String?                 @db.Uuid
+  billingSnapshot        Json?                   @db.Json
+  shippingSnapshot       Json?                   @db.Json
+  paymentMethod          PaymentMethod?
+  razorpayOrderId        String?                 @db.VarChar(64)
+  razorpayPaymentId      String?                 @db.VarChar(64)
+  couponCode             String?                 @db.VarChar(60)
+  notes                  String?                 @db.Text
+  placedAt               DateTime                @default(now()) @db.Timestamptz(6)
+  isActive               Boolean                 @default(true)
+  createdAt              DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt              DateTime                @updatedAt @db.Timestamptz(6)
+  // Commission snapshot at order time for financial integrity
+  commissionRate         Decimal?                @db.Decimal(5, 2)
+  commissionAmount       Decimal?                @db.Decimal(10, 2)
+  commissionSnapshot     Json?                   @db.Json
+
+  user                   User                    @relation(fields: [userId], references: [id])
+  shop                   Shop?                   @relation(fields: [shopId], references: [id])
+  items                  OrderItem[]
+  shipments              Shipment[]
+  payments               Payment[]
+  refunds                Refund[]
+  returnRequests         ReturnRequest[]
+  timelineEvents         TimelineEvent[]
+  financeRecords         FinanceRecord[]
+  settlementItems        SettlementItem[]
+  codOrder               CodOrder?
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([placedAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String         @id @default(uuid()) @db.Uuid
+  orderId       String         @db.Uuid
+  productId     String         @db.Uuid
+  variantId     String         @db.Uuid
+  productName   String         @db.VarChar(255)
+  variantName   String         @db.VarChar(255)
+  sku           String         @db.VarChar(120)
+  unitPrice     Decimal        @db.Decimal(10, 2)
+  quantity      Int            @db.Integer
+  lineTotal     Decimal        @db.Decimal(10, 2)
+  discountTotal Decimal        @default(0) @db.Decimal(10, 2)
+  imageUrl      String?        @db.Text
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now()) @db.Timestamptz(6)
+
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product        @relation(fields: [productId], references: [id])
+  variant       ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model Shipment {
+  id                    String          @id @default(uuid()) @db.Uuid
+  orderId               String          @db.Uuid
+  status                ShipmentStatus  @default(shipment_created)
+  trackingNumber        String?         @unique @db.VarChar(120)
+  carrierCode           String?         @db.VarChar(120)
+  carrierName           String?         @db.VarChar(255)
+  shippingMethod        ShippingMethod  @default(standard)
+  estimatedDeliveryDate DateTime?       @db.Timestamptz(6)
+  actualDeliveryDate    DateTime?       @db.Timestamptz(6)
+  shippedAt             DateTime?       @db.Timestamptz(6)
+  deliveredAt           DateTime?       @db.Timestamptz(6)
+  weight                Int             @default(0) @db.Integer
+  length                Int             @default(0) @db.Integer
+  width                 Int             @default(0) @db.Integer
+  height                Int             @default(0) @db.Integer
+  shippingAddress       Json            @db.Json
+  shippingCost          Decimal         @default(0) @db.Decimal(10, 2)
+  isActive              Boolean         @default(true)
+  createdAt             DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime        @updatedAt @db.Timestamptz(6)
+
+  order                 Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items                 ShipmentItem[]
+  events                ShipmentEvent[]
+
+  @@index([orderId])
+  @@index([status])
+  @@index([trackingNumber])
+  @@index([carrierCode])
+  @@map("shipments")
+}
+
+model ShipmentItem {
+  id              String      @id @default(uuid()) @db.Uuid
+  shipmentId      String      @db.Uuid
+  orderItemId     String      @db.Uuid
+  variantId       String      @db.Uuid
+  productName     String      @db.VarChar(255)
+  variantSku      String      @db.VarChar(120)
+  quantity        Int         @db.Integer
+  unitPrice       Decimal     @db.Decimal(10, 2)
+  totalPrice      Decimal     @db.Decimal(10, 2)
+  packageType     PackageType @default(standard)
+  isFragile       Boolean     @default(false)
+  createdAt       DateTime    @default(now()) @db.Timestamptz(6)
+
+  shipment        Shipment    @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([orderItemId])
+  @@index([variantId])
+  @@map("shipment_items")
+}
+
+model ShipmentEvent {
+  id              String            @id @default(uuid()) @db.Uuid
+  shipmentId      String            @db.Uuid
+  status          TrackingEventType
+  location        String?           @db.VarChar(255)
+  description     String            @db.Text
+  actorType       ActorType
+  actorId         String?           @db.Uuid
+  metadata        Json?             @db.Json
+  createdAt       DateTime          @default(now()) @db.Timestamptz(6)
+
+  shipment        Shipment          @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("shipment_events")
+}
+
+model Carrier {
+  id                    String        @id @default(uuid()) @db.Uuid
+  code                  CarrierType   @unique
+  name                  String        @db.VarChar(255)
+  displayName           String        @db.VarChar(255)
+  status                CarrierStatus @default(active)
+  apiEnabled            Boolean       @default(false)
+  config                Json          @db.Json
+  trackingUrlTemplate   String?       @db.VarChar(500)
+  isActive              Boolean       @default(true)
+  createdAt             DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime      @updatedAt @db.Timestamptz(6)
+
+  @@index([status])
+  @@index([code])
+  @@map("carriers")
+}
+
+model FulfillmentQueue {
+  id              String            @id @default(uuid()) @db.Uuid
+  orderId         String            @db.Uuid
+  shipmentId      String?           @db.Uuid
+  status          FulfillmentStatus @default(pending)
+  priority        Int               @default(0) @db.Integer
+  assignedTo      String?           @db.Uuid
+  assignedAt      DateTime?         @db.Timestamptz(6)
+  startedAt       DateTime?         @db.Timestamptz(6)
+  completedAt     DateTime?         @db.Timestamptz(6)
+  metadata        Json?             @db.Json
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime          @updatedAt @db.Timestamptz(6)
+
+  @@index([orderId])
+  @@index([shipmentId])
+  @@index([status])
+  @@index([assignedTo])
+  @@map("fulfillment_queue")
+}
+
+model PickListItem {
+  id                  String   @id @default(uuid()) @db.Uuid
+  fulfillmentQueueId   String   @db.Uuid
+  variantId           String   @db.Uuid
+  variantSku          String   @db.VarChar(120)
+  productName         String   @db.VarChar(255)
+  quantity            Int      @db.Integer
+  location            String   @db.VarChar(255)
+  picked              Boolean  @default(false)
+  pickedAt            DateTime? @db.Timestamptz(6)
+  pickedBy            String?  @db.Uuid
+  createdAt           DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([fulfillmentQueueId])
+  @@index([variantId])
+  @@map("pick_list_items")
+}
+
+model ShippingLabel {
+  id              String                @id @default(uuid()) @db.Uuid
+  shipmentId      String                @db.Uuid
+  carrierCode     CarrierType
+  trackingNumber  String                @db.VarChar(120)
+  labelUrl        String?               @db.VarChar(500)
+  labelData       String?               @db.Text
+  status          LabelGenerationStatus @default(pending)
+  generatedAt     DateTime              @default(now()) @db.Timestamptz(6)
+  generatedBy     String                @db.Uuid
+
+  @@index([shipmentId])
+  @@map("shipping_labels")
+}
+
+model ShippingException {
+  id              String        @id @default(uuid()) @db.Uuid
+  shipmentId      String        @db.Uuid
+  exceptionType   ExceptionType
+  description     String        @db.Text
+  resolved        Boolean       @default(false)
+  resolvedAt      DateTime?     @db.Timestamptz(6)
+  resolvedBy      String?       @db.Uuid
+  resolution      String?       @db.Text
+  metadata        Json?         @db.Json
+  createdAt       DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime      @updatedAt @db.Timestamptz(6)
+
+  @@index([shipmentId])
+  @@index([resolved])
+  @@map("shipping_exceptions")
+}
+
+model DeliveryConfirmation {
+  id                String                  @id @default(uuid()) @db.Uuid
+  shipmentId        String                  @db.Uuid
+  confirmationType  DeliveryConfirmationType
+  confirmedAt       DateTime                @default(now()) @db.Timestamptz(6)
+  confirmedBy       String                  @db.Uuid
+  signature         String?                 @db.Text
+  photoUrl          String?                 @db.VarChar(500)
+  otp               String?                 @db.VarChar(20)
+  metadata          Json?                   @db.Json
+
+  @@index([shipmentId])
+  @@map("delivery_confirmations")
+}
+
+model Payment {
+  id            String        @id @default(uuid()) @db.Uuid
+  orderId       String        @db.Uuid
+  method        PaymentMethod
+  status        PaymentStatus @default(pending)
+  amount        Decimal       @db.Decimal(10, 2)
+  currency      String        @default("INR") @db.VarChar(3)
+  // Gateway provider adapter (binding: PAYMENT §3 — no gateway logic in business modules).
+  provider      String?       @db.VarChar(40)
+  // Gateway transaction reference (provider-neutral; razorpay* fields are legacy).
+  gatewayReference String?    @db.VarChar(120)
+  razorpayOrderId String?      @db.VarChar(64)
+  razorpayPaymentId String?    @db.VarChar(64)
+  razorpaySignature String?    @db.VarChar(255)
+  failureReason  String?       @db.Text
+  // Payment window (binding: PAYMENT §4.8 — 15 minutes) and idempotency (DB §7.3).
+  expiresAt      DateTime?     @db.Timestamptz(6)
+  idempotencyKey String?       @db.VarChar(120)
+  metadata       Json?         @db.Json
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(6)
+
+  order         Order          @relation(fields: [orderId], references: [id])
+  refunds       Refund[]
+  transactions  PaymentTransaction[]
+
+  @@unique([idempotencyKey])
+  @@index([orderId])
+  @@index([status])
+  @@index([provider])
+  @@map("payments")
+}
+
+model Refund {
+  id            String        @id @default(uuid()) @db.Uuid
+  orderId       String        @db.Uuid
+  paymentId     String?       @db.Uuid
+  type          RefundType    @default(partial)
+  amount        Decimal       @db.Decimal(10, 2)
+  currency      String        @default("INR") @db.VarChar(3)
+  status        RefundStatus  @default(pending)
+  reason        String?       @db.Text
+  gatewayReference String?     @db.VarChar(120)
+  idempotencyKey String?       @db.VarChar(120)
+  completedAt   DateTime?      @db.Timestamptz(6)
+  razorpayRefundId String?     @db.VarChar(64)
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(6)
+
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment       Payment?       @relation(fields: [paymentId], references: [id])
+
+  @@unique([idempotencyKey])
+  @@index([orderId])
+  @@map("refunds")
+}
+
+model ReturnRequest {
+  id                  String              @id @default(uuid()) @db.Uuid
+  orderNumber         String              @db.VarChar(30)
+  orderId             String              @db.Uuid
+  profileId           String              @db.Uuid
+  shopId              String              @db.Uuid
+  status              ReturnRequestStatus @default(return_requested)
+  returnType          ReturnType
+  reason              ReturnReason
+  reasonDetail        String?             @db.Text
+  requestedAt         DateTime            @default(now()) @db.Timestamptz(6)
+  approvedAt          DateTime?           @db.Timestamptz(6)
+  rejectedAt          DateTime?           @db.Timestamptz(6)
+  rejectedReason      String?             @db.Text
+  approvedBy          String?             @db.Uuid
+  rejectedBy          String?             @db.Uuid
+  totalRefundAmount   Decimal             @db.Decimal(10, 2)
+  refundMethod        RefundMethod
+  refundStatus        RefundStatus        @default(pending)
+  refundCompletedAt   DateTime?           @db.Timestamptz(6)
+  refundGatewayRef    String?             @db.VarChar(120)
+  customerNotes       String?             @db.Text
+  internalNotes       String?             @db.Text
+  evidenceUrls        String[]            @default([])
+  metadata            Json?
+  isActive            Boolean             @default(true)
+  createdAt           DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime            @updatedAt @db.Timestamptz(6)
+
+  order               Order               @relation(fields: [orderId], references: [id])
+  items               ReturnItem[]
+  statusHistory       ReturnStatusHistory[]
+  refunds             ReturnRefund[]
+  reverseLogistics    ReverseLogistics[]
+  disputes            Dispute[]
+
+  @@index([orderId])
+  @@index([profileId])
+  @@index([shopId])
+  @@index([status])
+  @@index([requestedAt])
+  @@map("return_requests")
+}
+
+model ReturnItem {
+  id                      String                  @id @default(uuid()) @db.Uuid
+  returnRequestId         String                  @db.Uuid
+  orderItemId             String                  @db.Uuid
+  variantId               String                  @db.Uuid
+  productId               String                  @db.Uuid
+  productName             String                  @db.VarChar(255)
+  variantSku              String                  @db.VarChar(120)
+  quantity                Int                     @db.Integer
+  unitPrice               Decimal                 @db.Decimal(10, 2)
+  totalPrice              Decimal                 @db.Decimal(10, 2)
+  reason                  ReturnReason
+  reasonDetail            String?                 @db.Text
+  condition               String                  @db.VarChar(255)
+  inspectionResult        InspectionResult?
+  inspectionFailureReason InspectionFailureReason?
+  inspectedAt             DateTime?               @db.Timestamptz(6)
+  inspectedBy             String?                 @db.Uuid
+  dispositionAction       DispositionAction?
+  restockStatus           RestockStatus?
+  restockedAt             DateTime?               @db.Timestamptz(6)
+  metadata                Json?
+  createdAt               DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime                @updatedAt @db.Timestamptz(6)
+
+  returnRequest           ReturnRequest           @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  inspections             Inspection[]
+
+  @@index([returnRequestId])
+  @@index([orderItemId])
+  @@index([variantId])
+  @@map("return_items")
+}
+
+model ReturnStatusHistory {
+  id              String              @id @default(uuid()) @db.Uuid
+  returnRequestId String              @db.Uuid
+  fromStatus      ReturnRequestStatus
+  toStatus        ReturnRequestStatus
+  actorId         String              @db.Uuid
+  actorType       ActorType
+  reason          String?             @db.Text
+  metadata        Json?
+  createdAt       DateTime            @default(now()) @db.Timestamptz(6)
+
+  returnRequest   ReturnRequest       @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+
+  @@index([returnRequestId])
+  @@index([createdAt])
+  @@map("return_status_history")
+}
+
+model ReturnRefund {
+  id                String        @id @default(uuid()) @db.Uuid
+  returnRequestId   String        @db.Uuid
+  paymentId         String        @db.Uuid
+  orderId           String        @db.Uuid
+  profileId         String        @db.Uuid
+  shopId            String        @db.Uuid
+  amount            Decimal       @db.Decimal(10, 2)
+  currency          String        @default("INR") @db.VarChar(3)
+  status            RefundStatus  @default(pending)
+  method            RefundMethod
+  reason            String        @db.Text
+  gatewayRef        String?       @db.VarChar(120)
+  gatewayStatus     String?       @db.VarChar(120)
+  initiatedAt       DateTime      @default(now()) @db.Timestamptz(6)
+  completedAt       DateTime?     @db.Timestamptz(6)
+  failedAt          DateTime?     @db.Timestamptz(6)
+  failureReason     String?       @db.Text
+  initiatedBy       String        @db.Uuid
+  completedBy       String?       @db.Uuid
+  metadata          Json?
+  createdAt         DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @db.Timestamptz(6)
+
+  returnRequest     ReturnRequest @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+
+  @@index([returnRequestId])
+  @@index([paymentId])
+  @@index([orderId])
+  @@index([status])
+  @@map("return_refunds")
+}
+
+model Inspection {
+  id                  String                  @id @default(uuid()) @db.Uuid
+  returnRequestId     String                  @db.Uuid
+  returnItemId        String                  @db.Uuid
+  inspectedBy         String                  @db.Uuid
+  inspectedAt         DateTime                @default(now()) @db.Timestamptz(6)
+  result              InspectionResult
+  failureReason       InspectionFailureReason?
+  conditionNotes      String?                 @db.Text
+  imageUrls           String[]                @default([])
+  dispositionAction   DispositionAction
+  restockable         Boolean
+  refurbishable       Boolean
+  repairable          Boolean
+  disposalReason      String?                 @db.Text
+  metadata            Json?
+  createdAt           DateTime                @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime                @updatedAt @db.Timestamptz(6)
+
+  returnItem          ReturnItem              @relation(fields: [returnItemId], references: [id], onDelete: Cascade)
+
+  @@index([returnRequestId])
+  @@index([returnItemId])
+  @@index([inspectedAt])
+  @@map("inspections")
+}
+
+model ReverseLogistics {
+  id                    String                @id @default(uuid()) @db.Uuid
+  returnRequestId       String                @db.Uuid
+  status                ReverseLogisticsStatus @default(awaiting_pickup)
+  pickupAddress         Json                  @db.Json
+  pickupScheduledAt     DateTime?             @db.Timestamptz(6)
+  pickupCompletedAt     DateTime?             @db.Timestamptz(6)
+  pickupCourier         String?               @db.VarChar(255)
+  trackingNumber        String?               @db.VarChar(120)
+  warehouseId           String?               @db.Uuid
+  warehouseReceivedAt    DateTime?             @db.Timestamptz(6)
+  inspectionQueuedAt    DateTime?             @db.Timestamptz(6)
+  inspectionStartedAt    DateTime?             @db.Timestamptz(6)
+  inspectionCompletedAt   DateTime?             @db.Timestamptz(6)
+  restockingStartedAt    DateTime?             @db.Timestamptz(6)
+  restockingCompletedAt  DateTime?             @db.Timestamptz(6)
+  disposalCompletedAt    DateTime?             @db.Timestamptz(6)
+  completedAt           DateTime?             @db.Timestamptz(6)
+  metadata              Json?
+  createdAt             DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime              @updatedAt @db.Timestamptz(6)
+
+  returnRequest         ReturnRequest         @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+
+  @@index([returnRequestId])
+  @@index([status])
+  @@index([trackingNumber])
+  @@map("reverse_logistics")
+}
+
+model Dispute {
+  id                    String            @id @default(uuid()) @db.Uuid
+  returnRequestId       String            @db.Uuid
+  orderId               String            @db.Uuid
+  profileId             String            @db.Uuid
+  shopId                String            @db.Uuid
+  status                DisputeStatus     @default(open)
+  raisedBy              String            @db.Uuid
+  raisedAt              DateTime          @default(now()) @db.Timestamptz(6)
+  reason                String            @db.Text
+  reasonDetail          String?           @db.Text
+  resolution            DisputeResolution?
+  resolvedBy            String?           @db.Uuid
+  resolvedAt            DateTime?         @db.Timestamptz(6)
+  resolutionNotes       String?           @db.Text
+  escalatedBy           String?           @db.Uuid
+  escalatedAt           DateTime?         @db.Timestamptz(6)
+  escalationReason      String?           @db.Text
+  internalNotes         String?           @db.Text
+  customerVisibleNotes  String?           @db.Text
+  metadata              Json?
+  createdAt             DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime          @updatedAt @db.Timestamptz(6)
+
+  returnRequest         ReturnRequest     @relation(fields: [returnRequestId], references: [id], onDelete: Cascade)
+  messages              DisputeMessage[]
+
+  @@index([returnRequestId])
+  @@index([orderId])
+  @@index([profileId])
+  @@index([shopId])
+  @@index([status])
+  @@map("disputes")
+}
+
+model DisputeMessage {
+  id            String   @id @default(uuid()) @db.Uuid
+  disputeId     String   @db.Uuid
+  senderId      String   @db.Uuid
+  senderType    ActorType
+  message       String   @db.Text
+  isInternal    Boolean  @default(false)
+  attachments   String[] @default([])
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+
+  dispute       Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+
+  @@index([disputeId])
+  @@index([createdAt])
+  @@map("dispute_messages")
+}
+
+model ReturnPolicy {
+  id                         String            @id @default(uuid()) @db.Uuid
+  shopId                     String            @db.Uuid
+  policyType                 ReturnPolicyType
+  name                       String            @db.VarChar(255)
+  description                String?           @db.Text
+  returnWindowDays           Int               @db.Integer
+  eligibleProductCategories String[]          @default([])
+  ineligibleProductCategories String[]         @default([])
+  requiresApproval           Boolean           @default(false)
+  requiresOriginalPackaging  Boolean           @default(true)
+  requiresProofOfPurchase    Boolean           @default(true)
+  customerPaysReturnShipping Boolean           @default(false)
+  restockingFeePercentage    Decimal?          @db.Decimal(5, 2)
+  maxReturnsPerOrder         Int?              @db.Integer
+  maxReturnsPerCustomer      Int?              @db.Integer
+  maxReturnsPerPeriod        Int?              @db.Integer
+  returnPeriodDays           Int?              @db.Integer
+  conditions                 String[]          @default([])
+  isActive                   Boolean           @default(true)
+  effectiveFrom              DateTime          @default(now()) @db.Timestamptz(6)
+  effectiveUntil             DateTime?         @db.Timestamptz(6)
+  metadata                   Json?
+  createdAt                  DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt                  DateTime          @updatedAt @db.Timestamptz(6)
+
+  @@index([shopId])
+  @@index([isActive])
+  @@index([effectiveFrom, effectiveUntil])
+  @@map("return_policies")
+}
+
+model TimelineEvent {
+  id               String               @id @default(uuid()) @db.Uuid
+  orderId          String               @db.Uuid
+  type             TimelineEventType
+  description       String               @db.Text
+  priority         TimelineEventPriority @default(normal)
+  customerVisible  Boolean              @default(true)
+  metadata         Json?
+  performedBy      String?              @db.Uuid
+  performedByType  String?              @db.VarChar(50)
+  occurredAt       DateTime             @default(now()) @db.Timestamptz(6)
+  isActive         Boolean              @default(true)
+  createdAt        DateTime             @default(now()) @db.Timestamptz(6)
+
+  order            Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([type])
+  @@index([occurredAt])
+  @@index([customerVisible])
+  @@index([orderId, occurredAt])
+  @@map("timeline_events")
+}
+
+// ── Inventory & Warehouse Management ───────────────────────────────────────────
+
+model Warehouse {
+  id          String          @id @default(uuid()) @db.Uuid
+  name        String          @db.VarChar(255)
+  code        String          @unique @db.VarChar(50)
+  address     String          @db.Text
+  city        String          @db.VarChar(120)
+  state       String          @db.VarChar(120)
+  postalCode  String          @db.VarChar(12)
+  country     String          @default("IN") @db.VarChar(2)
+  phone       String?         @db.VarChar(20)
+  email       String?         @db.VarChar(255)
+  status      WarehouseStatus @default(active)
+  priority    Int             @default(0) @db.Integer
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime        @updatedAt @db.Timestamptz(6)
+
+  stockMovements StockMovement[]
+  stockReservations StockReservation[]
+
+  @@index([status])
+  @@index([priority])
+  @@map("warehouses")
+}
+
+model StockMovement {
+  id              String           @id @default(uuid()) @db.Uuid
+  variantId       String           @db.Uuid
+  warehouseId     String?          @db.Uuid
+  type            StockMovementType
+  quantity        Int              @db.Integer
+  previousStock   Int              @db.Integer
+  newStock        Int              @db.Integer
+  reason          String?          @db.Text
+  referenceId     String?          @db.VarChar(255)
+  referenceType   String?          @db.VarChar(50)
+  performedBy     String?          @db.Uuid
+  performedByType String?          @db.VarChar(50)
+  metadata        Json?
+  createdAt       DateTime         @default(now()) @db.Timestamptz(6)
+
+  variant         ProductVariant   @relation(fields: [variantId], references: [id])
+  warehouse       Warehouse?      @relation(fields: [warehouseId], references: [id])
+
+  @@index([variantId])
+  @@index([warehouseId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([variantId, createdAt])
+  @@map("stock_movements")
+}
+
+model StockReservation {
+  id              String            @id @default(uuid()) @db.Uuid
+  variantId       String            @db.Uuid
+  warehouseId     String?           @db.Uuid
+  orderId         String?           @db.Uuid
+  cartId          String?           @db.VarChar(64)
+  quantity        Int               @db.Integer
+  status          ReservationStatus @default(active)
+  expiresAt       DateTime          @db.Timestamptz(6)
+  releasedAt      DateTime?         @db.Timestamptz(6)
+  convertedAt     DateTime?         @db.Timestamptz(6)
+  metadata        Json?
+  createdAt       DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime          @updatedAt @db.Timestamptz(6)
+
+  variant         ProductVariant   @relation(fields: [variantId], references: [id])
+  warehouse       Warehouse?       @relation(fields: [warehouseId], references: [id])
+
+  @@index([variantId, status])
+  @@index([warehouseId, status])
+  @@index([orderId])
+  @@index([cartId])
+  @@index([expiresAt])
+  @@index([status, expiresAt])
+  @@index([expiresAt, status])
+  @@map("stock_reservations")
+}
+
+model LowStockAlert {
+  id              String   @id @default(uuid()) @db.Uuid
+  variantId       String   @db.Uuid
+  currentStock    Int      @db.Integer
+  threshold       Int      @db.Integer
+  isAcknowledged Boolean  @default(false)
+  acknowledgedBy String?  @db.Uuid
+  acknowledgedAt DateTime? @db.Timestamptz(6)
+  metadata        Json?
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([variantId])
+  @@index([isAcknowledged])
+  @@index([createdAt])
+  @@map("low_stock_alerts")
+}
+
+model InventorySettings {
+  id                String   @id @default(uuid()) @db.Uuid
+  shopId            String?  @db.Uuid
+  lowStockThreshold Int      @default(10) @db.Integer
+  reservationTimeout Int     @default(15) @db.Integer
+  enableAutoRestock Boolean  @default(false)
+  restockThreshold  Int?     @db.Integer
+  restockQuantity   Int?     @db.Integer
+  metadata          Json?
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([shopId])
+  @@map("inventory_settings")
+}
+
+// ── Marketing ────────────────────────────────────────────────────────────────
+
+model Coupon {
+  id             String     @id @default(uuid()) @db.Uuid
+  code           String     @unique @db.VarChar(60)
+  type           CouponType @default(percentage)
+  value          Decimal    @db.Decimal(10, 2)
+  maxDiscount    Decimal?   @db.Decimal(10, 2)
+  minOrderAmount Decimal?   @db.Decimal(10, 2)
+  maxUses        Int?       @db.Integer
+  usedCount      Int        @default(0) @db.Integer
+  validFrom      DateTime?  @db.Timestamptz(6)
+  validUntil     DateTime?  @db.Timestamptz(6)
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime   @updatedAt @db.Timestamptz(6)
+
+  @@index([validUntil])
+  @@map("coupons")
+}
+
+// ── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String             @id @default(uuid()) @db.Uuid
+  userId    String             @db.Uuid
+  type      NotificationType   @default(order_update)
+  channel   NotificationChannel @default(in_app)
+  title     String             @db.VarChar(255)
+  body      String             @db.Text
+  link      String?            @db.Text
+  status    NotificationStatus @default(unread)
+  readAt    DateTime?          @db.Timestamptz(6)
+  isActive  Boolean            @default(true)
+  createdAt DateTime           @default(now()) @db.Timestamptz(6)
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ── Search Index (binding: SEARCH_ENGINE_ARCHITECTURE.md §7) ───────────────────────
+
+model SearchDocument {
+  id               String   @id @default(uuid()) @db.Uuid
+  productId        String?  @db.Uuid
+  name             String   @db.VarChar(255)
+  description      String?  @db.Text
+  categoryName     String?  @db.VarChar(120)
+  brand            String?  @db.VarChar(120)
+  tags             String[]
+  price            Decimal? @db.Decimal(10, 2)
+  rating           Decimal? @db.Decimal(3, 2)
+  reviewCount      Int?     @db.Integer
+  stockStatus      String?  @db.VarChar(50)
+  popularityScore  Decimal  @default(0) @db.Decimal(10, 2)
+  recencyScore     Decimal  @default(0) @db.Decimal(10, 2)
+  businessBoost    Decimal  @default(1.0) @db.Decimal(5, 2)
+  attributes       Json?
+  updatedAt        DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([productId])
+  @@index([name])
+  @@index([categoryName])
+  @@index([brand])
+  @@index([price])
+  @@index([rating])
+  @@index([stockStatus])
+  @@index([popularityScore])
+  @@index([recencyScore])
+  @@map("search_documents")
+}
+
+model SearchHistory {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  guestId   String?  @db.VarChar(64)
+  query     String   @db.VarChar(200)
+  results   Int      @default(0) @db.Integer
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([userId])
+  @@index([guestId])
+  @@index([createdAt])
+  @@map("search_history")
+}
+
+model TrendingSearch {
+  id        String   @id @default(uuid()) @db.Uuid
+  query     String   @unique @db.VarChar(200)
+  count     Int      @default(0) @db.Integer
+  window    String   @default("7d") @db.VarChar(10)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([count])
+  @@index([window])
+  @@map("trending_searches")
+}
+
+// ---------------------------------------------------------------------------
+// Payment & Finance Engine tables
+// Source: DATABASE_SPECIFICATION.md §4.7/§4.9, PAYMENT_ENGINE_ARCHITECTURE.md,
+// FINANCE_ENGINE_ARCHITECTURE.md, MASTER_ARCHITECTURE_BLUEPRINT.md B.3/B.4.
+// All finance rows are append-only facts; corrections are new rows (reversal).
+// ---------------------------------------------------------------------------
+
+model Shop {
+  id            String          @id @default(uuid()) @db.Uuid
+  ownerId       String          @unique @db.Uuid
+  name          String          @db.VarChar(120)
+  slug          String          @unique @db.VarChar(120)
+  status        ShopStatus      @default(pending)
+  payoutMethod  PayoutMethod    @default(digital)
+  payoutDetails Json?           @db.Json
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime        @updatedAt @db.Timestamptz(6)
+
+  owner          User            @relation(fields: [ownerId], references: [id])
+  products       Product[]
+  orders         Order[]
+  settlements    Settlement[]
+  payouts        Payout[]
+  payoutAccounts PayoutAccount[]
+  commissionRates CommissionRate[]
+
+  @@index([status])
+  @@map("shops")
+}
+
+model PayoutAccount {
+  id        String            @id @default(uuid()) @db.Uuid
+  shopId    String            @db.Uuid
+  type      PayoutAccountType
+  details   Json              @db.Json
+  isDefault Boolean           @default(false)
+  isActive  Boolean           @default(true)
+  createdAt DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime          @updatedAt @db.Timestamptz(6)
+
+  shop      Shop              @relation(fields: [shopId], references: [id])
+  payouts   Payout[]
+
+  @@index([shopId])
+  @@map("payout_accounts")
+}
+
+// Immutable gateway transaction record (binding: DATABASE §4.7.3). Append-only.
+model PaymentTransaction {
+  id               String                    @id @default(uuid()) @db.Uuid
+  paymentId        String                    @db.Uuid
+  type             PaymentTransactionType
+  amount           Decimal                   @db.Decimal(10, 2)
+  currency         String                    @default("INR") @db.VarChar(3)
+  status           PaymentTransactionStatus  @default(pending)
+  gatewayReference String?                   @db.VarChar(120)
+  gatewayResponse  Json?                     @db.Json
+  failureCode      String?                   @db.VarChar(80)
+  failureMessage   String?                   @db.Text
+  idempotencyKey   String                    @db.VarChar(120)
+  createdAt        DateTime                  @default(now()) @db.Timestamptz(6)
+
+  payment          Payment                   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@unique([idempotencyKey])
+  @@index([paymentId])
+  @@index([gatewayReference])
+  @@map("payment_transactions")
+}
+
+// Inbound webhook idempotency + replay log (binding: REST §9.3, PAY-07).
+model WebhookEvent {
+  id            String             @id @default(uuid()) @db.Uuid
+  provider      String             @db.VarChar(40)
+  eventId       String             @db.VarChar(120)
+  eventType     String             @db.VarChar(80)
+  payloadHash   String             @db.VarChar(64)
+  payload       String?            @db.Text
+  status        WebhookEventStatus @default(received)
+  failureReason String?            @db.Text
+  processedAt   DateTime?          @db.Timestamptz(6)
+  createdAt     DateTime           @default(now()) @db.Timestamptz(6)
+
+  @@unique([provider, eventId])
+  @@index([status])
+  @@map("webhook_events")
+}
+
+// Master ledger of every financial event for an order (binding: DATABASE §4.9.1,
+// FINANCE §5, ML-10 — records created on order confirmed).
+model FinanceRecord {
+  id            String              @id @default(uuid()) @db.Uuid
+  orderId       String              @db.Uuid
+  recordNumber  String              @unique @db.VarChar(30)
+  type          FinanceRecordType
+  amount        Decimal             @db.Decimal(10, 2)
+  currency      String              @default("INR") @db.VarChar(3)
+  status        FinanceRecordStatus @default(pending)
+  referenceType String?             @db.VarChar(50)
+  referenceId   String?             @db.Uuid
+  metadata      Json?               @db.Json
+  postedAt      DateTime?           @db.Timestamptz(6)
+  createdAt     DateTime            @default(now()) @db.Timestamptz(6)
+
+  order         Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ledgerEntries LedgerEntry[]
+
+  @@index([orderId])
+  @@index([referenceType, referenceId])
+  @@map("finance_records")
+}
+
+// Double-entry posting detail — every FinanceRecord's entries sum to zero
+// (binding: DATABASE §4.9.2). Append-only.
+model LedgerEntry {
+  id              String        @id @default(uuid()) @db.Uuid
+  financeRecordId String        @db.Uuid
+  account         LedgerAccount
+  side            LedgerSide
+  amount          Decimal       @db.Decimal(10, 2)
+  createdAt       DateTime      @default(now()) @db.Timestamptz(6)
+
+  financeRecord   FinanceRecord @relation(fields: [financeRecordId], references: [id], onDelete: Cascade)
+
+  @@index([financeRecordId])
+  @@index([account])
+  @@map("ledger_entries")
+}
+
+// Seller payout cycle per shop per period (binding: DATABASE §4.9.3,
+// FINANCE §4, Blueprint B.4). Idempotent per (shopId, periodStart, periodEnd).
+model Settlement {
+  id               String           @id @default(uuid()) @db.Uuid
+  settlementNumber String           @unique @db.VarChar(30)
+  shopId           String           @db.Uuid
+  periodStart      DateTime         @db.Timestamptz(6)
+  periodEnd        DateTime         @db.Timestamptz(6)
+  status           SettlementStatus @default(pending)
+  grossAmount      Decimal          @db.Decimal(10, 2)
+  commissionAmount Decimal          @default(0) @db.Decimal(10, 2)
+  refundAdjustment Decimal          @default(0) @db.Decimal(10, 2)
+  netAmount        Decimal          @db.Decimal(10, 2)
+  currency         String           @default("INR") @db.VarChar(3)
+  payoutMethod     PayoutMethod     @default(digital)
+  payoutReference  String?          @db.VarChar(120)
+  payoutGatewayReference String?    @db.VarChar(120)
+  approvalReason   String?          @db.Text
+  rejectionReason  String?          @db.Text
+  approvedBy       String?          @db.Uuid
+  approvedAt       DateTime?        @db.Timestamptz(6)
+  completedAt      DateTime?        @db.Timestamptz(6)
+  paidAt           DateTime?        @db.Timestamptz(6)
+  isActive         Boolean          @default(true)
+  createdAt        DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime         @updatedAt @db.Timestamptz(6)
+
+  shop             Shop             @relation(fields: [shopId], references: [id])
+  items            SettlementItem[]
+  payouts          Payout[]
+
+  @@unique([shopId, periodStart, periodEnd])
+  @@index([status])
+  @@index([shopId])
+  @@map("settlements")
+}
+
+// Settlement line detail per order (binding: DATABASE §4.9.4).
+model SettlementItem {
+  id               String     @id @default(uuid()) @db.Uuid
+  settlementId     String     @db.Uuid
+  orderId          String     @db.Uuid
+  grossAmount      Decimal    @db.Decimal(10, 2)
+  commissionAmount Decimal    @default(0) @db.Decimal(10, 2)
+  refundAdjustment Decimal    @default(0) @db.Decimal(10, 2)
+  netAmount        Decimal    @db.Decimal(10, 2)
+
+  settlement       Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  order            Order      @relation(fields: [orderId], references: [id])
+
+  @@unique([settlementId, orderId])
+  @@index([orderId])
+  @@map("settlement_items")
+}
+
+// Commission definitions — platform default + category/shop overrides
+// (binding: DATABASE §4.9.5, FINANCE §3, ML-05). Versioned by date range;
+// rates snapshot per order at confirmation — never applied retroactively.
+model CommissionRate {
+  id            String           @id @default(uuid()) @db.Uuid
+  scope         CommissionScope
+  shopId        String?          @db.Uuid
+  categoryId    String?          @db.Uuid
+  rate          Decimal          @db.Decimal(4, 2)
+  effectiveFrom DateTime         @db.Date
+  effectiveTo   DateTime?        @db.Date
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime         @updatedAt @db.Timestamptz(6)
+
+  shop           Shop?            @relation(fields: [shopId], references: [id])
+  category       Category?        @relation(fields: [categoryId], references: [id])
+
+  @@index([scope, shopId, effectiveFrom])
+  @@map("commission_rates")
+}
+
+// Actual money movement to seller account (binding: DATABASE §4.9.6).
+model Payout {
+  id              String        @id @default(uuid()) @db.Uuid
+  settlementId    String        @db.Uuid
+  shopId          String        @db.Uuid
+  payoutAccountId String?       @db.Uuid
+  amount          Decimal       @db.Decimal(10, 2)
+  currency        String        @default("INR") @db.VarChar(3)
+  status          PayoutStatus  @default(queued)
+  batchReference  String?       @db.VarChar(120)
+  requestedAt     DateTime      @default(now()) @db.Timestamptz(6)
+  completedAt     DateTime?     @db.Timestamptz(6)
+
+  settlement      Settlement    @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  shop            Shop          @relation(fields: [shopId], references: [id])
+  payoutAccount   PayoutAccount? @relation(fields: [payoutAccountId], references: [id])
+
+  @@index([shopId, status])
+  @@index([status])
+  @@map("payouts")
+}
+
+// COD-specific facts (binding: DATABASE §4.7.5, ML-08). No authorization;
+// settlement eligibility drives on paid_to_seller.
+model CodOrder {
+  id            String        @id @default(uuid()) @db.Uuid
+  orderId       String        @unique @db.Uuid
+  codLimit      Decimal       @db.Decimal(10, 2)
+  status        CodOrderStatus @default(awaiting_pickup)
+  cashCollected Decimal?      @db.Decimal(10, 2)
+  collectedAt   DateTime?     @db.Timestamptz(6)
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime      @updatedAt @db.Timestamptz(6)
+
+  order         Order         @relation(fields: [orderId], references: [id])
+
+  @@map("cod_orders")
+}
+
+// Saved instruments & tokens — PCI-safe, no PAN stored (binding: DATABASE §4.7.2).
+model SavedPaymentMethod {
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String        @db.Uuid
+  type              PaymentMethod
+  providerTokenHash String        @unique @db.VarChar(64)
+  displayLabel      String        @db.VarChar(100)
+  expiryMonth       Int?          @db.Integer
+  expiryYear        Int?          @db.Integer
+  isDefault         Boolean       @default(false)
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt         DateTime      @updatedAt @db.Timestamptz(6)
+
+  user              User          @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("saved_payment_methods")
+}
+
+// ── Customer Account Center tables (binding: CUSTOMER_ACCOUNT_PROFILE_ARCHITECTURE.md) ──
+
+// Customer preferences for theme, locale, communication, privacy, marketing
+model CustomerPreference {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @unique @db.Uuid
+  theme         String   @default("auto") @db.VarChar(20) // light, dark, auto
+  locale        String   @default("en-IN") @db.VarChar(10) // en-IN, bn-IN, hi-IN
+  emailEnabled  Boolean  @default(true)
+  smsEnabled    Boolean  @default(false)
+  pushEnabled   Boolean  @default(true)
+  inAppEnabled Boolean  @default(true)
+  profileVisibility Boolean @default(true)
+  showActivityStatus Boolean @default(true)
+  allowAnalytics Boolean @default(true)
+  allowPersonalization Boolean @default(true)
+  emailConsent  Boolean  @default(false)
+  smsConsent    Boolean  @default(false)
+  pushConsent   Boolean  @default(false)
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(6)
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("customer_preferences")
+}
+
+// Notification preferences per category and channel
+model NotificationPreference {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @unique @db.Uuid
+  orderUpdates    Boolean  @default(true)
+  shipmentUpdates Boolean  @default(true)
+  paymentUpdates  Boolean  @default(true)
+  promotional     Boolean  @default(false)
+  system          Boolean  @default(true)
+  emailEnabled    Boolean  @default(true)
+  smsEnabled      Boolean  @default(false)
+  pushEnabled     Boolean  @default(true)
+  inAppEnabled    Boolean  @default(true)
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notification_preferences")
+}
+
+// Recently viewed products for customer
+model RecentlyViewed {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  productId String   @db.Uuid
+  viewedAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, productId])
+  @@index([userId, viewedAt])
+  @@map("recently_viewed")
+}

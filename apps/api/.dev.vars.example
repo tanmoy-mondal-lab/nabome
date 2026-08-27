@@ -1,0 +1,27 @@
+# Local development secrets for `wrangler dev`.
+# Copy to `.dev.vars` (git-ignored) and fill real values.
+ENVIRONMENT=local
+DATABASE_URL=postgres://nabome:nabome@localhost:5432/nabome
+HYPERDRIVE_URL=
+PUBLIC_API_URL=http://localhost:8788
+APP_URL=http://localhost:5173
+CORS_ORIGINS=http://localhost:5173,http://localhost:5174,http://localhost:5175
+LOG_LEVEL=debug
+SESSION_COOKIE_NAME=nabome_session
+SESSION_SECRET=dev-only-session-secret-change-me
+CSRF_SECRET=dev-only-csrf-secret-change-me
+CSRF_COOKIE_NAME=csrf_token
+RAZORPAY_KEY_ID=
+RAZORPAY_KEY_SECRET=
+RAZORPAY_WEBHOOK_SECRET=
+RESEND_API_KEY=
+TURNSTILE_SECRET_KEY=
+SENTRY_DSN=
+# Payment & Finance engine
+PAYMENT_PROVIDER=mock
+FINANCE_COMMISSION_RATE=15
+FINANCE_COMMISSION_CAP=50
+FINANCE_HOLD_DAYS=7
+FINANCE_SETTLEMENT_MIN=100
+COD_ENABLED=true
+COD_MAX_AMOUNT=5000

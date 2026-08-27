@@ -1,0 +1,67 @@
+/**
+ * ---------------------------------------------------------------------------
+ * নবME Theme — Dark
+ * ---------------------------------------------------------------------------
+ * Apply via `data-theme="dark"` on <html>.
+ * Source of truth: DESIGN_TOKEN_SPECIFICATION.md §8.3.2.
+ *
+ * Documented deviation: §8.3.2 lists --interactive-primary: brand-400. We
+ * keep brand-500 instead — with --text-on-brand: white (also per §8.3.2)
+ * that yields 5.0:1 contrast (WCAG AA) where brand-400 + white would be
+ * 3.3:1 (below the §9.1 4.5:1 standard for normal text). Hover/active stay
+ * darker (brand-600/700) per the §2.10 interaction rule.
+ */
+[data-theme='dark'] {
+  /* ── Backgrounds ───────────────────────────────────────────────────── */
+  --bg-page: var(--color-neutral-950);
+  --bg-surface: var(--color-neutral-900);
+  --bg-surface-raised: var(--color-neutral-800);
+  --bg-surface-inset: var(--color-neutral-800);
+  --bg-surface-overlay: var(--color-neutral-900);
+  --bg-brand: var(--color-brand-600);
+  --bg-brand-subtle: var(--color-brand-950);
+  --bg-accent-gold: var(--color-accent-gold);
+  --bg-accent-gold-subtle: var(--color-neutral-800);
+
+  /* ── Borders ───────────────────────────────────────────────────────── */
+  --border-default: var(--color-neutral-700);
+  --border-strong: var(--color-neutral-600);
+  --border-brand: var(--color-brand-500);
+  --border-focus: var(--color-brand-400);
+  --border-error: var(--color-status-error);
+  --border-success: var(--color-status-success);
+
+  /* ── Text ──────────────────────────────────────────────────────────── */
+  --text-primary: var(--color-neutral-50);
+  --text-secondary: var(--color-neutral-400);
+  --text-tertiary: var(--color-neutral-500);
+  --text-muted: var(--color-neutral-600);
+  --text-on-brand: var(--color-white);
+  --text-on-dark: var(--color-neutral-950);
+  --text-brand: var(--color-brand-300);
+  --text-brand-hover: var(--color-brand-200);
+  --text-error: var(--color-status-error);
+  --text-success: var(--color-status-success);
+  --text-warning: var(--color-status-warning);
+  --text-info: var(--color-status-info);
+
+  /* ── Interactive ───────────────────────────────────────────────────── */
+  --interactive-primary: var(--color-brand-500);
+  --interactive-primary-hover: var(--color-brand-600);
+  --interactive-primary-active: var(--color-brand-700);
+  --interactive-secondary: var(--color-neutral-800);
+  --interactive-secondary-hover: var(--color-neutral-700);
+  --interactive-secondary-active: var(--color-neutral-600);
+  --interactive-ghost: transparent;
+  --interactive-ghost-hover: var(--color-neutral-800);
+  --interactive-ghost-active: var(--color-neutral-700);
+  --interactive-danger: var(--color-status-error);
+  --interactive-danger-hover: var(--color-status-error-dark);
+  --interactive-disabled: var(--color-neutral-700);
+
+  /* ── Shadows ───────────────────────────────────────────────────────── */
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-elevated: 0 10px 40px rgba(0, 0, 0, 0.4);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.5);
+}

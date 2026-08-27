@@ -1,0 +1,239 @@
+/**
+ * ---------------------------------------------------------------------------
+ * নবME Design Tokens — Aliases (Level 2) + Component Tokens (Level 3)
+ * ---------------------------------------------------------------------------
+ * Semantic aliases reference primitives. Components consume aliases only —
+ * never raw values. Import AFTER primitives.
+ * Source of truth: DESIGN_TOKEN_SPECIFICATION.md Appendix A.
+ *
+ * Sections:
+ *   :root            — themeable aliases + component tokens (light defaults)
+ *   @media ≥640px    — tablet responsive token overrides (A.6, §7)
+ *   @media ≥1024px   — desktop responsive token overrides (A.6, §7)
+ */
+@import './primitives.css';
+
+:root {
+  /* ── Backgrounds ───────────────────────────────────────────────────── */
+  --bg-page: var(--color-neutral-50);
+  --bg-surface: var(--color-white);
+  --bg-surface-raised: var(--color-white);
+  --bg-surface-inset: var(--color-neutral-100);
+  --bg-surface-overlay: var(--color-white);
+  --bg-brand: var(--color-brand-500);
+  --bg-brand-subtle: var(--color-brand-50);
+  --bg-accent-gold: var(--color-accent-gold);
+  --bg-accent-gold-subtle: var(--color-accent-gold-light);
+
+  /* ── Borders ───────────────────────────────────────────────────────── */
+  --border-default: var(--color-neutral-200);
+  --border-strong: var(--color-neutral-300);
+  --border-brand: var(--color-brand-500);
+  --border-focus: var(--color-brand-500);
+  --border-error: var(--color-status-error);
+  --border-success: var(--color-status-success);
+
+  /* ── Text ──────────────────────────────────────────────────────────── */
+  --text-primary: var(--color-neutral-900);
+  --text-secondary: var(--color-neutral-600);
+  --text-tertiary: var(--color-neutral-500);
+  --text-muted: var(--color-neutral-400);
+  --text-on-brand: var(--color-white);
+  --text-on-dark: var(--color-neutral-50);
+  --text-brand: var(--color-brand-500);
+  --text-brand-hover: var(--color-brand-600);
+  --text-error: var(--color-status-error);
+  --text-success: var(--color-status-success);
+  --text-warning: var(--color-status-warning-dark);
+  --text-info: var(--color-status-info);
+
+  /* ── Interactive ───────────────────────────────────────────────────── */
+  --interactive-primary: var(--color-brand-500);
+  --interactive-primary-hover: var(--color-brand-600);
+  --interactive-primary-active: var(--color-brand-700);
+  --interactive-secondary: var(--color-white);
+  --interactive-secondary-hover: var(--color-neutral-50);
+  --interactive-secondary-active: var(--color-neutral-100);
+  --interactive-ghost: transparent;
+  --interactive-ghost-hover: var(--color-neutral-100);
+  --interactive-ghost-active: var(--color-neutral-200);
+  --interactive-danger: var(--color-status-error);
+  --interactive-danger-hover: var(--color-status-error-dark);
+  --interactive-disabled: var(--color-neutral-300);
+
+  /* ── Opacity / disabled aliases (§9.3) ─────────────────────────────── */
+  --disabled-bg: var(--color-neutral-100);
+  --disabled-text: var(--color-neutral-400);
+  --disabled-border: var(--color-neutral-200);
+
+  /* ── Focus ring aliases (§9.2) ─────────────────────────────────────── */
+  --focus-ring-color: var(--color-brand-500);
+  --focus-ring-color-error: var(--color-status-error);
+
+  /* ── Readability aliases (§9.5) ────────────────────────────────────── */
+  --line-height-body: var(--leading-body);
+  --line-height-heading: var(--leading-snug);
+
+  /* ── Touch target aliases (§9.6) ───────────────────────────────────── */
+  --touch-target-spacing: var(--space-2);
+
+  /* ── Containers (§5.4, §7.3) ───────────────────────────────────────── */
+  --container-narrow: var(--width-container-sm);
+  --container-default: var(--width-container-md);
+  --container-wide: var(--width-container-lg);
+  --container-full: var(--width-full);
+
+  /* ── Margin tokens (§4.4) ──────────────────────────────────────────── */
+  --margin-auto: auto;
+  --margin-none: 0;
+  --margin-xs: var(--space-1);
+  --margin-sm: var(--space-2);
+  --margin-md: var(--space-4);
+  --margin-lg: var(--space-6);
+  --margin-xl: var(--space-8);
+  --margin-2xl: var(--space-12);
+
+  /* ── Padding tokens (§4.5) ─────────────────────────────────────────── */
+  --padding-none: 0;
+  --padding-xs: var(--space-1);
+  --padding-sm: var(--space-2);
+  --padding-md: var(--space-4);
+  --padding-lg: var(--space-6);
+  --padding-xl: var(--space-8);
+  --padding-2xl: var(--space-12);
+
+  /* ── Gap tokens (§4.6) ─────────────────────────────────────────────── */
+  --gap-none: 0;
+  --gap-xs: var(--space-1);
+  --gap-sm: var(--space-2);
+  --gap-md: var(--space-4);
+  --gap-lg: var(--space-6);
+  --gap-xl: var(--space-8);
+
+  /* ── Section spacing (§4.7) — mobile values; scaled at tablet/desktop ─ */
+  --section-spacing-sm: var(--space-8);
+  --section-spacing-md: var(--space-12);
+  --section-spacing-lg: var(--space-16);
+
+  /* ── Motion: transition tokens (§6.4) ──────────────────────────────── */
+  --transition-colors:
+    color var(--duration-fast) var(--ease-default),
+    background-color var(--duration-fast) var(--ease-default),
+    border-color var(--duration-fast) var(--ease-default);
+  --transition-opacity: opacity var(--duration-fast) var(--ease-default);
+  --transition-shadow: box-shadow var(--duration-normal) var(--ease-default);
+  --transition-transform: transform var(--duration-normal) var(--ease-default);
+  --transition-all: all var(--duration-normal) var(--ease-default);
+
+  /* ── Motion: levels (§6.5) ─────────────────────────────────────────── */
+  --motion-none: var(--duration-instant);
+  --motion-subtle: var(--duration-fast);
+  --motion-normal: var(--duration-normal);
+  --motion-emphasized: var(--duration-slow);
+  --motion-dramatic: var(--duration-slower);
+
+  /* ── Responsive aliases (mobile defaults; A.6) ─────────────────────── */
+  --grid-columns: 4;
+  --grid-gutter: var(--space-4);
+  --grid-margin: var(--space-4);
+  --text-h1: var(--text-3xl);
+  --text-h2: var(--text-2xl);
+  --text-h3: var(--text-xl);
+  --spacing-container: var(--space-4);
+  --spacing-section: var(--space-12);
+  --spacing-card: var(--space-4);
+  --spacing-grid: var(--space-3);
+  --header-height: var(--height-header-mobile);
+  --product-grid-columns: 2;
+  --product-grid-gap: var(--space-3);
+
+  /* ── Component tokens (Level 3 — representative set) ─────────────────
+   * The full component token catalog ships with @nabome/ui. Pattern:
+   * --{component}-{part}-{state}.
+   */
+  --button-primary-bg: var(--interactive-primary);
+  --button-primary-bg-hover: var(--interactive-primary-hover);
+  --button-primary-bg-active: var(--interactive-primary-active);
+  --button-primary-text: var(--text-on-brand);
+  --button-secondary-bg: var(--interactive-secondary);
+  --button-secondary-bg-hover: var(--interactive-secondary-hover);
+  --button-secondary-bg-active: var(--interactive-secondary-active);
+  --button-secondary-text: var(--text-primary);
+  --button-ghost-text: var(--text-primary);
+  --button-danger-bg: var(--interactive-danger);
+  --button-danger-bg-hover: var(--interactive-danger-hover);
+  --button-danger-text: var(--text-on-brand);
+  --button-disabled-bg: var(--interactive-disabled);
+  --button-disabled-text: var(--color-neutral-500);
+
+  --input-bg: var(--bg-surface);
+  --input-border: var(--border-strong);
+  --input-border-focus: var(--border-focus);
+  --input-border-error: var(--border-error);
+  --input-text: var(--text-primary);
+  --input-placeholder: var(--text-muted);
+
+  --card-bg: var(--bg-surface);
+  --card-border: var(--border-default);
+  --card-text: var(--text-primary);
+
+  --badge-success-bg: var(--color-status-success-light);
+  --badge-success-text: var(--color-status-success-dark);
+  --badge-warning-bg: var(--color-status-warning-light);
+  --badge-warning-text: var(--color-status-warning-dark);
+  --badge-error-bg: var(--color-status-error-light);
+  --badge-error-text: var(--color-status-error-dark);
+  --badge-info-bg: var(--color-status-info-light);
+  --badge-info-text: var(--color-status-info-dark);
+  --badge-brand-bg: var(--color-brand-100);
+  --badge-brand-text: var(--color-brand-800);
+  --badge-gold-bg: var(--color-accent-gold-light);
+  --badge-gold-text: var(--color-accent-gold-dark);
+
+  --dialog-bg: var(--bg-surface-overlay);
+  --dialog-overlay: rgba(12, 10, 9, 0.5);
+}
+
+/* ── Tablet (≥ 640px): responsive token overrides (§7, Appendix D) ───── */
+@media (min-width: 640px) {
+  :root {
+    --grid-columns: 8;
+    --grid-gutter: var(--space-6);
+    --grid-margin: var(--space-6);
+    --text-h1: var(--text-4xl);
+    --text-h2: var(--text-3xl);
+    --text-h3: var(--text-2xl);
+    --spacing-container: var(--space-6);
+    --spacing-section: var(--space-16);
+    --spacing-card: var(--space-5);
+    --spacing-grid: var(--space-4);
+    --header-height: var(--height-header-tablet);
+    --product-grid-columns: 3;
+    --product-grid-gap: var(--space-4);
+    --section-spacing-sm: var(--space-10);
+    --section-spacing-md: var(--space-16);
+    --section-spacing-lg: var(--space-20);
+  }
+}
+
+/* ── Desktop (≥ 1024px): responsive token overrides (§7, Appendix D) ─── */
+@media (min-width: 1024px) {
+  :root {
+    --grid-columns: 12;
+    --grid-gutter: var(--space-8);
+    --grid-margin: var(--space-8);
+    --text-h1: var(--text-5xl);
+    --text-h2: var(--text-4xl);
+    --text-h3: var(--text-2xl);
+    --spacing-container: var(--space-8);
+    --spacing-section: var(--space-20);
+    --spacing-card: var(--space-6);
+    --spacing-grid: var(--space-6);
+    --header-height: var(--height-header-desktop);
+    --product-grid-columns: 4;
+    --product-grid-gap: var(--space-6);
+    --section-spacing-sm: var(--space-12);
+    --section-spacing-md: var(--space-20);
+    --section-spacing-lg: var(--space-24);
+  }
+}

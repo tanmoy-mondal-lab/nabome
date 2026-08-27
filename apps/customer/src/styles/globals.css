@@ -1,0 +1,103 @@
+/**
+ * নবME Customer App — global stylesheet.
+ *
+ * Order matters (see DESIGN_TOKEN_SPECIFICATION.md Appendix A and
+ * tailwind-theme.css header):
+ *   1. alias tokens (imports primitives internally)
+ *   2. theme files
+ *   3. Tailwind
+ *   4. Tailwind theme mapping (registers tokens as utilities)
+ */
+@import '@nabome/design-tokens/styles/tokens.css';
+@import '@nabome/design-tokens/styles/themes/light.css';
+@import '@nabome/design-tokens/styles/themes/dark.css';
+@import 'tailwindcss';
+@import '@nabome/design-tokens/styles/tailwind-theme.css';
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-family: var(--font-family-base);
+  }
+
+  ::selection {
+    background: var(--bg-brand-subtle);
+    color: var(--text-brand);
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbars on horizontal carousels while keeping scrollability. */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Minimum tap target (mobile-first spec §9.1). */
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Custom animations for modern UI effects */
+  @keyframes blob {
+    0% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+    100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+  }
+
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.6s ease-out forwards;
+  }
+
+  .animation-delay-200 {
+    animation-delay: 0.2s;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 0.4s;
+  }
+}

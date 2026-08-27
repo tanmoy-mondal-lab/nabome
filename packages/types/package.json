@@ -1,0 +1,23 @@
+{
+  "name": "@nabome/types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nabome canonical domain types and enums (leaf package — no runtime imports)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

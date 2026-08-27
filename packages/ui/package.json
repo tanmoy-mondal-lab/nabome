@@ -1,0 +1,39 @@
+{
+  "name": "@nabome/ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nabome design system primitives (Button, Input, Badge, Card, …) — custom, forwardRef, displayName, token-driven",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@nabome/utils": "workspace:*",
+    "class-variance-authority": "^0.7.1"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.0",
+    "jsdom": "^26.0.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

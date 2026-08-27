@@ -1,0 +1,32 @@
+{
+  "name": "@nabome/customer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@nabome/auth": "workspace:*",
+    "@nabome/order": "workspace:*",
+    "@nabome/payment": "workspace:*",
+    "@nabome/returns": "workspace:*",
+    "@nabome/types": "workspace:*",
+    "@nabome/validation": "workspace:*",
+    "zod": "^3.25.76",
+    "zustand": "^5.0.2"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

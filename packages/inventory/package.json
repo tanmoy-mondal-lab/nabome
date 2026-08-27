@@ -1,0 +1,28 @@
+{
+  "name": "@nabome/inventory",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nabome inventory management module (types, enums, interfaces for inventory, warehouse, stock movements, and reservations)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@nabome/constants": "workspace:*",
+    "@nabome/types": "workspace:*",
+    "@nabome/validation": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

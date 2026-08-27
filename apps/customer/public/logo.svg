@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="নবME Nabome">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c2d12"/>
+      <stop offset="1" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <circle cx="256" cy="224" r="96" fill="none" stroke="#fef3c7" stroke-width="14"/>
+  <path d="M256 128 L288 200 L256 272 L224 200 Z" fill="#fef3c7"/>
+  <path d="M176 224 Q196 190 224 200 Q214 240 176 240 Q200 244 224 200" fill="none" stroke="#fef3c7" stroke-width="8" stroke-linecap="round"/>
+  <path d="M336 224 Q316 190 288 200 Q298 240 336 240 Q312 244 288 200" fill="none" stroke="#fef3c7" stroke-width="8" stroke-linecap="round"/>
+  <text x="256" y="396" text-anchor="middle" font-family="'Noto Serif Bengali','Bangla MN',serif" font-size="72" font-weight="700" fill="#fef3c7">নবME</text>
+</svg>

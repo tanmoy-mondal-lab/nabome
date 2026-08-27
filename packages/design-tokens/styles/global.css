@@ -1,0 +1,288 @@
+/**
+ * ---------------------------------------------------------------------------
+ * নবME Global Styling — Reset & Base Styles
+ * ---------------------------------------------------------------------------
+ * CSS reset, base styles, and global foundations.
+ * Import AFTER tokens.css and theme CSS.
+ * Source of truth: DESIGN_TOKEN_SPECIFICATION.md.
+ */
+@import './primitives.css';
+@import './tokens.css';
+
+/* ── CSS Reset ───────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--leading-body);
+  color: var(--text-primary);
+  background-color: var(--bg-page);
+  min-height: 100vh;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ── Typography Base ──────────────────────────────────────────────────── */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--leading-snug);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+h1 {
+  font-size: var(--text-h1);
+  font-weight: var(--font-weight-light);
+  letter-spacing: var(--tracking-tighter);
+  line-height: var(--leading-tight);
+}
+
+h2 {
+  font-size: var(--text-h2);
+  letter-spacing: var(--tracking-tight);
+}
+
+h3 {
+  font-family: var(--font-body);
+  font-size: var(--text-h3);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--tracking-normal);
+  line-height: var(--leading-normal);
+}
+
+h4 {
+  font-family: var(--font-body);
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--tracking-normal);
+  line-height: var(--leading-relaxed);
+}
+
+p {
+  margin: 0;
+  max-width: var(--max-line-length);
+}
+
+a {
+  color: var(--text-brand);
+  text-decoration: none;
+  transition: var(--transition-colors);
+}
+
+a:hover {
+  color: var(--text-brand-hover);
+}
+
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-sm);
+}
+
+/* ── Form Elements ───────────────────────────────────────────────────── */
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+input,
+textarea,
+select {
+  background-color: var(--bg-surface);
+  border: var(--border-width-thin) solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  transition: var(--transition-colors), var(--transition-shadow);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* ── Lists ───────────────────────────────────────────────────────────── */
+ul,
+ol {
+  list-style: none;
+  padding: 0;
+}
+
+/* ── Images ─────────────────────────────────────────────────────────── */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── Tables ─────────────────────────────────────────────────────────── */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  border-bottom: var(--border-width-thin) solid var(--border-default);
+}
+
+th {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+/* ── Code ───────────────────────────────────────────────────────────── */
+code,
+pre {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+code {
+  background-color: var(--bg-surface-inset);
+  padding: var(--space-0-5) var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+pre {
+  background-color: var(--bg-surface-inset);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* ── Selection ──────────────────────────────────────────────────────── */
+::selection {
+  background-color: var(--color-brand-200);
+  color: var(--text-primary);
+}
+
+::-moz-selection {
+  background-color: var(--color-brand-200);
+  color: var(--text-primary);
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: var(--space-2);
+  height: var(--space-2);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-neutral-300);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-neutral-400);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-neutral-300) transparent;
+}
+
+/* ── Focus Visible (accessibility) ───────────────────────────────────── */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+  border-radius: var(--radius-sm);
+}
+
+/* ── Reduced Motion ──────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: var(--motion-duration) !important;
+    animation-iteration-count: var(--motion-iteration) !important;
+    transition-duration: var(--transition-duration) !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── High Contrast Mode ──────────────────────────────────────────────── */
+@media (prefers-contrast: high) {
+  :root {
+    --border-default: var(--color-neutral-900);
+    --border-strong: var(--color-neutral-900);
+    --shadow-subtle: none;
+    --shadow-card: none;
+    --shadow-elevated: none;
+    --shadow-modal: none;
+  }
+}
+
+/* ── Print Styles ───────────────────────────────────────────────────── */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+
+  a {
+    color: black;
+    text-decoration: underline;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

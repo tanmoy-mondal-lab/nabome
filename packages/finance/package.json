@@ -1,0 +1,26 @@
+{
+  "name": "@nabome/finance",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nabome Finance Engine - commission, double-entry ledger, and settlement state machine",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@nabome/payment": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

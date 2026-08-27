@@ -1,0 +1,27 @@
+# Local development database for the নবME (Nabome) monorepo.
+#   docker compose -f infra/docker-compose.yml up -d
+#   pnpm db:generate && pnpm db:deploy && pnpm db:seed
+#
+# WARNING: development-only. Cloudflare Hyperdrive + Neon serve production.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: nabome-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nabome
+      POSTGRES_USER: nabome
+      POSTGRES_PASSWORD: nabome
+    ports:
+      - '5432:5432'
+    volumes:
+      - nabome-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nabome -d nabome']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  nabome-pgdata:

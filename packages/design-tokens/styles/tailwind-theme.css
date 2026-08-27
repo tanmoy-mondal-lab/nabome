@@ -1,0 +1,158 @@
+/**
+ * ---------------------------------------------------------------------------
+ * নবME — Tailwind CSS v4 theme mapping
+ * ---------------------------------------------------------------------------
+ * Registers design tokens as Tailwind utility namespaces. Import this file
+ * AFTER `@import "tailwindcss"` in an application's globals.css:
+ *
+ *   @import '@nabome/design-tokens/styles/tokens.css';
+ *   @import '@nabome/design-tokens/styles/themes/light.css';
+ *   @import 'tailwindcss';
+ *   @import '@nabome/design-tokens/styles/tailwind-theme.css';
+ *
+ * `@theme inline` inlines the token reference into generated utilities, so
+ * the :root custom properties from tokens.css remain the single source of
+ * truth (no duplicated/emitted theme variables, no self-references).
+ *
+ * Generates utilities such as: bg-brand-500, text-primary, border-default,
+ * rounded-lg, shadow-card, font-display, text-sm, space utilities, and the
+ * responsive prefixes tablet:, desktop:, wide:.
+ */
+@theme inline {
+  /* Colors: brand, accent, neutral, status */
+  --color-brand-50: var(--color-brand-50);
+  --color-brand-100: var(--color-brand-100);
+  --color-brand-200: var(--color-brand-200);
+  --color-brand-300: var(--color-brand-300);
+  --color-brand-400: var(--color-brand-400);
+  --color-brand-500: var(--color-brand-500);
+  --color-brand-600: var(--color-brand-600);
+  --color-brand-700: var(--color-brand-700);
+  --color-brand-800: var(--color-brand-800);
+  --color-brand-900: var(--color-brand-900);
+  --color-brand-950: var(--color-brand-950);
+
+  --color-accent-gold: var(--color-accent-gold);
+  --color-accent-gold-dark: var(--color-accent-gold-dark);
+  --color-accent-gold-light: var(--color-accent-gold-light);
+  --color-accent-rose: var(--color-accent-rose);
+  --color-accent-rose-light: var(--color-accent-rose-light);
+  --color-accent-sage: var(--color-accent-sage);
+  --color-accent-sage-light: var(--color-accent-sage-light);
+  --color-accent-ink: var(--color-accent-ink);
+  --color-accent-cream: var(--color-accent-cream);
+
+  --color-neutral-50: var(--color-neutral-50);
+  --color-neutral-100: var(--color-neutral-100);
+  --color-neutral-200: var(--color-neutral-200);
+  --color-neutral-300: var(--color-neutral-300);
+  --color-neutral-400: var(--color-neutral-400);
+  --color-neutral-500: var(--color-neutral-500);
+  --color-neutral-600: var(--color-neutral-600);
+  --color-neutral-700: var(--color-neutral-700);
+  --color-neutral-800: var(--color-neutral-800);
+  --color-neutral-900: var(--color-neutral-900);
+  --color-neutral-950: var(--color-neutral-950);
+
+  --color-status-success: var(--color-status-success);
+  --color-status-success-light: var(--color-status-success-light);
+  --color-status-success-dark: var(--color-status-success-dark);
+  --color-status-warning: var(--color-status-warning);
+  --color-status-warning-light: var(--color-status-warning-light);
+  --color-status-warning-dark: var(--color-status-warning-dark);
+  --color-status-error: var(--color-status-error);
+  --color-status-error-light: var(--color-status-error-light);
+  --color-status-error-dark: var(--color-status-error-dark);
+  --color-status-info: var(--color-status-info);
+  --color-status-info-light: var(--color-status-info-light);
+  --color-status-info-dark: var(--color-status-info-dark);
+
+  /* Semantic aliases become utilities: bg-page, text-primary, border-brand */
+  --color-page: var(--bg-page);
+  --color-surface: var(--bg-surface);
+  --color-surface-raised: var(--bg-surface-raised);
+  --color-surface-inset: var(--bg-surface-inset);
+  --color-surface-overlay: var(--bg-surface-overlay);
+  --color-brand: var(--bg-brand);
+  --color-brand-subtle: var(--bg-brand-subtle);
+  --color-accent: var(--bg-accent-gold);
+  --color-accent-subtle: var(--bg-accent-gold-subtle);
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-tertiary: var(--text-tertiary);
+  --color-muted: var(--text-muted);
+  --color-on-brand: var(--text-on-brand);
+  --color-brand-text: var(--text-brand);
+  --color-brand-text-hover: var(--text-brand-hover);
+  --color-error: var(--text-error);
+  --color-success: var(--text-success);
+  --color-warning: var(--text-warning);
+  --color-info: var(--text-info);
+
+  /* Fonts */
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+
+  /* Font sizes */
+  --text-2xs: var(--text-2xs);
+  --text-xs: var(--text-xs);
+  --text-sm: var(--text-sm);
+  --text-base: var(--text-base);
+  --text-lg: var(--text-lg);
+  --text-xl: var(--text-xl);
+  --text-2xl: var(--text-2xl);
+  --text-3xl: var(--text-3xl);
+  --text-4xl: var(--text-4xl);
+  --text-5xl: var(--text-5xl);
+
+  /* Font weights */
+  --font-weight-light: var(--font-weight-light);
+  --font-weight-regular: var(--font-weight-regular);
+  --font-weight-medium: var(--font-weight-medium);
+  --font-weight-semibold: var(--font-weight-semibold);
+  --font-weight-bold: var(--font-weight-bold);
+
+  /* Line heights & tracking */
+  --leading-none: var(--leading-none);
+  --leading-tight: var(--leading-tight);
+  --leading-snug: var(--leading-snug);
+  --leading-normal: var(--leading-normal);
+  --leading-relaxed: var(--leading-relaxed);
+  --leading-loose: var(--leading-loose);
+  --leading-body: var(--leading-body);
+  --tracking-tighter: var(--tracking-tighter);
+  --tracking-tight: var(--tracking-tight);
+  --tracking-normal: var(--tracking-normal);
+  --tracking-wide: var(--tracking-wide);
+  --tracking-wider: var(--tracking-wider);
+  --tracking-widest: var(--tracking-widest);
+
+  /* Radius */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-full: var(--radius-full);
+
+  /* Shadows */
+  --shadow-subtle: var(--shadow-subtle);
+  --shadow-card: var(--shadow-card);
+  --shadow-elevated: var(--shadow-elevated);
+  --shadow-modal: var(--shadow-modal);
+
+  /* Easing */
+  --ease-default: var(--ease-default);
+  --ease-luxe-out: var(--ease-luxe-out);
+  --ease-luxe-in: var(--ease-luxe-in);
+  --ease-luxe-in-out: var(--ease-luxe-in-out);
+  --ease-spring: var(--ease-spring);
+  --ease-bounce: var(--ease-bounce);
+  --ease-linear: var(--ease-linear);
+
+  /* Breakpoints (mobile-first; replaces default sm/md/lg/xl/2xl) */
+  --breakpoint-tablet: 640px;
+  --breakpoint-desktop: 1024px;
+  --breakpoint-wide: 1280px;
+}

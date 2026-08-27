@@ -1,0 +1,62 @@
+/**
+ * ---------------------------------------------------------------------------
+ * নবME Theme — Shop
+ * ---------------------------------------------------------------------------
+ * Shop storefront theme with brand-forward palette for commerce.
+ * Apply via `data-theme="shop"` on <html>.
+ * Source of truth: DESIGN_TOKEN_SPECIFICATION.md §8.3.4.
+ */
+[data-theme='shop'] {
+  /* ── Backgrounds ───────────────────────────────────────────────────── */
+  --bg-page: var(--color-white);
+  --bg-surface: var(--color-white);
+  --bg-surface-raised: var(--color-white);
+  --bg-surface-inset: var(--color-brand-50);
+  --bg-surface-overlay: var(--color-white);
+  --bg-brand: var(--color-brand-500);
+  --bg-brand-subtle: var(--color-brand-50);
+  --bg-accent-gold: var(--color-accent-gold);
+  --bg-accent-gold-subtle: var(--color-accent-gold-light);
+
+  /* ── Borders ───────────────────────────────────────────────────────── */
+  --border-default: var(--color-brand-200);
+  --border-strong: var(--color-brand-300);
+  --border-brand: var(--color-brand-500);
+  --border-focus: var(--color-brand-500);
+  --border-error: var(--color-status-error);
+  --border-success: var(--color-status-success);
+
+  /* ── Text ──────────────────────────────────────────────────────────── */
+  --text-primary: var(--color-neutral-900);
+  --text-secondary: var(--color-neutral-600);
+  --text-tertiary: var(--color-neutral-500);
+  --text-muted: var(--color-neutral-400);
+  --text-on-brand: var(--color-white);
+  --text-on-dark: var(--color-neutral-50);
+  --text-brand: var(--color-brand-600);
+  --text-brand-hover: var(--color-brand-700);
+  --text-error: var(--color-status-error);
+  --text-success: var(--color-status-success);
+  --text-warning: var(--color-status-warning-dark);
+  --text-info: var(--color-status-info);
+
+  /* ── Interactive ───────────────────────────────────────────────────── */
+  --interactive-primary: var(--color-brand-500);
+  --interactive-primary-hover: var(--color-brand-600);
+  --interactive-primary-active: var(--color-brand-700);
+  --interactive-secondary: var(--color-white);
+  --interactive-secondary-hover: var(--color-brand-50);
+  --interactive-secondary-active: var(--color-brand-100);
+  --interactive-ghost: transparent;
+  --interactive-ghost-hover: var(--color-brand-50);
+  --interactive-ghost-active: var(--color-brand-100);
+  --interactive-danger: var(--color-status-error);
+  --interactive-danger-hover: var(--color-status-error-dark);
+  --interactive-disabled: var(--color-brand-200);
+
+  /* ── Shadows ───────────────────────────────────────────────────────── */
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-elevated: 0 10px 40px rgba(0, 0, 0, 0.1);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.15);
+}

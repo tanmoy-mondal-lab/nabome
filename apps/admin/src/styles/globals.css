@@ -1,0 +1,36 @@
+/**
+ * নবME Admin App — global stylesheet.
+ * Order: alias tokens → themes → Tailwind → Tailwind token mapping.
+ */
+@import '@nabome/design-tokens/styles/tokens.css';
+@import '@nabome/design-tokens/styles/themes/light.css';
+@import '@nabome/design-tokens/styles/themes/dark.css';
+@import 'tailwindcss';
+@import '@nabome/design-tokens/styles/tailwind-theme.css';
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--bg-page);
+    color: var(--text-primary);
+    font-family: var(--font-family-base);
+  }
+
+  ::selection {
+    background: var(--bg-brand-subtle);
+    color: var(--text-brand);
+  }
+}
+
+@layer utilities {
+  .tap-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

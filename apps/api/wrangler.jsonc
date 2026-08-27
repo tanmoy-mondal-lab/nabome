@@ -1,0 +1,72 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nabome-api",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-07-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+  },
+  "vars": {
+    "ENVIRONMENT": "production",
+    "PAYMENT_PROVIDER": "razorpay",
+    "FINANCE_COMMISSION_RATE": "15",
+    "FINANCE_COMMISSION_CAP": "50",
+    "FINANCE_HOLD_DAYS": "7",
+    "FINANCE_SETTLEMENT_MIN": "100",
+    "COD_ENABLED": "true",
+    "COD_MAX_AMOUNT": "5000",
+    "PUBLIC_API_URL": "https://api.nabome.online",
+    "APP_URL": "https://nabome.online",
+    "LOG_LEVEL": "info",
+    "SESSION_COOKIE_NAME": "nabome_session",
+  },
+  "kv_namespaces": [
+    { "binding": "KV", "id": "YOUR_KV_NAMESPACE_ID", "preview_id": "YOUR_KV_PREVIEW_ID" }
+  ],
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "YOUR_HYPERDRIVE_CONFIG_ID"
+    }
+  ],
+  "r2_buckets": [{ "binding": "MEDIA_BUCKET", "bucket_name": "nabome-media" }],
+  "env": {
+    "staging": {
+      "name": "nabome-api-staging",
+      "vars": {
+        "ENVIRONMENT": "staging",
+        "PUBLIC_API_URL": "https://staging-api.nabome.online",
+        "APP_URL": "https://staging.nabome.online",
+        "LOG_LEVEL": "debug",
+      },
+      "kv_namespaces": [
+        { "binding": "KV", "id": "YOUR_STAGING_KV_NAMESPACE_ID", "preview_id": "YOUR_STAGING_KV_PREVIEW_ID" }
+      ],
+      "hyperdrive": [
+        {
+          "binding": "HYPERDRIVE",
+          "id": "YOUR_STAGING_HYPERDRIVE_CONFIG_ID"
+        }
+      ],
+    },
+    "production": {
+      "name": "nabome-api",
+      "vars": {
+        "ENVIRONMENT": "production",
+        "PUBLIC_API_URL": "https://api.nabome.online",
+        "APP_URL": "https://nabome.online",
+        "LOG_LEVEL": "info",
+      },
+      "kv_namespaces": [
+        { "binding": "KV", "id": "YOUR_PRODUCTION_KV_NAMESPACE_ID" }
+      ],
+      "hyperdrive": [
+        {
+          "binding": "HYPERDRIVE",
+          "id": "YOUR_PRODUCTION_HYPERDRIVE_CONFIG_ID"
+        }
+      ],
+    },
+  },
+}

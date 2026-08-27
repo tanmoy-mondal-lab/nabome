@@ -1,0 +1,27 @@
+{
+  "name": "@nabome/config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nabome centralized configuration: env validation schemas, feature flags, app metadata, shared Vite base config",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^6.4.3",
+    "vitest": "^4.1.10"
+  }
+}

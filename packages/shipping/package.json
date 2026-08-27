@@ -1,0 +1,31 @@
+{
+  "name": "@nabome/shipping",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nabome Shipping & Fulfillment Management System - types, enums, and core business logic",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "dependencies": {
+    "@nabome/types": "workspace:*",
+    "@nabome/order": "workspace:*",
+    "@nabome/inventory": "workspace:*",
+    "@prisma/client": "6.19.3"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

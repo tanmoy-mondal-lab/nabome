@@ -1,0 +1,64 @@
+/**
+ * ---------------------------------------------------------------------------
+ * নবME Theme — Light (default)
+ * ---------------------------------------------------------------------------
+ * The default theme. Values match the alias defaults in tokens.css and are
+ * repeated here so every theme file is self-contained and overridable.
+ * Apply via `data-theme="light"` on <html> (or rely on :root defaults).
+ * Source of truth: DESIGN_TOKEN_SPECIFICATION.md §8.3.1.
+ */
+:root,
+[data-theme='light'] {
+  /* ── Backgrounds ───────────────────────────────────────────────────── */
+  --bg-page: var(--color-neutral-50);
+  --bg-surface: var(--color-white);
+  --bg-surface-raised: var(--color-white);
+  --bg-surface-inset: var(--color-neutral-100);
+  --bg-surface-overlay: var(--color-white);
+  --bg-brand: var(--color-brand-500);
+  --bg-brand-subtle: var(--color-brand-50);
+  --bg-accent-gold: var(--color-accent-gold);
+  --bg-accent-gold-subtle: var(--color-accent-gold-light);
+
+  /* ── Borders ───────────────────────────────────────────────────────── */
+  --border-default: var(--color-neutral-200);
+  --border-strong: var(--color-neutral-300);
+  --border-brand: var(--color-brand-500);
+  --border-focus: var(--color-brand-500);
+  --border-error: var(--color-status-error);
+  --border-success: var(--color-status-success);
+
+  /* ── Text ──────────────────────────────────────────────────────────── */
+  --text-primary: var(--color-neutral-900);
+  --text-secondary: var(--color-neutral-600);
+  --text-tertiary: var(--color-neutral-500);
+  --text-muted: var(--color-neutral-400);
+  --text-on-brand: var(--color-white);
+  --text-on-dark: var(--color-neutral-50);
+  --text-brand: var(--color-brand-500);
+  --text-brand-hover: var(--color-brand-600);
+  --text-error: var(--color-status-error);
+  --text-success: var(--color-status-success);
+  --text-warning: var(--color-status-warning-dark);
+  --text-info: var(--color-status-info);
+
+  /* ── Interactive ───────────────────────────────────────────────────── */
+  --interactive-primary: var(--color-brand-500);
+  --interactive-primary-hover: var(--color-brand-600);
+  --interactive-primary-active: var(--color-brand-700);
+  --interactive-secondary: var(--color-white);
+  --interactive-secondary-hover: var(--color-neutral-50);
+  --interactive-secondary-active: var(--color-neutral-100);
+  --interactive-ghost: transparent;
+  --interactive-ghost-hover: var(--color-neutral-100);
+  --interactive-ghost-active: var(--color-neutral-200);
+  --interactive-danger: var(--color-status-error);
+  --interactive-danger-hover: var(--color-status-error-dark);
+  --interactive-disabled: var(--color-neutral-300);
+
+  /* ── Shadows ───────────────────────────────────────────────────────── */
+  --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-elevated: 0 10px 40px rgba(0, 0, 0, 0.1);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
