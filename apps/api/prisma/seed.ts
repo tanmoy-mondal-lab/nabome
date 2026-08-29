@@ -97,15 +97,7 @@ async function main(): Promise<void> {
         compareAtPrice: 2999,
         weightGrams: 40,
         collections: {
-          connectOrCreate: {
-            where: {
-              productId_collectionId: {
-                productId: 'signature-bronze-necklace',
-                collectionId: collection.id,
-              },
-            },
-            create: { collectionId: collection.id },
-          },
+          create: { collectionId: collection.id },
         },
         variants: {
           create: [

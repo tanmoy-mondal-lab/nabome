@@ -14,7 +14,11 @@
 
 import { getPrisma } from '../prisma.ts';
 
-const prisma = getPrisma() as any;
+const prisma = new Proxy({} as any, {
+  get(_target: unknown, prop: string | symbol) {
+    return (getPrisma() as any)[prop];
+  },
+});
 
 // ============================================================================
 // CART ITEM REPOSITORY

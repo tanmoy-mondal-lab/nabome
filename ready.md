@@ -15,7 +15,7 @@
 
 ### Current Deployment Model
 - **Target**: Cloudflare Pages (API) + static hosting (frontends)
-- **Current state**: Real KV/Hyperdrive IDs in wrangler.jsonc; code READY FOR STAGING, infra not yet provisioned
+- **Current state**: Staging API deployed to `nabome-api-staging.pages.dev` (2026-08-29, `2aa378c9`); KV/Hyperdrive/Neon/B2 validated, Resend/Turnstile test keys, health PASS, smoke PARTIAL
 - **Local dev**: Docker PostgreSQL, all 4 apps via pnpm dev
 
 ### Current Database
@@ -45,16 +45,16 @@
 - Payment state machines with idempotent operations
 
 ### Major Blockers
-1. **No Neon PostgreSQL configured** — no production database (CODE READY, infra pending)
-2. **No Backblaze B2 bucket provisioned** — STORAGE_* secrets missing
-3. **No production Razorpay credentials** — payment processing impossible
-4. **No production Resend credentials** — email sending impossible
-5. **No production Turnstile credentials** — CAPTCHA verification impossible
-6. **No production Sentry DSN** — monitoring incomplete
+1. **Staging Resend blocks register** — `POST /auth/register` 500 error 1101 (email send throws). Must be best-effort.
+2. **Staging login invalid** — `Invalid email or password` despite bcrypt true (0 failures). Needs handler log.
+3. **Staging products list empty** — `GET /products` 0 while slug returns 1. Filter/cache issue.
+4. **No production Neon/B2/Razorpay/Resend/Turnstile/Sentry** — production not provisioned (staging uses same Neon calmlab, test keys)
+5. **No production Pages project `nabome-api`** — only `nabome` legacy exists; staging `nabome-api-staging` created
+6. **No staging frontend deploy** — customer/admin/shop not on Pages
 
-### Overall Production-Readiness Assessment: **CODE READY FOR STAGING — STAGING NOT DEPLOYED — PRODUCTION NOT READY**
+### Overall Production-Readiness Assessment: **CODE READY — INFRASTRUCTURE STAGING PARTIAL — STAGING DEPLOYED PARTIAL — PRODUCTION NOT READY**
 
-Code baseline is clean (typecheck/lint/tests/build/validate PASS). Critical security gaps fixed in 8965141 (order state machine, checkout IDOR, CSRF, gateway resolver, finance seqCache, env validation). Remaining blockers are infra provisioning (Neon, B2, Razorpay, Resend, Turnstile, Sentry, domains) requiring owner action. No code redesign needed before staging.
+Code clean (typecheck/lint/tests/build/validate PASS). Staging API deployed (`nabome-api-staging.pages.dev`, `2aa378c9`, health PASS, DB reachable, seed fixed). Critical 8965141 fixes verified (state machine, IDOR, CSRF, gateway, finance). Remaining staging smoke partially blocked by Resend/login/list; production not deployed.
 
 ---
 

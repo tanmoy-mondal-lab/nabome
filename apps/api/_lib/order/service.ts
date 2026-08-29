@@ -12,7 +12,11 @@ import type { PrismaClient } from '@prisma/client';
 
 import { getPrisma } from '../prisma.ts';
 
-const prisma = getPrisma() as PrismaClient;
+const prisma = new Proxy({} as PrismaClient, {
+  get(_target: unknown, prop: string | symbol) {
+    return (getPrisma() as any)[prop];
+  },
+});
 
 // ── Order Service ─────────────────────────────────────────────────────────────
 

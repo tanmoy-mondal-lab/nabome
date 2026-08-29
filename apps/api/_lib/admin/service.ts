@@ -11,7 +11,11 @@ import { getPrisma } from '../prisma.ts';
 
 import { AdminEventEmitter } from './events.ts';
 
-const prisma = getPrisma();
+const prisma = new Proxy({} as any, {
+  get(_target: unknown, prop: string | symbol) {
+    return (getPrisma() as any)[prop];
+  },
+});
 
 // ============================================================================
 // PLATFORM OVERVIEW
