@@ -466,7 +466,7 @@ export async function getSystemHealth() {
   return {
     database: { status: dbStatus, latency: dbLatency },
     cache: { status: 'healthy', hitRate: 95 }, // KV cache - would need actual monitoring
-    storage: { status: 'healthy', used: 0, total: 0 }, // R2 storage - would need actual monitoring
+    storage: { status: 'healthy', used: 0, total: 0 }, // S3-compatible object storage (Backblaze B2) - would need actual monitoring
     api: { status: 'healthy', uptime: 99.9 }, // API uptime - would need actual monitoring
   };
 }

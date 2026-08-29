@@ -1,41 +1,57 @@
-/**
- * Shared Prisma client singleton for Cloudflare Pages Functions.
- * Uses Neon serverless HTTP driver adapter for edge-compatible database access.
- * Initialize with `initPrisma(url)` at startup; then use `getPrisma()` everywhere.
- */
 import { PrismaNeonHTTP } from '@prisma/adapter-neon';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import pg from 'pg';
 
 let prisma: PrismaClient | null = null;
 let initialized = false;
+let pool: pg.Pool | null = null;
 
-/**
- * Initialize the Prisma singleton with a database URL.
- * Call once from middleware before any `getPrisma()` calls.
- */
-export function initPrisma(databaseUrl: string): PrismaClient {
+function isLocalConnectionString(url: string): boolean {
+  return url.includes('localhost') || url.includes('127.0.0.1');
+}
+
+export function initPrisma(
+  databaseUrl: string,
+  opts?: { viaHyperdrive?: boolean },
+): PrismaClient {
   if (initialized) return prisma!;
   if (!databaseUrl) {
     throw new Error('No database URL — set DATABASE_URL secret in Cloudflare');
   }
-  const adapter = new PrismaNeonHTTP(databaseUrl, {});
-  prisma = new PrismaClient({ adapter });
+  const usePg = Boolean(
+    opts?.viaHyperdrive || isLocalConnectionString(databaseUrl),
+  );
+  if (usePg) {
+    pool = new pg.Pool({ connectionString: databaseUrl });
+    const adapter = new PrismaPg(pool);
+    prisma = new PrismaClient({ adapter });
+  } else {
+    const adapter = new PrismaNeonHTTP(databaseUrl, {});
+    prisma = new PrismaClient({ adapter });
+  }
   initialized = true;
   return prisma!;
 }
 
-/**
- * Get the Prisma client singleton.
- * Must call `initPrisma(url)` first. Falls back to DATABASE_URL env var for local dev.
- */
 export function getPrisma(): PrismaClient {
   if (prisma) return prisma;
-  // Local dev fallback — process.env is not available in Cloudflare Workers
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
     throw new Error(
       'Prisma not initialized — call initPrisma(url) in middleware first',
     );
   }
-  return initPrisma(databaseUrl);
+  return initPrisma(databaseUrl, {
+    viaHyperdrive: isLocalConnectionString(databaseUrl),
+  });
+}
+
+export function __resetPrismaForTests(): void {
+  prisma = null;
+  initialized = false;
+  if (pool) {
+    void pool.end().catch(() => {});
+    pool = null;
+  }
 }

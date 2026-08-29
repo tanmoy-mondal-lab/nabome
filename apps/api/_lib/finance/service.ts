@@ -768,31 +768,65 @@ export async function getSettlementDetail(settlementId: string) {
   });
 }
 
-async function nextSequence(prefix: 'FIN' | 'STL'): Promise<number> {
+async function nextSequence(
+  prefix: 'FIN' | 'STL',
+  retries = 3,
+): Promise<number> {
   const prisma = getPrisma() as any;
   const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const likePrefix = `${prefix}-${today}-`;
-  const latest = await prisma.financeRecord
-    .findFirst({
-      where: { recordNumber: { startsWith: likePrefix } },
-      orderBy: { recordNumber: 'desc' },
-      select: { recordNumber: true },
-    })
-    .catch(() => null);
-  const latestSettlement = !latest
-    ? await prisma.settlement
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const [latestFin, latestStl] = await Promise.all([
+      prisma.financeRecord
+        .findFirst({
+          where: { recordNumber: { startsWith: likePrefix } },
+          orderBy: { recordNumber: 'desc' },
+          select: { recordNumber: true },
+        })
+        .catch(() => null),
+      prisma.settlement
         .findFirst({
           where: { settlementNumber: { startsWith: likePrefix } },
           orderBy: { settlementNumber: 'desc' },
           select: { settlementNumber: true },
         })
-        .catch(() => null)
-    : null;
-  const lastNum =
-    latest?.recordNumber ??
-    latestSettlement?.settlementNumber ??
-    `${likePrefix}000000`;
-  const seqStr = lastNum.replace(likePrefix, '');
-  const seq = parseInt(seqStr, 10) || 0;
-  return seq + 1;
+        .catch(() => null),
+    ]);
+    const candidates = [
+      latestFin?.recordNumber,
+      latestStl?.settlementNumber,
+    ].filter(Boolean) as string[];
+    const maxSeq = candidates.reduce(
+      (m, n) => Math.max(m, parseInt(n.replace(likePrefix, ''), 10) || 0),
+      0,
+    );
+    const next = maxSeq + 1 + attempt;
+    try {
+      await prisma.$transaction(async (tx: any) => {
+        const exists =
+          prefix === 'FIN'
+            ? await tx.financeRecord.findFirst({
+                where: {
+                  recordNumber: `${likePrefix}${String(next).padStart(6, '0')}`,
+                },
+                select: { id: true },
+              })
+            : await tx.settlement.findFirst({
+                where: {
+                  settlementNumber: `${likePrefix}${String(next).padStart(6, '0')}`,
+                },
+                select: { id: true },
+              });
+        if (exists) throw new Error('SEQ_COLLISION');
+      });
+      return next;
+    } catch (e: any) {
+      if (e?.message === 'SEQ_COLLISION' && attempt < retries - 1) continue;
+      return next;
+    }
+  }
+  const fallback = await prisma.financeRecord
+    .count({ where: { recordNumber: { startsWith: likePrefix } } })
+    .catch(() => 0);
+  return fallback + 1;
 }

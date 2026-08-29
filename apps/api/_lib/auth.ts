@@ -35,9 +35,9 @@ export async function authenticate(
   }
 
   try {
-    const secret = jwtSecret ?? (globalThis as any).process?.env?.JWT_SECRET;
+    const secret = jwtSecret;
     if (!secret)
-      throw ApiError.unauthorized('Server misconfigured: JWT_SECRET missing');
+      throw ApiError.internal('Server misconfigured: JWT_SECRET missing');
     const payload = verifyToken(token, secret);
     return {
       userId: payload.userId,
@@ -76,14 +76,27 @@ export function readCsrfToken(
   return null;
 }
 
-/** Enforce the double-submit CSRF cookie on mutations (SEC §3.3). */
 export function enforceCsrf(request: Request, cookieName: string): void {
   const cookieToken = readCsrfToken(request, cookieName);
   const headerToken = request.headers.get('x-csrf-token');
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+  if (!cookieToken || !headerToken) {
     throw new ApiError({
       code: 'FORBIDDEN',
       message: 'CSRF validation failed',
     });
   }
+  if (cookieToken.length !== headerToken.length) {
+    throw new ApiError({
+      code: 'FORBIDDEN',
+      message: 'CSRF validation failed',
+    });
+  }
+  let diff = 0;
+  for (let i = 0; i < cookieToken.length; i++)
+    diff |= cookieToken.charCodeAt(i) ^ headerToken.charCodeAt(i);
+  if (diff !== 0)
+    throw new ApiError({
+      code: 'FORBIDDEN',
+      message: 'CSRF validation failed',
+    });
 }

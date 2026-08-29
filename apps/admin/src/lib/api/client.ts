@@ -77,9 +77,12 @@ export async function request<T>(
 ): Promise<T> {
   const { body, skipCsrf = false, headers, ...init } = options;
 
+  const isMutation =
+    (init.method ?? (body !== undefined ? 'POST' : 'GET')).toUpperCase() !==
+    'GET';
   const finalHeaders: Record<string, string> = {
     ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
-    ...(init.method && init.method !== 'GET' && !skipCsrf ? csrfHeader() : {}),
+    ...(isMutation && !skipCsrf ? csrfHeader() : {}),
     ...(headers as Record<string, string> | undefined),
   };
 

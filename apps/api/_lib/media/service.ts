@@ -1,20 +1,17 @@
-/**
- * Media Service
- * Business logic for product media management
- */
-
 import type { ProductMedia } from '@prisma/client';
 
+import type { Env } from '../env.ts';
 import { ApiError } from '../http/errors.ts';
 import { getPrisma } from '../prisma.ts';
 import {
-  validateFile,
+  deleteFromStorage,
   generateStorageKey,
   generateVariantStorageKey,
-  uploadToR2,
-  deleteFromR2,
+  uploadToStorage,
+  validateFile,
   type UploadResult,
-} from '../storage/r2.ts';
+} from '../storage/index.ts';
+import type { StorageConfig } from '../storage/s3.ts';
 
 export interface MediaUploadInput {
   productId: string;
@@ -35,63 +32,46 @@ export interface MediaUploadResult {
   sortOrder: number;
 }
 
-/**
- * Upload media for a product
- * Validates file, uploads to R2, and creates database record
- */
 export async function uploadProductMedia(
-  input: MediaUploadInput,
-  bucket: R2Bucket,
+  input: MediaUploadInput & { env: Env },
 ): Promise<MediaUploadResult> {
-  const { productId, variantId, file, shopId, altText, sortOrder = 0 } = input;
-
-  // Validate file
+  const {
+    productId,
+    variantId,
+    file,
+    shopId,
+    altText,
+    sortOrder = 0,
+    env,
+  } = input;
   const validation = validateFile(file);
-  if (!validation.valid) {
+  if (!validation.valid)
     throw ApiError.validation(validation.error ?? 'Invalid file');
-  }
-
-  // Verify product belongs to shop
   const prisma = getPrisma();
   const product = await prisma.product.findUnique({
     where: { id: productId },
     select: { shopId: true },
   });
-
-  if (!product) {
-    throw ApiError.notFound('Product not found');
-  }
-
-  if (product.shopId !== shopId) {
+  if (!product) throw ApiError.notFound('Product not found');
+  if (product.shopId !== shopId)
     throw ApiError.forbidden('Product does not belong to this shop');
-  }
-
-  // If variantId is provided, verify it belongs to the product
   if (variantId) {
     const variant = await prisma.productVariant.findUnique({
       where: { id: variantId },
       select: { productId: true },
     });
-
-    if (!variant || variant.productId !== productId) {
+    if (!variant || variant.productId !== productId)
       throw ApiError.forbidden('Variant does not belong to this product');
-    }
   }
-
-  // Generate storage key
   const key = variantId
     ? generateVariantStorageKey(shopId, productId, variantId, file)
     : generateStorageKey(shopId, productId, file);
-
-  // Upload to R2
-  const uploadResult: UploadResult = await uploadToR2(
-    bucket as any,
+  const uploadResult: UploadResult = await uploadToStorage(
+    env,
     key,
     file,
     file.type || 'application/octet-stream',
   );
-
-  // Create database record
   const media = await prisma.productMedia.create({
     data: {
       productId,
@@ -102,7 +82,6 @@ export async function uploadProductMedia(
       sortOrder,
     },
   });
-
   return {
     id: media.id,
     url: media.url,
@@ -114,96 +93,46 @@ export async function uploadProductMedia(
   };
 }
 
-/**
- * Delete media
- * Verifies ownership, deletes from R2 and database
- */
 export async function deleteProductMedia(
   mediaId: string,
   shopId: string,
-  bucket: R2Bucket,
+  env: Env,
 ): Promise<void> {
   const prisma = getPrisma();
-
-  // Get media with product info
   const media = await prisma.productMedia.findUnique({
     where: { id: mediaId },
-    include: {
-      product: {
-        select: { shopId: true },
-      },
-    },
+    include: { product: { select: { shopId: true } } },
   });
-
-  if (!media) {
-    throw ApiError.notFound('Media not found');
-  }
-
-  // Verify shop ownership
-  if (media.product.shopId !== shopId) {
+  if (!media) throw ApiError.notFound('Media not found');
+  if (media.product.shopId !== shopId)
     throw ApiError.forbidden('Media does not belong to this shop');
-  }
-
-  // Extract key from URL
-  const key = extractKeyFromUrl(media.url);
+  const key = extractKeyFromUrl(media.url, env);
   if (key) {
-    // Delete from R2
     try {
-      await deleteFromR2(bucket as any, key);
+      await deleteFromStorage(env, key);
     } catch (error) {
-      console.error('Failed to delete from R2:', error);
-      // Continue with database deletion even if R2 fails
+      console.error('Failed to delete from storage:', error);
     }
   }
-
-  // Delete from database
-  await prisma.productMedia.delete({
-    where: { id: mediaId },
-  });
+  await prisma.productMedia.delete({ where: { id: mediaId } });
 }
 
-/**
- * Update media (alt text, sort order)
- */
 export async function updateProductMedia(
   mediaId: string,
   shopId: string,
-  updates: {
-    altText?: string;
-    sortOrder?: number;
-  },
+  updates: { altText?: string; sortOrder?: number },
 ): Promise<ProductMedia> {
   const prisma = getPrisma();
-
-  // Get media with product info
   const media = await prisma.productMedia.findUnique({
     where: { id: mediaId },
-    include: {
-      product: {
-        select: { shopId: true },
-      },
-    },
+    include: { product: { select: { shopId: true } } },
   });
-
-  if (!media) {
-    throw ApiError.notFound('Media not found');
-  }
-
-  // Verify shop ownership
-  if (media.product.shopId !== shopId) {
+  if (!media) throw ApiError.notFound('Media not found');
+  if (media.product.shopId !== shopId)
     throw ApiError.forbidden('Media does not belong to this shop');
-  }
-
-  // Update
-  return prisma.productMedia.update({
-    where: { id: mediaId },
-    data: updates,
-  });
+  return prisma.productMedia.update({ where: { id: mediaId }, data: updates });
 }
 
-/**
- * Get media for a product
- */
 export async function getProductMedia(
   productId: string,
 ): Promise<ProductMedia[]> {
@@ -214,22 +143,58 @@ export async function getProductMedia(
   });
 }
 
-/**
- * Extract R2 key from URL
- * Assumes URL format: https://nabome-media.r2.dev/shops/{shopId}/products/{productId}/{uuid}.{ext}
- */
-function extractKeyFromUrl(url: string): string | null {
+export function extractKeyFromUrl(
+  url: string,
+  envOrPublicUrl?: Env | StorageConfig | string | null,
+): string | null {
   try {
     const urlObj = new URL(url);
-    const path = urlObj.pathname;
-    // Remove leading slash
-    return path.startsWith('/') ? path.slice(1) : path;
+    let pathname = urlObj.pathname;
+    let publicUrl: string | null = null;
+    if (typeof envOrPublicUrl === 'string') {
+      publicUrl = envOrPublicUrl.trim() || null;
+    } else if (envOrPublicUrl && typeof envOrPublicUrl === 'object') {
+      if ('STORAGE_PUBLIC_URL' in envOrPublicUrl) {
+        publicUrl = (envOrPublicUrl as Env).STORAGE_PUBLIC_URL?.trim() || null;
+      } else if ('publicUrl' in envOrPublicUrl) {
+        publicUrl = (envOrPublicUrl as StorageConfig).publicUrl?.trim() || null;
+      }
+    }
+    if (publicUrl) {
+      try {
+        const pub = new URL(publicUrl);
+        const publicPath = pub.pathname.replace(/\/+$/, '');
+        if (publicPath && pathname === publicPath) {
+          pathname = '';
+        } else if (publicPath && pathname.startsWith(`${publicPath}/`)) {
+          pathname = pathname.slice(publicPath.length);
+        } else if (publicPath) {
+          const shopsIdx = pathname.indexOf('/shops/');
+          if (shopsIdx !== -1) pathname = pathname.slice(shopsIdx);
+        }
+      } catch {}
+      const key = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+      if (!key) return null;
+      try {
+        return decodeURIComponent(key);
+      } catch {
+        return key;
+      }
+    }
+    const shopsIdx = pathname.indexOf('/shops/');
+    if (shopsIdx !== -1) pathname = pathname.slice(shopsIdx);
+    const key = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+    if (!key) return null;
+    try {
+      return decodeURIComponent(key);
+    } catch {
+      return key;
+    }
   } catch {
     return null;
   }
 }
 
-// Export service object for handlers
 export const mediaService = {
   uploadProductMedia,
   deleteProductMedia,

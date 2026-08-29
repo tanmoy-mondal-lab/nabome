@@ -6,9 +6,14 @@
  */
 
 import type { Prisma } from '@prisma/client';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
+import { getPrisma } from '../prisma.ts';
+
+const prisma = new Proxy({} as any, {
+  get(_t: any, prop: string | symbol) {
+    return (getPrisma() as any)[prop];
+  },
+});
 
 // ── Brand Repository ─────────────────────────────────────────────────────────
 

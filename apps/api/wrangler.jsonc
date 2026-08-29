@@ -22,15 +22,19 @@
     "SESSION_COOKIE_NAME": "nabome_session",
   },
   "kv_namespaces": [
-    { "binding": "KV", "id": "YOUR_KV_NAMESPACE_ID", "preview_id": "YOUR_KV_PREVIEW_ID" }
+    {
+      "binding": "KV",
+      "id": "6969b592bba74117b3f27545dcf47e7a",
+      "preview_id": "7cb2d643a3ed4165ad24eb7814643027",
+    },
   ],
   "hyperdrive": [
     {
       "binding": "HYPERDRIVE",
-      "id": "YOUR_HYPERDRIVE_CONFIG_ID"
-    }
+      "id": "e2b5c6e70f164e189bebf1cc1282428f",
+      "localConnectionString": "postgres://nabome:nabome@localhost:5432/nabome",
+    },
   ],
-  "r2_buckets": [{ "binding": "MEDIA_BUCKET", "bucket_name": "nabome-media" }],
   "env": {
     "staging": {
       "name": "nabome-api-staging",
@@ -41,13 +45,17 @@
         "LOG_LEVEL": "debug",
       },
       "kv_namespaces": [
-        { "binding": "KV", "id": "YOUR_STAGING_KV_NAMESPACE_ID", "preview_id": "YOUR_STAGING_KV_PREVIEW_ID" }
+        {
+          "binding": "KV",
+          "id": "2db98525861f455c8b80e902569933d7",
+          "preview_id": "7cb2d643a3ed4165ad24eb7814643027",
+        },
       ],
       "hyperdrive": [
         {
           "binding": "HYPERDRIVE",
-          "id": "YOUR_STAGING_HYPERDRIVE_CONFIG_ID"
-        }
+          "id": "e2b5c6e70f164e189bebf1cc1282428f",
+        },
       ],
     },
     "production": {
@@ -59,13 +67,13 @@
         "LOG_LEVEL": "info",
       },
       "kv_namespaces": [
-        { "binding": "KV", "id": "YOUR_PRODUCTION_KV_NAMESPACE_ID" }
+        { "binding": "KV", "id": "6969b592bba74117b3f27545dcf47e7a" },
       ],
       "hyperdrive": [
         {
           "binding": "HYPERDRIVE",
-          "id": "YOUR_PRODUCTION_HYPERDRIVE_CONFIG_ID"
-        }
+          "id": "e2b5c6e70f164e189bebf1cc1282428f",
+        },
       ],
     },
   },

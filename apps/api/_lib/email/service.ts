@@ -55,7 +55,9 @@ export async function sendVerificationEmail(
   verificationToken: string,
   appUrl?: string,
 ): Promise<void> {
-  const verifyUrl = `${appUrl || 'http://localhost:5173'}/verify-email?token=${verificationToken}`;
+  if (!appUrl)
+    throw new Error('APP_URL not configured — email links would be broken');
+  const verifyUrl = `${appUrl}/verify-email?token=${verificationToken}`;
 
   const html = `
     <!DOCTYPE html>
@@ -110,7 +112,9 @@ export async function sendPasswordResetEmail(
   resetToken: string,
   appUrl?: string,
 ): Promise<void> {
-  const resetUrl = `${appUrl || 'http://localhost:5173'}/reset-password?token=${resetToken}`;
+  if (!appUrl)
+    throw new Error('APP_URL not configured — email links would be broken');
+  const resetUrl = `${appUrl}/reset-password?token=${resetToken}`;
 
   const html = `
     <!DOCTYPE html>

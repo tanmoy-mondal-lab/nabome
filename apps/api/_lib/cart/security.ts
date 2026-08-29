@@ -12,9 +12,12 @@ export class CartSecurityService {
   static canAccessCart(
     userId: string | null,
     cartUserId: string | null,
+    guestId?: string | null,
+    cartGuestId?: string | null,
   ): boolean {
     if (userId && cartUserId) return userId === cartUserId;
-    if (!userId && !cartUserId) return true;
+    if (!userId && !cartUserId)
+      return !!guestId && !!cartGuestId && guestId === cartGuestId;
     return false;
   }
 
@@ -56,17 +59,32 @@ export class CartSecurityService {
   }
 
   static validateCsrfToken(
-    _context: RequestContext,
-    _token: string | null,
+    context: RequestContext,
+    token: string | null,
   ): boolean {
-    return true;
+    const cookie = (context as any).csrfCookie as string | undefined;
+    if (!cookie || !token) return false;
+    if (cookie.length !== token.length) return false;
+    let d = 0;
+    for (let i = 0; i < cookie.length; i++)
+      d |= cookie.charCodeAt(i) ^ token.charCodeAt(i);
+    return d === 0;
   }
 
-  static async checkRateLimit(
-    _userId: string | null,
-    _guestId: string | null,
-  ): Promise<boolean> {
-    return true;
+  static async checkRateLimit(context: RequestContext): Promise<boolean> {
+    const { checkRateLimit, clientKey } = await import('../ratelimit.ts');
+    const fakeReq = {
+      headers: {
+        get: (k: string) =>
+          k === 'cf-connecting-ip' || k === 'x-forwarded-for'
+            ? (context as any).ip
+            : null,
+      },
+    } as unknown as Request;
+    void fakeReq;
+    const key = `cart:${context.userId ?? context.guestId ?? 'anon'}`;
+    const r = await checkRateLimit((context.env as any).KV, 'public', key);
+    return r.allowed;
   }
 
   static sanitizeInput(

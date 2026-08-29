@@ -1,4 +1,4 @@
-import type { KVNamespace, R2Bucket } from '@cloudflare/workers-types';
+import type { Hyperdrive, KVNamespace } from '@cloudflare/workers-types';
 
 /**
  * Cloudflare binding environment (wrangler.jsonc + dashboard secrets).
@@ -36,7 +36,13 @@ export interface Env {
   TURNSTILE_SECRET_KEY?: string;
   WEBHOOK_SECRET?: string;
   SENTRY_DSN?: string;
+  STORAGE_ENDPOINT?: string;
+  STORAGE_REGION?: string;
+  STORAGE_BUCKET?: string;
+  STORAGE_ACCESS_KEY_ID?: string;
+  STORAGE_SECRET_ACCESS_KEY?: string;
+  STORAGE_PUBLIC_URL?: string;
   /** Bindings (wrangler.jsonc). */
   KV?: KVNamespace;
-  MEDIA_BUCKET?: R2Bucket;
+  HYPERDRIVE?: Hyperdrive;
 }

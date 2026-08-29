@@ -9,10 +9,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { Category } from '@nabome/types';
 
-const API_BASE =
-  (import.meta.env.VITE_PUBLIC_API_URL as string | undefined) ??
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  '/api/v1';
+const API_BASE = (import.meta.env.VITE_PUBLIC_API_URL as string | undefined)
+  ? `${import.meta.env.VITE_PUBLIC_API_URL}/api/v1`
+  : '/api/v1';
 function unwrap<T>(j: any): T {
   return j && typeof j === 'object' && 'success' in j && 'data' in j
     ? (j.data as T)
@@ -48,14 +47,15 @@ export function useCategory(id: string, enabled = true) {
   return useQuery({
     queryKey: ['category', id],
     queryFn: async (): Promise<Category> => {
-      const response = await fetch(`${API_BASE}/categories/${id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch category');
-      }
-      return response.json();
+      const response = await fetch(`${API_BASE}/categories/${id}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch category');
+      const json = await response.json();
+      return unwrap<Category>(json);
     },
     enabled: enabled && !!id,
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000,
   });
 }
 
@@ -66,14 +66,15 @@ export function useCategoryBySlug(slug: string, enabled = true) {
   return useQuery({
     queryKey: ['category', 'slug', slug],
     queryFn: async (): Promise<Category> => {
-      const response = await fetch(`${API_BASE}/categories/slug/${slug}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch category');
-      }
-      return response.json();
+      const response = await fetch(`${API_BASE}/categories/slug/${slug}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch category');
+      const json = await response.json();
+      return unwrap<Category>(json);
     },
     enabled: enabled && !!slug,
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000,
   });
 }
 
@@ -94,14 +95,14 @@ export function useCategories(params: CategoryListParams = {}, enabled = true) {
     queryFn: async (): Promise<CategoryListResponse> => {
       const response = await fetch(
         `${API_BASE}/categories?${queryParams.toString()}`,
+        { credentials: 'include' },
       );
-      if (!response.ok) {
-        throw new Error('Failed to fetch categories');
-      }
-      return response.json();
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      const json = await response.json();
+      return unwrap<CategoryListResponse>(json);
     },
     enabled,
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 10 * 60 * 1000,
   });
 }
 
@@ -115,14 +116,16 @@ export function useCategoryTree(parentId?: string | null, enabled = true) {
   return useQuery({
     queryKey: ['categories', 'tree', parentId],
     queryFn: async (): Promise<{ categories: Category[] }> => {
-      const response = await fetch(`${API_BASE}/categories/tree${queryParams}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch category tree');
-      }
-      return response.json();
+      const response = await fetch(
+        `${API_BASE}/categories/tree${queryParams}`,
+        { credentials: 'include' },
+      );
+      if (!response.ok) throw new Error('Failed to fetch category tree');
+      const json = await response.json();
+      return unwrap<{ categories: Category[] }>(json);
     },
     enabled,
-    staleTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 15 * 60 * 1000,
   });
 }
 
@@ -133,14 +136,15 @@ export function useRootCategories(enabled = true) {
   return useQuery({
     queryKey: ['categories', 'root'],
     queryFn: async (): Promise<{ categories: Category[] }> => {
-      const response = await fetch(`${API_BASE}/categories/root`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch root categories');
-      }
-      return response.json();
+      const response = await fetch(`${API_BASE}/categories/root`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch root categories');
+      const json = await response.json();
+      return unwrap<{ categories: Category[] }>(json);
     },
     enabled,
-    staleTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 15 * 60 * 1000,
   });
 }
 
@@ -154,11 +158,12 @@ export function usePrefetchCategory() {
     queryClient.prefetchQuery({
       queryKey: ['category', id],
       queryFn: async (): Promise<Category> => {
-        const response = await fetch(`${API_BASE}/categories/${id}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch category');
-        }
-        return response.json();
+        const response = await fetch(`${API_BASE}/categories/${id}`, {
+          credentials: 'include',
+        });
+        if (!response.ok) throw new Error('Failed to fetch category');
+        const json = await response.json();
+        return unwrap<Category>(json);
       },
       staleTime: 10 * 60 * 1000,
     });

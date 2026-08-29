@@ -9,10 +9,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { Product } from '@nabome/types';
 
-const API_BASE =
-  (import.meta.env.VITE_PUBLIC_API_URL as string | undefined) ??
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  '/api/v1';
+const API_BASE = (import.meta.env.VITE_PUBLIC_API_URL as string | undefined)
+  ? `${import.meta.env.VITE_PUBLIC_API_URL}/api/v1`
+  : '/api/v1';
 
 function unwrap<T>(json: any): T {
   if (json && typeof json === 'object' && 'success' in json && 'data' in json)

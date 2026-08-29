@@ -9,10 +9,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { Collection } from '@nabome/types';
 
-const API_BASE =
-  (import.meta.env.VITE_PUBLIC_API_URL as string | undefined) ??
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  '/api/v1';
+const API_BASE = (import.meta.env.VITE_PUBLIC_API_URL as string | undefined)
+  ? `${import.meta.env.VITE_PUBLIC_API_URL}/api/v1`
+  : '/api/v1';
 function unwrap<T>(j: any): T {
   return j && typeof j === 'object' && 'success' in j && 'data' in j
     ? (j.data as T)
@@ -48,11 +47,12 @@ export function useCollection(id: string, enabled = true) {
   return useQuery({
     queryKey: ['collection', id],
     queryFn: async (): Promise<Collection> => {
-      const response = await fetch(`${API_BASE}/collections/${id}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch collection');
-      }
-      return response.json();
+      const response = await fetch(`${API_BASE}/collections/${id}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch collection');
+      const json = await response.json();
+      return unwrap(json as any);
     },
     enabled: enabled && !!id,
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -66,11 +66,12 @@ export function useCollectionBySlug(slug: string, enabled = true) {
   return useQuery({
     queryKey: ['collection', 'slug', slug],
     queryFn: async (): Promise<Collection> => {
-      const response = await fetch(`${API_BASE}/collections/slug/${slug}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch collection');
-      }
-      return response.json();
+      const response = await fetch(`${API_BASE}/collections/slug/${slug}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch collection');
+      const json = await response.json();
+      return unwrap(json as any);
     },
     enabled: enabled && !!slug,
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -97,11 +98,11 @@ export function useCollections(
     queryFn: async (): Promise<CollectionListResponse> => {
       const response = await fetch(
         `${API_BASE}/collections?${queryParams.toString()}`,
+        { credentials: 'include' },
       );
-      if (!response.ok) {
-        throw new Error('Failed to fetch collections');
-      }
-      return response.json();
+      if (!response.ok) throw new Error('Failed to fetch collections');
+      const json = await response.json();
+      return unwrap(json as any);
     },
     enabled,
     staleTime: 10 * 60 * 1000, // 10 minutes
@@ -117,11 +118,11 @@ export function useFeaturedCollections(limit = 10, enabled = true) {
     queryFn: async (): Promise<{ collections: Collection[] }> => {
       const response = await fetch(
         `${API_BASE}/collections/featured?limit=${limit}`,
+        { credentials: 'include' },
       );
-      if (!response.ok) {
-        throw new Error('Failed to fetch featured collections');
-      }
-      return response.json();
+      if (!response.ok) throw new Error('Failed to fetch featured collections');
+      const json = await response.json();
+      return unwrap(json as any);
     },
     enabled,
     staleTime: 15 * 60 * 1000, // 15 minutes
@@ -137,11 +138,11 @@ export function useActiveCollections(limit = 20, enabled = true) {
     queryFn: async (): Promise<{ collections: Collection[] }> => {
       const response = await fetch(
         `${API_BASE}/collections/active?limit=${limit}`,
+        { credentials: 'include' },
       );
-      if (!response.ok) {
-        throw new Error('Failed to fetch active collections');
-      }
-      return response.json();
+      if (!response.ok) throw new Error('Failed to fetch active collections');
+      const json = await response.json();
+      return unwrap(json as any);
     },
     enabled,
     staleTime: 15 * 60 * 1000, // 15 minutes
@@ -158,7 +159,9 @@ export function usePrefetchCollection() {
     queryClient.prefetchQuery({
       queryKey: ['collection', id],
       queryFn: async (): Promise<Collection> => {
-        const response = await fetch(`${API_BASE}/collections/${id}`);
+        const response = await fetch(`${API_BASE}/collections/${id}`, {
+          credentials: 'include',
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch collection');
         }

@@ -250,22 +250,30 @@ export async function handleCmsFeaturedCollections(
     const collections = await collectionService.getFeatured(limit);
 
     // Transform for CMS
-    const cmsCollections = collections.map((collection) => ({
-      id: collection.id,
-      name: collection.name,
-      slug: collection.slug,
-      description: collection.description,
-      imageUrl: collection.imageUrl,
-      type: collection.type,
-      products:
-        collection.products?.slice(0, 4).map((pc) => ({
-          id: pc.product.id,
-          name: pc.product.name,
-          slug: pc.product.slug,
-          basePrice: pc.product.basePrice,
-          imageUrl: pc.product.media?.[0]?.url || null,
-        })) || [],
-    }));
+    const cmsCollections = collections.map(
+      (
+        collection: Awaited<
+          ReturnType<typeof collectionService.getFeatured>
+        >[number],
+      ) => ({
+        id: collection.id,
+        name: collection.name,
+        slug: collection.slug,
+        description: collection.description,
+        imageUrl: collection.imageUrl,
+        type: collection.type,
+        products:
+          collection.products
+            ?.slice(0, 4)
+            .map((pc: NonNullable<typeof collection.products>[number]) => ({
+              id: pc.product.id,
+              name: pc.product.name,
+              slug: pc.product.slug,
+              basePrice: pc.product.basePrice,
+              imageUrl: pc.product.media?.[0]?.url || null,
+            })) || [],
+      }),
+    );
 
     return okJson({ collections: cmsCollections }, context.requestId);
   } catch (error) {

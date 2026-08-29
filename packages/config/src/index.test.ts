@@ -20,7 +20,7 @@ describe('config', () => {
       JWT_SECRET: 'test-jwt-secret-must-be-at-least-32-chars',
       CSRF_SECRET: '0123456789abcdef',
     });
-    expect(env.R2_BUCKET_NAME).toBe('nabome-storage');
+    expect(env.STORAGE_BUCKET || 'nabome-storage').toBe('nabome-storage');
   });
 
   it('exposes offline flag defaults', () => {

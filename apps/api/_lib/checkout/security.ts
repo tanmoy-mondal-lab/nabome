@@ -147,35 +147,24 @@ export async function applyCheckoutRateLimit(
   request: Request,
   operation: keyof typeof CHECKOUT_RATE_LIMITS,
   identifier?: string,
+  kv?: any,
 ): Promise<void> {
-  const { getPrisma } = await import('../prisma.ts');
-  let kv: any = undefined;
-  try {
-    const ctx = (request as any).__env ?? (globalThis as any).__env;
-    kv = ctx?.KV;
-  } catch {}
-  if (!kv) {
+  let resolvedKv = kv;
+  if (!resolvedKv) {
     try {
-      const { checkRateLimit, clientKey } = await import('../ratelimit.ts');
-      const ip = clientKey(request);
-      const key = identifier
-        ? `checkout:${operation}:${identifier}`
-        : `checkout:${operation}:${ip}`;
-      const result = await checkRateLimit(kv, 'public', key);
-      if (!result.allowed)
-        throw ApiError.rateLimited('Checkout rate limit exceeded');
-      return;
-    } catch (e) {
-      if (e instanceof ApiError) throw e;
-      return;
-    }
+      const ctx =
+        (request as any).__env ??
+        (globalThis as any).__env ??
+        (request as any).context?.env;
+      resolvedKv = ctx?.KV;
+    } catch {}
   }
   const { checkRateLimit, clientKey } = await import('../ratelimit.ts');
   const ip = clientKey(request);
   const key = identifier
     ? `checkout:${operation}:${identifier}`
     : `checkout:${operation}:${ip}`;
-  const result = await checkRateLimit(kv, 'public', key);
+  const result = await checkRateLimit(resolvedKv, 'public', key);
   if (!result.allowed)
     throw ApiError.rateLimited('Checkout rate limit exceeded');
 }
@@ -186,8 +175,7 @@ export async function applyCheckoutRateLimit(
  * Enforce CSRF protection for checkout mutations
  */
 export function requireCheckoutCsrf(request: Request): void {
-  // Enforce CSRF for all non-GET checkout requests
-  requireCsrf(request, 'checkout_csrf_token');
+  requireCsrf(request, 'csrf_token');
 }
 
 // ── Checkout Input Validation ────────────────────────────────────────────────────

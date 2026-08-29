@@ -76,10 +76,11 @@ export async function checkRateLimit(
 }
 
 export function clientKey(request: Request): string {
-  return (
+  const path = new URL(request.url).pathname;
+  const ip =
     request.headers.get('cf-connecting-ip') ??
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    request.headers.get('x-real-ip') ??
-    `unknown:${new URL(request.url).pathname}`
-  );
+    request.headers.get('x-real-ip');
+  if (ip) return ip;
+  return `unknown:${path}:${request.headers.get('user-agent')?.slice(0, 32) ?? 'no-ua'}`;
 }

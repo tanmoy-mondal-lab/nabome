@@ -6,9 +6,13 @@
  * Provides related products, similar products, and personalized recommendations.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { getPrisma } from '../prisma.ts';
 
-const prisma = new PrismaClient();
+const prisma = new Proxy({} as any, {
+  get(_t: any, prop: string | symbol) {
+    return (getPrisma() as any)[prop];
+  },
+});
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -88,7 +92,7 @@ export const recommendationService = {
     });
 
     // Score and rank recommendations
-    const scored = related.map((doc) => {
+    const scored = related.map((doc: (typeof related)[number]) => {
       let score = 0;
       const reasons: string[] = [];
 
@@ -106,7 +110,7 @@ export const recommendationService = {
 
       // Tag overlap boost
       if (doc.tags && productTags.length > 0) {
-        const overlap = doc.tags.filter((tag) =>
+        const overlap = doc.tags.filter((tag: string) =>
           productTags.includes(tag),
         ).length;
         if (overlap > 0) {
@@ -142,7 +146,12 @@ export const recommendationService = {
     });
 
     // Sort by score and return top results
-    return scored.sort((a, b) => b.score - a.score).slice(0, limit);
+    return scored
+      .sort(
+        (a: (typeof scored)[number], b: (typeof scored)[number]) =>
+          b.score - a.score,
+      )
+      .slice(0, limit);
   },
 
   /**
@@ -196,7 +205,7 @@ export const recommendationService = {
     });
 
     // Score recommendations
-    const scored = similar.map((doc) => {
+    const scored = similar.map((doc: (typeof similar)[number]) => {
       let score = 0;
       const reasons: string[] = [];
 
@@ -241,7 +250,12 @@ export const recommendationService = {
       };
     });
 
-    return scored.sort((a, b) => b.score - a.score).slice(0, limit);
+    return scored
+      .sort(
+        (a: (typeof scored)[number], b: (typeof scored)[number]) =>
+          b.score - a.score,
+      )
+      .slice(0, limit);
   },
 
   /**
@@ -265,7 +279,7 @@ export const recommendationService = {
       },
     });
 
-    return trending.map((doc) => ({
+    return trending.map((doc: (typeof trending)[number]) => ({
       id: doc.id,
       productId: doc.productId,
       name: doc.name,
@@ -317,7 +331,7 @@ export const recommendationService = {
       },
     });
 
-    return together.map((doc) => ({
+    return together.map((doc: (typeof together)[number]) => ({
       id: doc.id,
       productId: doc.productId,
       name: doc.name,

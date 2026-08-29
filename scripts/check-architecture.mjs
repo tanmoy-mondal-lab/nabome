@@ -50,9 +50,15 @@ const REQUIRED_PACKAGES = [
   'auth',
   'config',
   'constants',
+  'customer',
   'design-tokens',
+  'finance',
   'inventory',
   'logging',
+  'order',
+  'payment',
+  'returns',
+  'shipping',
   'types',
   'ui',
   'utils',
@@ -115,7 +121,7 @@ for (const app of knownApps) {
       const spec = match[1];
       if (spec.startsWith('@nabome/')) {
         const target = spec.split('/')[1];
-        if (knownApps.includes(target)) {
+        if (knownApps.includes(target) && target !== app) {
           fail(`${relative(ROOT, file)} must not import app "${spec}"`);
         }
         if (!names.has(target)) {

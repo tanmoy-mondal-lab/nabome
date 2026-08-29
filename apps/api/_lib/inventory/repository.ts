@@ -8,7 +8,7 @@
  * Business logic should NOT be here - this is purely data access.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { getPrisma } from '../prisma.ts';
 
 // Temporarily define types inline until package is properly linked
 // These will be replaced with imports from @nabome/inventory after workspace setup
@@ -269,7 +269,11 @@ export interface StockTransferInput {
   performedBy?: string;
 }
 
-const prisma = new PrismaClient();
+const prisma = new Proxy({} as any, {
+  get(_t: any, prop: string | symbol) {
+    return (getPrisma() as any)[prop];
+  },
+});
 
 /**
  * Warehouse Repository Methods
@@ -777,18 +781,25 @@ export const variantInventoryRepository = {
     });
 
     const totalVariants = variants.length;
-    const totalStock = variants.reduce((sum, v) => sum + v.availableStock, 0);
+    const totalStock = variants.reduce(
+      (sum: number, v: (typeof variants)[number]) => sum + v.availableStock,
+      0,
+    );
     const inStockCount = variants.filter(
-      (v) => v.inventoryStatus === InventoryStatus.IN_STOCK,
+      (v: (typeof variants)[number]) =>
+        v.inventoryStatus === InventoryStatus.IN_STOCK,
     ).length;
     const lowStockCount = variants.filter(
-      (v) => v.inventoryStatus === InventoryStatus.LOW_STOCK,
+      (v: (typeof variants)[number]) =>
+        v.inventoryStatus === InventoryStatus.LOW_STOCK,
     ).length;
     const outOfStockCount = variants.filter(
-      (v) => v.inventoryStatus === InventoryStatus.OUT_OF_STOCK,
+      (v: (typeof variants)[number]) =>
+        v.inventoryStatus === InventoryStatus.OUT_OF_STOCK,
     ).length;
     const backorderCount = variants.filter(
-      (v) => v.inventoryStatus === InventoryStatus.BACKORDER,
+      (v: (typeof variants)[number]) =>
+        v.inventoryStatus === InventoryStatus.BACKORDER,
     ).length;
 
     const totalReserved = await prisma.stockReservation.aggregate({

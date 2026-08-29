@@ -6,8 +6,6 @@
  * Source: SHIPPING_DELIVERY_LOGISTICS_ARCHITECTURE.md (binding)
  */
 
-import { PrismaClient } from '@prisma/client';
-
 import { createFulfillmentService } from '@nabome/shipping';
 import { FulfillmentStatus } from '@nabome/shipping';
 
@@ -19,6 +17,7 @@ import {
   okJson,
   withRequestId,
 } from '../../_lib/index.ts';
+import { getPrisma } from '../../_lib/prisma.ts';
 import type { RouteHandler } from '../register.ts';
 // @ts-ignore - Prisma client will be available in runtime
 // @ts-ignore - Shipping package will be built
@@ -44,7 +43,7 @@ export const getFulfillmentQueue: RouteHandler = async (
     const limit = parseInt(url.searchParams.get('limit') || '50', 10);
     const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const fulfillmentService = createFulfillmentService(prisma);
 
     const queueItems = await fulfillmentService.getPendingFulfillmentQueue({
@@ -53,8 +52,6 @@ export const getFulfillmentQueue: RouteHandler = async (
       limit,
       offset,
     });
-
-    await prisma.$disconnect();
 
     return okJson({ queueItems, total: queueItems.length }, requestId);
   } catch (error) {
@@ -82,7 +79,7 @@ export const getFulfillmentById: RouteHandler = async (
     return errorJson(ApiError.badRequest('Missing id'), context.requestId);
 
   try {
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const fulfillmentService = createFulfillmentService(prisma);
 
     const fulfillmentItem = await (prisma.fulfillmentQueue.findUnique as any)({
@@ -97,8 +94,6 @@ export const getFulfillmentById: RouteHandler = async (
         pickListItems: true,
       },
     });
-
-    await prisma.$disconnect();
 
     if (!fulfillmentItem) {
       return errorJson(
@@ -136,7 +131,7 @@ export const updateFulfillment: RouteHandler = async (
     const body = (await request.json()) as Record<string, any>;
     const { status, assignedTo } = body;
 
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const fulfillmentService = createFulfillmentService(prisma);
 
     let result;
@@ -151,8 +146,6 @@ export const updateFulfillment: RouteHandler = async (
     } else {
       result = await fulfillmentService.assignFulfillmentItem(id!, assignedTo);
     }
-
-    await prisma.$disconnect();
 
     return okJson({ fulfillmentItem: result }, requestId);
   } catch (error) {
@@ -187,7 +180,7 @@ export const createFulfillment: RouteHandler = async (
       );
     }
 
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const fulfillmentService = createFulfillmentService(prisma);
 
     const fulfillmentItem = await fulfillmentService.addToFulfillmentQueue(
@@ -195,8 +188,6 @@ export const createFulfillment: RouteHandler = async (
       shipmentId || null,
       priority || 0,
     );
-
-    await prisma.$disconnect();
 
     return okJson({ fulfillmentItem }, requestId);
   } catch (error) {

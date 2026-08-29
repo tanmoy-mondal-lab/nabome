@@ -84,18 +84,15 @@ export async function handleMediaUpload(
       return errorJson(ApiError.forbidden('Shop not found'), context.requestId);
     }
 
-    // Upload media
-    const result = await mediaService.uploadProductMedia(
-      {
-        productId,
-        variantId: variantId || undefined,
-        file,
-        shopId: shop.id,
-        altText: altText || undefined,
-        sortOrder,
-      },
-      context.env.MEDIA_BUCKET as any,
-    );
+    const result = await mediaService.uploadProductMedia({
+      productId,
+      variantId: variantId || undefined,
+      file,
+      shopId: shop.id,
+      altText: altText || undefined,
+      sortOrder,
+      env: context.env as any,
+    });
 
     return okJson(result, context.requestId);
   } catch (error) {
@@ -147,12 +144,7 @@ export async function handleMediaDelete(
       return errorJson(ApiError.forbidden('Shop not found'), context.requestId);
     }
 
-    // Delete media
-    await mediaService.deleteProductMedia(
-      id,
-      shop.id,
-      context.env.MEDIA_BUCKET as any,
-    );
+    await mediaService.deleteProductMedia(id, shop.id, context.env as any);
 
     return okJson({ success: true }, context.requestId);
   } catch (error) {

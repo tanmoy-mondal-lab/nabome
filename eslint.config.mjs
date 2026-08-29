@@ -68,7 +68,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ['apps/api/**/*.{ts,tsx}', 'apps/customer/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
+    files: [
+      'apps/api/**/*.{ts,tsx}',
+      'apps/customer/**/*.{ts,tsx}',
+      'packages/**/*.{ts,tsx}',
+    ],
     languageOptions: {
       ecmaVersion: 2022,
       parserOptions: {
@@ -118,7 +122,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ['apps/api/**/*.{ts,tsx}', 'apps/customer/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
+    files: [
+      'apps/api/**/*.{ts,tsx}',
+      'apps/customer/**/*.{ts,tsx}',
+      'packages/**/*.{ts,tsx}',
+    ],
     plugins: {
       'import-x': importX,
     },
@@ -184,7 +192,16 @@ export default tseslint.config(
     },
   },
   {
-    files: ['apps/api/tests/**/*', 'packages/*/tests/**/*', 'packages/returns/**/*', 'apps/admin/src/**/*', 'apps/shop/src/**/*', 'e2e/**/*', '**/vitest*.ts', '**/vitest*.config.ts'],
+    files: [
+      'apps/api/tests/**/*',
+      'packages/*/tests/**/*',
+      'packages/returns/**/*',
+      'apps/admin/src/**/*',
+      'apps/shop/src/**/*',
+      'e2e/**/*',
+      '**/vitest*.ts',
+      '**/vitest*.config.ts',
+    ],
     languageOptions: {
       parserOptions: { projectService: false },
     },

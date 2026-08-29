@@ -273,7 +273,7 @@ export async function handleLogin(
     );
     headers.append(
       'Set-Cookie',
-      `csrf_token=${result.csrfToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=14400`,
+      `csrf_token=${result.csrfToken}; Path=/; Secure; SameSite=Lax; Max-Age=14400`,
     );
     const response = new Response(
       JSON.stringify({
@@ -414,7 +414,7 @@ export async function handleRefresh(
     );
     refreshHeaders.append(
       'Set-Cookie',
-      `csrf_token=${result.csrfToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=14400`,
+      `csrf_token=${result.csrfToken}; Path=/; Secure; SameSite=Lax; Max-Age=14400`,
     );
     return new Response(
       JSON.stringify({

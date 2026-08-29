@@ -166,9 +166,7 @@ class AdminEventEmitter {
     // Publish to backend
     try {
       const API_BASE =
-        (import.meta.env.VITE_PUBLIC_API_URL as string | undefined) ??
-        (import.meta.env.VITE_API_URL as string | undefined) ??
-        'http://localhost:8788';
+        (import.meta.env.VITE_PUBLIC_API_URL as string | undefined) ?? '';
       const csrf =
         typeof document !== 'undefined'
           ? (document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/)?.[1] ?? null)

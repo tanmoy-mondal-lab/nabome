@@ -6,8 +6,6 @@
  * Source: SHIPPING_DELIVERY_LOGISTICS_ARCHITECTURE.md (binding)
  */
 
-import { PrismaClient } from '@prisma/client';
-
 import { createCarrierService } from '@nabome/shipping';
 import type { CarrierType } from '@nabome/shipping';
 
@@ -19,6 +17,7 @@ import {
   okJson,
   withRequestId,
 } from '../../_lib/index.ts';
+import { getPrisma } from '../../_lib/prisma.ts';
 import type { RouteHandler } from '../register.ts';
 // @ts-ignore - Prisma client will be available in runtime
 // @ts-ignore - Shipping package will be built
@@ -34,12 +33,10 @@ export const getCarriers: RouteHandler = async (_request, context, _params) => {
   const logger = withRequestId(getLogger(context.env), requestId);
 
   try {
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const carrierService = createCarrierService(prisma);
 
     const carriers = await carrierService.getCarriers();
-    await prisma.$disconnect();
-
     return okJson({ carriers }, requestId);
   } catch (error) {
     logger.error({ error }, 'Error fetching carriers');
@@ -63,12 +60,10 @@ export const getCarrierById: RouteHandler = async (
     return errorJson(ApiError.badRequest('Missing code'), context.requestId);
 
   try {
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const carrierService = createCarrierService(prisma);
 
     const carrier = await carrierService.getCarrierByCode(code! as CarrierType);
-    await prisma.$disconnect();
-
     if (!carrier) {
       return errorJson(ApiError.notFound('Carrier not found'), requestId);
     }
@@ -103,7 +98,7 @@ export const registerCarrier: RouteHandler = async (
       );
     }
 
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const carrierService = createCarrierService(prisma);
 
     const carrier = await carrierService.registerCarrier(
@@ -113,8 +108,6 @@ export const registerCarrier: RouteHandler = async (
       config,
       trackingUrlTemplate,
     );
-
-    await prisma.$disconnect();
 
     return okJson({ carrier }, requestId);
   } catch (error) {
@@ -141,15 +134,13 @@ export const updateCarrier: RouteHandler = async (request, context, params) => {
     const body = (await request.json()) as Record<string, any>;
     const { config } = body;
 
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const carrierService = createCarrierService(prisma);
 
     const carrier = await carrierService.updateCarrierConfig(
       code! as CarrierType,
       config,
     );
-    await prisma.$disconnect();
-
     if (!carrier) {
       return errorJson(ApiError.notFound('Carrier not found'), requestId);
     }
@@ -184,7 +175,7 @@ export const calculateRates: RouteHandler = async (
       );
     }
 
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const carrierService = createCarrierService(prisma);
 
     const rates = await carrierService.calculateRates({
@@ -194,8 +185,6 @@ export const calculateRates: RouteHandler = async (
       dimensions: dimensions || { length: 0, width: 0, height: 0 },
       shippingMethods,
     });
-
-    await prisma.$disconnect();
 
     return okJson({ rates }, requestId);
   } catch (error) {

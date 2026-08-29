@@ -117,8 +117,8 @@ export const MEDIA = {
 } as const;
 
 // ── Storage (STORAGE_ENGINE_ARCHITECTURE §11.6) ──────────────────────────────
-export const R2_BUCKET_NAME = 'nabome-storage';
-export const R2_FOLDER_ROOT = 'nabome-r2';
+export const STORAGE_BUCKET_DEFAULT = 'nabome-storage';
+export const STORAGE_FOLDER_ROOT = 'nabome-storage';
 
 // ── KV namespace prefixes ────────────────────────────────────────────────────
 export const KV_PREFIX = {

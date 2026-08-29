@@ -6,7 +6,7 @@
  * Coordinates search queries, analytics tracking, and caching.
  */
 
-import { PrismaClient } from '@prisma/client';
+import { getPrisma } from '../prisma.ts';
 
 import {
   SearchRepository,
@@ -15,7 +15,11 @@ import {
   type SearchQuery,
 } from './repository';
 
-const prisma = new PrismaClient();
+const prisma = new Proxy({} as any, {
+  get(_t: any, prop: string | symbol) {
+    return (getPrisma() as any)[prop];
+  },
+});
 const searchRepository = new SearchRepository(prisma);
 
 // ── Types ─────────────────────────────────────────────────────────────────────

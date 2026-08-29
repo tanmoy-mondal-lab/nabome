@@ -6,8 +6,6 @@
  * Source: SHIPPING_DELIVERY_LOGISTICS_ARCHITECTURE.md (binding)
  */
 
-import { PrismaClient } from '@prisma/client';
-
 import { createTrackingService } from '@nabome/shipping';
 import type { TrackingEventType, ActorType } from '@nabome/shipping';
 
@@ -19,6 +17,7 @@ import {
   okJson,
   withRequestId,
 } from '../../_lib/index.ts';
+import { getPrisma } from '../../_lib/prisma.ts';
 import type { RouteHandler } from '../register.ts';
 // @ts-ignore - Prisma client will be available in runtime
 // @ts-ignore - Shipping package will be built
@@ -41,12 +40,10 @@ export const getTrackingTimeline: RouteHandler = async (
     return errorJson(ApiError.badRequest('Missing id'), context.requestId);
 
   try {
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const trackingService = createTrackingService(prisma);
 
     const timeline = await trackingService.getTrackingTimeline(id!);
-    await prisma.$disconnect();
-
     if (!timeline) {
       return errorJson(ApiError.notFound('Shipment not found'), requestId);
     }
@@ -80,14 +77,12 @@ export const getTrackingByNumber: RouteHandler = async (
     );
 
   try {
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const trackingService = createTrackingService(prisma);
 
     const timeline = await trackingService.getTrackingTimelineByNumber(
       trackingNumber!,
     );
-    await prisma.$disconnect();
-
     if (!timeline) {
       return errorJson(
         ApiError.notFound('Tracking number not found'),
@@ -132,7 +127,7 @@ export const addTrackingEvent: RouteHandler = async (
       );
     }
 
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const trackingService = createTrackingService(prisma);
 
     const result = await trackingService.addTrackingEvent(
@@ -144,8 +139,6 @@ export const addTrackingEvent: RouteHandler = async (
       actorId || null,
       metadata,
     );
-
-    await prisma.$disconnect();
 
     if (!result.success) {
       return errorJson(

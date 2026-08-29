@@ -72,7 +72,11 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
 }) => {
   initSentry(env);
 
-  initPrisma(env.DATABASE_URL ?? '');
+  const hyperdriveCs = (
+    env as unknown as { HYPERDRIVE?: { connectionString?: string } }
+  ).HYPERDRIVE?.connectionString;
+  const databaseUrl = hyperdriveCs ?? env.DATABASE_URL ?? '';
+  initPrisma(databaseUrl, { viaHyperdrive: Boolean(hyperdriveCs) });
 
   const logger = getLogger(env);
   const requestId = resolveRequestId(request);
@@ -173,10 +177,22 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
               userId: payload.userId,
               revokedAt: null,
               expiresAt: { gt: new Date() },
-            },
+              refreshTokenHash: tokenHash,
+            } as any,
             orderBy: { createdAt: 'desc' },
           });
           if (session) sessionId = session.id;
+          else {
+            const fallback = await prisma.session.findFirst({
+              where: {
+                userId: payload.userId,
+                revokedAt: null,
+                expiresAt: { gt: new Date() },
+              },
+              orderBy: { createdAt: 'desc' },
+            });
+            if (fallback) sessionId = fallback.id;
+          }
         } catch {}
       }
     } catch {}

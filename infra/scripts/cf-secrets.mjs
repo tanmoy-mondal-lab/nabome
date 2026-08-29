@@ -7,7 +7,7 @@
  *
  * Prerequisite: `wrangler login` and a Pages project named nabome-api(-staging).
  */
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 
 const ENV = process.argv[2];
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -25,6 +25,12 @@ const SECRETS = [
   { var: 'DATABASE_URL', required: true },
   { var: 'JWT_SECRET', required: true },
   { var: 'CSRF_SECRET', required: true },
+  { var: 'STORAGE_ENDPOINT', required: true },
+  { var: 'STORAGE_REGION', required: true },
+  { var: 'STORAGE_BUCKET', required: true },
+  { var: 'STORAGE_ACCESS_KEY_ID', required: true },
+  { var: 'STORAGE_SECRET_ACCESS_KEY', required: true },
+  { var: 'STORAGE_PUBLIC_URL', required: true },
   { var: 'RESEND_API_KEY', required: false },
   { var: 'RAZORPAY_KEY_ID', required: false },
   { var: 'RAZORPAY_KEY_SECRET', required: false },
@@ -53,11 +59,15 @@ for (const { var: name, required } of SECRETS) {
     continue;
   }
   console.log(`↻ setting ${name} on ${PROJECT}...`);
-  execSync(command, {
-    stdio: 'inherit',
+  const res = spawnSync('sh', ['-c', command], {
     input: value,
+    stdio: ['pipe', 'inherit', 'inherit'],
     env: { ...process.env },
   });
+  if (res.status !== 0) {
+    console.error(`✖ failed to set ${name}`);
+    failures += 1;
+  }
 }
 
 if (failures > 0) {

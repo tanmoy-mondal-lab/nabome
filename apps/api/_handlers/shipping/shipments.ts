@@ -6,8 +6,6 @@
  * Source: SHIPPING_DELIVERY_LOGISTICS_ARCHITECTURE.md (binding)
  */
 
-import { PrismaClient } from '@prisma/client';
-
 import {
   createShipmentService, // @ts-ignore - shipping package types
 } from '@nabome/shipping';
@@ -27,6 +25,7 @@ import {
   okJson,
   withRequestId,
 } from '../../_lib/index.ts';
+import { getPrisma } from '../../_lib/prisma.ts';
 import type { RouteHandler } from '../register.ts';
 // @ts-ignore - Prisma client will be available in runtime
 // @ts-ignore - shipping package types
@@ -47,7 +46,7 @@ export const getShipments: RouteHandler = async (request, context, _params) => {
     const limit = parseInt(url.searchParams.get('limit') || '50', 10);
     const offset = parseInt(url.searchParams.get('offset') || '0', 10);
 
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const shipmentService = createShipmentService(prisma);
 
     const shipments = await shipmentService.queryShipments({
@@ -57,8 +56,6 @@ export const getShipments: RouteHandler = async (request, context, _params) => {
       limit,
       offset,
     });
-
-    await prisma.$disconnect();
 
     return okJson({ shipments, total: shipments.length }, requestId);
   } catch (error) {
@@ -83,12 +80,10 @@ export const getShipmentById: RouteHandler = async (
     return errorJson(ApiError.badRequest('Missing id'), context.requestId);
 
   try {
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const shipmentService = createShipmentService(prisma);
 
     const shipment = await shipmentService.getShipmentById(id!);
-    await prisma.$disconnect();
-
     if (!shipment) {
       return errorJson(ApiError.notFound('Shipment not found'), requestId);
     }
@@ -131,7 +126,7 @@ export const createShipment: RouteHandler = async (
       );
     }
 
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const shipmentService = createShipmentService(prisma);
 
     const shipment = await shipmentService.createShipment(
@@ -149,8 +144,6 @@ export const createShipment: RouteHandler = async (
       ActorType.SYSTEM,
       null,
     );
-
-    await prisma.$disconnect();
 
     return okJson({ shipment }, requestId);
   } catch (error) {
@@ -185,7 +178,7 @@ export const updateShipmentStatus: RouteHandler = async (
       );
     }
 
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const shipmentService = createShipmentService(prisma);
 
     const result = await shipmentService.updateShipmentStatus({
@@ -196,8 +189,6 @@ export const updateShipmentStatus: RouteHandler = async (
       reason,
       metadata,
     });
-
-    await prisma.$disconnect();
 
     if (!result.success) {
       return errorJson(
@@ -232,12 +223,10 @@ export const deleteShipment: RouteHandler = async (
     return errorJson(ApiError.badRequest('Missing id'), context.requestId);
 
   try {
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const shipmentService = createShipmentService(prisma);
 
     await shipmentService.deleteShipment(id!);
-    await prisma.$disconnect();
-
     return okJson({ message: 'Shipment deleted successfully' }, requestId);
   } catch (error) {
     logger.error({ error, id }, 'Error deleting shipment');
@@ -261,12 +250,10 @@ export const getShipmentsByOrder: RouteHandler = async (
     return errorJson(ApiError.badRequest('Missing orderId'), context.requestId);
 
   try {
-    const prisma = new PrismaClient();
+    const prisma = getPrisma() as any;
     const shipmentService = createShipmentService(prisma);
 
     const shipments = await shipmentService.getShipmentsByOrderId(orderId!);
-    await prisma.$disconnect();
-
     return okJson({ shipments }, requestId);
   } catch (error) {
     logger.error({ error, orderId }, 'Error fetching shipments for order');
