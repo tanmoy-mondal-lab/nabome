@@ -15,7 +15,7 @@
 
 ### Current Deployment Model
 - **Target**: Cloudflare Pages (API) + static hosting (frontends)
-- **Current state**: Staging API `nabome-api-staging.pages.dev` (`ec78d8f4`, `c553edf`→`d6c3699`) — health PASS, `GET /products` guest+auth 200 (was 500), `GET /cart` 200, `POST /cart/items` 200, `POST /checkout/start` 200; `POST /auth/*` 2/3 200 (was 1/3, now 2/3 with `withTimeout` 10s, 1/3 `INTERNAL_ERROR` `Database timeout`)
+- **Current state**: Staging API `nabome-api-staging.pages.dev` (`ec78d8f4`, `c553edf`→`d6c3699`) — health PASS, `GET /products` guest+auth 200 (was 500), `GET /cart` 200, `POST /cart/items` 200, `POST /checkout/start` 200; `POST /auth/*` 2/3 200 (was 1/3, now `INTERNAL_ERROR` not Worker hung)
 - **Local dev**: Docker PostgreSQL, all 4 apps via pnpm dev
 
 ### Current Database
