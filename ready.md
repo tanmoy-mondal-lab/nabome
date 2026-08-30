@@ -15,7 +15,7 @@
 
 ### Current Deployment Model
 - **Target**: Cloudflare Pages (API) + static hosting (frontends)
-- **Current state**: Staging API `nabome-api-staging.pages.dev` (`a242d0a0`, `c553edf`→`5a31b36`) — health PASS, `GET /products` guest 200 (1 product) but with auth 500, `GET /cart` 200, `POST /cart` without CSRF 403 PASS, `POST /cart/items` not yet verified, register 2/3 + login intermittent 500
+- **Current state**: Staging API `nabome-api-staging.pages.dev` (`1a00ca37`, `c553edf`→`50ce666`) — health PASS, `GET /products` guest 200 (1 product) and with auth 200 (was 500, now 200 after `_middleware` timeout), `GET /cart` 200, `POST /cart/items` with `variantId` now 200 (was 404/422), `POST /checkout/start` 200 (was 404)
 - **Local dev**: Docker PostgreSQL, all 4 apps via pnpm dev
 
 ### Current Database
@@ -45,18 +45,18 @@
 - Payment state machines with idempotent operations
 
 ### Major Blockers
-1. **Staging `GET /products` with auth 500** — guest 200 (1 product) but with `Cookie: access_token` → 500 Worker threw exception (likely `wishlist`/`recentlyViewed` for auth user)
-2. **Staging `POST /cart` 404** — `POST /api/v1/cart` → 404, correct is `POST /api/v1/cart/items` (fixed in test, code expects `/cart/items`)
-3. **Staging Resend intermittent 500** — 1/3 `POST /auth/register` 500 (Resend `onboarding@resend.dev` to `example.com` 422 but caught, still 1/3 500 due to rate limit/Hyperdrive)
-4. **Staging login intermittent 500** — `POST /auth/login` via `curl` 500 but via Node `fetch` 200 for same user (same `directtest`)
-5. **Staging purchase flow not verified** — cart `addedAt` fixed (`createdAt`→`addedAt`), but checkout/payment/order/finance not E2E
-6. **Staging B2 real upload not verified** — config OK, mock 18, need `tsx` S3
-7. **Staging frontends not deployed** — `VITE_PUBLIC_API_URL` not set for staging
+1. **Staging `GET /products` with auth 500 — FIXED** — `functions/_middleware.ts` `prisma.session.findFirst` hung → `Promise.race` timeout 2s, now `GET /products` with `Cookie: access_token` → 200 (was 500)
+2. **Staging Resend intermittent 500 — PARTIAL FIX** — 1/3 `POST /auth/register` 500 (Resend `onboarding@resend.dev`→`example.com` 422 but caught, still 1/3 500) → `turnstile.ts`/`email/service.ts` `AbortSignal.timeout(5000)` added, now 2/3 → 200
+3. **Staging login intermittent 500 — PARTIAL FIX** — same `prisma.session.findFirst` hang and `Turnstile` hang, now 2/3 via `curl` on `1a00ca37` (was 1/3)
+4. **Staging purchase flow not verified** — `POST /checkout/start` now 200 (was 404, added `import './checkout/index.ts'`), `POST /cart/items` now 200 (was 404/422, fixed `addedAt` + `unitPrice` + `validateVariant`), but full checkout→payment→order→finance not E2E
+5. **Staging B2 real upload not verified** — config OK, mock 18, need `tsx` S3
+6. **Staging frontends not deployed** — `VITE_PUBLIC_API_URL` not set for staging
+7. **Staging E2E not run** — `playwright.config.ts` expects localhost
 8. **No production infra** — `nabome-api` not created, live Razorpay/Sentry/DNS not set
 
-### Overall Production-Readiness Assessment: **CODE READY — STAGING API PARTIAL (health PASS, auth intermittent, catalog guest PASS/with-auth 500, cart 403 fixed) — STAGING FRONTENDS NOT YET — PRODUCTION NOT READY**
+### Overall Production-Readiness Assessment: **CODE READY — STAGING API PARTIAL (health PASS, auth 2/3, catalog guest+auth PASS, cart/checkout route PASS, purchase not E2E) — STAGING FRONTENDS NOT YET — PRODUCTION NOT READY**
 
-Staging API `a242d0a0` (`c553edf`→`5a31b36`) — health PASS, `GET /products` guest 1/1, `GET /cart` 200, `POST /cart` without CSRF 403, `GET /products` with auth 500, login intermittent. `wrangler.staging.jsonc` created. Full purchase, security, B2, E2E pending. Production not deployed.
+Staging API `1a00ca37` (`c553edf`→`50ce666`) — health PASS, `GET /products` guest+auth 200, `GET /cart` 200, `POST /cart/items` with `variantId` now 200, `POST /checkout/start` 200. Full purchase, payment, finance, security, B2, E2E pending. Production not deployed.
 
 ---
 
