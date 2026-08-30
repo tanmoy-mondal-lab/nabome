@@ -15,7 +15,7 @@
 
 ### Current Deployment Model
 - **Target**: Cloudflare Pages (API) + static hosting (frontends)
-- **Current state**: Staging API `nabome-api-staging.pages.dev` (`1a00ca37`, `c553edf`→`50ce666`) — health PASS, `GET /products` guest 200 (1 product) and with auth 200 (was 500, now 200 after `_middleware` timeout), `GET /cart` 200, `POST /cart/items` with `variantId` now 200 (was 404/422), `POST /checkout/start` 200 (was 404)
+- **Current state**: Staging API `nabome-api-staging.pages.dev` (`ec78d8f4`, `c553edf`→`d6c3699`) — health PASS, `GET /products` guest+auth 200 (was 500), `GET /cart` 200, `POST /cart/items` 200, `POST /checkout/start` 200; `POST /auth/*` 2/3 200 (was 1/3, now 2/3 with `withTimeout` 10s, 1/3 `INTERNAL_ERROR` `Database timeout`)
 - **Local dev**: Docker PostgreSQL, all 4 apps via pnpm dev
 
 ### Current Database
@@ -45,10 +45,10 @@
 - Payment state machines with idempotent operations
 
 ### Major Blockers
-1. **Staging `GET /products` with auth 500 — FIXED** — `functions/_middleware.ts` `prisma.session.findFirst` hung → `Promise.race` timeout 2s, now `GET /products` with `Cookie: access_token` → 200 (was 500)
-2. **Staging Resend intermittent 500 — PARTIAL FIX** — 1/3 `POST /auth/register` 500 (Resend `onboarding@resend.dev`→`example.com` 422 but caught, still 1/3 500) → `turnstile.ts`/`email/service.ts` `AbortSignal.timeout(5000)` added, now 2/3 → 200
-3. **Staging login intermittent 500 — PARTIAL FIX** — same `prisma.session.findFirst` hang and `Turnstile` hang, now 2/3 via `curl` on `1a00ca37` (was 1/3)
-4. **Staging purchase flow not verified** — `POST /checkout/start` now 200 (was 404, added `import './checkout/index.ts'`), `POST /cart/items` now 200 (was 404/422, fixed `addedAt` + `unitPrice` + `validateVariant`), but full checkout→payment→order→finance not E2E
+1. **Staging `GET /products` with auth 500 — FIXED** — `functions/_middleware.ts` `prisma.session.findFirst` hung → `Promise.race` timeout 10s + skip for `GET /products`, now 200 (was 500)
+2. **Staging Resend intermittent 500 — PARTIAL FIX** — 1/3 `POST /auth/register` 500 → `turnstile.ts`/`email/service.ts` `AbortSignal.timeout(10000)` and `auth/services-v1.ts` `withTimeout` 10s, now 2/3 200, 1/3 `INTERNAL_ERROR` `Database timeout` (was 1101 Worker hung, now controlled)
+3. **Staging login intermittent 500 — PARTIAL FIX** — same, now 2/3 via `curl` on `ec78d8f4` (was 1/3, now 2/3; `3200aedd` 3/3)
+4. **Staging purchase flow not verified** — `POST /checkout/start` 200, `POST /cart/items` 200, but full checkout→payment→order→finance not E2E
 5. **Staging B2 real upload not verified** — config OK, mock 18, need `tsx` S3
 6. **Staging frontends not deployed** — `VITE_PUBLIC_API_URL` not set for staging
 7. **Staging E2E not run** — `playwright.config.ts` expects localhost
@@ -56,7 +56,7 @@
 
 ### Overall Production-Readiness Assessment: **CODE READY — STAGING API PARTIAL (health PASS, auth 2/3, catalog guest+auth PASS, cart/checkout route PASS, purchase not E2E) — STAGING FRONTENDS NOT YET — PRODUCTION NOT READY**
 
-Staging API `1a00ca37` (`c553edf`→`50ce666`) — health PASS, `GET /products` guest+auth 200, `GET /cart` 200, `POST /cart/items` with `variantId` now 200, `POST /checkout/start` 200. Full purchase, payment, finance, security, B2, E2E pending. Production not deployed.
+Staging API `ec78d8f4` (`c553edf`→`d6c3699`) — health PASS, `GET /products` guest+auth 200, `GET /cart` 200, `POST /cart/items` 200, `POST /checkout/start` 200, `POST /auth/*` 2/3 200 (was 1/3, now `INTERNAL_ERROR` not Worker hung). Full purchase, payment, finance, security, B2, E2E pending. Production not deployed.
 
 ---
 
