@@ -55,6 +55,7 @@ export interface RegisterInput {
   /** Cloudflare Env secrets — JWT secret and email config. */
   jwtSecret: string;
   emailConfig: EmailConfig;
+  appUrl?: string;
 }
 
 export interface RegisterResult {
@@ -75,6 +76,7 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
     locale = 'en-IN',
     jwtSecret,
     emailConfig,
+    appUrl,
   } = input;
 
   // 1. Validate password strength
@@ -124,9 +126,13 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
 
   // 7. Send verification email
   try {
-    await sendVerificationEmail(emailConfig, user.email, token);
+    await sendVerificationEmail(
+      emailConfig,
+      user.email,
+      token,
+      appUrl ?? 'https://nabome.online',
+    );
   } catch (error) {
-    // Log error but don't fail registration - user can request resend
     console.error('Failed to send verification email:', error);
   }
 

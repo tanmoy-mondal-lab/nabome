@@ -144,6 +144,7 @@ export async function handleRegister(
         apiKey: context.env.RESEND_API_KEY ?? '',
         fromEmail: context.env.RESEND_FROM_EMAIL ?? 'noreply@nabome.online',
       },
+      appUrl: context.env.APP_URL ?? 'https://nabome.online',
     });
 
     return new Response(

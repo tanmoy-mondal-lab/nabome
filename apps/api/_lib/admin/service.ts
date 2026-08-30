@@ -6,16 +6,18 @@
  * All business logic for admin operations belongs here
  */
 
+import type { PrismaClient } from '@prisma/client';
+
 import { logAuditEvent, AuditEventType } from '../audit/audit-log.ts';
 import { getPrisma } from '../prisma.ts';
 
 import { AdminEventEmitter } from './events.ts';
 
-const prisma = new Proxy({} as any, {
+const prisma = new Proxy({} as unknown as PrismaClient, {
   get(_target: unknown, prop: string | symbol) {
     return (getPrisma() as any)[prop];
   },
-});
+}) as unknown as PrismaClient;
 
 // ============================================================================
 // PLATFORM OVERVIEW

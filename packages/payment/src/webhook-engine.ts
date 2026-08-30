@@ -203,7 +203,6 @@ export class WebhookEngine {
         break;
 
       case 'payment.failed':
-      case 'payment.failed':
         await this.handlePaymentFailed(payment, event);
         break;
 
