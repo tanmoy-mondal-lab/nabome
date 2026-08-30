@@ -15,7 +15,7 @@
 
 ### Current Deployment Model
 - **Target**: Cloudflare Pages (API) + static hosting (frontends)
-- **Current state**: Staging API `nabome-api-staging.pages.dev` (`4279a98d`, `c553edf`) — health PASS, auth PASS (register 2/3, login PASS), catalog PASS (1 product), cart/checkout/payment not yet E2E
+- **Current state**: Staging API `nabome-api-staging.pages.dev` (`4279a98d`, `c553edf`→`5936a8f`) — health PASS, auth PASS (2/3 register, login PASS), catalog PASS (1 product); purchase flow, security, B2, E2E, frontends not yet
 - **Local dev**: Docker PostgreSQL, all 4 apps via pnpm dev
 
 ### Current Database
@@ -45,16 +45,17 @@
 - Payment state machines with idempotent operations
 
 ### Major Blockers
-1. **Staging Resend intermittent 500** — 1/3 `POST /auth/register` 500 error 1101 (Resend domain not verified for `noreply@nabome.online`); now `appUrl` fixed and best-effort, but still flaky
-2. **Staging checkout/payment/finance not E2E tested** — cart, checkout, Razorpay test, order, ledger not yet smoke-tested
-3. **Staging B2 real upload not verified** — config OK, mock 18 tests, need `tsx` real S3 upload
-4. **No production Neon/B2/Razorpay/Resend/Turnstile/Sentry** — production not provisioned
-5. **No production Pages project `nabome-api`** — only `nabome` legacy; staging `nabome-api-staging` OK
-6. **No staging frontend deploy** — customer/admin/shop not on Pages
+1. **Staging Resend intermittent 500** — 1/3 `POST /auth/register` 500 (Resend `noreply@nabome.online` not verified); `appUrl` fixed, best-effort, still flaky — owner to verify domain or use `delivered@resend.dev` for staging
+2. **Staging purchase flow not verified** — cart→checkout→payment→order→finance not E2E tested (critical path)
+3. **Staging security not verified** — CSRF PASS, but RBAC/IDOR/tenant/webhook replay not E2E tested
+4. **Staging B2 real upload not verified** — config OK, mock 18, need `tsx` S3 real
+5. **Staging frontends not deployed** — customer/admin/shop not on Pages, `VITE_PUBLIC_API_URL` not set for staging
+6. **Staging env identity** — `ENVIRONMENT=production` on `nabome-api-staging` (project is staging, but var is production) — needs `wrangler.staging.jsonc` or secrets
+7. **No production infra** — `nabome-api` not created, live Razorpay/Sentry/DNS not set
 
-### Overall Production-Readiness Assessment: **CODE READY — STAGING API VERIFIED (health/auth/catalog) — STAGING FRONTENDS NOT YET — PRODUCTION NOT READY**
+### Overall Production-Readiness Assessment: **CODE READY — STAGING API PARTIAL (health/auth/catalog PASS, purchase/security/B2/E2E pending) — STAGING FRONTENDS NOT YET — PRODUCTION NOT READY**
 
-Staging API `4279a98d` (`c553edf`) — health PASS, `GET /products` 1/1, register 2/3 + login PASS, Turnstile test keys, Hyperdrive calmlab, KV OK. Checkout/payment/finance/E2E still pending. Production not deployed.
+Staging API `4279a98d` (`c553edf`→`5936a8f`) — health PASS, `GET /products` 1/1, register 2/3 + login PASS, KV/Hyperdrive/Neon OK. Full purchase flow, payment idempotency, finance ledger, security IDOR, B2 real, E2E, frontends still pending. Production not deployed.
 
 ---
 
