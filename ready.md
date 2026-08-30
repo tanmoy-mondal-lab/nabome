@@ -15,7 +15,7 @@
 
 ### Current Deployment Model
 - **Target**: Cloudflare Pages (API) + static hosting (frontends)
-- **Current state**: Staging API deployed to `nabome-api-staging.pages.dev` (2026-08-29, `2aa378c9`); KV/Hyperdrive/Neon/B2 validated, Resend/Turnstile test keys, health PASS, smoke PARTIAL
+- **Current state**: Staging API `nabome-api-staging.pages.dev` (`4279a98d`, `c553edf`) — health PASS, auth PASS (register 2/3, login PASS), catalog PASS (1 product), cart/checkout/payment not yet E2E
 - **Local dev**: Docker PostgreSQL, all 4 apps via pnpm dev
 
 ### Current Database
@@ -45,16 +45,16 @@
 - Payment state machines with idempotent operations
 
 ### Major Blockers
-1. **Staging Resend blocks register** — `POST /auth/register` 500 error 1101 (email send throws). Must be best-effort.
-2. **Staging login invalid** — `Invalid email or password` despite bcrypt true (0 failures). Needs handler log.
-3. **Staging products list empty** — `GET /products` 0 while slug returns 1. Filter/cache issue.
-4. **No production Neon/B2/Razorpay/Resend/Turnstile/Sentry** — production not provisioned (staging uses same Neon calmlab, test keys)
-5. **No production Pages project `nabome-api`** — only `nabome` legacy exists; staging `nabome-api-staging` created
+1. **Staging Resend intermittent 500** — 1/3 `POST /auth/register` 500 error 1101 (Resend domain not verified for `noreply@nabome.online`); now `appUrl` fixed and best-effort, but still flaky
+2. **Staging checkout/payment/finance not E2E tested** — cart, checkout, Razorpay test, order, ledger not yet smoke-tested
+3. **Staging B2 real upload not verified** — config OK, mock 18 tests, need `tsx` real S3 upload
+4. **No production Neon/B2/Razorpay/Resend/Turnstile/Sentry** — production not provisioned
+5. **No production Pages project `nabome-api`** — only `nabome` legacy; staging `nabome-api-staging` OK
 6. **No staging frontend deploy** — customer/admin/shop not on Pages
 
-### Overall Production-Readiness Assessment: **CODE READY — INFRASTRUCTURE STAGING PARTIAL — STAGING DEPLOYED PARTIAL — PRODUCTION NOT READY**
+### Overall Production-Readiness Assessment: **CODE READY — STAGING API VERIFIED (health/auth/catalog) — STAGING FRONTENDS NOT YET — PRODUCTION NOT READY**
 
-Code clean (typecheck/lint/tests/build/validate PASS). Staging API deployed (`nabome-api-staging.pages.dev`, `2aa378c9`, health PASS, DB reachable, seed fixed). Critical 8965141 fixes verified (state machine, IDOR, CSRF, gateway, finance). Remaining staging smoke partially blocked by Resend/login/list; production not deployed.
+Staging API `4279a98d` (`c553edf`) — health PASS, `GET /products` 1/1, register 2/3 + login PASS, Turnstile test keys, Hyperdrive calmlab, KV OK. Checkout/payment/finance/E2E still pending. Production not deployed.
 
 ---
 
