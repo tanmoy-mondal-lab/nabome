@@ -15,7 +15,7 @@
 
 ### Current Deployment Model
 - **Target**: Cloudflare Pages (API) + static hosting (frontends)
-- **Current state**: Staging API `nabome-api-staging.pages.dev` (`f640c404`, `c553edf`→`908dc79`) — health PASS, auth 2/3 register + login intermittent 500, catalog guest PASS (1 product) but with auth 500, cart `addedAt` fixed but `POST /cart` 404 due to `/cart` vs `/cart/items`
+- **Current state**: Staging API `nabome-api-staging.pages.dev` (`a242d0a0`, `c553edf`→`5a31b36`) — health PASS, `GET /products` guest 200 (1 product) but with auth 500, `GET /cart` 200, `POST /cart` without CSRF 403 PASS, `POST /cart/items` not yet verified, register 2/3 + login intermittent 500
 - **Local dev**: Docker PostgreSQL, all 4 apps via pnpm dev
 
 ### Current Database
@@ -54,9 +54,9 @@
 7. **Staging frontends not deployed** — `VITE_PUBLIC_API_URL` not set for staging
 8. **No production infra** — `nabome-api` not created, live Razorpay/Sentry/DNS not set
 
-### Overall Production-Readiness Assessment: **CODE READY — STAGING API PARTIAL (health PASS, auth intermittent, catalog guest PASS/with-auth 500, cart 403/404 fixed) — STAGING FRONTENDS NOT YET — PRODUCTION NOT READY**
+### Overall Production-Readiness Assessment: **CODE READY — STAGING API PARTIAL (health PASS, auth intermittent, catalog guest PASS/with-auth 500, cart 403 fixed) — STAGING FRONTENDS NOT YET — PRODUCTION NOT READY**
 
-Staging API `f640c404` (`c553edf`→`908dc79`) — health PASS, `GET /products` guest 1/1, `GET /cart` 200, `POST /cart/items` not yet verified with correct CSRF, `GET /products` with auth 500, login 500 intermittent. `wrangler.staging.jsonc` created. Full purchase, security, B2, E2E pending. Production not deployed.
+Staging API `a242d0a0` (`c553edf`→`5a31b36`) — health PASS, `GET /products` guest 1/1, `GET /cart` 200, `POST /cart` without CSRF 403, `GET /products` with auth 500, login intermittent. `wrangler.staging.jsonc` created. Full purchase, security, B2, E2E pending. Production not deployed.
 
 ---
 
