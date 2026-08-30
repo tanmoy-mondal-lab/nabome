@@ -138,6 +138,8 @@ export class CartRepository {
         productId: variant.productId,
         variantId,
         quantity,
+        unitPrice: variant.price,
+        lineTotal: Number(variant.price) * quantity,
       },
     });
   }

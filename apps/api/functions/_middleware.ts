@@ -172,25 +172,39 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
           const { getPrisma } = await import('../_lib/prisma.ts');
           const prisma = getPrisma() as any;
           const tokenHash = await hashToken(rawToken);
-          const session = await prisma.session.findFirst({
-            where: {
-              userId: payload.userId,
-              revokedAt: null,
-              expiresAt: { gt: new Date() },
-              refreshTokenHash: tokenHash,
-            } as any,
-            orderBy: { createdAt: 'desc' },
-          });
-          if (session) sessionId = session.id;
-          else {
-            const fallback = await prisma.session.findFirst({
+          const withTimeout = <T>(
+            p: Promise<T>,
+            ms = 2000,
+          ): Promise<T | null> =>
+            Promise.race([
+              p,
+              new Promise<null>((_, rej) =>
+                setTimeout(() => rej(new Error('timeout')), ms),
+              ),
+            ]).catch(() => null) as Promise<T | null>;
+          const session = (await withTimeout(
+            prisma.session.findFirst({
               where: {
                 userId: payload.userId,
                 revokedAt: null,
                 expiresAt: { gt: new Date() },
-              },
+                refreshTokenHash: tokenHash,
+              } as any,
               orderBy: { createdAt: 'desc' },
-            });
+            }),
+          )) as any;
+          if (session) sessionId = session.id;
+          else {
+            const fallback = (await withTimeout(
+              prisma.session.findFirst({
+                where: {
+                  userId: payload.userId,
+                  revokedAt: null,
+                  expiresAt: { gt: new Date() },
+                },
+                orderBy: { createdAt: 'desc' },
+              }),
+            )) as any;
             if (fallback) sessionId = fallback.id;
           }
         } catch {}

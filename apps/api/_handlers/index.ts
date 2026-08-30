@@ -7,6 +7,7 @@ import { handleErrors } from './meta.ts';
 import { register } from './register.ts';
 import './auth/index.ts';
 import './cart/index.ts';
+import './checkout/index.ts';
 import './cod/index.ts';
 import './finance/index.ts';
 import './orders/index.ts';

@@ -161,18 +161,21 @@ export class CartValidationService {
     valid: boolean;
     error?: string;
   }> {
-    const variant = await CartRepository.findItemById(variantId);
+    const { getPrisma } = await import('../prisma.ts');
+    const prisma = getPrisma() as any;
+    const variant = await prisma.productVariant.findUnique({
+      where: { id: variantId },
+    });
 
     if (!variant) {
       return { valid: false, error: 'Variant not found' };
     }
 
-    if (variant.variant.inventoryStatus === 'out_of_stock') {
+    if (variant.inventoryStatus === 'out_of_stock') {
       return { valid: false, error: 'Variant is not available' };
     }
 
-    const availableStock =
-      variant.variant.availableStock - variant.variant.reservedStock;
+    const availableStock = variant.availableStock - variant.reservedStock;
     if (availableStock < quantity) {
       return { valid: false, error: `Only ${availableStock} items available` };
     }
