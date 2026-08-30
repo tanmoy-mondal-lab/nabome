@@ -44,6 +44,15 @@ async function hashToken(token: string): Promise<string> {
   return hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+function withTimeout<T>(promise: Promise<T>, ms = 10000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Database timeout')), ms),
+    ),
+  ]);
+}
+
 // ── Registration Service ─────────────────────────────────────────────────────
 
 export interface RegisterInput {
@@ -86,9 +95,11 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
   }
 
   // 2. Check if user already exists
-  const existingUser = await getPrisma().user.findUnique({
-    where: { email: email.toLowerCase() },
-  });
+  const existingUser = await withTimeout(
+    getPrisma().user.findUnique({
+      where: { email: email.toLowerCase() },
+    }),
+  );
 
   if (existingUser) {
     throw ApiError.conflict('An account with this email already exists');
@@ -98,17 +109,19 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
   const hashedPassword = await hashPassword(password);
 
   // 4. Create user
-  const user = await getPrisma().user.create({
-    data: {
-      email: email.toLowerCase(),
-      passwordHash: hashedPassword,
-      firstName,
-      lastName,
-      role: 'customer',
-      status: 'pending_verification', // Pending email verification
-      locale,
-    },
-  });
+  const user = await withTimeout(
+    getPrisma().user.create({
+      data: {
+        email: email.toLowerCase(),
+        passwordHash: hashedPassword,
+        firstName,
+        lastName,
+        role: 'customer',
+        status: 'pending_verification', // Pending email verification
+        locale,
+      },
+    }),
+  );
 
   // 5. Generate verification token
   const token = await generateSecureToken();
@@ -116,13 +129,15 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
   // 6. Create email verification record
-  await getPrisma().emailVerification.create({
-    data: {
-      userId: user.id,
-      token: hashedToken,
-      expiresAt,
-    },
-  });
+  await withTimeout(
+    getPrisma().emailVerification.create({
+      data: {
+        userId: user.id,
+        token: hashedToken,
+        expiresAt,
+      },
+    }),
+  );
 
   // 7. Send verification email
   try {
@@ -175,24 +190,28 @@ export async function login(input: LoginInput): Promise<LoginResult> {
   } = input;
 
   // 1. Find user by email first to check per-user lockout
-  const user = await getPrisma().user.findUnique({
-    where: { email: email.toLowerCase() },
-  });
+  const user = await withTimeout(
+    getPrisma().user.findUnique({
+      where: { email: email.toLowerCase() },
+    }),
+  );
 
   if (!user) {
     throw ApiError.unauthorized('Invalid email or password');
   }
 
   // 2. Check account lockout status (per-user)
-  const recentFailures = await getPrisma().loginHistory.count({
-    where: {
-      userId: user.id,
-      success: false,
-      createdAt: {
-        gte: new Date(Date.now() - 15 * 60 * 1000), // Last 15 minutes
+  const recentFailures = await withTimeout(
+    getPrisma().loginHistory.count({
+      where: {
+        userId: user.id,
+        success: false,
+        createdAt: {
+          gte: new Date(Date.now() - 15 * 60 * 1000), // Last 15 minutes
+        },
       },
-    },
-  });
+    }),
+  );
 
   if (recentFailures >= 5) {
     throw ApiError.rateLimited(
@@ -202,29 +221,33 @@ export async function login(input: LoginInput): Promise<LoginResult> {
 
   // 3. Verify password
   if (!user.passwordHash) {
-    await getPrisma().loginHistory.create({
-      data: {
-        userId: user.id,
-        ipAddress,
-        userAgent,
-        success: false,
-        failureReason: 'NO_PASSWORD_SET',
-      },
-    });
+    await withTimeout(
+      getPrisma().loginHistory.create({
+        data: {
+          userId: user.id,
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: 'NO_PASSWORD_SET',
+        },
+      }),
+    );
     throw ApiError.unauthorized('Invalid email or password');
   }
   const passwordValid = await verifyPassword(password, user.passwordHash);
   if (!passwordValid) {
     // Log failed attempt
-    await getPrisma().loginHistory.create({
-      data: {
-        userId: user.id,
-        ipAddress,
-        userAgent,
-        success: false,
-        failureReason: 'INVALID_CREDENTIALS',
-      },
-    });
+    await withTimeout(
+      getPrisma().loginHistory.create({
+        data: {
+          userId: user.id,
+          ipAddress,
+          userAgent,
+          success: false,
+          failureReason: 'INVALID_CREDENTIALS',
+        },
+      }),
+    );
 
     throw ApiError.unauthorized('Invalid email or password');
   }

@@ -168,46 +168,56 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
         }
       }
       if (!sessionId) {
-        try {
-          const { getPrisma } = await import('../_lib/prisma.ts');
-          const prisma = getPrisma() as any;
-          const tokenHash = await hashToken(rawToken);
-          const withTimeout = <T>(
-            p: Promise<T>,
-            ms = 2000,
-          ): Promise<T | null> =>
-            Promise.race([
-              p,
-              new Promise<null>((_, rej) =>
-                setTimeout(() => rej(new Error('timeout')), ms),
-              ),
-            ]).catch(() => null) as Promise<T | null>;
-          const session = (await withTimeout(
-            prisma.session.findFirst({
-              where: {
-                userId: payload.userId,
-                revokedAt: null,
-                expiresAt: { gt: new Date() },
-                refreshTokenHash: tokenHash,
-              } as any,
-              orderBy: { createdAt: 'desc' },
-            }),
-          )) as any;
-          if (session) sessionId = session.id;
-          else {
-            const fallback = (await withTimeout(
+        const needsSession =
+          isMutation ||
+          pathname.includes('/auth/') ||
+          pathname.includes('/cart') ||
+          pathname.includes('/checkout') ||
+          pathname.includes('/orders');
+        if (!needsSession) {
+          sessionId = undefined;
+        } else {
+          try {
+            const { getPrisma } = await import('../_lib/prisma.ts');
+            const prisma = getPrisma() as any;
+            const tokenHash = await hashToken(rawToken);
+            const withTimeout = <T>(
+              p: Promise<T>,
+              ms = 10000,
+            ): Promise<T | null> =>
+              Promise.race([
+                p,
+                new Promise<null>((_, rej) =>
+                  setTimeout(() => rej(new Error('timeout')), ms),
+                ),
+              ]).catch(() => null) as Promise<T | null>;
+            const session = (await withTimeout(
               prisma.session.findFirst({
                 where: {
                   userId: payload.userId,
                   revokedAt: null,
                   expiresAt: { gt: new Date() },
-                },
+                  refreshTokenHash: tokenHash,
+                } as any,
                 orderBy: { createdAt: 'desc' },
               }),
             )) as any;
-            if (fallback) sessionId = fallback.id;
-          }
-        } catch {}
+            if (session) sessionId = session.id;
+            else {
+              const fallback = (await withTimeout(
+                prisma.session.findFirst({
+                  where: {
+                    userId: payload.userId,
+                    revokedAt: null,
+                    expiresAt: { gt: new Date() },
+                  },
+                  orderBy: { createdAt: 'desc' },
+                }),
+              )) as any;
+              if (fallback) sessionId = fallback.id;
+            }
+          } catch {}
+        }
       }
     } catch {}
   }

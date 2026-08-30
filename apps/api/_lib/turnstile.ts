@@ -32,7 +32,7 @@ export async function verifyTurnstileToken(
     const response = await fetch(VERIFY_URL, {
       method: 'POST',
       body: formData,
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(10000),
     });
 
     const result: TurnstileVerifyResult = await response.json();
