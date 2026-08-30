@@ -55,7 +55,7 @@ export class CartRepository {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { addedAt: 'desc' },
     });
   }
 
@@ -89,7 +89,7 @@ export class CartRepository {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { addedAt: 'desc' },
     });
   }
 

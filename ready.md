@@ -15,7 +15,7 @@
 
 ### Current Deployment Model
 - **Target**: Cloudflare Pages (API) + static hosting (frontends)
-- **Current state**: Staging API `nabome-api-staging.pages.dev` (`4279a98d`, `c553edf`→`d43cbf0`) — health PASS, auth PASS (2/3 register, login PASS), catalog PASS (1 product); purchase flow, payment, finance, security, B2, E2E, frontends not yet
+- **Current state**: Staging API `nabome-api-staging.pages.dev` (`f640c404`, `c553edf`→`908dc79`) — health PASS, auth 2/3 register + login intermittent 500, catalog guest PASS (1 product) but with auth 500, cart `addedAt` fixed but `POST /cart` 404 due to `/cart` vs `/cart/items`
 - **Local dev**: Docker PostgreSQL, all 4 apps via pnpm dev
 
 ### Current Database
@@ -45,17 +45,18 @@
 - Payment state machines with idempotent operations
 
 ### Major Blockers
-1. **Staging Resend intermittent 500** — 1/3 `POST /auth/register` 500 (Resend `onboarding@resend.dev` now for staging, still 1/3) — domain `nabome.online` not verified
-2. **Staging purchase flow not verified** — cart→checkout→payment→order→finance not E2E tested
-3. **Staging B2 real upload not verified** — config OK, mock 18, need `tsx` S3
-4. **Staging frontends not deployed** — customer/admin/shop not on Pages (`VITE_PUBLIC_API_URL` not set)
-5. **Staging E2E not run** — `playwright.config.ts` expects localhost, not staging URLs
-6. **Staging env identity** — `ENVIRONMENT=production` on `nabome-api-staging` (project is staging, `wrangler.staging.jsonc` created with `ENVIRONMENT=staging` but Pages doesn't support custom config path)
-7. **No production infra** — `nabome-api` not created, live Razorpay/Sentry/DNS not set
+1. **Staging `GET /products` with auth 500** — guest 200 (1 product) but with `Cookie: access_token` → 500 Worker threw exception (likely `wishlist`/`recentlyViewed` for auth user)
+2. **Staging `POST /cart` 404** — `POST /api/v1/cart` → 404, correct is `POST /api/v1/cart/items` (fixed in test, code expects `/cart/items`)
+3. **Staging Resend intermittent 500** — 1/3 `POST /auth/register` 500 (Resend `onboarding@resend.dev` to `example.com` 422 but caught, still 1/3 500 due to rate limit/Hyperdrive)
+4. **Staging login intermittent 500** — `POST /auth/login` via `curl` 500 but via Node `fetch` 200 for same user (same `directtest`)
+5. **Staging purchase flow not verified** — cart `addedAt` fixed (`createdAt`→`addedAt`), but checkout/payment/order/finance not E2E
+6. **Staging B2 real upload not verified** — config OK, mock 18, need `tsx` S3
+7. **Staging frontends not deployed** — `VITE_PUBLIC_API_URL` not set for staging
+8. **No production infra** — `nabome-api` not created, live Razorpay/Sentry/DNS not set
 
-### Overall Production-Readiness Assessment: **CODE READY — STAGING API PARTIAL (health/auth/catalog PASS, purchase/B2/E2E pending) — STAGING FRONTENDS NOT YET — PRODUCTION NOT READY**
+### Overall Production-Readiness Assessment: **CODE READY — STAGING API PARTIAL (health PASS, auth intermittent, catalog guest PASS/with-auth 500, cart 403/404 fixed) — STAGING FRONTENDS NOT YET — PRODUCTION NOT READY**
 
-Staging API `4279a98d` (`c553edf`→`d43cbf0`) — health PASS, `GET /products` 1/1, register 2/3 + login PASS. `wrangler.staging.jsonc` created. Full purchase, security, B2, E2E, frontends pending. Production not deployed.
+Staging API `f640c404` (`c553edf`→`908dc79`) — health PASS, `GET /products` guest 1/1, `GET /cart` 200, `POST /cart/items` not yet verified with correct CSRF, `GET /products` with auth 500, login 500 intermittent. `wrangler.staging.jsonc` created. Full purchase, security, B2, E2E pending. Production not deployed.
 
 ---
 
