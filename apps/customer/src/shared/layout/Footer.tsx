@@ -3,38 +3,45 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
-/**
- * Footer component following NAVIGATION_ARCHITECTURE.md
- *
- * Features:
- * - Company information
- * - Customer service links
- * - Support links
- * - Policy links (Terms, Privacy, Refunds)
- * - Social links readiness
- * - Newsletter signup
- * - Copyright notice
- * - Responsive layout (stacked on mobile, grid on desktop)
- */
 export function Footer(): ReactNode {
   const currentYear = new Date().getFullYear();
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
-
+    setErrorMsg(null);
+    if (!validateEmail(email)) {
+      setErrorMsg('Please enter a valid email address');
+      return;
+    }
+    const throttleKey = 'newsletter_last_subscribe';
+    const last = localStorage.getItem(throttleKey);
+    if (last && Date.now() - Number(last) < 60000) {
+      setErrorMsg('Please wait a minute before subscribing again');
+      return;
+    }
     setIsSubmitting(true);
     try {
-      // TODO: Implement actual newsletter API call
-      // await api.post('/newsletter/subscribe', { email });
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
+      const res = await fetch('/api/v1/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok)
+        throw new Error(
+          (data as any).error || (data as any).message || 'Subscription failed',
+        );
+      localStorage.setItem(throttleKey, String(Date.now()));
       setIsSubscribed(true);
       setEmail('');
-    } catch (error) {
-      console.error('Newsletter subscription failed:', error);
+    } catch (error: any) {
+      setErrorMsg(error.message || 'Subscription failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -44,7 +51,6 @@ export function Footer(): ReactNode {
     <footer className="border-t border-(--border-default) bg-(--bg-surface)">
       <div className="mx-auto w-full max-w-(--container-default) px-4 py-12">
         <div className="grid grid-cols-1 gap-8 tablet:grid-cols-2 desktop:grid-cols-4">
-          {/* Company Info */}
           <div className="space-y-4">
             <h3 className="font-display text-lg font-semibold text-(--text-primary)">
               নবME
@@ -53,7 +59,6 @@ export function Footer(): ReactNode {
               Your premium destination for curated fashion and lifestyle
               products.
             </p>
-            {/* Social links readiness */}
             <div className="flex gap-4">
               <a
                 href="#"
@@ -64,8 +69,6 @@ export function Footer(): ReactNode {
               </a>
             </div>
           </div>
-
-          {/* Customer Service */}
           <div className="space-y-4">
             <h4 className="font-medium text-(--text-primary)">
               Customer Service
@@ -97,8 +100,6 @@ export function Footer(): ReactNode {
               </Link>
             </nav>
           </div>
-
-          {/* Company */}
           <div className="space-y-4">
             <h4 className="font-medium text-(--text-primary)">Company</h4>
             <nav className="flex flex-col gap-2" aria-label="Company">
@@ -128,8 +129,6 @@ export function Footer(): ReactNode {
               </Link>
             </nav>
           </div>
-
-          {/* Legal */}
           <div className="space-y-4">
             <h4 className="font-medium text-(--text-primary)">Legal</h4>
             <nav className="flex flex-col gap-2" aria-label="Legal">
@@ -160,8 +159,6 @@ export function Footer(): ReactNode {
             </nav>
           </div>
         </div>
-
-        {/* Newsletter */}
         <div className="mt-12 border-t border-(--border-subtle) pt-8">
           <div className="mx-auto max-w-md">
             <h4 className="mb-2 font-medium text-(--text-primary)">
@@ -175,29 +172,33 @@ export function Footer(): ReactNode {
                 Thank you for subscribing!
               </div>
             ) : (
-              <form onSubmit={handleNewsletterSubmit} className="flex gap-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="flex-1 rounded-md border border-(--border-default) bg-(--bg-surface) px-4 py-2 text-sm text-(--text-primary) placeholder:text-(--text-tertiary) focus:outline-none focus:ring-2 focus:ring-(--border-focus)"
-                  aria-label="Email address"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="rounded-md bg-(--bg-brand) px-4 py-2 text-sm font-medium text-(--text-on-brand) transition-colors hover:bg-(--bg-brand-hover) disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? 'Subscribing...' : 'Subscribe'}
-                </button>
+              <form
+                onSubmit={handleNewsletterSubmit}
+                className="flex flex-col gap-2"
+              >
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="flex-1 rounded-md border border-(--border-default) bg-(--bg-surface) px-4 py-2 text-sm text-(--text-primary) placeholder:text-(--text-tertiary) focus:outline-none focus:ring-2 focus:ring-(--border-focus)"
+                    aria-label="Email address"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="rounded-md bg-(--bg-brand) px-4 py-2 text-sm font-medium text-(--text-on-brand) transition-colors hover:bg-(--bg-brand-hover) disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? 'Subscribing...' : 'Subscribe'}
+                  </button>
+                </div>
+                {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
               </form>
             )}
           </div>
         </div>
-
-        {/* Copyright */}
         <div className="mt-12 border-t border-(--border-subtle) pt-8 text-center text-sm text-(--text-tertiary) tablet:text-left">
           <p>© {currentYear} নবME (Nabome). All rights reserved.</p>
         </div>

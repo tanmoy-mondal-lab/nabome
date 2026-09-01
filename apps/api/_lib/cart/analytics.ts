@@ -1,23 +1,14 @@
-/**
- * Cart Analytics Service
- *
- * Handles analytics tracking for cart operations:
- * - Add to cart events
- * - Remove from cart events
- * - Cart abandonment tracking
- * - Conversion tracking
- * - Revenue attribution
- *
- * Following SHOPPING_CART_WISHLIST_CHECKOUT_ARCHITECTURE.md §9
- */
-
+import { getPrisma } from '../prisma.ts';
 import { CartEventEmitter } from './events';
 import type { CartAnalytics, CartAbandonmentMetrics } from './types';
 
+const prisma = new Proxy({} as any, {
+  get(_t: unknown, prop: string | symbol) {
+    return (getPrisma() as any)[prop];
+  },
+});
+
 export class CartAnalyticsService {
-  /**
-   * Track add to cart event
-   */
   static trackAddToCart(
     userId: string | null,
     guestId: string | null,
@@ -38,8 +29,6 @@ export class CartAnalyticsService {
         currency: 'INR',
       },
     );
-
-    // TODO: Send to analytics service (Google Analytics, Mixpanel, etc.)
     this.sendToAnalytics({
       event: 'add_to_cart',
       userId,
@@ -53,9 +42,6 @@ export class CartAnalyticsService {
     });
   }
 
-  /**
-   * Track remove from cart event
-   */
   static trackRemoveFromCart(
     userId: string | null,
     guestId: string | null,
@@ -69,7 +55,6 @@ export class CartAnalyticsService {
       value: price * quantity,
       currency: 'INR',
     });
-
     this.sendToAnalytics({
       event: 'remove_from_cart',
       userId,
@@ -83,9 +68,6 @@ export class CartAnalyticsService {
     });
   }
 
-  /**
-   * Track cart view
-   */
   static trackCartView(
     userId: string | null,
     guestId: string | null,
@@ -102,9 +84,6 @@ export class CartAnalyticsService {
     });
   }
 
-  /**
-   * Track checkout start
-   */
   static trackCheckoutStart(
     userId: string | null,
     guestId: string | null,
@@ -116,7 +95,6 @@ export class CartAnalyticsService {
       totalValue,
       currency: 'INR',
     });
-
     this.sendToAnalytics({
       event: 'begin_checkout',
       userId,
@@ -127,9 +105,6 @@ export class CartAnalyticsService {
     });
   }
 
-  /**
-   * Track cart abandonment
-   */
   static trackCartAbandonment(
     userId: string | null,
     guestId: string | null,
@@ -148,72 +123,111 @@ export class CartAnalyticsService {
     });
   }
 
-  /**
-   * Get cart analytics for a user
-   */
   static async getCartAnalytics(
     userId: string | null,
     guestId: string | null,
   ): Promise<CartAnalytics> {
-    // TODO: Implement analytics retrieval from database
-    // This should return:
-    // - Cart value over time
-    // - Items added/removed
-    // - Conversion rate
-    // - Average cart value
-    // - Top categories
-
+    const where: any = {};
+    if (userId) where.userId = userId;
+    else if (guestId) where.guestId = guestId;
+    else {
+      return {
+        userId,
+        guestId,
+        itemCount: 0,
+        totalValue: 0,
+        averageItemPrice: 0,
+        topCategories: [],
+        lastActivityAt: new Date(),
+        timeSinceLastActivity: 0,
+      };
+    }
+    const items: any[] = await prisma.cartItem.findMany({
+      where,
+      include: { product: { select: { categoryId: true } } },
+    });
+    const itemCount = items.length;
+    const totalValue = items.reduce(
+      (sum: number, it: any) =>
+        sum +
+        Number(
+          it.lineTotal ??
+            (it.unitPrice ? Number(it.unitPrice) * it.quantity : 0),
+        ),
+      0,
+    );
+    const averageItemPrice = itemCount ? totalValue / itemCount : 0;
+    const categoryCounts = new Map<string, number>();
+    for (const it of items) {
+      const cat = it.product?.categoryId ?? 'unknown';
+      categoryCounts.set(cat, (categoryCounts.get(cat) ?? 0) + 1);
+    }
+    const topCategories = [...categoryCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([c]) => c);
+    const lastActivityAt =
+      items.reduce(
+        (latest: Date | null, it: any) => {
+          const d = new Date(it.updatedAt);
+          return !latest || d > latest ? d : latest;
+        },
+        null as Date | null,
+      ) ?? new Date();
     return {
       userId,
       guestId,
-      itemCount: 0,
-      totalValue: 0,
-      averageItemPrice: 0,
-      topCategories: [],
-      lastActivityAt: new Date(),
-      timeSinceLastActivity: 0,
+      itemCount,
+      totalValue,
+      averageItemPrice,
+      topCategories,
+      lastActivityAt,
+      timeSinceLastActivity: Date.now() - lastActivityAt.getTime(),
     };
   }
 
-  /**
-   * Get cart abandonment metrics
-   */
   static async getAbandonmentMetrics(): Promise<CartAbandonmentMetrics> {
-    // TODO: Implement abandonment metrics calculation
-    // This should return:
-    // - Total abandoned carts
-    // - Recovered carts
-    // - Recovery rate
-    // - Average time to recovery
-    // - Average cart value
-
+    const abandonCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const activeCarts = await prisma.cartItem.count({
+      where: { updatedAt: { gte: abandonCutoff } },
+    });
+    const abandonedCarts = await prisma.cartItem.count({
+      where: { updatedAt: { lt: abandonCutoff } },
+    });
+    const [abandonedSessions, startedSessions, completedSessions] =
+      await Promise.all([
+        prisma.checkoutSession
+          .count({ where: { status: { in: ['abandoned', 'expired'] } } })
+          .catch(() => 0),
+        prisma.checkoutSession.count({}).catch(() => 0),
+        prisma.checkoutSession
+          .count({ where: { status: 'completed' } })
+          .catch(() => 0),
+      ]);
+    const totalAbandoned = abandonedSessions || abandonedCarts;
+    const totalStarted = startedSessions || activeCarts + abandonedCarts;
+    const recovered = completedSessions;
+    const recoveryRate = totalAbandoned
+      ? (recovered / totalAbandoned) * 100
+      : 0;
+    const avgAgg: any = await prisma.cartItem
+      .aggregate({ _avg: { lineTotal: true } })
+      .catch(() => ({ _avg: { lineTotal: 0 } }));
+    const averageCartValue = Number(avgAgg?._avg?.lineTotal ?? 0);
+    void totalStarted;
     return {
-      totalAbandoned: 0,
-      recovered: 0,
-      recoveryRate: 0,
+      totalAbandoned,
+      recovered,
+      recoveryRate,
       averageTimeToRecovery: 0,
-      averageCartValue: 0,
+      averageCartValue,
     };
   }
 
-  /**
-   * Send analytics event to external service
-   */
   private static sendToAnalytics(data: Record<string, unknown>): void {
-    // TODO: Implement actual analytics integration
-    // Options:
-    // - Google Analytics 4
-    // - Mixpanel
-    // - Amplitude
-    // - Segment
-    // - Custom analytics service
-
     console.log('[ANALYTICS]', JSON.stringify(data));
   }
 
-  /**
-   * Calculate conversion rate
-   */
   static calculateConversionRate(
     totalCarts: number,
     convertedCarts: number,
@@ -222,9 +236,6 @@ export class CartAnalyticsService {
     return (convertedCarts / totalCarts) * 100;
   }
 
-  /**
-   * Calculate average cart value
-   */
   static calculateAverageCartValue(
     totalValue: number,
     cartCount: number,

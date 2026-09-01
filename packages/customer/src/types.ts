@@ -656,3 +656,19 @@ export interface UpdateNotificationPreferencesRequest {
   enabled?: boolean;
   categories?: Partial<NotificationCategoryPreferences>;
 }
+
+export type ProfileUpdateRequest = UpdateProfileRequest & { email?: string };
+export type PreferenceUpdateRequest = UpdatePreferencesRequest;
+export interface DashboardSummary {
+  profile: any;
+  recentOrders: any[];
+  activeReturns: any[];
+  wishlistSummary: { totalCount: number; items: any[] };
+  notificationSummary: {
+    totalCount: number;
+    unreadCount: number;
+    categories: Record<string, number>;
+  };
+  accountHealth: { score: number; status: string };
+  recommendations: any[];
+}

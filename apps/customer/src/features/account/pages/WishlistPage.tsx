@@ -45,20 +45,44 @@ export default function WishlistPage() {
   };
 
   const handleBulkRemove = async () => {
-    // TODO: Implement bulk remove API call
-    console.log('Bulk remove:', Array.from(selectedItems));
-    setSelectedItems(new Set());
+    try {
+      const res = await fetch('/api/v1/wishlist/bulk-remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemIds: Array.from(selectedItems) }),
+      });
+      if (!res.ok) throw new Error('Bulk remove failed');
+      setSelectedItems(new Set());
+      location.reload();
+    } catch (e) {
+      console.error(e);
+    }
   };
-
   const handleMoveToCart = async (itemId: string) => {
-    // TODO: Implement move to cart API call
-    console.log('Move to cart:', itemId);
+    try {
+      const res = await fetch('/api/v1/wishlist/bulk-move-to-cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemIds: [itemId] }),
+      });
+      if (!res.ok) throw new Error('Move failed');
+    } catch (e) {
+      console.error(e);
+    }
   };
-
   const handleBulkMoveToCart = async () => {
-    // TODO: Implement bulk move to cart API call
-    console.log('Bulk move to cart:', Array.from(selectedItems));
-    setSelectedItems(new Set());
+    try {
+      const res = await fetch('/api/v1/wishlist/bulk-move-to-cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemIds: Array.from(selectedItems) }),
+      });
+      if (!res.ok) throw new Error('Bulk move failed');
+      setSelectedItems(new Set());
+      location.reload();
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const sortedItems = [...items].sort((a, b) => {
@@ -309,9 +333,15 @@ export default function WishlistPage() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      // TODO: Implement remove item
-                      console.log('Remove item:', item.id);
+                    onClick={async () => {
+                      try {
+                        await fetch('/api/v1/wishlist/bulk-remove', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ itemIds: [item.id] }),
+                        });
+                        location.reload();
+                      } catch {}
                     }}
                     className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-red-600"
                     aria-label="Remove from wishlist"

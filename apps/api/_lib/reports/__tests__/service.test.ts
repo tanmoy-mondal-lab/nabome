@@ -128,17 +128,26 @@ describe('ReportsService', () => {
   });
 
   describe('exportToCSV', () => {
-    it('returns empty string for now', async () => {
-      const result = await ReportsService.exportToCSV({ reportId: 'test' });
-      expect(result).toBe('');
+    it('returns CSV string', async () => {
+      const result = await ReportsService.exportToCSV({
+        reportId: 'test',
+        summary: { total: 0 },
+        data: [],
+      });
+      expect(typeof result).toBe('string');
     });
   });
 
   describe('exportToPDF', () => {
-    it('returns empty buffer for now', async () => {
-      const result = await ReportsService.exportToPDF({ reportId: 'test' });
+    it('returns buffer with content', async () => {
+      const result = await ReportsService.exportToPDF({
+        reportId: 'test',
+        reportType: 'sales',
+        summary: {},
+        data: [],
+      });
       expect(result).toBeInstanceOf(Buffer);
-      expect(result.length).toBe(0);
+      expect(result.length).toBeGreaterThan(0);
     });
   });
 });

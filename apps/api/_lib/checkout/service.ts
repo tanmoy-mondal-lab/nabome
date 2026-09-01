@@ -17,11 +17,12 @@
  */
 
 import { CartRepository } from '../cart/repository';
-
+import { logAuditEvent, AuditEventType } from '../audit/audit-log.ts';
 import { CouponService } from './coupon-service';
 import { OrderSnapshotService } from './order-snapshot-service';
 import { CheckoutRepository } from './repository';
 import { TaxService } from './tax-service';
+import { CheckoutEventEmitter } from './events.ts';
 import type {
   CheckoutSession,
   CheckoutTotals,
@@ -858,17 +859,32 @@ export class CheckoutService {
   // EVENT METHODS
   // ============================================================================
 
-  /**
-   * Emit checkout event
-   */
   private static async emitCheckoutEvent(
     eventType: string,
     checkoutSessionId: string,
     userId: string | null,
     guestId: string | null,
   ): Promise<void> {
-    // TODO: Implement event emission to analytics/event system
-    // This will integrate with the event system when implemented
+    const event = {
+      eventType: eventType as any,
+      checkoutSessionId,
+      userId,
+      guestId,
+      timestamp: new Date(),
+      data: { eventType },
+    };
+    try {
+      CheckoutEventEmitter.emit(event as any);
+    } catch {}
+    try {
+      await logAuditEvent({
+        eventType: AuditEventType.RESOURCE_ACCESS_GRANTED as any,
+        userId: userId ?? undefined,
+        metadata: { checkoutEvent: eventType, checkoutSessionId, guestId },
+        severity: 'info',
+        category: 'system',
+      });
+    } catch {}
     console.log(`Checkout Event: ${eventType}`, {
       checkoutSessionId,
       userId,

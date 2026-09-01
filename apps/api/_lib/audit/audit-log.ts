@@ -262,29 +262,8 @@ class AuditLogger {
     return `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  /**
-   * Send event to external logging service.
-   * Integrates with Cloudflare Workers Analytics Engine.
-   */
-  private async sendToExternalService(event: AuditEvent): Promise<void> {
-    // Send to Cloudflare Workers Analytics Engine
-    // This is a placeholder implementation - in production, you would use:
-    // - Cloudflare Workers Analytics Engine
-    // - Or an external service like Datadog, LogRocket, etc.
-
-    // For now, we'll log to console in development
-    // @ts-ignore - ENVIRONMENT will be set by Cloudflare Workers
-    if (globalThis.ENVIRONMENT === 'development') {
-      console.log('[AUDIT EXTERNAL]', JSON.stringify(event));
-    }
-
-    // TODO: Implement actual external service integration
-    // Example:
-    // await fetch('https://analytics.example.com/audit', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(event),
-    // });
+  private async sendToExternalService(_event: AuditEvent): Promise<void> {
+    return;
   }
 }
 

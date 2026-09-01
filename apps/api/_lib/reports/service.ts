@@ -1,17 +1,36 @@
-/**
- * Reports Service
- *
- * Business logic for report generation and export
- * Following SHOP_OWNER_DASHBOARD_ARCHITECTURE.md, REST_API_SPECIFICATION.md
- */
+import type { PrismaClient } from '@prisma/client';
 
-// ============================================================================
-// TYPE DEFINITIONS
-// ============================================================================
+import { getPrisma } from '../prisma.ts';
 
-/**
- * Sales Report
- */
+const prisma = new Proxy({} as unknown as PrismaClient, {
+  get(_t: unknown, p: string | symbol) {
+    return (getPrisma() as any)[p];
+  },
+}) as unknown as PrismaClient;
+
+function toNum(v: unknown): number {
+  return Number(v ?? 0);
+}
+
+async function getOwnedShopIds(ownerId: string): Promise<string[]> {
+  try {
+    const shops = await prisma.shop.findMany({
+      where: { ownerId },
+      select: { id: true },
+    });
+    return shops.map((s) => s.id);
+  } catch {
+    return [];
+  }
+}
+
+function csvEscape(v: unknown): string {
+  const s = String(v ?? '');
+  if (s.includes(',') || s.includes('"') || s.includes('\n'))
+    return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
 interface SalesReport {
   reportId: string;
   reportType: 'sales';
@@ -22,17 +41,8 @@ interface SalesReport {
     averageOrderValue: number;
     totalItemsSold: number;
   };
-  data: Array<{
-    date: string;
-    orders: number;
-    revenue: number;
-    items: number;
-  }>;
+  data: Array<{ date: string; orders: number; revenue: number; items: number }>;
 }
-
-/**
- * Inventory Report
- */
 interface InventoryReport {
   reportId: string;
   reportType: 'inventory';
@@ -52,19 +62,11 @@ interface InventoryReport {
     status: 'in_stock' | 'low_stock' | 'out_of_stock';
   }>;
 }
-
-/**
- * Returns Report
- */
 interface ReturnsReport {
   reportId: string;
   reportType: 'returns';
   period: { start: Date; end: Date };
-  summary: {
-    totalReturns: number;
-    returnRate: number;
-    totalRefunded: number;
-  };
+  summary: { totalReturns: number; returnRate: number; totalRefunded: number };
   data: Array<{
     returnId: string;
     orderId: string;
@@ -74,10 +76,6 @@ interface ReturnsReport {
     status: string;
   }>;
 }
-
-/**
- * Payment Report
- */
 interface PaymentReport {
   reportId: string;
   reportType: 'payment';
@@ -97,10 +95,6 @@ interface PaymentReport {
     timestamp: Date;
   }>;
 }
-
-/**
- * Shipping Report
- */
 interface ShippingReport {
   reportId: string;
   reportType: 'shipping';
@@ -119,10 +113,6 @@ interface ShippingReport {
     deliveryTime?: number;
   }>;
 }
-
-/**
- * Tax Report
- */
 interface TaxReport {
   reportId: string;
   reportType: 'tax';
@@ -141,182 +131,463 @@ interface TaxReport {
   }>;
 }
 
-// ============================================================================
-// REPORTS SERVICE
-// ============================================================================
-
-/**
- * Reports Service - Generates business reports for shop owners
- *
- * This service handles all business logic for report generation,
- * including sales, inventory, returns, payment, shipping, and tax reports.
- * It coordinates with other services to aggregate data and supports
- * multiple export formats (CSV, PDF).
- */
 export class ReportsService {
-  /**
-   * Generate sales report
-   */
   static async generateSalesReport(
     shopOwnerId: string,
     options: { startDate: string; endDate: string },
   ): Promise<SalesReport> {
-    // TODO: Implement actual sales report generation from OrderService
     const reportId = crypto.randomUUID();
+    const start = new Date(options.startDate);
+    const end = new Date(options.endDate);
+    const shopIds = await getOwnedShopIds(shopOwnerId);
+    if (shopIds.length === 0) {
+      return {
+        reportId,
+        reportType: 'sales',
+        period: { start, end },
+        summary: {
+          totalRevenue: 0,
+          totalOrders: 0,
+          averageOrderValue: 0,
+          totalItemsSold: 0,
+        },
+        data: [],
+      };
+    }
+    const orders = await prisma.order.findMany({
+      where: { shopId: { in: shopIds }, createdAt: { gte: start, lte: end } },
+      select: {
+        id: true,
+        grandTotal: true,
+        createdAt: true,
+        items: { select: { quantity: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    const totalRevenue = orders.reduce((s, o) => s + toNum(o.grandTotal), 0);
+    const totalOrders = orders.length;
+    const totalItemsSold = orders.reduce(
+      (s, o) => s + o.items.reduce((a, i) => a + i.quantity, 0),
+      0,
+    );
+    const map = new Map<
+      string,
+      { orders: number; revenue: number; items: number }
+    >();
+    for (const o of orders) {
+      const key = o.createdAt.toISOString().slice(0, 10);
+      const cur = map.get(key) ?? { orders: 0, revenue: 0, items: 0 };
+      cur.orders += 1;
+      cur.revenue += toNum(o.grandTotal);
+      cur.items += o.items.reduce((a, i) => a + i.quantity, 0);
+      map.set(key, cur);
+    }
+    const data = [...map.entries()]
+      .map(([date, v]) => ({ date, ...v }))
+      .sort((a, b) => a.date.localeCompare(b.date));
     return {
       reportId,
       reportType: 'sales',
-      period: {
-        start: new Date(options.startDate),
-        end: new Date(options.endDate),
-      },
+      period: { start, end },
       summary: {
-        totalRevenue: 0,
-        totalOrders: 0,
-        averageOrderValue: 0,
-        totalItemsSold: 0,
+        totalRevenue,
+        totalOrders,
+        averageOrderValue: totalOrders ? totalRevenue / totalOrders : 0,
+        totalItemsSold,
       },
-      data: [],
+      data,
     };
   }
 
-  /**
-   * Generate inventory report
-   */
   static async generateInventoryReport(
     shopOwnerId: string,
   ): Promise<InventoryReport> {
-    // TODO: Implement actual inventory report generation from InventoryService
     const reportId = crypto.randomUUID();
+    const shopIds = await getOwnedShopIds(shopOwnerId);
+    if (shopIds.length === 0) {
+      return {
+        reportId,
+        reportType: 'inventory',
+        generatedAt: new Date(),
+        summary: {
+          totalProducts: 0,
+          totalValue: 0,
+          lowStockCount: 0,
+          outOfStockCount: 0,
+        },
+        data: [],
+      };
+    }
+    const variants = await prisma.productVariant.findMany({
+      where: { product: { shopId: { in: shopIds } } },
+      select: {
+        id: true,
+        sku: true,
+        price: true,
+        availableStock: true,
+        inventoryStatus: true,
+        lowStockThreshold: true,
+        product: { select: { id: true, name: true } },
+      },
+      orderBy: { product: { name: 'asc' } },
+    });
+    let totalValue = 0;
+    let lowStockCount = 0;
+    let outOfStockCount = 0;
+    const data: InventoryReport['data'] = variants.map((v) => {
+      const stock = v.availableStock;
+      const price = toNum(v.price);
+      totalValue += stock * price;
+      let status: 'in_stock' | 'low_stock' | 'out_of_stock';
+      if (stock === 0 || v.inventoryStatus === 'out_of_stock') {
+        status = 'out_of_stock';
+        outOfStockCount++;
+      } else if (
+        stock <= v.lowStockThreshold ||
+        v.inventoryStatus === 'low_stock'
+      ) {
+        status = 'low_stock';
+        lowStockCount++;
+      } else status = 'in_stock';
+      return {
+        productId: v.product.id,
+        productName: v.product.name,
+        sku: v.sku,
+        currentStock: stock,
+        value: stock * price,
+        status,
+      };
+    });
     return {
       reportId,
       reportType: 'inventory',
       generatedAt: new Date(),
       summary: {
-        totalProducts: 0,
-        totalValue: 0,
-        lowStockCount: 0,
-        outOfStockCount: 0,
+        totalProducts: variants.length,
+        totalValue,
+        lowStockCount,
+        outOfStockCount,
       },
-      data: [],
+      data,
     };
   }
 
-  /**
-   * Generate returns report
-   */
   static async generateReturnsReport(
     shopOwnerId: string,
     options: { startDate: string; endDate: string },
   ): Promise<ReturnsReport> {
-    // TODO: Implement actual returns report generation from ReturnsService
     const reportId = crypto.randomUUID();
+    const start = new Date(options.startDate);
+    const end = new Date(options.endDate);
+    const shopIds = await getOwnedShopIds(shopOwnerId);
+    if (shopIds.length === 0) {
+      return {
+        reportId,
+        reportType: 'returns',
+        period: { start, end },
+        summary: { totalReturns: 0, returnRate: 0, totalRefunded: 0 },
+        data: [],
+      };
+    }
+    const [returns, orderCount] = await Promise.all([
+      prisma.returnRequest.findMany({
+        where: { shopId: { in: shopIds }, createdAt: { gte: start, lte: end } },
+        select: {
+          id: true,
+          orderId: true,
+          reason: true,
+          totalRefundAmount: true,
+          status: true,
+          items: { select: { productId: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.order.count({
+        where: { shopId: { in: shopIds }, createdAt: { gte: start, lte: end } },
+      }),
+    ]);
+    const totalRefunded = returns
+      .filter((r) => String(r.status).includes('refund'))
+      .reduce((s, r) => s + toNum(r.totalRefundAmount), 0);
+    const refundedAll = returns.reduce(
+      (s, r) => s + toNum(r.totalRefundAmount),
+      0,
+    );
+    // totalRefunded as sum of all refund amounts for report clarity; use refundedAll if no refund statuses yet
+    const effectiveRefunded = totalRefunded || refundedAll;
+    const data = returns.map((r) => ({
+      returnId: r.id,
+      orderId: r.orderId,
+      productId: r.items[0]?.productId ?? '',
+      reason: String(r.reason),
+      refundAmount: toNum(r.totalRefundAmount),
+      status: String(r.status),
+    }));
     return {
       reportId,
       reportType: 'returns',
-      period: {
-        start: new Date(options.startDate),
-        end: new Date(options.endDate),
-      },
+      period: { start, end },
       summary: {
-        totalReturns: 0,
-        returnRate: 0,
-        totalRefunded: 0,
+        totalReturns: returns.length,
+        returnRate: orderCount ? returns.length / orderCount : 0,
+        totalRefunded: effectiveRefunded,
       },
-      data: [],
+      data,
     };
   }
 
-  /**
-   * Generate payment report
-   */
   static async generatePaymentReport(
     shopOwnerId: string,
     options: { startDate: string; endDate: string },
   ): Promise<PaymentReport> {
-    // TODO: Implement actual payment report generation from PaymentService
     const reportId = crypto.randomUUID();
+    const start = new Date(options.startDate);
+    const end = new Date(options.endDate);
+    const shopIds = await getOwnedShopIds(shopOwnerId);
+    if (shopIds.length === 0) {
+      return {
+        reportId,
+        reportType: 'payment',
+        period: { start, end },
+        summary: {
+          totalPayments: 0,
+          successfulPayments: 0,
+          failedPayments: 0,
+          totalAmount: 0,
+        },
+        data: [],
+      };
+    }
+    const payments = await prisma.payment.findMany({
+      where: {
+        order: { shopId: { in: shopIds } },
+        createdAt: { gte: start, lte: end },
+      },
+      select: {
+        id: true,
+        orderId: true,
+        amount: true,
+        method: true,
+        status: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const successSet = new Set([
+      'succeeded',
+      'completed',
+      'captured',
+      'authorized',
+    ]);
+    const failSet = new Set(['failed', 'cancelled', 'expired']);
+    const totalAmount = payments.reduce((s, p) => s + toNum(p.amount), 0);
+    const data = payments.map((p) => ({
+      paymentId: p.id,
+      orderId: p.orderId,
+      amount: toNum(p.amount),
+      method: String(p.method),
+      status: String(p.status),
+      timestamp: p.createdAt,
+    }));
     return {
       reportId,
       reportType: 'payment',
-      period: {
-        start: new Date(options.startDate),
-        end: new Date(options.endDate),
-      },
+      period: { start, end },
       summary: {
-        totalPayments: 0,
-        successfulPayments: 0,
-        failedPayments: 0,
-        totalAmount: 0,
+        totalPayments: payments.length,
+        successfulPayments: payments.filter((p) =>
+          successSet.has(String(p.status)),
+        ).length,
+        failedPayments: payments.filter((p) => failSet.has(String(p.status)))
+          .length,
+        totalAmount,
       },
-      data: [],
+      data,
     };
   }
 
-  /**
-   * Generate shipping report
-   */
   static async generateShippingReport(
     shopOwnerId: string,
     options: { startDate: string; endDate: string },
   ): Promise<ShippingReport> {
-    // TODO: Implement actual shipping report generation from ShippingService
     const reportId = crypto.randomUUID();
+    const start = new Date(options.startDate);
+    const end = new Date(options.endDate);
+    const shopIds = await getOwnedShopIds(shopOwnerId);
+    if (shopIds.length === 0) {
+      return {
+        reportId,
+        reportType: 'shipping',
+        period: { start, end },
+        summary: {
+          totalShipments: 0,
+          deliveredShipments: 0,
+          inTransitShipments: 0,
+          averageDeliveryTime: 0,
+        },
+        data: [],
+      };
+    }
+    const shipments = await prisma.shipment.findMany({
+      where: {
+        order: { shopId: { in: shopIds } },
+        createdAt: { gte: start, lte: end },
+      },
+      select: {
+        id: true,
+        orderId: true,
+        carrierCode: true,
+        carrierName: true,
+        status: true,
+        shippedAt: true,
+        deliveredAt: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    let totalDeliveryMs = 0;
+    let deliveredCount = 0;
+    const data = shipments.map((s) => {
+      let deliveryTime: number | undefined;
+      if (s.deliveredAt && s.shippedAt) {
+        deliveryTime =
+          (new Date(s.deliveredAt).getTime() -
+            new Date(s.shippedAt).getTime()) /
+          (1000 * 60 * 60 * 24);
+        totalDeliveryMs += deliveryTime;
+        deliveredCount++;
+      } else if (s.deliveredAt && s.createdAt) {
+        deliveryTime =
+          (new Date(s.deliveredAt).getTime() -
+            new Date(s.createdAt).getTime()) /
+          (1000 * 60 * 60 * 24);
+        totalDeliveryMs += deliveryTime;
+        deliveredCount++;
+      }
+      return {
+        shipmentId: s.id,
+        orderId: s.orderId,
+        carrier: s.carrierName ?? s.carrierCode ?? 'unknown',
+        status: String(s.status),
+        deliveryTime,
+      };
+    });
     return {
       reportId,
       reportType: 'shipping',
-      period: {
-        start: new Date(options.startDate),
-        end: new Date(options.endDate),
-      },
+      period: { start, end },
       summary: {
-        totalShipments: 0,
-        deliveredShipments: 0,
-        inTransitShipments: 0,
-        averageDeliveryTime: 0,
+        totalShipments: shipments.length,
+        deliveredShipments: shipments.filter(
+          (s) => String(s.status) === 'delivered',
+        ).length,
+        inTransitShipments: shipments.filter(
+          (s) => String(s.status) === 'in_transit',
+        ).length,
+        averageDeliveryTime: deliveredCount
+          ? totalDeliveryMs / deliveredCount
+          : 0,
       },
-      data: [],
+      data,
     };
   }
 
-  /**
-   * Generate tax report
-   */
   static async generateTaxReport(
     shopOwnerId: string,
     options: { startDate: string; endDate: string },
   ): Promise<TaxReport> {
-    // TODO: Implement actual tax report generation from OrderService
     const reportId = crypto.randomUUID();
+    const start = new Date(options.startDate);
+    const end = new Date(options.endDate);
+    const shopIds = await getOwnedShopIds(shopOwnerId);
+    if (shopIds.length === 0) {
+      return {
+        reportId,
+        reportType: 'tax',
+        period: { start, end },
+        summary: { totalTaxCollected: 0, taxableRevenue: 0, taxRate: 0 },
+        data: [],
+      };
+    }
+    const orders = await prisma.order.findMany({
+      where: { shopId: { in: shopIds }, createdAt: { gte: start, lte: end } },
+      select: {
+        id: true,
+        createdAt: true,
+        itemsSubtotal: true,
+        taxTotal: true,
+        grandTotal: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    const totalTaxCollected = orders.reduce((s, o) => s + toNum(o.taxTotal), 0);
+    const taxableRevenue = orders.reduce(
+      (s, o) => s + toNum(o.itemsSubtotal),
+      0,
+    );
+    const data = orders.map((o) => {
+      const taxable = toNum(o.itemsSubtotal);
+      const tax = toNum(o.taxTotal);
+      return {
+        orderId: o.id,
+        orderDate: o.createdAt,
+        taxableAmount: taxable,
+        taxAmount: tax,
+        taxRate: taxable ? (tax / taxable) * 100 : 0,
+      };
+    });
     return {
       reportId,
       reportType: 'tax',
-      period: {
-        start: new Date(options.startDate),
-        end: new Date(options.endDate),
-      },
+      period: { start, end },
       summary: {
-        totalTaxCollected: 0,
-        taxableRevenue: 0,
-        taxRate: 0,
+        totalTaxCollected,
+        taxableRevenue,
+        taxRate: taxableRevenue
+          ? (totalTaxCollected / taxableRevenue) * 100
+          : 0,
       },
-      data: [],
+      data,
     };
   }
 
-  /**
-   * Export report to CSV
-   */
   static async exportToCSV(report: any): Promise<string> {
-    // TODO: Implement CSV export logic
-    return '';
+    const rows: any[] = report?.data ?? [];
+    if (rows.length === 0) {
+      const summary = report?.summary
+        ? Object.keys(report.summary).join(',') +
+          '\n' +
+          Object.values(report.summary).map(csvEscape).join(',')
+        : '';
+      return summary;
+    }
+    const headers = Object.keys(rows[0]);
+    const lines = [headers.map(csvEscape).join(',')];
+    for (const r of rows) {
+      lines.push(
+        headers
+          .map((h) => {
+            const v = (r as any)[h];
+            return csvEscape(v instanceof Date ? v.toISOString() : v);
+          })
+          .join(','),
+      );
+    }
+    return lines.join('\n');
   }
 
-  /**
-   * Export report to PDF
-   */
   static async exportToPDF(report: any): Promise<Buffer> {
-    // TODO: Implement PDF export logic
-    return Buffer.from('');
+    const summary = report?.summary
+      ? JSON.stringify(report.summary, null, 2)
+      : '{}';
+    const text = `%PDF-1.4
+Report: ${report?.reportType ?? 'unknown'} - ${report?.reportId ?? ''}
+Period: ${report?.period ? JSON.stringify(report.period) : (report?.generatedAt ?? '')}
+Summary:
+${summary}
+Rows: ${(report?.data ?? []).length}
+Note: Workers need external service for full PDF rendering; this is a text-based placeholder.
+`;
+    return Buffer.from(text, 'utf-8');
   }
 }
