@@ -12,6 +12,8 @@
  * - Type transformation from Prisma to domain types
  */
 
+import { CommerceEngine } from '../commerce/engine.ts';
+
 import { CartRepository } from './repository';
 import type {
   Cart,
@@ -189,11 +191,12 @@ export class CartService {
       return sum + Number(item.variant.price) * item.quantity;
     }, 0);
 
-    const couponDiscount = await this.calculateCouponDiscount(
+    const engineCoupon = await this.calculateCouponDiscount(
       couponCode ?? null,
       itemsSubtotal,
       items,
     );
+    const couponDiscount = engineCoupon;
     const ruleDiscount = await this.applyPricingRules(
       items,
       itemsSubtotal,
