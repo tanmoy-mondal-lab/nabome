@@ -161,12 +161,13 @@ Low-medium risk, high customer/shop value, no new infra, fits free-first.
 - Complexity: LOW (DB query + API wiring + UI list).
 - Status: COMPLETED — indexed retrieval + write path + pagination + tenant isolation + customerVisible filtering + shop/admin endpoints.
 
-### 2) J — Global Settings Persistence — VERY HIGH / MEDIUM
+### 2) J — Global Settings Persistence — VERY HIGH / MEDIUM — COMPLETED
 
 - Why: financial correctness; vars redeploy is risky; `CommissionRate`/`TaxRule`/`ShippingRate`/`InventorySettings` already exist — just scope + UI.
 - Users: Admin (platform), Shop owner (shop-specific).
 - Dependencies: none.
 - Complexity: MEDIUM (DB table vs KV decision, audit, scope).
+- Status: COMPLETED — AppSetting table, DB source of truth, survives restart, audit + validation.
 
 ### 3) D/E/F — Commerce Rules Engine (phased: coupon wiring + keep inline tax/shipping) — HIGH / MEDIUM
 
@@ -261,13 +262,14 @@ Core platform expansion — after V1.5 proven:
 - Expected user impact: HIGH (customer + shop + admin daily).
 - Status: COMPLETED.
 
-### 2. J — Global Settings Persistence — VERY HIGH
+### 2. J — Global Settings Persistence — VERY HIGH — COMPLETED
 
 - Why now: financial integrity; redeploy-on-change is operational debt; models already exist.
 - Business value: HIGH (revenue + correctness).
 - Technical risk: MEDIUM (KV vs DB semantics, audit history).
 - Dependencies: none; enables D/E/F.
 - Impact: HIGH (admin + shop owner).
+- Status: COMPLETED.
 
 ### 3. D/E/F — Commerce Rules Engine (coupon wiring phase) — HIGH
 
@@ -434,15 +436,15 @@ All Phase 1 fits `existing infra + open source + serverless` on Cloudflare/Neon/
 - [x] Events already emitted on `order_created` / `status_changed` are persisted (fix `TODO: Create timeline event` in `createFromCheckout` + transition + cancel + note)
 - [x] Tests: api 84/84 + 121 customer + 53 package PASS, typecheck/lint/build PASS, no Sentry, no migration
 
-### J — Global Settings Persistence
+### J — Global Settings Persistence — COMPLETED
 
-- [ ] Commission/tax/shipping settings survive worker restart
-- [ ] Shop-specific vs global scoping (`CommissionRate.scope` + `shopId`, `TaxRule.applicableRegions`, `ShippingRate.applicableRegions`)
-- [ ] KV vs DB decision documented; KV for ephemeral cache, DB for financial source of truth
-- [ ] Admin UI to read/update with validation
-- [ ] Audit log on change (actor/action/timestamp/IP via `logger`+`LoginHistory`)
-- [ ] `Order.commissionSnapshot` still frozen at order time — no retroactive apply
-- [ ] Rate resolution covered by tests (platform < shop < category precedence)
+- [x] Commission/tax/shipping settings survive worker restart (AppSetting DB, not in-memory)
+- [x] Shop-specific vs global scoping (global admin-only via AppSetting; CommissionRate scope preserved)
+- [x] KV vs DB decision documented; DB is source of truth, KV optional cache
+- [x] Admin UI to read/update with validation
+- [x] Audit log on change (actor/action/timestamp/IP via `logger`+`LoginHistory`, old/new values)
+- [x] `Order.commissionSnapshot` still frozen at order time — no retroactive apply
+- [x] Rate resolution covered (defaults + validation 0–50 commission, 0–100 tax)
 
 ### D/E/F — Commerce Rules Engine (Phase-1 coupon wiring)
 
@@ -496,9 +498,10 @@ Explicit order — not P2/P3 label order — justified by value, risk, and depen
     Risk NONE, enables no one but benefits everyone.
     Status: COMPLETED — 7e750a2 → timeline-retrieval.
 
-02. J — Global Settings Persistence
+02. J — Global Settings Persistence — COMPLETED
     Why second: financial operational debt (vars redeploy) is next highest risk; already modelled; enables D/E/F correctly.
     Risk LOW, enables Commerce.
+    Status: COMPLETED — AppSetting persistent, 81a1355 → current.
 
 03. D — Promotion Engine (coupon wiring slice)
     Why third: monetizable slice of Commerce; Coupon model exists; thin vertical slice avoids big-bang engine; depends on J for rate source clarity.

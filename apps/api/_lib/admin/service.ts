@@ -1772,189 +1772,302 @@ export async function getShopAnalytics(_query: {
 }
 
 // ============================================================================
-// SETTINGS
+// SETTINGS — persistent DB source of truth (AppSetting table)
+// Survives worker restart, deployment, multiple instances.
 // ============================================================================
 
-const globalSettingsStore: Record<string, any> = {
-  platformName: 'Nabome',
-  timezone: 'Asia/Kolkata',
-  currency: 'INR',
+import { getAppSetting, setAppSetting } from '../settings/app-settings.ts';
+
+const SETTINGS_KEYS = {
+  global: 'global' as const,
+  tax: 'tax' as const,
+  commission: 'commission' as const,
+  shipping: 'shipping' as const,
+  payment: 'payment' as const,
+  cms: 'cms' as const,
+  notifications: 'notifications' as const,
+  feature_flags: 'feature_flags' as const,
 };
-const taxSettingsStore: Record<string, any> = {
-  gstRate: 18,
-  taxIncluded: true,
-};
-const commissionSettingsStore: Record<string, any> = {
-  platformCommission: 5,
-  paymentGatewayCommission: 2,
-};
-const shippingSettingsStore: Record<string, any> = {
-  freeShippingThreshold: 500,
-  defaultShippingRate: 50,
-};
-const paymentSettingsStore: Record<string, any> = {
-  razorpayEnabled: true,
-  codEnabled: true,
-};
-const cmsSettingsStore: Record<string, any> = {
-  homepageLayout: 'default',
-  featuredProductsCount: 8,
-};
-const notificationSettingsStore: Record<string, any> = {
-  emailEnabled: true,
-  smsEnabled: false,
-  pushEnabled: true,
-};
-const featureFlagsStore: Map<string, boolean> = new Map([
-  ['enable_wishlist', true],
-  ['enable_reviews', true],
-]);
+
+function validateGlobal(s: Record<string, any>) {
+  if (
+    s.platformName !== undefined &&
+    (typeof s.platformName !== 'string' ||
+      s.platformName.length < 1 ||
+      s.platformName.length > 100)
+  )
+    throw new Error('platformName must be 1–100 chars');
+  if (
+    s.currency !== undefined &&
+    (typeof s.currency !== 'string' || !/^[A-Z]{3}$/.test(s.currency))
+  )
+    throw new Error('currency must be 3-letter code');
+}
+function validateTax(s: Record<string, any>) {
+  if (
+    s.gstRate !== undefined &&
+    (typeof s.gstRate !== 'number' || s.gstRate < 0 || s.gstRate > 100)
+  )
+    throw new Error('gstRate must be 0–100');
+  if (s.taxIncluded !== undefined && typeof s.taxIncluded !== 'boolean')
+    throw new Error('taxIncluded must be boolean');
+}
+function validateCommission(s: Record<string, any>) {
+  if (
+    s.platformCommission !== undefined &&
+    (typeof s.platformCommission !== 'number' ||
+      s.platformCommission < 0 ||
+      s.platformCommission > 50)
+  )
+    throw new Error('platformCommission must be 0–50');
+  if (
+    s.paymentGatewayCommission !== undefined &&
+    (typeof s.paymentGatewayCommission !== 'number' ||
+      s.paymentGatewayCommission < 0 ||
+      s.paymentGatewayCommission > 10)
+  )
+    throw new Error('paymentGatewayCommission must be 0–10');
+}
+function validateShipping(s: Record<string, any>) {
+  if (
+    s.freeShippingThreshold !== undefined &&
+    (typeof s.freeShippingThreshold !== 'number' || s.freeShippingThreshold < 0)
+  )
+    throw new Error('freeShippingThreshold must be >=0');
+  if (
+    s.defaultShippingRate !== undefined &&
+    (typeof s.defaultShippingRate !== 'number' || s.defaultShippingRate < 0)
+  )
+    throw new Error('defaultShippingRate must be >=0');
+}
+function validatePayment(s: Record<string, any>) {
+  if (s.razorpayEnabled !== undefined && typeof s.razorpayEnabled !== 'boolean')
+    throw new Error('razorpayEnabled must be boolean');
+  if (s.codEnabled !== undefined && typeof s.codEnabled !== 'boolean')
+    throw new Error('codEnabled must be boolean');
+}
+function validateCMS(s: Record<string, any>) {
+  if (
+    s.featuredProductsCount !== undefined &&
+    (typeof s.featuredProductsCount !== 'number' ||
+      s.featuredProductsCount < 1 ||
+      s.featuredProductsCount > 50)
+  )
+    throw new Error('featuredProductsCount must be 1–50');
+}
+function validateNotifications(s: Record<string, any>) {
+  for (const k of ['emailEnabled', 'smsEnabled', 'pushEnabled'])
+    if (s[k] !== undefined && typeof s[k] !== 'boolean')
+      throw new Error(`${k} must be boolean`);
+}
 
 export async function getGlobalSettings() {
-  return { ...globalSettingsStore };
+  return getAppSetting(SETTINGS_KEYS.global);
 }
 export async function updateGlobalSettings(
   settings: Record<string, any>,
   adminUserId: string = 'system',
 ) {
-  Object.assign(globalSettingsStore, settings);
+  validateGlobal(settings);
+  const current = await getAppSetting(SETTINGS_KEYS.global);
+  const merged = { ...current, ...settings };
+  const saved = await setAppSetting(SETTINGS_KEYS.global, merged, adminUserId);
   await logAuditEvent({
     eventType: AuditEventType.RESOURCE_ACCESS_GRANTED,
     userId: adminUserId,
-    metadata: { action: 'global_settings_updated', settings },
+    metadata: {
+      action: 'global_settings_updated',
+      oldValue: current,
+      newValue: saved,
+    },
     severity: 'info',
     category: 'authorization',
   });
   AdminEventEmitter.emitShopActivated(adminUserId, 'global_settings', {
     action: 'global_settings_updated',
   });
-  return { ...globalSettingsStore };
+  return saved;
 }
 export async function getTaxSettings() {
-  return { ...taxSettingsStore };
+  return getAppSetting(SETTINGS_KEYS.tax);
 }
 export async function updateTaxSettings(
   settings: Record<string, any>,
   adminUserId: string = 'system',
 ) {
-  Object.assign(taxSettingsStore, settings);
+  validateTax(settings);
+  const current = await getAppSetting(SETTINGS_KEYS.tax);
+  const merged = { ...current, ...settings };
+  const saved = await setAppSetting(SETTINGS_KEYS.tax, merged, adminUserId);
   await logAuditEvent({
     eventType: AuditEventType.RESOURCE_ACCESS_GRANTED,
     userId: adminUserId,
-    metadata: { action: 'tax_settings_updated', settings },
+    metadata: {
+      action: 'tax_settings_updated',
+      oldValue: current,
+      newValue: saved,
+    },
     severity: 'info',
     category: 'authorization',
   });
   AdminEventEmitter.emitShopActivated(adminUserId, 'tax_settings', {
     action: 'tax_settings_updated',
   });
-  return { ...taxSettingsStore };
+  return saved;
 }
 export async function getCommissionSettings() {
-  return { ...commissionSettingsStore };
+  return getAppSetting(SETTINGS_KEYS.commission);
 }
 export async function updateCommissionSettings(
   settings: Record<string, any>,
   adminUserId: string = 'system',
 ) {
-  Object.assign(commissionSettingsStore, settings);
+  validateCommission(settings);
+  const current = await getAppSetting(SETTINGS_KEYS.commission);
+  const merged = { ...current, ...settings };
+  const saved = await setAppSetting(
+    SETTINGS_KEYS.commission,
+    merged,
+    adminUserId,
+  );
   await logAuditEvent({
     eventType: AuditEventType.RESOURCE_ACCESS_GRANTED,
     userId: adminUserId,
-    metadata: { action: 'commission_settings_updated', settings },
+    metadata: {
+      action: 'commission_settings_updated',
+      oldValue: current,
+      newValue: saved,
+    },
     severity: 'info',
     category: 'authorization',
   });
   AdminEventEmitter.emitShopActivated(adminUserId, 'commission_settings', {
     action: 'commission_settings_updated',
   });
-  return { ...commissionSettingsStore };
+  return saved;
 }
 export async function getShippingSettings() {
-  return { ...shippingSettingsStore };
+  return getAppSetting(SETTINGS_KEYS.shipping);
 }
 export async function updateShippingSettings(
   settings: Record<string, any>,
   adminUserId: string = 'system',
 ) {
-  Object.assign(shippingSettingsStore, settings);
+  validateShipping(settings);
+  const current = await getAppSetting(SETTINGS_KEYS.shipping);
+  const merged = { ...current, ...settings };
+  const saved = await setAppSetting(
+    SETTINGS_KEYS.shipping,
+    merged,
+    adminUserId,
+  );
   await logAuditEvent({
     eventType: AuditEventType.RESOURCE_ACCESS_GRANTED,
     userId: adminUserId,
-    metadata: { action: 'shipping_settings_updated', settings },
+    metadata: {
+      action: 'shipping_settings_updated',
+      oldValue: current,
+      newValue: saved,
+    },
     severity: 'info',
     category: 'authorization',
   });
   AdminEventEmitter.emitShopActivated(adminUserId, 'shipping_settings', {
     action: 'shipping_settings_updated',
   });
-  return { ...shippingSettingsStore };
+  return saved;
 }
 export async function getPaymentSettings() {
-  return { ...paymentSettingsStore };
+  return getAppSetting(SETTINGS_KEYS.payment);
 }
 export async function updatePaymentSettings(
   settings: Record<string, any>,
   adminUserId: string = 'system',
 ) {
-  Object.assign(paymentSettingsStore, settings);
+  validatePayment(settings);
+  const current = await getAppSetting(SETTINGS_KEYS.payment);
+  const merged = { ...current, ...settings };
+  const saved = await setAppSetting(SETTINGS_KEYS.payment, merged, adminUserId);
   await logAuditEvent({
     eventType: AuditEventType.RESOURCE_ACCESS_GRANTED,
     userId: adminUserId,
-    metadata: { action: 'payment_settings_updated', settings },
+    metadata: {
+      action: 'payment_settings_updated',
+      oldValue: current,
+      newValue: saved,
+    },
     severity: 'info',
     category: 'authorization',
   });
   AdminEventEmitter.emitShopActivated(adminUserId, 'payment_settings', {
     action: 'payment_settings_updated',
   });
-  return { ...paymentSettingsStore };
+  return saved;
 }
 export async function getCMSSettings() {
-  return { ...cmsSettingsStore };
+  return getAppSetting(SETTINGS_KEYS.cms);
 }
 export async function updateCMSSettings(
   settings: Record<string, any>,
   adminUserId: string = 'system',
 ) {
-  Object.assign(cmsSettingsStore, settings);
+  validateCMS(settings);
+  const current = await getAppSetting(SETTINGS_KEYS.cms);
+  const merged = { ...current, ...settings };
+  const saved = await setAppSetting(SETTINGS_KEYS.cms, merged, adminUserId);
   await logAuditEvent({
     eventType: AuditEventType.RESOURCE_ACCESS_GRANTED,
     userId: adminUserId,
-    metadata: { action: 'cms_settings_updated', settings },
+    metadata: {
+      action: 'cms_settings_updated',
+      oldValue: current,
+      newValue: saved,
+    },
     severity: 'info',
     category: 'authorization',
   });
   AdminEventEmitter.emitShopActivated(adminUserId, 'cms_settings', {
     action: 'cms_settings_updated',
   });
-  return { ...cmsSettingsStore };
+  return saved;
 }
 export async function getNotificationSettings() {
-  return { ...notificationSettingsStore };
+  return getAppSetting(SETTINGS_KEYS.notifications);
 }
 export async function updateNotificationSettings(
   settings: Record<string, any>,
   adminUserId: string = 'system',
 ) {
-  Object.assign(notificationSettingsStore, settings);
+  validateNotifications(settings);
+  const current = await getAppSetting(SETTINGS_KEYS.notifications);
+  const merged = { ...current, ...settings };
+  const saved = await setAppSetting(
+    SETTINGS_KEYS.notifications,
+    merged,
+    adminUserId,
+  );
   await logAuditEvent({
     eventType: AuditEventType.RESOURCE_ACCESS_GRANTED,
     userId: adminUserId,
-    metadata: { action: 'notification_settings_updated', settings },
+    metadata: {
+      action: 'notification_settings_updated',
+      oldValue: current,
+      newValue: saved,
+    },
     severity: 'info',
     category: 'authorization',
   });
   AdminEventEmitter.emitShopActivated(adminUserId, 'notification_settings', {
     action: 'notification_settings_updated',
   });
-  return { ...notificationSettingsStore };
+  return saved;
 }
 export async function getFeatureFlags() {
-  return [...featureFlagsStore.entries()].map(([id, enabled]) => ({
-    id,
-    enabled,
-  }));
+  const flags = (await getAppSetting(SETTINGS_KEYS.feature_flags)) as Record<
+    string,
+    boolean
+  >;
+  return Object.entries(flags).map(([id, enabled]) => ({ id, enabled }));
 }
 export async function updateFeatureFlag(
   flagId: string,
@@ -1962,11 +2075,25 @@ export async function updateFeatureFlag(
   adminUserId: string = 'system',
   reason?: string,
 ) {
-  featureFlagsStore.set(flagId, enabled);
+  if (typeof flagId !== 'string' || !flagId) throw new Error('flagId required');
+  if (typeof enabled !== 'boolean') throw new Error('enabled must be boolean');
+  const current = (await getAppSetting(SETTINGS_KEYS.feature_flags)) as Record<
+    string,
+    boolean
+  >;
+  const next = { ...current, [flagId]: enabled };
+  await setAppSetting(SETTINGS_KEYS.feature_flags, next, adminUserId);
   await logAuditEvent({
     eventType: AuditEventType.RESOURCE_ACCESS_GRANTED,
     userId: adminUserId,
-    metadata: { action: 'feature_flag_updated', flagId, enabled, reason },
+    metadata: {
+      action: 'feature_flag_updated',
+      flagId,
+      enabled,
+      reason,
+      oldValue: current[flagId],
+      newValue: enabled,
+    },
     severity: 'info',
     category: 'authorization',
   });

@@ -2262,3 +2262,14 @@ model RecentlyViewed {
   @@index([userId, viewedAt])
   @@map("recently_viewed")
 }
+
+model AppSetting {
+  id        String   @id @default(uuid()) @db.Uuid
+  key       String   @unique @db.VarChar(64)
+  value     Json     @db.Json
+  updatedBy String?  @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  @@map("app_settings")
+}

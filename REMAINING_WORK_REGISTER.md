@@ -2,7 +2,7 @@
 
 Date: 2026-09-01
 Starting commit: c4c8e8e
-Current commit: timeline-retrieval
+Current commit: global-settings-persistence
 
 ## P0 — Production Bugs
 NONE
@@ -32,7 +32,7 @@ All P1 items implemented in this phase:
 ## P3 — Optional Enhancements
 - WebSocket real-time updates (admin/cart events) — INTENTIONAL DEFERRED (requires Durable Objects)
 - B2 versioning/lifecycle console verification — EXTERNAL (owner action, non-blocking)
-- Full global settings persistence (commission/tax/shipping) beyond in-memory — P3 deferred; audit logged, fixable with KV/DB table later
+- Full global settings persistence — COMPLETED (AppSetting table, DB source of truth, survives restart, validation, audit, KV not authoritative)
 
 ## Intentional Deferred
 - Sentry — PROHIBITED (0 refs, intentionally removed)
@@ -42,6 +42,9 @@ All P1 items implemented in this phase:
 
 ## Completed — Order Timeline Retrieval
 - Timeline retrieval from DB — COMPLETED (apps/api/_lib/order/service.ts now persists order_created + status transitions, retrieves via indexed query with pagination, customerVisible filtering, ordering; API: GET /api/v1/orders/:id/timeline (customer filtered), GET /api/v1/shop/orders/:id/timeline, GET /api/v1/admin/orders/:id/timeline; frontend: customer OrderDetailPage already wired, shop/admin stores enhanced)
+
+## Completed — Global Settings Persistence
+- Global Settings Persistence — COMPLETED (AppSetting table app_settings, DB is source of truth; 8 categories: global/tax/commission/shipping/payment/cms/notifications/feature_flags; validation + audit + admin-only + survives restart; wrangler vars remain bootstrap defaults)
 
 ## Test Fixtures
 - Prisma mocks in api tests — correctly isolated
@@ -58,6 +61,7 @@ All P1 items implemented in this phase:
 - Admin service real queries for sessions/audit/RBAC/permissions/security
 - Cart/checkout internal events, wishlist bulk, newsletter, audit no-op
 - Order Timeline Retrieval — indexed retrieval + write path + pagination + tenant isolation + customerVisible filtering + shop/admin endpoints + stores
+- Global Settings Persistence — AppSetting DB, 8 categories, validation, audit, tenant isolation
 
 ## Remaining TODO Count
 96 occurrences — 60+ are in comments for deferred engines/external sinks (intentionally retained with reason), remainder are defensive notes. No unexplained production mock returns zero/placeholder data to users.
