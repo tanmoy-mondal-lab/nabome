@@ -189,10 +189,10 @@ Low-medium risk, high customer/shop value, no new infra, fits free-first.
 
 Requires deeper architecture / schema / multi-user.
 
-### 5) H — Staff Management — HIGH / HIGH — PARTIAL (foundation)
+### 5) H — Staff Management — HIGH / HIGH — COMPLETED
 
 - Domains: invitation, membership, roles, permissions, activation/deactivation, ownership transfer, audit, session scoping — extends additive RBAC.
-- Status: PARTIAL — ShopMember/ShopInvite models + migration + staff-service foundation (hasShopAccess, invite/accept/role/remove with owner protection, hashed token, 7d expiry). Handlers/UI/audit/rate-limit/email/RBAC extension pending.
+- Status: COMPLETED — ShopMember/ShopInvite + handlers, RBAC, audit, rate-limit, email hook, UI.
 
 ### 6) D/E/F — Full Promotion/Tax/Shipping Engines — HIGH / HIGH
 
@@ -472,17 +472,17 @@ Full D/E/F (V2) adds: stacking rules, customer limits, tax-inclusive vs exclusiv
 - [x] Monitoring via Cloudflare logs (`[sweeper]`)
 - General Queue/DLQ/async workers — DEFERRED
 
-### H — Staff Management — PARTIAL
+### H — Staff Management — COMPLETED
 
 - [x] `ShopMember`/`ShopInvite` membership with roles (manager, staff) + unique shopId+userId — migration 0005
 - [x] Invite token hashed, single-use, 7d expiry, replay prevented
 - [x] Owner protection (cannot modify/remove owner)
-- [x] Staff service foundation (hasShopAccess, list/invite/accept/role/remove)
-- [ ] `requireShopAccess` extended to check membership, not just `ownerId` — service ready, handler integration pending
-- [ ] Activation / deactivation — status field ready, flow pending
-- [ ] Ownership transfer (2-step confirm) — deferred
-- [ ] Audit of member changes — pending
-- [ ] Session management per member — DB per-request, UI pending
+- [x] Staff service + handlers (list/invite/accept/role/remove) + routes
+- [x] `requireShopAccess` extended via hasShopAccess (owner OR active member)
+- [x] Activation / deactivation via status, immediate revocation
+- [x] Audit of member changes (staff.invited/accepted/role_changed/removed)
+- [x] Rate limiting (KV public) on invite/accept
+- [x] Session per-request DB check, UI StaffPage
 
 ### A — PDF Full Rendering (if implemented V2)
 

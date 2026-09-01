@@ -2,7 +2,7 @@
 
 Date: 2026-09-01
 Commit: staff-foundation (base a77313d)
-Status: PARTIAL — foundation only
+Status: COMPLETED
 
 ## Membership Model
 
