@@ -55,6 +55,9 @@ All P1 items implemented in this phase:
 ## Completed — Returns/Payments Gateway Completion
 - Returns/Payments — COMPLETED (Phase 1): `ReturnsService.processRefund` now calls PaymentGateway refund (Razorpay mock/gateway, idempotencyKey, server amount), creates finance via existing payment webhook/finance record; verification/webhook/idempotency/order/inventory already implemented and verified; packages/order TODOs intentional deferred
 
+## Partial — Staff Management
+- Staff Management — PARTIAL (ShopMember/ShopInvite models + 0005 migration + staff-service with hasShopAccess, invite/accept with hashed token 7d, role update, remove, owner protection, cross-shop isolation; handlers/UI/email/audit/rate-limit/RBAC extension pending)
+
 ## Test Fixtures
 - Prisma mocks in api tests — correctly isolated
 - In-memory event publishers in customer package — test fixtures, not production mocks

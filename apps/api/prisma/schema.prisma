@@ -642,6 +642,7 @@ model User {
   customerPreference CustomerPreference?
   notificationPreference NotificationPreference?
   recentlyViewed   RecentlyViewed[]
+  shopMemberships ShopMember[]
 
   @@index([status])
   @@index([role])
@@ -1943,6 +1944,25 @@ model TrendingSearch {
 // All finance rows are append-only facts; corrections are new rows (reversal).
 // ---------------------------------------------------------------------------
 
+enum ShopMemberRole {
+  manager
+  staff
+}
+
+enum ShopMemberStatus {
+  invited
+  active
+  suspended
+  removed
+}
+
+enum ShopInviteStatus {
+  pending
+  accepted
+  expired
+  revoked
+}
+
 model Shop {
   id            String          @id @default(uuid()) @db.Uuid
   ownerId       String          @unique @db.Uuid
@@ -1963,9 +1983,50 @@ model Shop {
   payoutAccounts PayoutAccount[]
   commissionRates CommissionRate[]
   coupons        Coupon[]
+  members        ShopMember[]
+  invites        ShopInvite[]
 
   @@index([status])
   @@map("shops")
+}
+
+model ShopMember {
+  id        String           @id @default(uuid()) @db.Uuid
+  shopId    String           @db.Uuid
+  userId    String           @db.Uuid
+  role      ShopMemberRole   @default(staff)
+  status    ShopMemberStatus @default(active)
+  invitedBy String?          @db.Uuid
+  createdAt DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime         @updatedAt @db.Timestamptz(6)
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, userId])
+  @@index([shopId, status])
+  @@index([userId])
+  @@map("shop_members")
+}
+
+model ShopInvite {
+  id            String            @id @default(uuid()) @db.Uuid
+  shopId        String            @db.Uuid
+  email         String            @db.VarChar(320)
+  role          ShopMemberRole    @default(staff)
+  tokenHash     String            @unique @db.VarChar(64)
+  status        ShopInviteStatus  @default(pending)
+  expiresAt     DateTime          @db.Timestamptz(6)
+  invitedBy     String            @db.Uuid
+  createdAt     DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime          @updatedAt @db.Timestamptz(6)
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, status])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@map("shop_invites")
 }
 
 model PayoutAccount {

@@ -189,9 +189,10 @@ Low-medium risk, high customer/shop value, no new infra, fits free-first.
 
 Requires deeper architecture / schema / multi-user.
 
-### 5) H — Staff Management — HIGH / HIGH
+### 5) H — Staff Management — HIGH / HIGH — PARTIAL (foundation)
 
 - Domains: invitation, membership, roles, permissions, activation/deactivation, ownership transfer, audit, session scoping — extends additive RBAC.
+- Status: PARTIAL — ShopMember/ShopInvite models + migration + staff-service foundation (hasShopAccess, invite/accept/role/remove with owner protection, hashed token, 7d expiry). Handlers/UI/audit/rate-limit/email/RBAC extension pending.
 
 ### 6) D/E/F — Full Promotion/Tax/Shipping Engines — HIGH / HIGH
 
@@ -471,15 +472,17 @@ Full D/E/F (V2) adds: stacking rules, customer limits, tax-inclusive vs exclusiv
 - [x] Monitoring via Cloudflare logs (`[sweeper]`)
 - General Queue/DLQ/async workers — DEFERRED
 
-### H — Staff Management
+### H — Staff Management — PARTIAL
 
-- [ ] Invite by email + accept flow
-- [ ] `ShopMember` membership with roles (owner, manager, staff) mapped to existing RBAC
-- [ ] `requireShopAccess` extended to check membership, not just `ownerId`
-- [ ] Activation / deactivation
-- [ ] Ownership transfer (2-step confirm)
-- [ ] Audit of member changes
-- [ ] Session management per member
+- [x] `ShopMember`/`ShopInvite` membership with roles (manager, staff) + unique shopId+userId — migration 0005
+- [x] Invite token hashed, single-use, 7d expiry, replay prevented
+- [x] Owner protection (cannot modify/remove owner)
+- [x] Staff service foundation (hasShopAccess, list/invite/accept/role/remove)
+- [ ] `requireShopAccess` extended to check membership, not just `ownerId` — service ready, handler integration pending
+- [ ] Activation / deactivation — status field ready, flow pending
+- [ ] Ownership transfer (2-step confirm) — deferred
+- [ ] Audit of member changes — pending
+- [ ] Session management per member — DB per-request, UI pending
 
 ### A — PDF Full Rendering (if implemented V2)
 
