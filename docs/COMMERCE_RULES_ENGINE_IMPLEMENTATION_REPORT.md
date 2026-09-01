@@ -14,11 +14,11 @@ Baseline: dcadeff (staff) / 1700a09 / 4688b4c
 
 ## Tax Engine
 
-- Reused TaxRule + AppSetting tax.gstRate as persistent source. Engine resolveTax reads AppSetting (default 18) → taxableAmount * rate, paise rounding per order. Location (shippingAddress) preserved via CartService country/state branching for future zones. Effective dates via TaxRule not yet wired (deferred).
+- TaxZone (shopId, country/state, priority, isActive) + TaxRule (taxZoneId, rate, priority, isActive) + AppSetting fallback. Engine resolveTax zones → country+state → country fallback → priority desc → rule rate, else AppSetting gstRate 18. Paise rounding per order. Tenant isolated via shopId.
 
 ## Shipping Engine
 
-- Reused ShippingRate + AppSetting shipping.freeShippingThreshold/defaultShippingRate. Engine resolveShipping reads AppSetting, freeShipping flag from promotion overrides to 0, otherwise threshold check. Zones/Carrier/weight/dimensional deferred.
+- ShippingZone (shopId, country/state, priority, isActive) + ShippingRate (shippingZoneId, baseRate, freeAboveAmount, priority, isActive) + AppSetting fallback. Engine resolveShipping zones → country+state → country → priority → rate + freeAbove check, freeShipping coupon overrides to 0. Tenant isolated.
 
 ## Pricing Pipeline
 
@@ -66,7 +66,7 @@ Baseline: dcadeff (staff) / 1700a09 / 4688b4c
 
 ## Known Limitations
 
-- Tax zones not fully modeled (country/state branching exists but not DB-driven zones), Shipping zones/weight/carrier not implemented, commission via CommissionRate not yet wired to cart (finance only), stacking not allowed, promotion eligibility product/category not yet.
+- Tax/shipping zones DB-backed (country/state priority) now, weight/carrier not yet, commission not wired to cart (finance only), stacking not allowed, promotion product/category eligibility not yet, admin CRUD UI pending
 
 ## Still Deferred
 

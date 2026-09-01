@@ -1080,11 +1080,35 @@ model ShippingRate {
   estimatedDays   Int?     @db.Integer
   isActive        Boolean  @default(true)
   applicableRegions Json?  @db.Json
+  shippingZoneId  String?  @db.Uuid
+  priority        Int      @default(0)
   createdAt       DateTime @default(now()) @db.Timestamptz(6)
   updatedAt       DateTime @updatedAt @db.Timestamptz(6)
 
+  shippingZone ShippingZone? @relation(fields: [shippingZoneId], references: [id])
+
   @@index([isActive])
+  @@index([shippingZoneId])
   @@map("shipping_rates")
+}
+
+model TaxZone {
+  id          String   @id @default(uuid()) @db.Uuid
+  shopId      String?  @db.Uuid
+  name        String   @db.VarChar(120)
+  countryCode String   @db.VarChar(2)
+  stateCode   String?  @db.VarChar(10)
+  priority    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  shop  Shop?    @relation(fields: [shopId], references: [id])
+  rules TaxRule[]
+
+  @@index([shopId, isActive])
+  @@index([countryCode, stateCode])
+  @@map("tax_zones")
 }
 
 model TaxRule {
@@ -1095,11 +1119,36 @@ model TaxRule {
   isInclusive       Boolean  @default(false)
   applicableRegions Json?    @db.Json
   applicableCategories Json? @db.Json
+  taxZoneId         String?  @db.Uuid
+  priority          Int      @default(0)
+  isActive          Boolean  @default(true)
   createdAt         DateTime @default(now()) @db.Timestamptz(6)
   updatedAt         DateTime @updatedAt @db.Timestamptz(6)
 
+  taxZone TaxZone? @relation(fields: [taxZoneId], references: [id])
+
   @@index([type])
+  @@index([taxZoneId])
   @@map("tax_rules")
+}
+
+model ShippingZone {
+  id          String   @id @default(uuid()) @db.Uuid
+  shopId      String?  @db.Uuid
+  name        String   @db.VarChar(120)
+  countryCode String   @db.VarChar(2)
+  stateCode   String?  @db.VarChar(10)
+  priority    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  shop  Shop?        @relation(fields: [shopId], references: [id])
+  rates ShippingRate[]
+
+  @@index([shopId, isActive])
+  @@index([countryCode, stateCode])
+  @@map("shipping_zones")
 }
 
 // ── Orders, payments, shipments (binding: B.4–B.6) ──────────────────────────
@@ -1985,6 +2034,8 @@ model Shop {
   coupons        Coupon[]
   members        ShopMember[]
   invites        ShopInvite[]
+  taxZones       TaxZone[]
+  shippingZones  ShippingZone[]
 
   @@index([status])
   @@map("shops")

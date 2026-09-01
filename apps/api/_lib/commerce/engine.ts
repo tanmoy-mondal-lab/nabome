@@ -114,6 +114,40 @@ export class CommerceEngine {
     taxableAmount: number,
   ): Promise<number> {
     try {
+      const country = ctx.location?.split('-')[0] ?? 'IN';
+      const state = ctx.location?.split('-')[1] ?? null;
+      const { getPrisma } = await import('../prisma.ts');
+      const prisma = getPrisma() as any;
+      try {
+        let zones: any[] = await prisma.taxZone.findMany({
+          where: {
+            isActive: true,
+            OR: [{ shopId: ctx.shopId }, { shopId: null }],
+            countryCode: country,
+            ...(state ? { stateCode: state } : {}),
+          },
+          orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+        });
+        if (zones.length === 0 && state)
+          zones = await prisma.taxZone.findMany({
+            where: {
+              isActive: true,
+              OR: [{ shopId: ctx.shopId }, { shopId: null }],
+              countryCode: country,
+            },
+            orderBy: [{ priority: 'desc' }],
+          });
+        for (const z of zones) {
+          const rule = await prisma.taxRule.findFirst({
+            where: { taxZoneId: z.id, isActive: true },
+            orderBy: [{ priority: 'desc' }],
+          });
+          if (rule)
+            return (
+              Math.round(taxableAmount * 100 * (Number(rule.rate) / 100)) / 100
+            );
+        }
+      } catch {}
       const taxSettings = await getAppSetting('tax').catch(() => ({
         gstRate: 18,
       }));
@@ -135,6 +169,44 @@ export class CommerceEngine {
   ): Promise<number> {
     if (freeShipping) return 0;
     try {
+      const country = ctx.location?.split('-')[0] ?? 'IN';
+      const state = ctx.location?.split('-')[1] ?? null;
+      const { getPrisma } = await import('../prisma.ts');
+      const prisma = getPrisma() as any;
+      try {
+        let zones: any[] = await prisma.shippingZone.findMany({
+          where: {
+            isActive: true,
+            OR: [{ shopId: ctx.shopId }, { shopId: null }],
+            countryCode: country,
+            ...(state ? { stateCode: state } : {}),
+          },
+          orderBy: [{ priority: 'desc' }],
+        });
+        if (zones.length === 0 && state)
+          zones = await prisma.shippingZone.findMany({
+            where: {
+              isActive: true,
+              OR: [{ shopId: ctx.shopId }, { shopId: null }],
+              countryCode: country,
+            },
+            orderBy: [{ priority: 'desc' }],
+          });
+        for (const z of zones) {
+          const rate = await prisma.shippingRate.findFirst({
+            where: { shippingZoneId: z.id, isActive: true },
+            orderBy: [{ priority: 'desc' }],
+          });
+          if (rate) {
+            if (
+              rate.freeAboveAmount &&
+              taxableAmount >= Number(rate.freeAboveAmount)
+            )
+              return 0;
+            return Number(rate.baseRate);
+          }
+        }
+      } catch {}
       const ship = await getAppSetting('shipping').catch(() => ({
         freeShippingThreshold: 500,
         defaultShippingRate: 50,
