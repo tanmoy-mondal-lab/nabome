@@ -40,9 +40,17 @@
       "name": "nabome-api-staging",
       "vars": {
         "ENVIRONMENT": "staging",
+        "PAYMENT_PROVIDER": "razorpay",
+        "FINANCE_COMMISSION_RATE": "15",
+        "FINANCE_COMMISSION_CAP": "50",
+        "FINANCE_HOLD_DAYS": "7",
+        "FINANCE_SETTLEMENT_MIN": "100",
+        "COD_ENABLED": "true",
+        "COD_MAX_AMOUNT": "5000",
         "PUBLIC_API_URL": "https://staging-api.nabome.online",
         "APP_URL": "https://staging.nabome.online",
         "LOG_LEVEL": "debug",
+        "SESSION_COOKIE_NAME": "nabome_session",
       },
       "kv_namespaces": [
         {
@@ -62,9 +70,17 @@
       "name": "nabome-api",
       "vars": {
         "ENVIRONMENT": "production",
+        "PAYMENT_PROVIDER": "razorpay",
+        "FINANCE_COMMISSION_RATE": "15",
+        "FINANCE_COMMISSION_CAP": "50",
+        "FINANCE_HOLD_DAYS": "7",
+        "FINANCE_SETTLEMENT_MIN": "100",
+        "COD_ENABLED": "true",
+        "COD_MAX_AMOUNT": "5000",
         "PUBLIC_API_URL": "https://api.nabome.online",
         "APP_URL": "https://nabome.online",
         "LOG_LEVEL": "info",
+        "SESSION_COOKIE_NAME": "nabome_session",
       },
       "kv_namespaces": [
         { "binding": "KV", "id": "6969b592bba74117b3f27545dcf47e7a" },

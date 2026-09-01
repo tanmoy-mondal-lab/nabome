@@ -1,10 +1,10 @@
 # NABOME PRODUCTION DEPLOYMENT REPORT
 
-**Date:** 2026-09-01
+**Date:** 2026-09-01 (updated post-hardening 16:21Z)
 **Branch:** production
-**Commit:** fe37d27b33ace574e0021219bd75341369cc44ee
-**Environment:** production
-**Status:** PRODUCTION DEPLOYMENT SUCCESSFUL WITH NON-BLOCKING FOLLOW-UPS
+**Commit:** 14c3add (prev fe37d27)
+**Environment:** production + staging
+**Status:** PRODUCTION VERIFIED — hardened (Sentry removed, wrangler fixed, staging env fixed, formatted)
 
 ---
 

@@ -1,28 +1,31 @@
 # NABOME Production Status — DEPLOYED AND VERIFIED
 
 **Deployment Date:** 2026-09-01  
-**Commit:** fe37d27b33ace574e0021219bd75341369cc44ee  
+**Commit:** 14c3add chore: remove sentry integration + wrangler hardening  
 **Branch:** production  
-**Decision:** PRODUCTION DEPLOYMENT SUCCESSFUL WITH NON-BLOCKING FOLLOW-UPS
-**Report:** PRODUCTION_DEPLOYMENT_REPORT.md
+**Decision:** PRODUCTION VERIFIED
+**Reports:** PRODUCTION_DEPLOYMENT_REPORT.md, SENTRY_REMOVAL_REPORT.md, FINAL_INFRASTRUCTURE_VERIFICATION_REPORT.md
 
-## Production Deployment Status — 2026-09-01
+## Production Deployment Status — 2026-09-01 (post-hardening)
 
 | Item | Status |
 |------|--------|
 | Production URL (frontend) | https://nabome.pages.dev / https://nabome.online |
-| Production API | https://nabome-api.pages.dev (project `nabome-api` — created 2026-09-01) |
-| Staging API | https://nabome-api-staging.pages.dev |
-| Production Commit | fe37d27 |
-| Deployment Date | 2026-09-01T15:52Z |
+| Production API | https://nabome-api.pages.dev — env production — ✅ |
+| Staging API | https://nabome-api-staging.pages.dev — env staging — ✅ |
+| Production Commit | 14c3add |
+| Deployment Date | 2026-09-01T16:21Z |
 | Infrastructure | Neon + Hyperdrive v3 (pooled AP) + KV + B2 + Pages — READY |
-| Secrets | 17 on nabome-api/nabome, 16 on staging — READY |
+| Secrets | 15+ on nabome-api/nabome/staging — READY (Sentry intentionally removed) |
 | Database | 2 migrations applied, PITR via Neon |
-| Backup | Neon automated daily + PITR (verify retention in Neon console) |
+| Backup | Neon automated daily + PITR (EXTERNAL CONSOLE VERIFICATION) |
+| Storage | B2 nabome-media — EXTERNAL CONSOLE VERIFICATION for versioning |
 | Monitoring | Cloudflare runtime/application logs — intentionally no Sentry |
-| Smoke Tests | PASS (health, products, auth, tenant isolation) |
+| Wrangler Vars | RESOLVED — finance/payment vars explicit in preview/production |
+| Formatting | PASS — Prettier All matched files use style |
+| Smoke Tests | PASS — health env correct, products, auth, tenant isolation |
 
-**Follow-ups:** B2 versioning via B2 console, wrangler vars inheritance warning, prettier format.
+**Remaining:** B2 versioning EXTERNAL CONSOLE VERIFICATION only (non-blocking).
 
 ---
 
