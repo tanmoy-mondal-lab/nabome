@@ -1,8 +1,16 @@
 # NABOME STAFF MANAGEMENT IMPLEMENTATION REPORT
 
 Date: 2026-09-01
-Commit: staff-foundation (base a77313d)
-Status: COMPLETED
+Commit: staff-hardening (base dcadeff → 54cde75 → dcadeff → current)
+Status: COMPLETED — hardening: RBAC fine-tuning + multi-shop context
+
+## Hardening
+
+- Shop list API GET /api/v1/shops (owner + active membership, role, membershipStatus)
+- Shop products list now accepts ?shopId and verifies hasShopAccess, allowing manager/staff to list products for their shop; owner fallback via first membership
+- Shop context provider apps/shop ShopProvider (fetches shops, activeShopId localStorage, switching, role isolation per shop)
+- RBAC matrix audited: products/orders/inventory → manager/staff allowed, finance/payout/staff management/ownership/gateway remain owner-only, commerce rules owner/manager
+- Cross-shop via shopId product lookup + hasShopAccess, multi-shop staff: Shop A manager + Shop B staff isolated per shopId
 
 ## Membership Model
 

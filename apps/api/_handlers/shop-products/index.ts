@@ -13,6 +13,7 @@ import { ApiError } from '../../_lib/http/errors.ts';
 import { okJson, errorJson } from '../../_lib/http/response.ts';
 import { getPrisma } from '../../_lib/prisma.ts';
 import { productService } from '../../_lib/products/service.ts';
+import { hasShopAccess } from '../../_lib/shop/staff-service.ts';
 import { register } from '../register.ts';
 
 // ============================================================================
@@ -90,29 +91,41 @@ export async function handleGetShopProducts(
     const userId = context.userId!;
     const userRole = context.userRole;
 
-    if (!userId || userRole !== 'shop_owner') {
+    if (!userId)
       return errorJson(
-        ApiError.forbidden('Shop owner access required'),
+        ApiError.unauthorized('Auth required'),
         context.requestId,
       );
-    }
-
     const url = new URL(_request.url);
     const queryOptions = productQuerySchema.parse(
       Object.fromEntries(url.searchParams),
     );
-
-    // Get shop ID for this user
-    const shop = await getPrisma().shop.findFirst({
-      where: { ownerId: userId },
-    });
-
-    if (!shop) {
+    const requestedShopId = url.searchParams.get('shopId') || undefined;
+    let shop: any = null;
+    if (requestedShopId) {
+      if (!(await hasShopAccess(userId, requestedShopId)))
+        return errorJson(
+          ApiError.forbidden('Shop access denied'),
+          context.requestId,
+        );
+      shop = await getPrisma().shop.findUnique({
+        where: { id: requestedShopId },
+      });
+    } else {
+      shop = await getPrisma().shop.findFirst({ where: { ownerId: userId } });
+      if (!shop) {
+        const m = await getPrisma().shopMember.findFirst({
+          where: { userId, status: 'active' },
+          include: { shop: true },
+        });
+        shop = m?.shop ?? null;
+      }
+    }
+    if (!shop)
       return errorJson(
         ApiError.forbidden('Shop not found for this user'),
         context.requestId,
       );
-    }
 
     // Get products for this shop
     const result = await productService.list({
