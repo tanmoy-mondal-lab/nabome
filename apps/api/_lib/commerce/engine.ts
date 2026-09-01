@@ -171,6 +171,13 @@ export class CommerceEngine {
     try {
       const country = ctx.location?.split('-')[0] ?? 'IN';
       const state = ctx.location?.split('-')[1] ?? null;
+      const totalWeightKg = ctx.items.reduce(
+        (s: number, i: any) =>
+          s +
+          ((i.variant?.weightGrams ?? i.product?.weightGrams ?? 0) / 1000) *
+            i.quantity,
+        0,
+      );
       const { getPrisma } = await import('../prisma.ts');
       const prisma = getPrisma() as any;
       try {
@@ -203,7 +210,10 @@ export class CommerceEngine {
               taxableAmount >= Number(rate.freeAboveAmount)
             )
               return 0;
-            return Number(rate.baseRate);
+            let base = Number(rate.baseRate);
+            if (rate.ratePerKg && totalWeightKg > 0)
+              base += totalWeightKg * Number(rate.ratePerKg);
+            return base;
           }
         }
       } catch {}

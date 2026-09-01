@@ -9,8 +9,9 @@ const prisma = new Proxy({} as any, {
 
 export async function hasShopAccess(
   userId: string,
-  shopId: string,
+  shopId: string | undefined,
 ): Promise<boolean> {
+  if (!shopId) return false;
   const shop = await prisma.shop.findUnique({
     where: { id: shopId },
     select: { ownerId: true },
@@ -24,7 +25,7 @@ export async function hasShopAccess(
 
 export async function requireShopAccess(
   userId: string,
-  shopId: string,
+  shopId: string | undefined,
 ): Promise<void> {
   if (!(await hasShopAccess(userId, shopId)))
     throw ApiError.forbidden('Shop access denied');
