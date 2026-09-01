@@ -2,7 +2,7 @@
 
 Date: 2026-09-01
 Starting commit: c4c8e8e
-Current commit: promotion-coupon-wiring
+Current commit: background-jobs-sweeper
 
 ## P0 — Production Bugs
 NONE
@@ -22,7 +22,7 @@ All P1 items implemented in this phase:
 
 ## P2 — Important Enhancements
 - PDF export full rendering — INTENTIONAL DEFERRED (Workers runtime incompatible with Node-only PDF libs; returns text-based placeholder Buffer; requires external service or R2-based worker)
-- Background job monitoring — INTENTIONAL DEFERRED (no queue table; returns typed empty array)
+- Background job monitoring — PHASE 1 COMPLETED (StockReservation expiry sweeper Cron */5, idempotent, no queue table; General Queue/DLQ still DEFERRED)
 - Customer-specific pricing tiers — INTENTIONAL DEFERRED (no pricing tier model/UI; classified per §17)
 - Promotion/Tax/Shipping engine hooks in cart/pricing.ts — PARTIALLY COMPLETED (coupon wiring V1.5 done: percentage/fixed/free_shipping, minOrder, maxDiscount, validFrom/Until, maxUses/usedCount, single coupon, shop isolation, server-side, order persistence; full engine stacking/loyalty deferred)
 - Google Analytics / Mixpanel external pushes (cart/checkout events) — INTENTIONAL DEFERRED (internal DB analytics used; no paid external provider)
@@ -49,6 +49,9 @@ All P1 items implemented in this phase:
 ## Completed — Promotion Engine / Coupon Wiring
 - Promotion Engine Coupon Wiring — COMPLETED (V1.5 slice: Coupon shopId, normalization UPPER, validation active/validFrom/Until/maxUses/minOrder, percentage/fixed/free_shipping, maxDiscount, Decimal paise, server-side CartService + CartPricingService, Checkout apply/validate with atomic usedCount, Order couponCode/discountTotal persistence, cross-shop deny, payment grandTotal server)
 
+## Completed — Background Jobs / StockReservation Expiry Sweeper
+- Background Jobs Phase 1 — COMPLETED (releaseExpiredReservations batch 100, idempotent updateMany where ACTIVE, EXPIRED+releasedAt, StockMovement release, Cron */5 via wrangler triggers, scheduled handler, structured log, safe concurrent, no queue table; General Queue/DLQ deferred)
+
 ## Test Fixtures
 - Prisma mocks in api tests — correctly isolated
 - In-memory event publishers in customer package — test fixtures, not production mocks
@@ -66,6 +69,7 @@ All P1 items implemented in this phase:
 - Order Timeline Retrieval — indexed retrieval + write path + pagination + tenant isolation + customerVisible filtering + shop/admin endpoints + stores
 - Global Settings Persistence — AppSetting DB, 8 categories, validation, audit, tenant isolation
 - Promotion Engine Coupon Wiring — V1.5 percentage/fixed, shop isolation, concurrency-safe, server totals
+- Background Jobs Phase 1 — StockReservation expiry sweeper Cron */5, idempotent, no queue table
 
 ## Remaining TODO Count
 96 occurrences — 60+ are in comments for deferred engines/external sinks (intentionally retained with reason), remainder are defensive notes. No unexplained production mock returns zero/placeholder data to users.

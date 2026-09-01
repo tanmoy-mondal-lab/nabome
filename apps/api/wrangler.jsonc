@@ -4,6 +4,9 @@
   "pages_build_output_dir": "./dist",
   "compatibility_date": "2026-07-15",
   "compatibility_flags": ["nodejs_compat"],
+  "triggers": {
+    "crons": ["*/5 * * * *"],
+  },
   "observability": {
     "enabled": true,
   },

@@ -177,12 +177,13 @@ Low-medium risk, high customer/shop value, no new infra, fits free-first.
 - Complexity: MEDIUM (see phased V1.5).
 - Status: Coupon wiring COMPLETED — shopId, normalization, server discount, atomic usage.
 
-### 4) B — Background Jobs (lightweight: Cron for reservation expiry + in-memory DLQ log) — HIGH / MEDIUM
+### 4) B — Background Jobs (lightweight: Cron for reservation expiry + in-memory DLQ log) — HIGH / MEDIUM — PHASE 1 COMPLETED
 
 - Why: 15-min `StockReservation.expiresAt` today has no sweeper; expiry correctness reduces oversell.
 - Users: Platform operator, Shop owner.
 - Dependencies: none.
 - Complexity: MEDIUM (Cron Trigger + idempotent sweeper; Queues optional later).
+- Status: Phase 1 COMPLETED — Cron */5, idempotent sweeper, no queue table. General Queue/DLQ still DEFERRED.
 
 ## 8. Phase 2 — Core Platform Expansion
 
@@ -280,13 +281,14 @@ Core platform expansion — after V1.5 proven:
 - Dependencies: J.
 - Impact: HIGH (shop owner + customer, every checkout).
 
-### 4. B — Background Jobs (Cron sweeper) — HIGH
+### 4. B — Background Jobs (Cron sweeper) — HIGH — COMPLETED
 
 - Why now: reservation expiry correctness prevents oversell; synchronous email is okay but sweeper is not — gap today.
 - Business value: MEDIUM (ops) + risk reduction HIGH.
 - Risk: MEDIUM (Cron idempotency, Workers limits).
 - Dependencies: none.
 - Impact: MEDIUM (platform operator, shop).
+- Status: COMPLETED — 4688b4c → current.
 
 ### 5. H — Staff Management — HIGH
 
@@ -460,13 +462,14 @@ All Phase 1 fits `existing infra + open source + serverless` on Cloudflare/Neon/
 
 Full D/E/F (V2) adds: stacking rules, customer limits, tax-inclusive vs exclusive + tax classes + exemptions, shipping zones + carrier integration.
 
-### B — Background Jobs
+### B — Background Jobs — Phase 1 Reservation Expiry: COMPLETED
 
-- [ ] Cron Trigger sweeper: `StockReservation` `active && expiresAt < now` → `released` + `releasedAt` + `StockMovement type=release`
-- [ ] Idempotent (re-run safe, no double release)
-- [ ] DLQ / retry log (console → structured log, not Sentry)
-- [ ] No queue table V1; Cloudflare Queues evaluated only if email/report burst demands
-- [ ] Monitoring via Cloudflare logs
+- [x] Cron Trigger sweeper: `StockReservation` `active && expiresAt < now` → `expired` + `releasedAt` + `StockMovement type=release`
+- [x] Idempotent (re-run safe, no double release via updateMany where status ACTIVE)
+- [x] Retry via Cron (remain ACTIVE on fail, next run retries)
+- [x] No queue table V1; Cloudflare Queues evaluated only if email/report burst demands — DEFERRED
+- [x] Monitoring via Cloudflare logs (`[sweeper]`)
+- General Queue/DLQ/async workers — DEFERRED
 
 ### H — Staff Management
 
@@ -509,9 +512,10 @@ Explicit order — not P2/P3 label order — justified by value, risk, and depen
     Risk LOW, depends on J.
     Status: COMPLETED — 0004_coupon_shop, CartService + validate endpoint.
 
-04. B — Background Jobs (Cron sweeper for StockReservation expiry)
+04. B — Background Jobs (Cron sweeper for StockReservation expiry) — COMPLETED
     Why fourth: correctness gap (15-min reservation has no sweeper today); Cron is free and isolated; can run in parallel with 03.
     Risk LOW, independent.
+    Status: COMPLETED — sweeper + */5 Cron.
 
 05. M — Returns/Payments Gateway Completion (package alignment)
     Why fifth: API layer already correct; package stubs are gap to close before promoting `packages/order` as source of truth; low user impact if left stubbed.
