@@ -17,6 +17,7 @@ import {
   // @ts-ignore - shipping package types
 } from '@nabome/shipping';
 
+import { requireAuth } from '../../_lib/auth/auth-middleware.ts';
 import type { RequestContext } from '../../_lib/http/context.ts';
 import {
   ApiError,
@@ -33,12 +34,21 @@ import type { RouteHandler } from '../register.ts';
 /**
  * GET /shipments
  * Get all shipments with optional filters
+ * Requires: shop_owner or admin role
  */
 export const getShipments: RouteHandler = async (request, context, _params) => {
   const requestId = context.requestId;
   const logger = withRequestId(getLogger(context.env), requestId);
 
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        requestId,
+      );
+    }
+
     const url = new URL(request.url);
     const orderId = url.searchParams.get('orderId');
     const status = url.searchParams.get('status');
@@ -67,6 +77,7 @@ export const getShipments: RouteHandler = async (request, context, _params) => {
 /**
  * GET /shipments/{id}
  * Get a specific shipment by ID
+ * Requires: shop_owner or admin role
  */
 export const getShipmentById: RouteHandler = async (
   request,
@@ -80,6 +91,14 @@ export const getShipmentById: RouteHandler = async (
     return errorJson(ApiError.badRequest('Missing id'), context.requestId);
 
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        requestId,
+      );
+    }
+
     const prisma = getPrisma() as any;
     const shipmentService = createShipmentService(prisma);
 
@@ -98,6 +117,7 @@ export const getShipmentById: RouteHandler = async (
 /**
  * POST /shipments
  * Create a new shipment
+ * Requires: shop_owner or admin role
  */
 export const createShipment: RouteHandler = async (
   request,
@@ -108,6 +128,14 @@ export const createShipment: RouteHandler = async (
   const logger = withRequestId(getLogger(context.env), requestId);
 
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        requestId,
+      );
+    }
+
     const body = (await request.json()) as Record<string, any>;
     const {
       orderId,
@@ -155,6 +183,7 @@ export const createShipment: RouteHandler = async (
 /**
  * PATCH /shipments/{id}/status
  * Update shipment status
+ * Requires: shop_owner or admin role
  */
 export const updateShipmentStatus: RouteHandler = async (
   request,
@@ -168,6 +197,14 @@ export const updateShipmentStatus: RouteHandler = async (
     return errorJson(ApiError.badRequest('Missing id'), context.requestId);
 
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        requestId,
+      );
+    }
+
     const body = (await request.json()) as Record<string, any>;
     const { status, actorType, actorId, reason, metadata } = body;
 
@@ -210,6 +247,7 @@ export const updateShipmentStatus: RouteHandler = async (
 /**
  * DELETE /shipments/{id}
  * Soft delete a shipment
+ * Requires: shop_owner or admin role
  */
 export const deleteShipment: RouteHandler = async (
   request,
@@ -223,6 +261,14 @@ export const deleteShipment: RouteHandler = async (
     return errorJson(ApiError.badRequest('Missing id'), context.requestId);
 
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        requestId,
+      );
+    }
+
     const prisma = getPrisma() as any;
     const shipmentService = createShipmentService(prisma);
 
@@ -237,6 +283,7 @@ export const deleteShipment: RouteHandler = async (
 /**
  * GET /orders/{orderId}/shipments
  * Get all shipments for an order
+ * Requires: shop_owner, admin, or customer (own orders)
  */
 export const getShipmentsByOrder: RouteHandler = async (
   request,
@@ -250,6 +297,28 @@ export const getShipmentsByOrder: RouteHandler = async (
     return errorJson(ApiError.badRequest('Missing orderId'), context.requestId);
 
   try {
+    const authContext = await requireAuth(request, context.env);
+
+    // Verify ownership for customers
+    if (authContext.role === 'customer') {
+      const prisma = getPrisma() as any;
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        select: { userId: true },
+      });
+      if (!order || order.userId !== authContext.userId) {
+        return errorJson(ApiError.forbidden('Order not accessible'), requestId);
+      }
+    } else if (
+      authContext.role !== 'shop_owner' &&
+      authContext.role !== 'admin'
+    ) {
+      return errorJson(
+        ApiError.forbidden('Shop owner, admin, or customer access required'),
+        requestId,
+      );
+    }
+
     const prisma = getPrisma() as any;
     const shipmentService = createShipmentService(prisma);
 

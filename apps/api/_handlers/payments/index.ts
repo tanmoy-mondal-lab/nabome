@@ -517,65 +517,67 @@ async function verifyPayment(
       prisma.payment.update({ where: { id }, data: { status } }),
     createTransaction: async (data: any) =>
       prisma.paymentTransaction.create({ data }),
-    createFinanceRecord: async () => {
-      throw new Error('Not implemented');
-    },
-    createLedgerEntry: async () => {
-      throw new Error('Not implemented');
-    },
-    // Add other required methods as stubs
-    createPayment: async () => {
-      throw new Error('Not implemented');
-    },
-    getPaymentByOrderId: async () => null,
-    getPaymentByIdempotencyKey: async () => null,
-    listPayments: async () => [],
-    createRefund: async () => {
-      throw new Error('Not implemented');
-    },
-    getRefundById: async () => null,
-    getRefundsByPaymentId: async () => [],
-    getRefundsByOrderId: async () => [],
-    updateRefund: async () => {
-      throw new Error('Not implemented');
-    },
-    updateRefundStatus: async () => {
-      throw new Error('Not implemented');
-    },
-    listRefunds: async () => [],
-    createSettlement: async () => {
-      throw new Error('Not implemented');
-    },
-    getSettlementById: async () => null,
-    getSettlementByNumber: async () => null,
-    getSettlementsByShopId: async () => [],
-    updateSettlement: async () => {
-      throw new Error('Not implemented');
-    },
-    updateSettlementStatus: async () => {
-      throw new Error('Not implemented');
-    },
-    listSettlements: async () => [],
+    createFinanceRecord: async (data: any) =>
+      prisma.financeRecord.create({ data }),
+    createLedgerEntry: async (data: any) => prisma.ledgerEntry.create({ data }),
+    createPayment: async (data: any) => prisma.payment.create({ data }),
+    getPaymentByOrderId: async (orderId: string) =>
+      prisma.payment.findFirst({ where: { orderId } }),
+    getPaymentByIdempotencyKey: async (key: string) =>
+      prisma.payment.findUnique({ where: { idempotencyKey: key } }),
+    listPayments: async () =>
+      prisma.payment.findMany({ where: { isActive: true } }),
+    createRefund: async (data: any) => prisma.refund.create({ data }),
+    getRefundById: async (id: string) =>
+      prisma.refund.findUnique({ where: { id } }),
+    getRefundsByPaymentId: async (paymentId: string) =>
+      prisma.refund.findMany({ where: { paymentId } }),
+    getRefundsByOrderId: async (orderId: string) =>
+      prisma.refund.findMany({ where: { orderId } }),
+    updateRefund: async (id: string, data: any) =>
+      prisma.refund.update({ where: { id }, data }),
+    updateRefundStatus: async (id: string, status: any) =>
+      prisma.refund.update({ where: { id }, data: { status } }),
+    listRefunds: async () =>
+      prisma.refund.findMany({ where: { isActive: true } }),
+    createSettlement: async (data: any) => prisma.settlement.create({ data }),
+    getSettlementById: async (id: string) =>
+      prisma.settlement.findUnique({ where: { id } }),
+    getSettlementByNumber: async (number: string) =>
+      prisma.settlement.findUnique({ where: { settlementNumber: number } }),
+    getSettlementsByShopId: async (shopId: string) =>
+      prisma.settlement.findMany({ where: { shopId } }),
+    updateSettlement: async (id: string, data: any) =>
+      prisma.settlement.update({ where: { id }, data }),
+    updateSettlementStatus: async (id: string, status: any) =>
+      prisma.settlement.update({ where: { id }, data: { status } }),
+    listSettlements: async () =>
+      prisma.settlement.findMany({ where: { isActive: true } }),
     getTransactionsByPaymentId: async (paymentId: string) =>
       prisma.paymentTransaction.findMany({ where: { paymentId } }),
-    updateTransaction: async () => {
-      throw new Error('Not implemented');
-    },
-    createWebhookEvent: async () => {
-      throw new Error('Not implemented');
-    },
-    getWebhookEventById: async () => null,
-    getWebhookEventByProviderEventId: async () => null,
-    updateWebhookEvent: async () => {
-      throw new Error('Not implemented');
-    },
-    listWebhookEvents: async () => [],
-    getFinanceRecordById: async () => null,
-    updateFinanceRecord: async () => {
-      throw new Error('Not implemented');
-    },
-    getLedgerEntriesByFinanceRecordId: async () => [],
-    getLedgerEntriesByReference: async () => [],
+    updateTransaction: async (id: string, data: any) =>
+      prisma.paymentTransaction.update({ where: { id }, data }),
+    createWebhookEvent: async (data: any) =>
+      prisma.webhookEvent.create({ data }),
+    getWebhookEventById: async (id: string) =>
+      prisma.webhookEvent.findUnique({ where: { id } }),
+    getWebhookEventByProviderEventId: async (providerEventId: string) =>
+      prisma.webhookEvent.findFirst({
+        where: { eventId: providerEventId },
+      }),
+    updateWebhookEvent: async (id: string, data: any) =>
+      prisma.webhookEvent.update({ where: { id }, data }),
+    listWebhookEvents: async () => prisma.webhookEvent.findMany(),
+    getFinanceRecordById: async (id: string) =>
+      prisma.financeRecord.findUnique({ where: { id } }),
+    updateFinanceRecord: async (id: string, data: any) =>
+      prisma.financeRecord.update({ where: { id }, data }),
+    getLedgerEntriesByFinanceRecordId: async (financeRecordId: string) =>
+      prisma.ledgerEntry.findMany({ where: { financeRecordId } }),
+    getLedgerEntriesByReference: async (referenceId: string) =>
+      prisma.ledgerEntry.findMany({
+        where: { financeRecord: { referenceId } },
+      }),
   };
 
   const paymentService = createPaymentService({
@@ -640,55 +642,60 @@ async function processRefund(
       prisma.refund.update({ where: { id }, data: { status } }),
     createTransaction: async (data: any) =>
       prisma.paymentTransaction.create({ data }),
-    createFinanceRecord: async () => {
-      throw new Error('Not implemented');
-    },
-    createLedgerEntry: async () => {
-      throw new Error('Not implemented');
-    },
-    // Add other required methods as stubs
-    createPayment: async () => {
-      throw new Error('Not implemented');
-    },
-    getPaymentByOrderId: async () => null,
-    getPaymentByIdempotencyKey: async () => null,
-    listPayments: async () => [],
-    getRefundById: async () => null,
-    getRefundsByOrderId: async () => [],
-    listRefunds: async () => [],
-    createSettlement: async () => {
-      throw new Error('Not implemented');
-    },
-    getSettlementById: async () => null,
-    getSettlementByNumber: async () => null,
-    getSettlementsByShopId: async () => [],
-    updateSettlement: async () => {
-      throw new Error('Not implemented');
-    },
-    updateSettlementStatus: async () => {
-      throw new Error('Not implemented');
-    },
-    listSettlements: async () => [],
+    createFinanceRecord: async (data: any) =>
+      prisma.financeRecord.create({ data }),
+    createLedgerEntry: async (data: any) => prisma.ledgerEntry.create({ data }),
+    createPayment: async (data: any) => prisma.payment.create({ data }),
+    getPaymentByOrderId: async (orderId: string) =>
+      prisma.payment.findFirst({ where: { orderId } }),
+    getPaymentByIdempotencyKey: async (key: string) =>
+      prisma.payment.findUnique({ where: { idempotencyKey: key } }),
+    listPayments: async () =>
+      prisma.payment.findMany({ where: { isActive: true } }),
+    getRefundById: async (id: string) =>
+      prisma.refund.findUnique({ where: { id } }),
+    getRefundsByOrderId: async (orderId: string) =>
+      prisma.refund.findMany({ where: { orderId } }),
+    listRefunds: async () =>
+      prisma.refund.findMany({ where: { isActive: true } }),
+    createSettlement: async (data: any) => prisma.settlement.create({ data }),
+    getSettlementById: async (id: string) =>
+      prisma.settlement.findUnique({ where: { id } }),
+    getSettlementByNumber: async (number: string) =>
+      prisma.settlement.findUnique({ where: { settlementNumber: number } }),
+    getSettlementsByShopId: async (shopId: string) =>
+      prisma.settlement.findMany({ where: { shopId } }),
+    updateSettlement: async (id: string, data: any) =>
+      prisma.settlement.update({ where: { id }, data }),
+    updateSettlementStatus: async (id: string, status: any) =>
+      prisma.settlement.update({ where: { id }, data: { status } }),
+    listSettlements: async () =>
+      prisma.settlement.findMany({ where: { isActive: true } }),
     getTransactionsByPaymentId: async (paymentId: string) =>
       prisma.paymentTransaction.findMany({ where: { paymentId } }),
-    updateTransaction: async () => {
-      throw new Error('Not implemented');
-    },
-    createWebhookEvent: async () => {
-      throw new Error('Not implemented');
-    },
-    getWebhookEventById: async () => null,
-    getWebhookEventByProviderEventId: async () => null,
-    updateWebhookEvent: async () => {
-      throw new Error('Not implemented');
-    },
-    listWebhookEvents: async () => [],
-    getFinanceRecordById: async () => null,
-    updateFinanceRecord: async () => {
-      throw new Error('Not implemented');
-    },
-    getLedgerEntriesByFinanceRecordId: async () => [],
-    getLedgerEntriesByReference: async () => [],
+    updateTransaction: async (id: string, data: any) =>
+      prisma.paymentTransaction.update({ where: { id }, data }),
+    createWebhookEvent: async (data: any) =>
+      prisma.webhookEvent.create({ data }),
+    getWebhookEventById: async (id: string) =>
+      prisma.webhookEvent.findUnique({ where: { id } }),
+    getWebhookEventByProviderEventId: async (providerEventId: string) =>
+      prisma.webhookEvent.findFirst({
+        where: { eventId: providerEventId },
+      }),
+    updateWebhookEvent: async (id: string, data: any) =>
+      prisma.webhookEvent.update({ where: { id }, data }),
+    listWebhookEvents: async () => prisma.webhookEvent.findMany(),
+    getFinanceRecordById: async (id: string) =>
+      prisma.financeRecord.findUnique({ where: { id } }),
+    updateFinanceRecord: async (id: string, data: any) =>
+      prisma.financeRecord.update({ where: { id }, data }),
+    getLedgerEntriesByFinanceRecordId: async (financeRecordId: string) =>
+      prisma.ledgerEntry.findMany({ where: { financeRecordId } }),
+    getLedgerEntriesByReference: async (referenceId: string) =>
+      prisma.ledgerEntry.findMany({
+        where: { financeRecord: { referenceId } },
+      }),
   };
 
   const paymentService = createPaymentService({
@@ -751,68 +758,70 @@ async function createSettlement(
     createSettlement: async (data: any) => prisma.settlement.create({ data }),
     updateSettlementStatus: async (id: string, status: any) =>
       prisma.settlement.update({ where: { id }, data: { status } }),
-    createFinanceRecord: async () => {
-      throw new Error('Not implemented');
-    },
-    createLedgerEntry: async () => {
-      throw new Error('Not implemented');
-    },
-    // Add other required methods as stubs
-    createPayment: async () => {
-      throw new Error('Not implemented');
-    },
-    getPaymentById: async () => null,
-    getPaymentByOrderId: async () => null,
-    getPaymentByIdempotencyKey: async () => null,
-    updatePayment: async () => {
-      throw new Error('Not implemented');
-    },
-    updatePaymentStatus: async () => {
-      throw new Error('Not implemented');
-    },
-    createRefund: async () => {
-      throw new Error('Not implemented');
-    },
-    getRefundById: async () => null,
-    getRefundsByPaymentId: async () => [],
-    getRefundsByOrderId: async () => [],
-    updateRefund: async () => {
-      throw new Error('Not implemented');
-    },
-    updateRefundStatus: async () => {
-      throw new Error('Not implemented');
-    },
-    listRefunds: async () => [],
-    getSettlementById: async () => null,
-    getSettlementByNumber: async () => null,
+    createFinanceRecord: async (data: any) =>
+      prisma.financeRecord.create({ data }),
+    createLedgerEntry: async (data: any) => prisma.ledgerEntry.create({ data }),
+    createPayment: async (data: any) => prisma.payment.create({ data }),
+    getPaymentById: async (id: string) =>
+      prisma.payment.findUnique({ where: { id } }),
+    getPaymentByOrderId: async (orderId: string) =>
+      prisma.payment.findFirst({ where: { orderId } }),
+    getPaymentByIdempotencyKey: async (key: string) =>
+      prisma.payment.findUnique({ where: { idempotencyKey: key } }),
+    updatePayment: async (id: string, data: any) =>
+      prisma.payment.update({ where: { id }, data }),
+    updatePaymentStatus: async (id: string, status: any) =>
+      prisma.payment.update({ where: { id }, data: { status } }),
+    createRefund: async (data: any) => prisma.refund.create({ data }),
+    getRefundById: async (id: string) =>
+      prisma.refund.findUnique({ where: { id } }),
+    getRefundsByPaymentId: async (paymentId: string) =>
+      prisma.refund.findMany({ where: { paymentId } }),
+    getRefundsByOrderId: async (orderId: string) =>
+      prisma.refund.findMany({ where: { orderId } }),
+    updateRefund: async (id: string, data: any) =>
+      prisma.refund.update({ where: { id }, data }),
+    updateRefundStatus: async (id: string, status: any) =>
+      prisma.refund.update({ where: { id }, data: { status } }),
+    listRefunds: async () =>
+      prisma.refund.findMany({ where: { isActive: true } }),
+    getSettlementById: async (id: string) =>
+      prisma.settlement.findUnique({ where: { id } }),
+    getSettlementByNumber: async (number: string) =>
+      prisma.settlement.findUnique({ where: { settlementNumber: number } }),
     getSettlementsByShopId: async (shopId: string) =>
       prisma.settlement.findMany({ where: { shopId } }),
-    updateSettlement: async () => {
-      throw new Error('Not implemented');
-    },
-    listSettlements: async () => [],
-    createTransaction: async () => {
-      throw new Error('Not implemented');
-    },
-    getTransactionsByPaymentId: async () => [],
-    updateTransaction: async () => {
-      throw new Error('Not implemented');
-    },
-    createWebhookEvent: async () => {
-      throw new Error('Not implemented');
-    },
-    getWebhookEventById: async () => null,
-    getWebhookEventByProviderEventId: async () => null,
-    updateWebhookEvent: async () => {
-      throw new Error('Not implemented');
-    },
-    listWebhookEvents: async () => [],
-    getFinanceRecordById: async () => null,
-    updateFinanceRecord: async () => {
-      throw new Error('Not implemented');
-    },
-    getLedgerEntriesByFinanceRecordId: async () => [],
-    getLedgerEntriesByReference: async () => [],
+    updateSettlement: async (id: string, data: any) =>
+      prisma.settlement.update({ where: { id }, data }),
+    listSettlements: async () =>
+      prisma.settlement.findMany({ where: { isActive: true } }),
+    createTransaction: async (data: any) =>
+      prisma.paymentTransaction.create({ data }),
+    getTransactionsByPaymentId: async (paymentId: string) =>
+      prisma.paymentTransaction.findMany({ where: { paymentId } }),
+    updateTransaction: async (id: string, data: any) =>
+      prisma.paymentTransaction.update({ where: { id }, data }),
+    createWebhookEvent: async (data: any) =>
+      prisma.webhookEvent.create({ data }),
+    getWebhookEventById: async (id: string) =>
+      prisma.webhookEvent.findUnique({ where: { id } }),
+    getWebhookEventByProviderEventId: async (providerEventId: string) =>
+      prisma.webhookEvent.findFirst({
+        where: { eventId: providerEventId },
+      }),
+    updateWebhookEvent: async (id: string, data: any) =>
+      prisma.webhookEvent.update({ where: { id }, data }),
+    listWebhookEvents: async () => prisma.webhookEvent.findMany(),
+    getFinanceRecordById: async (id: string) =>
+      prisma.financeRecord.findUnique({ where: { id } }),
+    updateFinanceRecord: async (id: string, data: any) =>
+      prisma.financeRecord.update({ where: { id }, data }),
+    getLedgerEntriesByFinanceRecordId: async (financeRecordId: string) =>
+      prisma.ledgerEntry.findMany({ where: { financeRecordId } }),
+    getLedgerEntriesByReference: async (referenceId: string) =>
+      prisma.ledgerEntry.findMany({
+        where: { financeRecord: { referenceId } },
+      }),
   };
 
   const paymentService = createPaymentService({

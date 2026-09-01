@@ -260,21 +260,20 @@ export class CheckoutRepository {
       isDefault: boolean;
     },
   ): Promise<Address> {
-    // If setting as default, remove default from other addresses
     if (addressData.isDefault) {
       await prisma.address.updateMany({
         where: { userId },
         data: { isDefault: false },
       });
     }
-
+    const { name, ...rest } = addressData as any;
     const address = await prisma.address.create({
       data: {
         userId,
-        ...addressData,
+        label: name,
+        ...rest,
       },
     });
-
     return this.transformToAddress(address);
   }
 
@@ -336,20 +335,19 @@ export class CheckoutRepository {
     if (!existing) {
       throw new Error('Address not found');
     }
-
-    // If setting as default, remove default from other addresses
     if (addressData.isDefault) {
       await prisma.address.updateMany({
         where: { userId: existing.userId, id: { not: id } },
         data: { isDefault: false },
       });
     }
-
+    const { name, ...rest } = addressData as any;
+    const data: any = { ...rest };
+    if (name !== undefined) data.label = name;
     const address = await prisma.address.update({
       where: { id },
-      data: addressData,
+      data,
     });
-
     return this.transformToAddress(address);
   }
 
@@ -507,16 +505,13 @@ export class CheckoutRepository {
    * Find tax rules by region
    */
   static async findTaxRulesByRegion(region: string): Promise<TaxRule[]> {
-    const rules = await prisma.taxRule.findMany({
-      where: {
-        applicableRegions: {
-          path: '$',
-          string_contains: region,
-        },
-      },
+    const rules = await prisma.taxRule.findMany();
+    const filtered = rules.filter((r: any) => {
+      const regions = r.applicableRegions as string[] | null;
+      if (!regions || regions.length === 0) return true;
+      return regions.includes(region);
     });
-
-    return rules.map((rule: any) => this.transformToTaxRule(rule));
+    return filtered.map((rule: any) => this.transformToTaxRule(rule));
   }
 
   /**

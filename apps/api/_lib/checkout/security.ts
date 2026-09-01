@@ -157,7 +157,10 @@ export async function applyCheckoutRateLimit(
         (globalThis as any).__env ??
         (request as any).context?.env;
       resolvedKv = ctx?.KV;
-    } catch {}
+    } catch (error) {
+      // If environment resolution fails, KV will remain undefined
+      console.warn('Failed to resolve KV binding:', error);
+    }
   }
   const { checkRateLimit, clientKey } = await import('../ratelimit.ts');
   const ip = clientKey(request);

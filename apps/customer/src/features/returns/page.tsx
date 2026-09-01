@@ -28,56 +28,11 @@ import { ReturnRequestWizard } from './components/return-request-wizard';
 import { ReturnStatusCard } from './components/return-status-card';
 import { ReturnTimeline } from './components/return-timeline';
 
-// Mock data - in production, this would come from API
-const mockReturns = [
-  {
-    id: 'return-1',
-    orderNumber: 'ORD-12345',
-    status: 'return_approved',
-    requestedAt: new Date('2024-01-15'),
-    approvedAt: new Date('2024-01-16'),
-    refundStatus: 'pending',
-    totalRefundAmount: 1500,
-    items: [
-      { productName: 'Product A', quantity: 1, totalPrice: 1000 },
-      { productName: 'Product B', quantity: 1, totalPrice: 500 },
-    ],
-  },
-  {
-    id: 'return-2',
-    orderNumber: 'ORD-12346',
-    status: 'refund_completed',
-    requestedAt: new Date('2024-01-10'),
-    approvedAt: new Date('2024-01-11'),
-    refundCompletedAt: new Date('2024-01-14'),
-    refundStatus: 'completed',
-    totalRefundAmount: 800,
-    items: [{ productName: 'Product C', quantity: 1, totalPrice: 800 }],
-  },
-];
-
-const mockOrderItems = [
-  {
-    id: 'item-1',
-    variantId: 'variant-1',
-    productId: 'product-1',
-    productName: 'Product A',
-    variantSku: 'SKU-001',
-    quantity: 1,
-    unitPrice: 1000,
-    totalPrice: 1000,
-  },
-  {
-    id: 'item-2',
-    variantId: 'variant-2',
-    productId: 'product-2',
-    productName: 'Product B',
-    variantSku: 'SKU-002',
-    quantity: 1,
-    unitPrice: 500,
-    totalPrice: 500,
-  },
-];
+// TODO: Implement API integration to fetch returns and order items from backend
+// Returns should be fetched from /api/v1/orders/:id/returns
+// Order items should be fetched from /api/v1/orders/:id
+const mockReturns: any[] = [];
+const mockOrderItems: any[] = [];
 
 export default function ReturnsPage() {
   const [showWizard, setShowWizard] = useState(false);

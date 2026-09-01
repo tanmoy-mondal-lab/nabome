@@ -51,7 +51,9 @@ export function __resetPrismaForTests(): void {
   prisma = null;
   initialized = false;
   if (pool) {
-    void pool.end().catch(() => {});
+    void pool.end().catch((error) => {
+      console.warn('Failed to close Prisma connection pool:', error);
+    });
     pool = null;
   }
 }

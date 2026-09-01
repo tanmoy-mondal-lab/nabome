@@ -706,7 +706,27 @@ export async function handleShippingRates(
       );
     }
 
-    const body = (await request.json()) as Record<string, unknown>;
+    let body: Record<string, unknown> = {};
+    try {
+      const text = await request.text();
+      if (text) body = JSON.parse(text) as Record<string, unknown>;
+    } catch {}
+    if (!body || Object.keys(body).length === 0) {
+      const url = new URL(request.url);
+      const weight = url.searchParams.get('weight');
+      if (weight) {
+        body = {
+          weight: Number(weight),
+          origin: { postalCode: '400001', country: 'IN' },
+          destination: { postalCode: '400001', country: 'IN' },
+        } as any;
+      } else {
+        const { CheckoutRepository } =
+          await import('../../_lib/checkout/repository.ts');
+        const rates = await CheckoutRepository.getActiveShippingRates();
+        return okJson({ rates }, context.requestId);
+      }
+    }
     const { origin, destination, weight, dimensions, shippingMethods } = body;
 
     if (!origin || !destination || !weight) {

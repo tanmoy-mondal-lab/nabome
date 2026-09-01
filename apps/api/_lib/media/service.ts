@@ -172,7 +172,10 @@ export function extractKeyFromUrl(
           const shopsIdx = pathname.indexOf('/shops/');
           if (shopsIdx !== -1) pathname = pathname.slice(shopsIdx);
         }
-      } catch {}
+      } catch (error) {
+        // If URL parsing fails, continue with original pathname
+        console.warn('Failed to parse URL pathname:', error);
+      }
       const key = pathname.startsWith('/') ? pathname.slice(1) : pathname;
       if (!key) return null;
       try {

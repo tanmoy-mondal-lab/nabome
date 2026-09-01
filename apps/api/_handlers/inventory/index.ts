@@ -6,6 +6,7 @@
  * warehouse management, and availability checks.
  */
 
+import { requireAuth } from '../../_lib/auth/auth-middleware.ts';
 import type { RequestContext } from '../../_lib/http/context.ts';
 import { ApiError } from '../../_lib/http/errors.ts';
 import { okJson, errorJson } from '../../_lib/http/response.ts';
@@ -15,6 +16,7 @@ import { register } from '../register.ts';
 
 /**
  * GET /api/v1/inventory/summary — Get inventory summary
+ * Requires: shop_owner or admin role
  */
 export async function handleInventorySummary(
   request: Request,
@@ -22,6 +24,14 @@ export async function handleInventorySummary(
   _params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const summary = await inventoryService.getSummary();
     return okJson(summary, context.requestId);
   } catch (error) {
@@ -37,6 +47,7 @@ export async function handleInventorySummary(
 
 /**
  * GET /api/v1/inventory/availability — Check availability for variants
+ * Requires: shop_owner or admin role
  */
 export async function handleInventoryAvailability(
   request: Request,
@@ -44,6 +55,14 @@ export async function handleInventoryAvailability(
   _params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const url = new URL(request.url);
     const variantIds = url.searchParams.get('variantIds')?.split(',');
 
@@ -66,6 +85,7 @@ export async function handleInventoryAvailability(
 
 /**
  * POST /api/v1/inventory/reserve — Reserve stock
+ * Requires: shop_owner or admin role
  */
 export async function handleInventoryReserve(
   request: Request,
@@ -73,6 +93,14 @@ export async function handleInventoryReserve(
   _params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const body = (await request.json()) as {
       variantId?: string;
       quantity?: number;
@@ -115,13 +143,22 @@ export async function handleInventoryReserve(
 
 /**
  * POST /api/v1/inventory/reserve/{id}/release — Release a reservation
+ * Requires: shop_owner or admin role
  */
 export async function handleInventoryReleaseReservation(
-  _request: Request,
+  request: Request,
   context: RequestContext,
   params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const { id } = params;
     if (!id) {
       return errorJson(
@@ -152,13 +189,22 @@ export async function handleInventoryReleaseReservation(
 
 /**
  * POST /api/v1/inventory/reserve/{id}/convert — Convert reservation to sale
+ * Requires: shop_owner or admin role
  */
 export async function handleInventoryConvertReservation(
-  _request: Request,
+  request: Request,
   context: RequestContext,
   params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const { id } = params;
     if (!id) {
       return errorJson(
@@ -189,6 +235,7 @@ export async function handleInventoryConvertReservation(
 
 /**
  * POST /api/v1/inventory/stock/add — Add stock to a variant
+ * Requires: shop_owner or admin role
  */
 export async function handleInventoryAddStock(
   request: Request,
@@ -196,6 +243,14 @@ export async function handleInventoryAddStock(
   _params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const body = (await request.json()) as {
       variantId?: string;
       quantity?: number;
@@ -241,6 +296,7 @@ export async function handleInventoryAddStock(
 
 /**
  * GET /api/v1/inventory/variant/{id}/movements — Get stock movement history for a variant
+ * Requires: shop_owner or admin role
  */
 export async function handleInventoryMovements(
   request: Request,
@@ -248,6 +304,14 @@ export async function handleInventoryMovements(
   params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const { id } = params;
     if (!id) {
       return errorJson(
@@ -282,13 +346,22 @@ export async function handleInventoryMovements(
 
 /**
  * GET /api/v1/inventory/variant/{id}/reservations — Get active reservations for a variant
+ * Requires: shop_owner or admin role
  */
 export async function handleInventoryReservations(
-  _request: Request,
+  request: Request,
   context: RequestContext,
   params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const { id } = params;
     if (!id) {
       return errorJson(
@@ -361,6 +434,7 @@ export async function handleInventoryBulkUpdate(
 
 /**
  * POST /api/v1/inventory/transfer — Transfer stock between warehouses
+ * Requires: shop_owner or admin role
  */
 export async function handleInventoryTransfer(
   request: Request,
@@ -368,6 +442,14 @@ export async function handleInventoryTransfer(
   _params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const body = (await request.json()) as {
       variantId?: string;
       fromWarehouseId?: string;
@@ -421,13 +503,22 @@ export async function handleInventoryTransfer(
 
 /**
  * POST /api/v1/inventory/expire-reservations — Expire old reservations (admin only)
+ * Requires: admin role
  */
 export async function handleInventoryExpireReservations(
-  _request: Request,
+  request: Request,
   context: RequestContext,
   _params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Admin access required'),
+        context.requestId,
+      );
+    }
+
     const count = await inventoryService.expireOldReservations();
     return okJson({ expiredCount: count }, context.requestId);
   } catch (error) {

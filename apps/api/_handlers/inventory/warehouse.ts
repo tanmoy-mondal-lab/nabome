@@ -5,6 +5,7 @@
  * API endpoints for warehouse management.
  */
 
+import { requireAuth } from '../../_lib/auth/auth-middleware.ts';
 import type { RequestContext } from '../../_lib/http/context.ts';
 import { ApiError } from '../../_lib/http/errors.ts';
 import { okJson, errorJson } from '../../_lib/http/response.ts';
@@ -13,13 +14,22 @@ import { register } from '../register.ts';
 
 /**
  * GET /api/v1/warehouses — Get all warehouses
+ * Requires: shop_owner or admin role
  */
 export async function handleWarehousesList(
-  _request: Request,
+  request: Request,
   context: RequestContext,
   _params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const warehouses = await warehouseService.findAll();
     return okJson({ warehouses }, context.requestId);
   } catch (error) {
@@ -35,13 +45,22 @@ export async function handleWarehousesList(
 
 /**
  * GET /api/v1/warehouses/active — Get active warehouses only
+ * Requires: shop_owner or admin role
  */
 export async function handleWarehousesActive(
-  _request: Request,
+  request: Request,
   context: RequestContext,
   _params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const warehouses = await warehouseService.findActive();
     return okJson({ warehouses }, context.requestId);
   } catch (error) {
@@ -57,13 +76,22 @@ export async function handleWarehousesActive(
 
 /**
  * GET /api/v1/warehouses/{id} — Get warehouse by ID
+ * Requires: shop_owner or admin role
  */
 export async function handleWarehouseGet(
-  _request: Request,
+  request: Request,
   context: RequestContext,
   params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const { id } = params;
     if (!id) {
       return errorJson(
@@ -95,6 +123,7 @@ export async function handleWarehouseGet(
 
 /**
  * POST /api/v1/warehouses — Create a new warehouse
+ * Requires: shop_owner or admin role
  */
 export async function handleWarehouseCreate(
   request: Request,
@@ -102,6 +131,14 @@ export async function handleWarehouseCreate(
   _params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const body = (await request.json()) as {
       name?: string;
       code?: string;
@@ -167,6 +204,7 @@ export async function handleWarehouseCreate(
 
 /**
  * PUT /api/v1/warehouses/{id} — Update warehouse
+ * Requires: shop_owner or admin role
  */
 export async function handleWarehouseUpdate(
   request: Request,
@@ -174,6 +212,14 @@ export async function handleWarehouseUpdate(
   params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'shop_owner' && authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Shop owner or admin access required'),
+        context.requestId,
+      );
+    }
+
     const { id } = params;
     if (!id) {
       return errorJson(
@@ -241,13 +287,22 @@ export async function handleWarehouseUpdate(
 
 /**
  * DELETE /api/v1/warehouses/{id} — Delete warehouse (soft delete)
+ * Requires: admin role
  */
 export async function handleWarehouseDelete(
-  _request: Request,
+  request: Request,
   context: RequestContext,
   params: Record<string, string>,
 ): Promise<Response> {
   try {
+    const authContext = await requireAuth(request, context.env);
+    if (authContext.role !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Admin access required'),
+        context.requestId,
+      );
+    }
+
     const { id } = params;
     if (!id) {
       return errorJson(
