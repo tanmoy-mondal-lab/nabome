@@ -8,7 +8,6 @@
  *  5. CSRF enforcement for mutations (skips auth/webhooks)
  *  6. JWT authentication — populates context.userId/userRole/sessionId
  *  7. stash context on `data` for the catch-all handler
- *  8. Sentry error monitoring integration
  */
 import type { PagesFunction } from '@cloudflare/workers-types';
 
@@ -29,7 +28,6 @@ import {
   withRequestId,
 } from '../_lib/index.ts';
 import { initPrisma } from '../_lib/prisma.ts';
-import { initSentry } from '../_lib/sentry.ts';
 
 interface Data {
   requestId: string;
@@ -70,8 +68,6 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
   next,
   data,
 }) => {
-  initSentry(env);
-
   const hyperdriveCs = (
     env as unknown as { HYPERDRIVE?: { connectionString?: string } }
   ).HYPERDRIVE?.connectionString;

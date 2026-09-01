@@ -53,9 +53,12 @@ export async function handleMediaUpload(
     const formData = await request.formData();
     const file = formData.get('file');
     const productId = formData.get('productId');
-    const variantId = formData.get('variantId');
-    const altText = formData.get('altText');
-    const sortOrderStr = formData.get('sortOrder');
+    const variantIdRaw = formData.get('variantId');
+    const variantId = typeof variantIdRaw === 'string' ? variantIdRaw : null;
+    const altTextRaw = formData.get('altText');
+    const altText = typeof altTextRaw === 'string' ? altTextRaw : null;
+    const sortOrderRaw = formData.get('sortOrder');
+    const sortOrderStr = typeof sortOrderRaw === 'string' ? sortOrderRaw : null;
 
     // Validate required fields
     if (!file || typeof file === 'string') {

@@ -8,7 +8,6 @@ import { ToastProvider } from '@/shared/feedback/Toast';
 
 import { initAnalytics } from '@/lib/analytics';
 import { createQueryClient } from '@/lib/query-client';
-import { initSentry } from '@/lib/sentry';
 
 import { useUiStore } from '@/stores/ui-store';
 
@@ -16,9 +15,6 @@ import { App } from './App';
 import '../styles/globals.css';
 
 function bootstrap(): void {
-  // Initialize Sentry error monitoring early
-  initSentry();
-
   // Initialize analytics early for session tracking
   initAnalytics();
 

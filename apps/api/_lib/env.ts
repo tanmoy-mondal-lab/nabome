@@ -35,7 +35,6 @@ export interface Env {
   RESEND_FROM_EMAIL?: string;
   TURNSTILE_SECRET_KEY?: string;
   WEBHOOK_SECRET?: string;
-  SENTRY_DSN?: string;
   STORAGE_ENDPOINT?: string;
   STORAGE_REGION?: string;
   STORAGE_BUCKET?: string;

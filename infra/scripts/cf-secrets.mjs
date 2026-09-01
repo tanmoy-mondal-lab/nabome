@@ -37,7 +37,6 @@ const SECRETS = [
   { var: 'RAZORPAY_WEBHOOK_SECRET', required: false },
   { var: 'TURNSTILE_SECRET_KEY', required: false },
   { var: 'WEBHOOK_SECRET', required: false },
-  { var: 'SENTRY_DSN', required: false },
 ];
 
 let failures = 0;

@@ -14,7 +14,7 @@ const LEVEL_WEIGHT: Record<LogLevel, number> = {
 /**
  * Browser-safe structured logger (frontends never use raw `console.log` —
  * ESLint `no-console` rule; use this instead). Forwards structured records
- * to the browser console and to optional sinks (Sentry).
+ * to the browser console and to optional sinks.
  */
 export interface LogSink {
   (level: LogLevel, record: Record<string, unknown>): void;

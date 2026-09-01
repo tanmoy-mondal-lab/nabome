@@ -27,7 +27,6 @@
     "@nabome/ui": "workspace:*",
     "@nabome/utils": "workspace:*",
     "@nabome/validation": "workspace:*",
-    "@sentry/react": "^8.47.0",
     "@tanstack/react-query": "^5.101.4",
     "framer-motion": "^12.43.0",
     "lucide-react": "^1.28.0",

@@ -24,7 +24,6 @@ export const sharedEnvSchema = z.object({
   APP_URL: z.string().url().default('http://localhost:5173'),
   PUBLIC_API_URL: z.string().url().default('http://localhost:8788'),
   LOG_LEVEL: logLevelSchema,
-  SENTRY_DSN: z.string().url().optional().or(z.literal('')),
   SESSION_COOKIE_NAME: z.string().min(1).default('nabome_session'),
   VITE_TURNSTILE_SITE_KEY: z.string().optional().or(z.literal('')),
 });
