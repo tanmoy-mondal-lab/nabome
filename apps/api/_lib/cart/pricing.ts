@@ -17,15 +17,26 @@ export class CartPricingService {
   /**
    * Calculate cart totals
    */
-  static calculateCartTotals(items: CartItemWithProduct[]): CartTotals {
+  static calculateCartTotals(
+    items: CartItemWithProduct[],
+    couponDiscount: number = 0,
+  ): CartTotals {
     const itemsSubtotal = this.calculateItemsSubtotal(items);
-    const discountTotal = this.calculateDiscountTotal(items, itemsSubtotal);
+    const ruleDiscount = this.calculateDiscountTotal(items, itemsSubtotal);
+    const discountTotal = Math.min(
+      ruleDiscount + couponDiscount,
+      itemsSubtotal,
+      itemsSubtotal * 0.5,
+    );
     const taxTotal = this.calculateTaxTotal(itemsSubtotal - discountTotal);
     const shippingTotal = this.calculateShippingTotal(
       items,
       itemsSubtotal - discountTotal,
     );
-    const grandTotal = itemsSubtotal - discountTotal + taxTotal + shippingTotal;
+    const grandTotal = Math.max(
+      0,
+      itemsSubtotal - discountTotal + taxTotal + shippingTotal,
+    );
 
     return {
       itemsSubtotal,

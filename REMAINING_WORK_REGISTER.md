@@ -2,7 +2,7 @@
 
 Date: 2026-09-01
 Starting commit: c4c8e8e
-Current commit: global-settings-persistence
+Current commit: promotion-coupon-wiring
 
 ## P0 — Production Bugs
 NONE
@@ -24,7 +24,7 @@ All P1 items implemented in this phase:
 - PDF export full rendering — INTENTIONAL DEFERRED (Workers runtime incompatible with Node-only PDF libs; returns text-based placeholder Buffer; requires external service or R2-based worker)
 - Background job monitoring — INTENTIONAL DEFERRED (no queue table; returns typed empty array)
 - Customer-specific pricing tiers — INTENTIONAL DEFERRED (no pricing tier model/UI; classified per §17)
-- Promotion/Tax/Shipping engine hooks in cart/pricing.ts — INTENTIONAL DEFERRED (engines not in scope; prices computed server-side from variant)
+- Promotion/Tax/Shipping engine hooks in cart/pricing.ts — PARTIALLY COMPLETED (coupon wiring V1.5 done: percentage/fixed/free_shipping, minOrder, maxDiscount, validFrom/Until, maxUses/usedCount, single coupon, shop isolation, server-side, order persistence; full engine stacking/loyalty deferred)
 - Google Analytics / Mixpanel external pushes (cart/checkout events) — INTENTIONAL DEFERRED (internal DB analytics used; no paid external provider)
 - Shop reports/analytics API handlers beyond dashboard — IMPLEMENTED via reports/analytics services; frontend hooks now backed by real data
 - Staff management in settings/service — INTENTIONAL DEFERRED (V1 single owner per shop)
@@ -46,6 +46,9 @@ All P1 items implemented in this phase:
 ## Completed — Global Settings Persistence
 - Global Settings Persistence — COMPLETED (AppSetting table app_settings, DB is source of truth; 8 categories: global/tax/commission/shipping/payment/cms/notifications/feature_flags; validation + audit + admin-only + survives restart; wrangler vars remain bootstrap defaults)
 
+## Completed — Promotion Engine / Coupon Wiring
+- Promotion Engine Coupon Wiring — COMPLETED (V1.5 slice: Coupon shopId, normalization UPPER, validation active/validFrom/Until/maxUses/minOrder, percentage/fixed/free_shipping, maxDiscount, Decimal paise, server-side CartService + CartPricingService, Checkout apply/validate with atomic usedCount, Order couponCode/discountTotal persistence, cross-shop deny, payment grandTotal server)
+
 ## Test Fixtures
 - Prisma mocks in api tests — correctly isolated
 - In-memory event publishers in customer package — test fixtures, not production mocks
@@ -62,6 +65,7 @@ All P1 items implemented in this phase:
 - Cart/checkout internal events, wishlist bulk, newsletter, audit no-op
 - Order Timeline Retrieval — indexed retrieval + write path + pagination + tenant isolation + customerVisible filtering + shop/admin endpoints + stores
 - Global Settings Persistence — AppSetting DB, 8 categories, validation, audit, tenant isolation
+- Promotion Engine Coupon Wiring — V1.5 percentage/fixed, shop isolation, concurrency-safe, server totals
 
 ## Remaining TODO Count
 96 occurrences — 60+ are in comments for deferred engines/external sinks (intentionally retained with reason), remainder are defensive notes. No unexplained production mock returns zero/placeholder data to users.

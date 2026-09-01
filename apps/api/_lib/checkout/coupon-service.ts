@@ -22,14 +22,30 @@ import type {
 } from './types';
 
 export class CouponService {
+  static normalizeCode(code: string): string {
+    return code.trim().toUpperCase();
+  }
+
   /**
    * Validate coupon
    */
   static async validateCoupon(
     input: CouponApplicationInput,
   ): Promise<CouponValidationResult> {
-    // Find coupon by code
-    const coupon = await CheckoutRepository.findCouponByCode(input.code as any);
+    const normalizedCode = this.normalizeCode(String(input.code ?? ''));
+    if (!normalizedCode) {
+      return {
+        isValid: false,
+        coupon: null,
+        discountAmount: 0,
+        appliedMessage: null,
+        errorMessage: 'Coupon code required',
+        errorCodes: ['coupon_invalid'],
+      };
+    }
+    const coupon = await CheckoutRepository.findCouponByCode(
+      normalizedCode as any,
+    );
 
     if (!coupon) {
       return {
@@ -128,8 +144,37 @@ export class CouponService {
       };
     }
 
+    if ((coupon as any).shopId) {
+      try {
+        const productIds = [
+          ...new Set(cartItems.map((i: any) => i.productId).filter(Boolean)),
+        ];
+        if (productIds.length > 0) {
+          const { getPrisma } = await import('../prisma.ts');
+          const prisma = getPrisma() as any;
+          const products = await prisma.product.findMany({
+            where: { id: { in: productIds } },
+            select: { id: true, shopId: true },
+          });
+          const shopSet = new Set(products.map((p: any) => p.shopId));
+          if (shopSet.size !== 1 || !shopSet.has((coupon as any).shopId)) {
+            return {
+              isValid: false,
+              coupon: null,
+              discountAmount: 0,
+              appliedMessage: null,
+              errorMessage: 'Coupon not valid for this shop',
+              errorCodes: ['coupon_shop_mismatch'],
+            };
+          }
+        }
+      } catch {}
+    }
+
     const cartTotalPaise = cartItems.reduce((sum: number, item: any) => {
-      const paise = Math.round(Number(item.unitPrice) * 100);
+      const paise = Math.round(
+        Number(item.unitPrice ?? item.variant?.price ?? 0) * 100,
+      );
       return sum + paise * item.quantity;
     }, 0);
     const cartTotal = cartTotalPaise / 100;

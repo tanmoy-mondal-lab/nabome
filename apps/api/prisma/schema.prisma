@@ -1845,10 +1845,14 @@ model Coupon {
   validFrom      DateTime?  @db.Timestamptz(6)
   validUntil     DateTime?  @db.Timestamptz(6)
   isActive       Boolean    @default(true)
+  shopId         String?    @db.Uuid
   createdAt      DateTime   @default(now()) @db.Timestamptz(6)
   updatedAt      DateTime   @updatedAt @db.Timestamptz(6)
 
+  shop           Shop?      @relation(fields: [shopId], references: [id])
+
   @@index([validUntil])
+  @@index([shopId])
   @@map("coupons")
 }
 
@@ -1958,6 +1962,7 @@ model Shop {
   payouts        Payout[]
   payoutAccounts PayoutAccount[]
   commissionRates CommissionRate[]
+  coupons        Coupon[]
 
   @@index([status])
   @@map("shops")

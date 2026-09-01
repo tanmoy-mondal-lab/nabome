@@ -121,6 +121,7 @@ export interface Coupon {
   isActive: boolean;
   applicableProducts: string[] | null;
   applicableCollections: string[] | null;
+  shopId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

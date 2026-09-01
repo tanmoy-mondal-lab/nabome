@@ -30,6 +30,8 @@ export async function handleCartGet(
   try {
     const userId = context.userId;
     const guestId = request.headers.get('x-guest-id') || null;
+    const url = new URL(request.url);
+    const couponCode = url.searchParams.get('couponCode')?.trim() ?? null;
 
     if (!userId && !guestId) {
       return errorJson(
@@ -43,8 +45,18 @@ export async function handleCartGet(
       : await CartService.getGuestCart(guestId || '');
 
     const totals = userId
-      ? await CartService.calculateCartTotals(userId, null)
-      : await CartService.calculateCartTotals(null, guestId || '');
+      ? await CartService.calculateCartTotals(
+          userId,
+          null,
+          undefined,
+          couponCode,
+        )
+      : await CartService.calculateCartTotals(
+          null,
+          guestId || '',
+          undefined,
+          couponCode,
+        );
 
     return okJson(
       {

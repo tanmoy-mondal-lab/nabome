@@ -169,12 +169,13 @@ Low-medium risk, high customer/shop value, no new infra, fits free-first.
 - Complexity: MEDIUM (DB table vs KV decision, audit, scope).
 - Status: COMPLETED — AppSetting table, DB source of truth, survives restart, audit + validation.
 
-### 3) D/E/F — Commerce Rules Engine (phased: coupon wiring + keep inline tax/shipping) — HIGH / MEDIUM
+### 3) D/E/F — Commerce Rules Engine (phased: coupon wiring + keep inline tax/shipping) — HIGH / MEDIUM — COUPON WIRING COMPLETED
 
 - Why: revenue + promotions; Coupon model unused today; wiring it is small but unlocks discount strategy.
 - Users: Shop owner, Customer, Finance.
 - Dependencies: J (rate source).
 - Complexity: MEDIUM (see phased V1.5).
+- Status: Coupon wiring COMPLETED — shopId, normalization, server discount, atomic usage.
 
 ### 4) B — Background Jobs (lightweight: Cron for reservation expiry + in-memory DLQ log) — HIGH / MEDIUM
 
@@ -446,16 +447,16 @@ All Phase 1 fits `existing infra + open source + serverless` on Cloudflare/Neon/
 - [x] `Order.commissionSnapshot` still frozen at order time — no retroactive apply
 - [x] Rate resolution covered (defaults + validation 0–50 commission, 0–100 tax)
 
-### D/E/F — Commerce Rules Engine (Phase-1 coupon wiring)
+### D/E/F — Commerce Rules Engine (Phase-1 coupon wiring) — COMPLETED
 
-- [ ] Server-side `calculateDiscountTotal` uses `Coupon` (percentage/fixed/free-shipping)
-- [ ] Validation: `isActive`, `validFrom/Until`, `minOrderAmount`, `maxUses>usedCount`, `maxDiscount` cap
-- [ ] Product/category/shop restriction if `Coupon` extended (V1.5: code + type + value only)
-- [ ] `CheckoutSession.couponCode` → `Order.couponCode` persisted; `discountTotal` on `Order`
-- [ ] Stacking: single coupon V1 (no stacking), cap 50% already in `CartService`
-- [ ] Refund compatibility: refund prorated if discount applied
-- [ ] Shop isolation: coupon usable only if applicable to shop
-- [ ] Tests: coupon matrix + isolation
+- [x] Server-side `calculateDiscountTotal` uses `Coupon` (percentage/fixed/free-shipping)
+- [x] Validation: `isActive`, `validFrom/Until`, `minOrderAmount`, `maxUses>usedCount`, `maxDiscount` cap
+- [x] Product/category/shop restriction if `Coupon` extended (V1.5: code + type + value only — shopId implemented)
+- [x] `CheckoutSession.couponCode` → `Order.couponCode` persisted; `discountTotal` on `Order`
+- [x] Stacking: single coupon V1 (no stacking), cap 50% already in `CartService`
+- [x] Refund compatibility: refund prorated if discount applied (finance grandTotal)
+- [x] Shop isolation: coupon usable only if applicable to shop (shopId check)
+- [x] Tests: coupon matrix + isolation (normalize, concurrency via updateMany atomic)
 
 Full D/E/F (V2) adds: stacking rules, customer limits, tax-inclusive vs exclusive + tax classes + exemptions, shipping zones + carrier integration.
 
@@ -503,9 +504,10 @@ Explicit order — not P2/P3 label order — justified by value, risk, and depen
     Risk LOW, enables Commerce.
     Status: COMPLETED — AppSetting persistent, 81a1355 → current.
 
-03. D — Promotion Engine (coupon wiring slice)
+03. D — Promotion Engine (coupon wiring slice) — COMPLETED
     Why third: monetizable slice of Commerce; Coupon model exists; thin vertical slice avoids big-bang engine; depends on J for rate source clarity.
     Risk LOW, depends on J.
+    Status: COMPLETED — 0004_coupon_shop, CartService + validate endpoint.
 
 04. B — Background Jobs (Cron sweeper for StockReservation expiry)
     Why fourth: correctness gap (15-min reservation has no sweeper today); Cron is free and isolated; can run in parallel with 03.

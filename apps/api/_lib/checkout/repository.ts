@@ -593,6 +593,7 @@ export class CheckoutRepository {
       isActive: coupon.isActive,
       applicableProducts: null,
       applicableCollections: null,
+      shopId: coupon.shopId ?? null,
       createdAt: coupon.createdAt,
       updatedAt: coupon.updatedAt,
     };

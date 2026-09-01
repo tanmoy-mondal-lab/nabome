@@ -116,10 +116,70 @@ export class CartService {
   /**
    * Calculate cart totals with advanced pricing rules
    */
+  static normalizeCouponCode(code: string): string {
+    return code.trim().toUpperCase();
+  }
+
+  static async calculateCouponDiscount(
+    couponCode: string | null | undefined,
+    subtotal: number,
+    items: any[],
+  ): Promise<number> {
+    if (!couponCode) return 0;
+    const code = this.normalizeCouponCode(couponCode);
+    if (!code) return 0;
+    try {
+      const { CheckoutRepository } = await import('../checkout/repository.ts');
+      const coupon = await CheckoutRepository.findCouponByCode(code as any);
+      if (!coupon || !coupon.isActive) return 0;
+      const now = new Date();
+      if (coupon.validFrom && new Date(coupon.validFrom) > now) return 0;
+      if (coupon.validUntil && new Date(coupon.validUntil) < now) return 0;
+      if (coupon.usageLimit && coupon.usageCount >= coupon.usageLimit) return 0;
+      if (coupon.minOrderValue && subtotal < coupon.minOrderValue) return 0;
+      if ((coupon as any).shopId) {
+        try {
+          const productIds = [
+            ...new Set(items.map((i: any) => i.productId).filter(Boolean)),
+          ];
+          if (productIds.length > 0) {
+            const { getPrisma } = await import('../prisma.ts');
+            const prisma = getPrisma() as any;
+            const products = await prisma.product.findMany({
+              where: { id: { in: productIds } },
+              select: { shopId: true },
+            });
+            const shopSet = new Set(products.map((p: any) => p.shopId));
+            if (shopSet.size !== 1 || !shopSet.has((coupon as any).shopId))
+              return 0;
+          }
+        } catch {}
+      }
+      const subtotalPaise = Math.round(subtotal * 100);
+      let discountPaise = 0;
+      if (coupon.discountType === 'percentage')
+        discountPaise = Math.round(
+          subtotalPaise * (coupon.discountValue / 100),
+        );
+      else if (coupon.discountType === 'fixed')
+        discountPaise = Math.round(coupon.discountValue * 100);
+      else if (coupon.discountType === 'free_shipping') discountPaise = 0;
+      if (coupon.maxDiscountAmount) {
+        const maxPaise = Math.round(coupon.maxDiscountAmount * 100);
+        if (discountPaise > maxPaise) discountPaise = maxPaise;
+      }
+      if (discountPaise > subtotalPaise) discountPaise = subtotalPaise;
+      return discountPaise / 100;
+    } catch {
+      return 0;
+    }
+  }
+
   static async calculateCartTotals(
     userId: string | null,
     guestId: string | null,
     location?: string,
+    couponCode?: string | null,
   ): Promise<CartTotals> {
     const items = userId
       ? await CartRepository.findByUserId(userId)
@@ -129,12 +189,18 @@ export class CartService {
       return sum + Number(item.variant.price) * item.quantity;
     }, 0);
 
-    // Apply advanced pricing rules
-    const discountTotal = await this.applyPricingRules(
+    const couponDiscount = await this.calculateCouponDiscount(
+      couponCode ?? null,
+      itemsSubtotal,
+      items,
+    );
+    const ruleDiscount = await this.applyPricingRules(
       items,
       itemsSubtotal,
       userId,
     );
+    const rawDiscount = Math.min(couponDiscount + ruleDiscount, itemsSubtotal);
+    const discountTotal = Math.min(rawDiscount, itemsSubtotal * 0.5);
     const taxTotal = await this.calculateTax(
       itemsSubtotal - discountTotal,
       location,
@@ -145,7 +211,10 @@ export class CartService {
       itemsSubtotal - discountTotal,
       location,
     );
-    const grandTotal = itemsSubtotal - discountTotal + taxTotal + shippingTotal;
+    const grandTotal = Math.max(
+      0,
+      itemsSubtotal - discountTotal + taxTotal + shippingTotal,
+    );
 
     return {
       itemsSubtotal,

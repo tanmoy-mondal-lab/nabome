@@ -588,9 +588,16 @@ export async function handleCouponApply(
       );
     }
 
+    const normalized =
+      typeof code === 'string' ? code.trim().toUpperCase() : '';
+    if (!normalized)
+      return errorJson(
+        ApiError.validation('code is required'),
+        context.requestId,
+      );
     const result = await CouponService.applyCoupon(
       checkoutSessionId,
-      code as string,
+      normalized,
     );
 
     return okJson(result, context.requestId);
@@ -598,6 +605,44 @@ export async function handleCouponApply(
     if (error instanceof Error) {
       return errorJson(ApiError.validation(error.message), context.requestId);
     }
+    return errorJson(ApiError.validation('Invalid request'), context.requestId);
+  }
+}
+
+/**
+ * POST /api/v1/coupons/validate — Validate coupon without applying (cart preview)
+ */
+export async function handleCouponValidate(
+  request: Request,
+  context: RequestContext,
+  _params: Record<string, string>,
+): Promise<Response> {
+  try {
+    const userId = context.userId;
+    const guestId = request.headers.get('x-guest-id') || null;
+    if (!userId && !guestId)
+      return errorJson(
+        ApiError.unauthorized('Authentication required'),
+        context.requestId,
+      );
+    const body = (await request.json()) as Record<string, unknown>;
+    const rawCode = body.code as string | undefined;
+    const cartId = (body.cartId as string | undefined) ?? 'cart';
+    if (!rawCode || typeof rawCode !== 'string' || !rawCode.trim())
+      return errorJson(
+        ApiError.validation('code is required'),
+        context.requestId,
+      );
+    const code = rawCode.trim().toUpperCase();
+    const result = await CouponService.validateCoupon({
+      code,
+      cartId,
+      userId: userId ?? undefined,
+    });
+    return okJson(result, context.requestId);
+  } catch (error) {
+    if (error instanceof Error)
+      return errorJson(ApiError.validation(error.message), context.requestId);
     return errorJson(ApiError.validation('Invalid request'), context.requestId);
   }
 }
@@ -813,6 +858,7 @@ register('POST', 'checkout/addresses/{id}/default', handleAddressSetDefault);
 // Coupon routes
 register('POST', 'checkout/coupons/apply', handleCouponApply);
 register('POST', 'checkout/coupons/remove', handleCouponRemove);
+register('POST', 'coupons/validate', handleCouponValidate);
 
 // Tax routes
 register('GET', 'checkout/tax/calculate', handleTaxCalculate);
