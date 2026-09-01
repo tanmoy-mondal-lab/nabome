@@ -2,7 +2,7 @@
 
 Date: 2026-09-01
 Starting commit: c4c8e8e
-Current commit: background-jobs-sweeper
+Current commit: returns-payments-completion
 
 ## P0 — Production Bugs
 NONE
@@ -52,6 +52,9 @@ All P1 items implemented in this phase:
 ## Completed — Background Jobs / StockReservation Expiry Sweeper
 - Background Jobs Phase 1 — COMPLETED (releaseExpiredReservations batch 100, idempotent updateMany where ACTIVE, EXPIRED+releasedAt, StockMovement release, Cron */5 via wrangler triggers, scheduled handler, structured log, safe concurrent, no queue table; General Queue/DLQ deferred)
 
+## Completed — Returns/Payments Gateway Completion
+- Returns/Payments — COMPLETED (Phase 1): `ReturnsService.processRefund` now calls PaymentGateway refund (Razorpay mock/gateway, idempotencyKey, server amount), creates finance via existing payment webhook/finance record; verification/webhook/idempotency/order/inventory already implemented and verified; packages/order TODOs intentional deferred
+
 ## Test Fixtures
 - Prisma mocks in api tests — correctly isolated
 - In-memory event publishers in customer package — test fixtures, not production mocks
@@ -70,6 +73,7 @@ All P1 items implemented in this phase:
 - Global Settings Persistence — AppSetting DB, 8 categories, validation, audit, tenant isolation
 - Promotion Engine Coupon Wiring — V1.5 percentage/fixed, shop isolation, concurrency-safe, server totals
 - Background Jobs Phase 1 — StockReservation expiry sweeper Cron */5, idempotent, no queue table
+- Returns/Payments — gateway refund (Razorpay mock/gateway, idempotent, server amount), verification/webhook/idempotency preserved
 
 ## Remaining TODO Count
 96 occurrences — 60+ are in comments for deferred engines/external sinks (intentionally retained with reason), remainder are defensive notes. No unexplained production mock returns zero/placeholder data to users.

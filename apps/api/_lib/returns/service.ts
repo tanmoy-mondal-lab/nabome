@@ -413,22 +413,53 @@ export class ReturnsService {
       },
     });
 
-    // TODO: Integrate with actual payment gateway (Razorpay) to process refund
-    // For now, we'll mark it as completed
-    await prisma.refund.update({
-      where: { id: refund.id },
-      data: {
-        status: 'completed',
-        processedAt: new Date(),
-      },
-    });
-
-    await prisma.returnRefund.update({
-      where: { id: refund.id },
-      data: {
-        status: 'completed',
-      },
-    });
+    try {
+      const { resolveGateway, buildGatewayCredentials } =
+        await import('../payment/gateway.ts');
+      const { getPaymentProvider } = await import('../payment/config.ts');
+      const env: any = (globalThis as any).NABOME_ENV ?? process.env;
+      const provider = getPaymentProvider(env as any);
+      const gateway = resolveGateway({
+        ...env,
+        PAYMENT_PROVIDER: provider,
+      } as any);
+      const amountPaise = Math.round(
+        Number(returnRequest.totalRefundAmount) * 100,
+      );
+      const gatewayPaymentId =
+        (payment as any).gatewayReference ??
+        (payment as any).razorpayPaymentId ??
+        payment.id;
+      const result = await gateway.refund({
+        gatewayPaymentId,
+        amountPaise,
+        idempotencyKey: `return-refund:${refund.id}`,
+        reason: `Return ${returnId}`,
+      });
+      await prisma.refund.update({
+        where: { id: refund.id },
+        data: {
+          status: 'completed' as any,
+          gatewayReference: result.gatewayReference,
+          processedAt: new Date(),
+        },
+      });
+      await prisma.returnRefund.updateMany({
+        where: { refundId: refund.id },
+        data: { status: 'completed' as any } as any,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Gateway refund failed';
+      await prisma.refund.update({
+        where: { id: refund.id },
+        data: { status: 'failed' as any, failureReason: msg } as any,
+      });
+      await prisma.returnRefund.updateMany({
+        where: { refundId: refund.id },
+        data: { status: 'failed' as any } as any,
+      });
+      throw ApiError.internal(`Refund gateway failed: ${msg}`);
+    }
 
     // Update order status if this is a full refund
     const orderTotal = Number(returnRequest.order.grandTotal);

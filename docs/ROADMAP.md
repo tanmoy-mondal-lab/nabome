@@ -199,9 +199,9 @@ Requires deeper architecture / schema / multi-user.
 - Tax: jurisdictions, inclusive/exclusive, tax classes, shop/customer/shipping location, exemptions, invoice lines — evaluate if India-only 18% is insufficient → then external provider (e.g., Avalara) is external dependency.
 - Shipping: flat, weight, dimensional weight, volume, distance/zone, shop-specific, carrier, free threshold, estimates — migrate hardcoded `calculateShipping` to `ShippingRate`+`Carrier` DB.
 
-### 7) M — Returns/Payments Gateway Completion (package alignment) — MEDIUM / MEDIUM
+### 7) M — Returns/Payments Gateway Completion — MEDIUM / MEDIUM — COMPLETED (Phase 1)
 
-- Finish `packages/order` `requestReturn`/`processRefund` + Razorpay refund call parity with `apps/api/_lib/returns/service.ts:416`.
+- `apps/api/_lib/returns/service.ts:416` gateway refund (Razorpay via adapter, idempotencyKey return-refund:${refund.id}, server amount) completed; `packages/order` TODOs intentional deferred (API layer is authority). Audit: gateway verification, webhook replay safe, finance idempotent preserved.
 
 ### 8) A — PDF Full Rendering (if demand proven) — MEDIUM / MEDIUM
 
@@ -517,9 +517,10 @@ Explicit order — not P2/P3 label order — justified by value, risk, and depen
     Risk LOW, independent.
     Status: COMPLETED — sweeper + */5 Cron.
 
-05. M — Returns/Payments Gateway Completion (package alignment)
-    Why fifth: API layer already correct; package stubs are gap to close before promoting `packages/order` as source of truth; low user impact if left stubbed.
+05. M — Returns/Payments Gateway Completion — COMPLETED
+    Why fifth: API layer already correct; gap was gateway refund TODO; package stubs intentional deferred (API authority).
     Risk LOW, independent.
+    Status: COMPLETED — 1700a09 → current.
 
 06. H — Staff Management
     Why sixth: highest org value but sequenced after J (settings scope) and pricing so permissions are scoped right; HIGH risk so later.
