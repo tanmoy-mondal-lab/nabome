@@ -304,15 +304,13 @@ export class AnalyticsService {
         take: 20,
       }),
     ]);
-    const topSellingProducts = products
-      .slice(0, 10)
-      .map((p) => ({
-        productId: p.id,
-        productName: p.name,
-        sales: p.totalSold,
-        revenue: p.totalSold * toNum(p.basePrice),
-        views: 0,
-      }));
+    const topSellingProducts = products.slice(0, 10).map((p) => ({
+      productId: p.id,
+      productName: p.name,
+      sales: p.totalSold,
+      revenue: p.totalSold * toNum(p.basePrice),
+      views: 0,
+    }));
     const lowPerformingProducts = [...products]
       .sort((a, b) => a.totalSold - b.totalSold)
       .slice(0, 10)

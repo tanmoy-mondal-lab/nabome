@@ -1,4 +1,5 @@
 import { getPrisma } from '../prisma.ts';
+
 import { CartEventEmitter } from './events';
 import type { CartAnalytics, CartAbandonmentMetrics } from './types';
 

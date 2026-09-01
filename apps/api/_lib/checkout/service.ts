@@ -16,13 +16,14 @@
  * - Type transformation from repository to domain types
  */
 
-import { CartRepository } from '../cart/repository';
 import { logAuditEvent, AuditEventType } from '../audit/audit-log.ts';
+import { CartRepository } from '../cart/repository';
+
 import { CouponService } from './coupon-service';
+import { CheckoutEventEmitter } from './events.ts';
 import { OrderSnapshotService } from './order-snapshot-service';
 import { CheckoutRepository } from './repository';
 import { TaxService } from './tax-service';
-import { CheckoutEventEmitter } from './events.ts';
 import type {
   CheckoutSession,
   CheckoutTotals,
