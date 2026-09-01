@@ -92,8 +92,17 @@ export class OrderService {
         });
       }
 
-      // TODO: Create timeline event after Prisma schema is regenerated
-      // await tx.timelineEvent.create({...});
+      await tx.timelineEvent.create({
+        data: {
+          orderId: order.id,
+          type: 'order_created',
+          description: `Order ${orderNumber} created`,
+          priority: 'normal',
+          customerVisible: true,
+          metadata: { orderNumber } as any,
+          occurredAt: new Date(),
+        },
+      });
 
       // Reserve inventory for order items (within transaction)
       await this.reserveInventoryInTransaction(tx, order.id, snapshot.items);
@@ -934,16 +943,29 @@ export class OrderService {
     return count;
   }
 
-  /**
-   * Get order timeline (placeholder)
-   */
-  static async getOrderTimeline(orderId: string): Promise<any> {
-    // TODO: Implement timeline retrieval from database
-    return {
-      orderId,
-      events: [],
-      totalEvents: 0,
-    };
+  static async getOrderTimeline(
+    orderId: string,
+    options?: {
+      limit?: number;
+      offset?: number;
+      customerVisibleOnly?: boolean;
+    },
+  ): Promise<any> {
+    const limit = Math.min(Math.max(options?.limit ?? 50, 1), 100);
+    const offset = Math.max(options?.offset ?? 0, 0);
+    const where: any = { orderId, isActive: true };
+    if (options?.customerVisibleOnly) where.customerVisible = true;
+    const [totalEvents, events] = await Promise.all([
+      prisma.timelineEvent.count({ where }),
+      prisma.timelineEvent.findMany({
+        where,
+        orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
+        take: limit,
+        skip: offset,
+      }),
+    ]);
+    const hasMore = offset + events.length < totalEvents;
+    return { orderId, events, totalEvents, limit, offset, hasMore };
   }
 
   /**
@@ -963,10 +985,8 @@ export class OrderService {
       throw new Error('Order not found');
     }
 
-    // Release inventory
     await this.releaseInventory(orderId, order.items);
 
-    // Update order status
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: {
@@ -975,12 +995,25 @@ export class OrderService {
       },
     });
 
+    try {
+      await prisma.timelineEvent.create({
+        data: {
+          orderId,
+          type: 'order_cancelled',
+          description: `Order cancelled: ${_reason}`,
+          priority: 'high',
+          customerVisible: true,
+          metadata: { reason: _reason } as any,
+          performedBy: _userId,
+          performedByType: 'customer',
+          occurredAt: new Date(),
+        },
+      });
+    } catch {}
+
     return updatedOrder;
   }
 
-  /**
-   * Add note to order
-   */
   static async addNote(
     orderId: string,
     note: string,
@@ -995,13 +1028,28 @@ export class OrderService {
       throw new Error('Order not found');
     }
 
-    // Update order notes (append)
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
       data: {
         notes: order.notes ? `${order.notes}\n${note}` : note,
       },
     });
+
+    try {
+      await prisma.timelineEvent.create({
+        data: {
+          orderId,
+          type: 'note_added',
+          description: 'Note added',
+          priority: 'low',
+          customerVisible: false,
+          metadata: { note } as any,
+          performedBy: _performedBy,
+          performedByType: _performedByType,
+          occurredAt: new Date(),
+        },
+      });
+    } catch {}
 
     return updatedOrder;
   }
@@ -1055,8 +1103,35 @@ export class OrderService {
     if (from === to) throw new Error(`Already in status: ${from}`);
     const updated = await prisma.order.update({
       where: { id: request.orderId },
-      data: { status: request.to },
+      data: { status: request.to, customerVisibleStatus: request.to as any },
     });
+    try {
+      const typeMap: Record<string, string> = {
+        confirmed: 'order_confirmed',
+        processing: 'order_processing',
+        shipped: 'order_shipped',
+        delivered: 'order_delivered',
+        cancelled: 'order_cancelled',
+        refunded: 'refund_completed',
+        returned: 'return_requested',
+      };
+      const t = typeMap[to] ?? 'status_updated';
+      await prisma.timelineEvent.create({
+        data: {
+          orderId: request.orderId,
+          type: t as any,
+          description:
+            `Status changed from ${from} to ${to}` +
+            (request.reason ? `: ${request.reason}` : ''),
+          priority: 'normal',
+          customerVisible: !['note_added', 'order_closed'].includes(t),
+          metadata: { from, to, reason: request.reason } as any,
+          performedBy: request.performedBy ?? null,
+          performedByType: request.performedByType ?? null,
+          occurredAt: new Date(),
+        },
+      });
+    } catch {}
     return { success: true, newStatus: request.to, order: updated };
   }
 

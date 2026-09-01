@@ -16,17 +16,30 @@ interface Order {
   notes?: string;
 }
 
+interface Timeline {
+  orderId: string;
+  events: any[];
+  totalEvents: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
 interface ShopOrderState {
   orders: Order[];
   processingQueue: Order[];
   packingQueue: Order[];
   fulfillmentQueue: Order[];
+  timeline: Timeline | null;
   isLoading: boolean;
   error: string | null;
 
-  // Actions
   fetchOrders: (options?: any) => Promise<void>;
   fetchOrder: (orderId: string) => Promise<Order | undefined>;
+  fetchTimeline: (
+    orderId: string,
+    options?: { limit?: number; offset?: number },
+  ) => Promise<void>;
   transitionOrder: (
     orderId: string,
     to: string,
@@ -47,6 +60,7 @@ export const useShopOrderStore = create<ShopOrderState>()(
       processingQueue: [],
       packingQueue: [],
       fulfillmentQueue: [],
+      timeline: null,
       isLoading: false,
       error: null,
 
@@ -101,6 +115,28 @@ export const useShopOrderStore = create<ShopOrderState>()(
           set({
             error:
               error instanceof Error ? error.message : 'Failed to fetch order',
+            isLoading: false,
+          });
+        }
+      },
+
+      fetchTimeline: async (orderId, options) => {
+        set({ isLoading: true, error: null });
+        try {
+          const params = new URLSearchParams();
+          if (options?.limit) params.append('limit', String(options.limit));
+          if (options?.offset) params.append('offset', String(options.offset));
+          const qs = params.toString() ? `?${params.toString()}` : '';
+          const data = await api.get<{ timeline: Timeline }>(
+            `/api/v1/shop/orders/${orderId}/timeline${qs}`,
+          );
+          set({ timeline: data.timeline, isLoading: false });
+        } catch (error) {
+          set({
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Failed to fetch timeline',
             isLoading: false,
           });
         }

@@ -272,7 +272,7 @@ export async function handleGetOrder(
 }
 
 /**
- * GET /api/v1/orders/{id}/timeline — Get order timeline
+ * GET /api/v1/orders/{id}/timeline — Get order timeline (customer: filtered)
  */
 export async function handleGetOrderTimeline(
   _request: Request,
@@ -290,24 +290,151 @@ export async function handleGetOrderTimeline(
       );
     }
 
+    const url = new URL(_request.url);
+    const limit = Math.min(
+      Math.max(parseInt(url.searchParams.get('limit') || '50', 10) || 50, 1),
+      100,
+    );
+    const offset = Math.max(
+      parseInt(url.searchParams.get('offset') || '0', 10) || 0,
+      0,
+    );
+
     const order = await OrderService.getOrderById(id || '');
 
     if (!order) {
       return errorJson(ApiError.notFound('Order not found'), context.requestId);
     }
 
-    // Verify customer owns this order
-    if (order.userId !== userId) {
+    if (order.userId !== userId && context.userRole !== 'admin') {
       return errorJson(ApiError.forbidden('Access denied'), context.requestId);
     }
 
-    const timeline = await OrderService.getOrderTimeline(id || '');
+    const isCustomer =
+      context.userRole === 'customer' ||
+      (!context.userRole && order.userId === userId);
+    const timeline = await OrderService.getOrderTimeline(id || '', {
+      limit,
+      offset,
+      customerVisibleOnly: isCustomer,
+    });
 
     return okJson({ timeline }, context.requestId);
   } catch (error) {
     if (error instanceof Error) {
       return errorJson(ApiError.internal(error.message), context.requestId);
     }
+    return errorJson(
+      ApiError.internal('Failed to retrieve order timeline'),
+      context.requestId,
+    );
+  }
+}
+
+/**
+ * GET /api/v1/shop/orders/{id}/timeline — Shop timeline (all events)
+ */
+export async function handleGetShopOrderTimeline(
+  _request: Request,
+  context: RequestContext,
+  params: Record<string, string>,
+): Promise<Response> {
+  try {
+    const userId = context.userId;
+    const userRole = context.userRole;
+    const { id } = params;
+
+    if (!userId || userRole !== 'shop_owner') {
+      return errorJson(
+        ApiError.forbidden('Shop owner access required'),
+        context.requestId,
+      );
+    }
+
+    const url = new URL(_request.url);
+    const limit = Math.min(
+      Math.max(parseInt(url.searchParams.get('limit') || '50', 10) || 50, 1),
+      100,
+    );
+    const offset = Math.max(
+      parseInt(url.searchParams.get('offset') || '0', 10) || 0,
+      0,
+    );
+
+    const order = await OrderService.getOrderById(id || '');
+    if (!order)
+      return errorJson(ApiError.notFound('Order not found'), context.requestId);
+
+    const prisma = (await import('../../_lib/prisma.ts')).getPrisma() as any;
+    const shop = await prisma.shop.findUnique({
+      where: { ownerId: userId, isActive: true },
+    });
+    if (!shop || order.shopId !== shop.id) {
+      return errorJson(
+        ApiError.forbidden('You do not have access to this order'),
+        context.requestId,
+      );
+    }
+
+    const timeline = await OrderService.getOrderTimeline(id || '', {
+      limit,
+      offset,
+      customerVisibleOnly: false,
+    });
+    return okJson({ timeline }, context.requestId);
+  } catch (error) {
+    if (error instanceof Error)
+      return errorJson(ApiError.internal(error.message), context.requestId);
+    return errorJson(
+      ApiError.internal('Failed to retrieve order timeline'),
+      context.requestId,
+    );
+  }
+}
+
+/**
+ * GET /api/v1/admin/orders/{id}/timeline — Admin timeline (all events)
+ */
+export async function handleGetAdminOrderTimeline(
+  _request: Request,
+  context: RequestContext,
+  params: Record<string, string>,
+): Promise<Response> {
+  try {
+    const userId = context.userId;
+    const userRole = context.userRole;
+    const { id } = params;
+
+    if (!userId || userRole !== 'admin') {
+      return errorJson(
+        ApiError.forbidden('Admin access required'),
+        context.requestId,
+      );
+    }
+
+    const url = new URL(_request.url);
+    const limit = Math.min(
+      Math.max(parseInt(url.searchParams.get('limit') || '50', 10) || 50, 1),
+      100,
+    );
+    const offset = Math.max(
+      parseInt(url.searchParams.get('offset') || '0', 10) || 0,
+      0,
+    );
+
+    const order = await OrderService.getOrderById(id || '');
+    if (!order)
+      return errorJson(ApiError.notFound('Order not found'), context.requestId);
+
+    const timeline = await OrderService.getOrderTimeline(id || '', {
+      limit,
+      offset,
+      customerVisibleOnly: false,
+    });
+    return okJson({ timeline }, context.requestId);
+  } catch (error) {
+    if (error instanceof Error)
+      return errorJson(ApiError.internal(error.message), context.requestId);
     return errorJson(
       ApiError.internal('Failed to retrieve order timeline'),
       context.requestId,
@@ -1034,6 +1161,8 @@ register('POST', 'orders/create-from-checkout', handleCreateOrderFromCheckout);
 register('GET', 'orders', handleGetCustomerOrders);
 register('GET', 'orders/{id}', handleGetOrder);
 register('GET', 'orders/{id}/timeline', handleGetOrderTimeline);
+register('GET', 'shop/orders/{id}/timeline', handleGetShopOrderTimeline);
+register('GET', 'admin/orders/{id}/timeline', handleGetAdminOrderTimeline);
 register('POST', 'orders/{id}/cancel', handleCancelOrder);
 register('POST', 'orders/{id}/return', handleRequestReturn);
 

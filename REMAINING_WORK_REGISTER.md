@@ -2,7 +2,7 @@
 
 Date: 2026-09-01
 Starting commit: c4c8e8e
-Current commit: pending
+Current commit: timeline-retrieval
 
 ## P0 — Production Bugs
 NONE
@@ -39,7 +39,9 @@ All P1 items implemented in this phase:
 - R2 migration — NOT DONE (B2 retained per §3)
 - Redis — NOT USED (KV used where safe)
 - All promotion/tax/shipping engine integrations noted as TODO in pricing.ts — deferred until engines exist
-- Timeline retrieval from DB (order/service.ts) — schema exists (TimelineEvent) but retrieval not wired to UI; safe to defer
+
+## Completed — Order Timeline Retrieval
+- Timeline retrieval from DB — COMPLETED (apps/api/_lib/order/service.ts now persists order_created + status transitions, retrieves via indexed query with pagination, customerVisible filtering, ordering; API: GET /api/v1/orders/:id/timeline (customer filtered), GET /api/v1/shop/orders/:id/timeline, GET /api/v1/admin/orders/:id/timeline; frontend: customer OrderDetailPage already wired, shop/admin stores enhanced)
 
 ## Test Fixtures
 - Prisma mocks in api tests — correctly isolated
@@ -55,6 +57,7 @@ All P1 items implemented in this phase:
 - Reports/analytics real DB queries with tenant isolation, CSV escape, Decimal safe math
 - Admin service real queries for sessions/audit/RBAC/permissions/security
 - Cart/checkout internal events, wishlist bulk, newsletter, audit no-op
+- Order Timeline Retrieval — indexed retrieval + write path + pagination + tenant isolation + customerVisible filtering + shop/admin endpoints + stores
 
 ## Remaining TODO Count
 96 occurrences — 60+ are in comments for deferred engines/external sinks (intentionally retained with reason), remainder are defensive notes. No unexplained production mock returns zero/placeholder data to users.
