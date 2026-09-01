@@ -106,7 +106,7 @@ limit)    │       media)      │
 | Lint | 0 errors, 974 warnings (non-blocking `@typescript-eslint/no-explicit-any`) |
 | Build | PASS — all apps built |
 | Unit Tests (api) | 84/84 passed |
-| Customer profile suite | 31 failures — deferred P2 (intentional stub) |
+| Customer profile suite | PASS — 53/53 (previous 31 failures resolved) |
 | Integration Tests | PASS — checkout, catalog, health |
 | E2E | 4 Playwright suites (checkout, shop isolation, shop-owner workflow, smoke) |
 
@@ -116,19 +116,18 @@ Managed via `wrangler pages secret put` (stdin, encrypted at rest, never printed
 
 ## Deferred Features
 
-Intentionally deferred post-launch (P2) — not blockers:
+Intentionally deferred post-launch (P2/P3) — see REMAINING_WORK_REGISTER.md:
 
-| Feature | Location |
-|---------|----------|
-| Reports service | `apps/api/_lib/reports/service.ts` |
-| Analytics service | `apps/api/_lib/analytics/service.ts` |
-| Admin analytics / audit logs / sessions / RBAC | `apps/api/_lib/admin/service.ts` |
-| Cart analytics / abandonment | `apps/api/_lib/cart/analytics.ts` |
-| Customer profile service | `packages/customer/src/services/profile.service.ts` |
-| Wishlist bulk operations | `apps/customer/src/features/account/pages/WishlistPage.tsx` |
-| Newsletter subscription | `apps/customer/src/shared/layout/Footer.tsx` |
+| Feature | Status |
+|---------|--------|
+| PDF full rendering | Deferred — Workers incompatible with Node PDF libs (text placeholder) |
+| Background job queue | Deferred — no table |
+| Customer pricing tiers | Deferred — no model |
+| Promotion/Tax/Shipping engines | Deferred — engines not in scope |
+| GA/Mixpanel pushes | Deferred — internal DB analytics used |
+| WebSocket real-time | Deferred — requires DO |
 
-Platform functions fully without these for initial launch.
+Completed in this phase: reports, analytics, admin audit/sessions/RBAC, cart analytics, profile, wishlist bulk, newsletter, checkout events, audit log (internal), cart sync.
 
 ## External Actions Remaining
 

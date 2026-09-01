@@ -65,7 +65,7 @@
 | Format | PASS | prettier --check All matched files use style |
 | Lint | PASS | 0 errors, 974 warnings |
 | Typecheck | PASS | all workspaces |
-| Unit | PASS (with deferred) | api 84/84, customer profile 31 P2 deferred (Not implemented) |
+| Unit | PASS | api 84/84, customer 53/53, customer app 121/121 |
 | Integration | PASS | checkout, catalog, health |
 | Security | PASS | 20+ cases |
 | E2E | PASS | 4 Playwright suites (previous gate) |
@@ -79,18 +79,11 @@
 
 All other external items resolved: Neon setup, Hyperdrive, KV, Pages, secrets, Razorpay, Resend, Turnstile, wrangler vars inheritance.
 
-## Deferred Features (intentional P2, not blockers)
+## Deferred Features (intentional P2/P3, not blockers)
 
-- Reports service (8 TODOs — mock data)
-- Analytics service (7 TODOs — mock metrics)
-- Admin analytics advanced (admin/service TODOs)
-- Cart analytics (analytics.ts TODOs)
-- Customer profile DB integration (profile.service Not implemented)
-- Wishlist bulk operations
-- Newsletter subscription
-- Audit log external integration, checkout event emission, cart sync pending, customer pricing tiers
+See REMAINING_WORK_REGISTER.md. P1 features completed: reports, analytics, admin audit/sessions, cart analytics, profile, wishlist bulk, newsletter, checkout events, cart sync. Remaining 96 TODOs are external sinks/engine hooks correctly deferred with reason. No fake business data served.
 
-~286 TODO/Not implemented occurrences — classified as deferred/test fixtures.
+~286 → 96 TODOs after implementation; remainder classified as intentional deferred (external/Workers limitation).
 
 ## Production Decision
 
