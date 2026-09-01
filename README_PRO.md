@@ -1,20 +1,20 @@
 # NABOME Production Status — DEPLOYED AND VERIFIED
 
-**Deployment Date:** 2026-09-01 16:22Z
-**Commit:** c4c8e8e
+**Deployment Date:** 2026-09-01 22:22Z
+**Commit:** f46a780
 **Branch:** production
-**Decision:** PRODUCTION VERIFIED
+**Decision:** PRODUCTION VERIFIED WITH DEFERRED FEATURES
 **Reports:** PRODUCTION_DEPLOYMENT_REPORT.md, FINAL_INFRASTRUCTURE_VERIFICATION_REPORT.md
 
-## Production Deployment Status — 2026-09-01 16:22Z
+## Production Deployment Status — 2026-09-01 22:22Z
 
 | Item | Status |
 |------|--------|
 | Production URL (frontend) | https://nabome.pages.dev / https://nabome.online |
 | Production API | https://nabome-api.pages.dev — env production — ✅ |
 | Staging API | https://nabome-api-staging.pages.dev — env staging — ✅ |
-| Production Commit | c4c8e8e |
-| Deployment Date | 2026-09-01T16:22Z |
+| Production Commit | f46a780 |
+| Deployment Date | 2026-09-01T22:22Z |
 | Infrastructure | Neon + Hyperdrive v3 (pooled AP) + KV + B2 + Pages — READY |
 | Secrets | 15+ on nabome-api/nabome/staging — READY |
 | Database | 2 migrations applied, PITR via Neon |
@@ -37,9 +37,9 @@ Commerce OS monorepo — storefront, shop dashboard, admin console, and API unif
 
 | Field | Value |
 |-------|-------|
-| Commit | c4c8e8e |
+| Commit | f46a780 |
 | Branch | production |
-| Date | 2026-09-01T16:22Z |
+| Date | 2026-09-01T22:22Z |
 | Frontend | https://nabome.pages.dev / https://nabome.online |
 | Production API | https://nabome-api.pages.dev (env: production) |
 | Staging API | https://nabome-api-staging.pages.dev (env: staging) |

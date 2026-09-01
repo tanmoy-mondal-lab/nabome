@@ -1,17 +1,17 @@
 # NABOME FINAL PROJECT STATUS
 
-**Date:** 2026-09-01T16:22Z
+**Date:** 2026-09-01T22:22Z
 **Branch:** production
-**Commit:** c4c8e8e chore: finalize production infrastructure configuration
+**Commit:** f46a780 style: prettier import order (features: c89585d + 97025be)
 
 ## Production
 
 | Item | Status |
 |------|--------|
-| Status | PRODUCTION VERIFIED |
-| Frontend | https://nabome.pages.dev / https://nabome.online — 200 — a4dcf160 |
-| API | https://nabome-api.pages.dev — 200 — health env production — df3bc1f2 |
-| Commit | c4c8e8e |
+| Status | PRODUCTION VERIFIED WITH DEFERRED FEATURES |
+| Frontend | https://nabome.pages.dev / https://nabome.online — 200 |
+| API | https://nabome-api.pages.dev — 200 — health env production |
+| Commit | f46a780 |
 | Branch | production |
 
 ## Staging
@@ -19,7 +19,8 @@
 | Item | Status |
 |------|--------|
 | Status | VERIFIED |
-| API | https://nabome-api-staging.pages.dev — 200 — health env staging — fc60be7b |
+| API | https://nabome-api-staging.pages.dev — 200 — health env staging |
+| Commit | f46a780 (same as production) |
 
 ## Infrastructure
 
@@ -115,4 +116,4 @@ Monitoring → Cloudflare/application logs
 Sentry → NOT USED
 ```
 
-Verified 2026-09-01T16:22Z — staging env staging, production env production, no Sentry, no R2, no stale blockers.
+Verified 2026-09-01T22:22Z — staging f46a780 env staging, production f46a780 env production, no Sentry, no R2, no stale blockers. Feature-completion (profile/reports/analytics/admin/cart/wishlist/newsletter) deployed via git push origin/production → Cloudflare Pages auto-deploy.

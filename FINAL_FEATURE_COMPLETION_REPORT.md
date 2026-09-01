@@ -1,8 +1,8 @@
 # NABOME FINAL FEATURE COMPLETION REPORT
 
-Date: 2026-09-01T22:20Z
+Date: 2026-09-01T22:22Z
 Starting commit: c4c8e8e
-Final commit: pending
+Final commit: f46a780
 Branch: production
 
 ## Completed
@@ -57,13 +57,13 @@ E2E: PASS (4 suites)
 Build: PASS (customer 288kB, api bundled)
 
 ## Staging
-Not redeployed in this phase (no infra change; code verified via typecheck/build/unit). Staging deploy per §37 if code changes promoted.
+DEPLOYED f46a780 via Cloudflare Pages auto-deploy (git push origin/production → preview/production). Health staging=200 env=staging. Feature verification PASS.
 
 ## Production
-VERIFIED at c4c8e8e baseline preserved; new features are additive and backwards-compatible.
+VERIFIED f46a780 deployed 2026-09-01T22:22Z via git push origin/production → Cloudflare Pages. Health production=200 env=production, frontend=200. Same commit as staging.
 
 ## Remaining Work
 See REMAINING_WORK_REGISTER.md — no P0/P1 remaining; P2/P3 intentionally deferred with reasons.
 
 ## Final Decision
-PRODUCTION VERIFIED WITH DEFERRED FEATURES
+PRODUCTION VERIFIED WITH DEFERRED FEATURES — feature-completion commit f46a780 live on both staging and production.
