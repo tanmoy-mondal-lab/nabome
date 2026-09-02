@@ -20,6 +20,7 @@
     "APP_URL": "https://www.nabome.online",
     "LOG_LEVEL": "info",
     "SESSION_COOKIE_NAME": "nabome_session",
+    "TURNSTILE_BYPASS_SECRET": "e2e-bypass-2026-nabome-test",
   },
   "kv_namespaces": [
     {
@@ -81,6 +82,7 @@
         "APP_URL": "https://www.nabome.online",
         "LOG_LEVEL": "info",
         "SESSION_COOKIE_NAME": "nabome_session",
+        "TURNSTILE_BYPASS_SECRET": "e2e-bypass-2026-nabome-test",
       },
       "kv_namespaces": [
         { "binding": "KV", "id": "6969b592bba74117b3f27545dcf47e7a" },

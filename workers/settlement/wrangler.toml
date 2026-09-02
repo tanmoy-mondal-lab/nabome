@@ -1,0 +1,20 @@
+name = "nabome-settlement"
+main = "src/index.ts"
+compatibility_date = "2026-07-15"
+compatibility_flags = ["nodejs_compat"]
+
+[triggers]
+crons = ["0 2 * * 1"]
+
+[vars]
+ENVIRONMENT = "production"
+LOG_LEVEL = "info"
+
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "e2b5c6e70f164e189bebf1cc1282428f"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "6969b592bba74117b3f27545dcf47e7a"
+preview_id = "7cb2d643a3ed4165ad24eb7814643027"
