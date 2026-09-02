@@ -28,11 +28,9 @@ async function handleScheduled(env: Env): Promise<{ processed: number; created: 
   const start = Date.now()
   let processed = 0, created = 0, errors = 0
   try {
-    const { createSettlement } = await import("../../../apps/api/_lib/finance/service.ts" as any).catch(() => ({ createSettlement: null }))
-    if (!createSettlement) {
-      console.log("[settlement] finance service not available in worker bundle, dry-run")
-      return { processed: 0, created: 0, errors: 0, timestamp: new Date().toISOString() }
-    }
+    const mod = await import("../../../apps/api/_lib/finance/service.ts" as any).catch((e) => { throw new Error(`finance service unavailable: ${e?.message}`) })
+    const createSettlement = (mod as any).createSettlement
+    if (!createSettlement) throw new Error("createSettlement not exported")
     const { getPrisma, initPrisma } = await import("../../../apps/api/_lib/prisma.ts" as any)
     const cs = (env as any).HYPERDRIVE?.connectionString ?? env.DATABASE_URL ?? ""
     if (cs) initPrisma(cs, { viaHyperdrive: Boolean((env as any).HYPERDRIVE?.connectionString) })
