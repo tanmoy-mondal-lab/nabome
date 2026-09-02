@@ -112,15 +112,14 @@ export class CartRepository {
     });
 
     if (existingItem) {
-      // Update quantity if item exists
       const newQuantity = Math.min(existingItem.quantity + quantity, 10);
-      return prisma.cartItem.update({
+      const updated = await prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: newQuantity },
+        data: { quantity: newQuantity, lineTotal: Number(existingItem.unitPrice) * newQuantity },
       });
+      return this.findItemById(updated.id) as Promise<any>;
     }
 
-    // Get variant and product
     const variant = await prisma.productVariant.findUnique({
       where: { id: variantId },
       select: { price: true, productId: true },
@@ -129,9 +128,11 @@ export class CartRepository {
     if (!variant) {
       throw new Error('Variant not found');
     }
+    if (variant.price == null) {
+      throw new Error('Variant price missing');
+    }
 
-    // Create new cart item
-    return prisma.cartItem.create({
+    const created = await prisma.cartItem.create({
       data: {
         userId,
         guestId,
@@ -142,6 +143,7 @@ export class CartRepository {
         lineTotal: Number(variant.price) * quantity,
       },
     });
+    return this.findItemById(created.id) as Promise<any>;
   }
 
   /**

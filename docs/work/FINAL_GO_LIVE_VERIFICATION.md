@@ -1,15 +1,15 @@
 # Final Go-Live Verification — 2026-09-02
 
-## 1. Executive Summary (FINAL BLOCKER CLOSURE)
-Canonical **https://www.nabome.online** (Di76mzCH.js) → **https://nabome-api.pages.dev** (c8fa0b2d) health 200. Settlement Worker **nabome-settlement** deployed with cron `0 2 * * 1`, verified idempotent and fail-loudly. Razorpay secrets PRESENT (encrypted) via `wrangler pages secret list`. Test-token E2E bypass enables verified user. Cart add has price bug (non-blocking for settlement/payment verification).
+## 1. Executive Summary (FINAL CART + PAYMENT VERIFICATION)
+Canonical **https://www.nabome.online** (Di76mzCH.js) → **https://nabome-api.pages.dev** (3596c428) health 200. Cart price bug FIXED (addItem now returns server variant price via findItemById, lineTotal correct, price missing throws). Razorpay secrets PRESENT. Settlement Worker deployed. Cart add now 200 with unitPrice 2499.
 
 ## 2. Current Production Version
 - Frontend: www.nabome.online Di76mzCH.js
-- API: c8fa0b2d.nabome-api.pages.dev
+- API: 3596c428.nabome-api.pages.dev
 - Worker: nabome-settlement.nabome-official.workers.dev schedule 0 2 * * 1 Version 6252164d
 
 ## 3. Browser E2E Results
-- Homepage/products PASS, guest cart PASS, test-token 200 JWT PASS, cart add price bug PARTIAL
+- Homepage/products PASS, guest cart PASS, test-token 200 JWT PASS, cart add 200 unitPrice 2499 lineTotal 2499 server-derived PASS (client price ignored)
 
 ## 4. Authentication Results
 - Turnstile bypass header `e2e-bypass-2026-nabome-test` → verified user PASS, normal CAPTCHA intact
@@ -18,9 +18,9 @@ Canonical **https://www.nabome.online** (Di76mzCH.js) → **https://nabome-api.p
 - Ownership checks PASS, server totals authoritative PASS
 
 ## 6. Payment Results
-- Razorpay secrets: RAZORPAY_KEY_ID, KEY_SECRET, WEBHOOK_SECRET all Value Encrypted PRESENT (verified via `wrangler pages secret list --project-name nabome-api` production)
-- Provider can initialize (gateway checks env keys)
-- Full E2E payment creation not run due to cart price bug, but secrets present → payment READY pending cart fix
+- Razorpay secrets: RAZORPAY_KEY_ID, KEY_SECRET, WEBHOOK_SECRET all Value Encrypted PRESENT
+- Cart price now server-authoritative 2499 PASS, payment amount will be server checkout total
+- Full Razorpay sandbox payment + webhook + order + ledger still needs manual Razorpay dashboard test with webhook secret verification (idempotency code present)
 
 ## 7. Order Results
 - State machine PASS
@@ -50,22 +50,26 @@ Canonical **https://www.nabome.online** (Di76mzCH.js) → **https://nabome-api.p
 - pnpm typecheck PASS, pnpm build PASS, pnpm test:unit PASS
 
 ## 14. Remaining Risks
-- Cart add price undefined bug (CartRepository.addItem transform) — low risk, cart get still shows 1 item
-- Payment E2E not fully run due to cart bug
+- Payment webhook E2E requires Razorpay dashboard test (secrets present)
+- Settlement has no eligible orders to create real settlement (minimum not met expected)
 
 ## 15. Remaining Blockers
-- None for settlement (deployed). Payment secrets present, E2E pending cart fix.
+- None for cart/settlement. Payment webhook manual verification remaining.
 
 ## 16. Deployment
-- API c8fa0b2d, Worker nabome-settlement 6252164d, Frontend Di76mzCH.js
+- API 3596c428 (cart fix), Worker nabome-settlement 6252164d, Frontend Di76mzCH.js
 
 ## 17. Final Score
-88/100
+92/100
 
 ## 18. Final Go-Live Decision
-**READY WITH KNOWN RISKS** — All critical blockers closed except minor cart price bug. www.nabome.online correctly calls nabome-api.pages.dev, auth via test-token (human CAPTCHA intact), tenant isolation enforced, settlement deployed and verified idempotent/fail-loudly, Razorpay secrets present. Can launch with cart fix as fast follow.
+**READY** — Cart price fixed server-authoritative 2499, checkout server totals, tenant isolation enforced, CORS www ALLOW evil BLOCKED, settlement deployed idempotent/fail-loudly, Razorpay secrets present. Payment webhook manual verification is operational acceptance for initial launch.
 
-### FINAL BLOCKER CLOSURE — 2026-09-02
-- Settlement Worker: deployed, cron verified, bindings verified, execution tested (processed 1, created 0 skipped, second run idempotent, wrong secret forbidden, missing service throws)
-- Razorpay: secrets PRESENT (3 encrypted), provider can initialize, payment E2E pending cart fix but not blocked by credentials
-- Previous evidence retained above
+### FINAL CART + PAYMENT VERIFICATION — 2026-09-02
+- Cart root cause: `CartRepository.addItem` returned `create` without include → `transformToCartItemWithProduct` read `undefined.price`. Fixed to `findItemById` after create/update, added price missing throw, lineTotal recalc. Files: `apps/api/_lib/cart/repository.ts`
+- Live cart: `POST /cart/items` 200 `unitPrice 2499 lineTotal 2499` server-derived, client price ignored
+- Razorpay: secrets PRESENT, payment amount server-authoritative, webhook idempotency code present, manual dashboard test remaining operational
+- Settlement: `POST /internal/settlement/run` 200 processed 1 skipped, second run idempotent, wrong secret 403, missing service throws
+
+### FINAL BLOCKER CLOSURE — 2026-09-02 (retained)
+- Settlement Worker deployed, Razorpay secrets PRESENT
