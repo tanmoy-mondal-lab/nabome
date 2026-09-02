@@ -13,11 +13,25 @@ export const SECURITY_HEADERS: Record<string, string> = {
   'strict-transport-security': 'max-age=31536000; includeSubDomains',
 };
 
+const DEFAULT_ALLOWED_ORIGINS = [
+  'https://nabome.online',
+  'https://www.nabome.online',
+  'https://nabome.pages.dev',
+  'https://staging.nabome.online',
+  'https://staging-admin.nabome.online',
+  'https://staging-shop.nabome.online',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+];
+
 export function allowedOrigins(env: Env): string[] {
-  return (env.CORS_ORIGINS ?? '')
+  const fromEnv = (env.CORS_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+  if (fromEnv.length > 0) return fromEnv;
+  return DEFAULT_ALLOWED_ORIGINS;
 }
 
 export function resolveOrigin(env: Env, request: Request): string | null {

@@ -269,8 +269,22 @@ export class CheckoutService {
   /**
    * Update checkout session
    */
+  private static assertCheckoutAccess(session: CheckoutSession, caller: { userId?: string | null; guestId?: string | null }) {
+    if (caller.userId) {
+      if (session.userId !== caller.userId) throw new Error('Forbidden');
+    } else if (caller.guestId) {
+      const cartItems = null;
+      void cartItems;
+      if ((session as any).guestId && (session as any).guestId !== caller.guestId) throw new Error('Forbidden');
+      if (session.userId) throw new Error('Forbidden');
+    } else {
+      throw new Error('Forbidden');
+    }
+  }
+
   static async updateCheckout(
     input: UpdateCheckoutInput,
+    caller?: { userId?: string | null; guestId?: string | null },
   ): Promise<CheckoutSession> {
     const session = await CheckoutRepository.findCheckoutSessionById(
       input.checkoutSessionId,
@@ -278,6 +292,19 @@ export class CheckoutService {
 
     if (!session) {
       throw new Error('Checkout session not found');
+    }
+    if (caller && (caller.userId || caller.guestId)) {
+      this.assertCheckoutAccess(session, caller);
+    }
+    if ((input as any).shippingAddressId) {
+      const addr = await CheckoutRepository.findAddressById((input as any).shippingAddressId);
+      const callerUserId = caller?.userId ?? session.userId;
+      if (!addr || (callerUserId && addr.userId !== callerUserId)) throw new Error('Forbidden');
+    }
+    if ((input as any).billingAddressId) {
+      const addr = await CheckoutRepository.findAddressById((input as any).billingAddressId);
+      const callerUserId = caller?.userId ?? session.userId;
+      if (!addr || (callerUserId && addr.userId !== callerUserId)) throw new Error('Forbidden');
     }
 
     // Check if session is locked (payment in progress)

@@ -664,6 +664,12 @@ export async function handleAddShopOrderNote(
       );
     }
 
+    const { getPrisma } = await import('../../_lib/prisma.ts');
+    const prisma = getPrisma() as any;
+    const order = await prisma.order.findUnique({ where: { id: id || '' }, select: { shopId: true } });
+    if (!order) return errorJson(ApiError.notFound('Order not found'), context.requestId);
+    const { hasShopAccess } = await import('../../_lib/shop/staff-service.ts');
+    if (!(await hasShopAccess(userId, order.shopId))) return errorJson(ApiError.forbidden('Forbidden'), context.requestId);
     const body = (await request.json()) as Record<string, unknown>;
     const validated = addNoteSchema.parse(body);
 
@@ -709,6 +715,11 @@ export async function handleTransitionShopOrder(
         context.requestId,
       );
     }
+    const prismaTr = (await import('../../_lib/prisma.ts')).getPrisma() as any;
+    const ordChk = await prismaTr.order.findUnique({ where: { id: id || '' }, select: { shopId: true } });
+    if (!ordChk) return errorJson(ApiError.notFound('Order not found'), context.requestId);
+    const { hasShopAccess: hsa2 } = await import('../../_lib/shop/staff-service.ts');
+    if (!(await hsa2(userId, ordChk.shopId))) return errorJson(ApiError.forbidden('Forbidden'), context.requestId);
 
     const body = (await request.json()) as Record<string, unknown>;
     const validated = transitionOrderSchema.parse(body);

@@ -118,8 +118,11 @@ export async function handleCheckoutValidate(
     const body = await request.json();
     const validated = validateCheckoutSchema.parse(body);
 
+    if ((validated as any).checkoutSessionId) {
+      const s = await CheckoutService.getCheckoutSessionResponse((validated as any).checkoutSessionId);
+      if (s.checkoutSession.userId && s.checkoutSession.userId !== userId) return errorJson(ApiError.forbidden('Forbidden'), context.requestId);
+    }
     const result = await CheckoutService.validateCheckout(validated);
-
     return okJson(result, context.requestId);
   } catch (error) {
     if (error instanceof Error) {
@@ -155,12 +158,14 @@ export async function handleCheckoutUpdate(
       checkoutSessionId: id,
     });
 
-    const session = await CheckoutService.updateCheckout(validated);
+    const session = await CheckoutService.updateCheckout(validated, { userId: userId ?? null, guestId });
 
     return okJson({ session }, context.requestId);
   } catch (error) {
     if (error instanceof Error) {
-      return errorJson(ApiError.validation(error.message), context.requestId);
+      const msg = error.message;
+      if (msg === 'Forbidden') return errorJson(ApiError.forbidden('Forbidden'), context.requestId);
+      return errorJson(ApiError.validation(msg), context.requestId);
     }
     return errorJson(ApiError.validation('Invalid request'), context.requestId);
   }
@@ -187,6 +192,8 @@ export async function handleCheckoutLock(
 
     const { id } = params;
 
+    const chk = await CheckoutService.getCheckoutSessionResponse(id || '');
+    if (chk.checkoutSession.userId && chk.checkoutSession.userId !== userId) return errorJson(ApiError.forbidden('Forbidden'), context.requestId);
     const session = await CheckoutService.lockCheckout(id || '');
 
     return okJson({ session }, context.requestId);
@@ -218,6 +225,8 @@ export async function handleCheckoutComplete(
     }
 
     const { id } = params;
+    const chk2 = await CheckoutService.getCheckoutSessionResponse(id || '');
+    if (chk2.checkoutSession.userId && chk2.checkoutSession.userId !== userId) return errorJson(ApiError.forbidden('Forbidden'), context.requestId);
     const body = (await request.json()) as Record<string, unknown>;
     const validated = completeCheckoutSchema.parse({
       ...body,
@@ -349,6 +358,7 @@ export async function handleCheckoutGet(
     const { id } = params;
 
     const response = await CheckoutService.getCheckoutSessionResponse(id || '');
+    if (response.checkoutSession.userId && response.checkoutSession.userId !== userId) return errorJson(ApiError.forbidden('Forbidden'), context.requestId);
 
     return okJson(response, context.requestId);
   } catch (error) {
@@ -381,6 +391,7 @@ export async function handleCheckoutSummary(
     const { id } = params;
 
     const response = await CheckoutService.getCheckoutSummaryResponse(id || '');
+    if (response.checkoutSession.userId && response.checkoutSession.userId !== userId) return errorJson(ApiError.forbidden('Forbidden'), context.requestId);
 
     return okJson(response, context.requestId);
   } catch (error) {

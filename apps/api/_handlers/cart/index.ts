@@ -148,7 +148,7 @@ export async function handleCartItemUpdate(
     const body = (await request.json()) as Record<string, unknown>;
     const validated = updateCartItemSchema.parse({ ...body, itemId: id! });
 
-    const item = await CartService.updateItem(validated);
+    const item = await CartService.updateItem(validated, { userId: userId ?? null, guestId });
 
     return okJson({ item }, context.requestId);
   } catch (error) {
@@ -183,7 +183,7 @@ export async function handleCartItemRemove(
       return errorJson(ApiError.validation('Missing id'), context.requestId);
     const validated = removeCartItemSchema.parse({ itemId: id! });
 
-    await CartService.removeItem(validated.itemId);
+    await CartService.removeItem(validated.itemId, { userId: userId ?? null, guestId });
 
     return okJson({ success: true }, context.requestId);
   } catch (error) {

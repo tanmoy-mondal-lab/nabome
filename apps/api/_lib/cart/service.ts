@@ -64,10 +64,18 @@ export class CartService {
    */
   static async updateItem(
     input: UpdateCartItemInput,
+    caller: { userId?: string | null; guestId?: string | null },
   ): Promise<CartItemWithProduct> {
     const item = await CartRepository.findItemById(input.itemId);
     if (!item) {
       throw new Error('Cart item not found');
+    }
+    if (caller.userId) {
+      if (item.userId !== caller.userId) throw new Error('Forbidden');
+    } else if (caller.guestId) {
+      if (item.guestId !== caller.guestId) throw new Error('Forbidden');
+    } else {
+      throw new Error('Forbidden');
     }
 
     if (input.quantity !== undefined) {
@@ -89,7 +97,16 @@ export class CartService {
   /**
    * Remove item from cart
    */
-  static async removeItem(itemId: string): Promise<void> {
+  static async removeItem(itemId: string, caller: { userId?: string | null; guestId?: string | null }): Promise<void> {
+    const item = await CartRepository.findItemById(itemId);
+    if (!item) throw new Error('Cart item not found');
+    if (caller.userId) {
+      if (item.userId !== caller.userId) throw new Error('Forbidden');
+    } else if (caller.guestId) {
+      if (item.guestId !== caller.guestId) throw new Error('Forbidden');
+    } else {
+      throw new Error('Forbidden');
+    }
     await CartRepository.removeItem(itemId);
   }
 
