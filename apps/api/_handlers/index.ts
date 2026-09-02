@@ -33,6 +33,7 @@ import './wishlist/index.ts';
 import './shop-staff/index.ts';
 import './shops/index.ts';
 import './tax-shipping/index.ts';
+import './internal/settlement.ts';
 
 export function registerHandlers(): void {
   register('GET', 'health', handleHealth);

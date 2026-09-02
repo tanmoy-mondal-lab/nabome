@@ -9,6 +9,8 @@ crons = ["0 2 * * 1"]
 [vars]
 ENVIRONMENT = "production"
 LOG_LEVEL = "info"
+SETTLEMENT_CRON_SECRET = "ca81c2a2b72c6925f806fcdc213d3fffe345fe8aeb3c94cd6a752bb6e71bf857"
+SETTLEMENT_API_URL = "https://nabome-api.pages.dev"
 
 [[hyperdrive]]
 binding = "HYPERDRIVE"

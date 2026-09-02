@@ -9,6 +9,8 @@ export interface Env {
   FINANCE_COMMISSION_CAP?: string
   FINANCE_HOLD_DAYS?: string
   FINANCE_SETTLEMENT_MIN?: string
+  SETTLEMENT_CRON_SECRET?: string
+  SETTLEMENT_API_URL?: string
 }
 
 export default {
@@ -16,44 +18,31 @@ export default {
     ctx.waitUntil(handleScheduled(env))
   },
   async fetch(request: Request, env: Env): Promise<Response> {
-    if (request.method === "POST" && new URL(request.url).pathname === "/run") {
+    const url = new URL(request.url)
+    if (request.method === "POST" && url.pathname === "/run") {
       const result = await handleScheduled(env)
-      return Response.json(result)
+      const isError = result.errors > 0 && result.created === 0 && result.processed === 0
+      return Response.json(result, { status: isError ? 500 : 200 })
     }
     return Response.json({ status: "ok", cron: "0 2 * * 1", endpoint: "POST /run" })
   }
 }
 
-async function handleScheduled(env: Env): Promise<{ processed: number; created: number; errors: number; timestamp: string }> {
+async function handleScheduled(env: Env): Promise<{ processed: number; created: number; errors: number; timestamp: string; detail?: any }> {
   const start = Date.now()
-  let processed = 0, created = 0, errors = 0
-  try {
-    const mod = await import("../../../apps/api/_lib/finance/service.ts" as any).catch((e) => { throw new Error(`finance service unavailable: ${e?.message}`) })
-    const createSettlement = (mod as any).createSettlement
-    if (!createSettlement) throw new Error("createSettlement not exported")
-    const { getPrisma, initPrisma } = await import("../../../apps/api/_lib/prisma.ts" as any)
-    const cs = (env as any).HYPERDRIVE?.connectionString ?? env.DATABASE_URL ?? ""
-    if (cs) initPrisma(cs, { viaHyperdrive: Boolean((env as any).HYPERDRIVE?.connectionString) })
-    const prisma = getPrisma() as any
-    const shops = await prisma.shop.findMany({ where: { isActive: true }, select: { id: true } })
-    for (const shop of shops as any[]) {
-      processed++
-      try {
-        await createSettlement(env as any, { shopId: shop.id, actorId: "system-cron" })
-        created++
-      } catch (e: any) {
-        if (e?.code === "SETTLEMENT_MINIMUM_NOT_MET" || e?.code === "DUPLICATE_SETTLEMENT") {
-          console.log(`[settlement] skip shop ${shop.id}: ${e.code}`)
-        } else {
-          console.error(`[settlement] error shop ${shop.id}:`, e?.message)
-          errors++
-        }
-      }
-    }
-  } catch (e: any) {
-    console.error("[settlement] fatal", e?.message)
-    errors++
+  const apiUrl = env.SETTLEMENT_API_URL ?? "https://nabome-api.pages.dev"
+  const secret = env.SETTLEMENT_CRON_SECRET
+  if (!secret) throw new Error("SETTLEMENT_CRON_SECRET not configured")
+  const res = await fetch(`${apiUrl}/api/v1/internal/settlement/run`, {
+    method: "POST",
+    headers: { "x-settlement-secret": secret, "content-type": "application/json" },
+    body: JSON.stringify({ actorId: "system-cron" })
+  })
+  const body = await res.json().catch(() => ({})) as any
+  if (!res.ok) {
+    console.error("[settlement] API error", res.status, body)
+    throw new Error(`settlement API failed: ${res.status} ${JSON.stringify(body).slice(0,500)}`)
   }
-  console.log(`[settlement] done processed=${processed} created=${created} errors=${errors} ${Date.now()-start}ms`)
-  return { processed, created, errors, timestamp: new Date().toISOString() }
+  console.log(`[settlement] API result ${JSON.stringify(body)} ${Date.now()-start}ms`)
+  return { processed: body.data?.processed ?? 0, created: body.data?.created ?? 0, errors: body.data?.errors ?? 0, timestamp: new Date().toISOString(), detail: body.data }
 }

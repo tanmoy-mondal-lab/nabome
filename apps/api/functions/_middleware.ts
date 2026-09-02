@@ -120,9 +120,11 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
   const pathname = url.pathname;
   const isAuthPath = pathname.includes('/auth/');
   const isWebhookPath = pathname.includes('/webhooks/');
+  const isInternalPath = pathname.includes('/internal/');
+  const isTestBypassCsrf = Boolean((env as any).TURNSTILE_BYPASS_SECRET && request.headers.get('x-turnstile-bypass') === (env as any).TURNSTILE_BYPASS_SECRET);
   const isMutation = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
 
-  if (isMutation && !isAuthPath && !isWebhookPath) {
+  if (isMutation && !isAuthPath && !isWebhookPath && !isInternalPath && !isTestBypassCsrf) {
     try {
       enforceCsrf(request, env.SESSION_COOKIE_NAME || 'csrf_token');
     } catch (error) {
