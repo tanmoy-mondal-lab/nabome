@@ -90,7 +90,27 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
         if (params) {
           const handler = lookup(method, routePath ?? '');
           if (handler) {
-            return await handler(request, context, params);
+            const withTimeout = <T>(p: Promise<T>, ms = 8000): Promise<T> =>
+              Promise.race([
+                p,
+                new Promise<never>((_, rej) =>
+                  setTimeout(() => rej(new Error('DB_TIMEOUT')), ms),
+                ),
+              ]);
+            try {
+              return await withTimeout(
+                Promise.resolve(handler(request, context, params)),
+              );
+            } catch (e) {
+              if ((e as Error).message === 'DB_TIMEOUT') {
+                logger.error({ path, method }, 'Handler timeout');
+                return errorJson(
+                  ApiError.internal('Database temporarily unavailable'),
+                  requestId,
+                );
+              }
+              throw e;
+            }
           }
         }
       }

@@ -23,7 +23,16 @@ export function initPrisma(
     opts?.viaHyperdrive || isLocalConnectionString(databaseUrl),
   );
   if (usePg) {
-    pool = new pg.Pool({ connectionString: databaseUrl });
+    pool = new pg.Pool({
+      connectionString: databaseUrl,
+      max: 5,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 10000,
+      allowExitOnIdle: true,
+    });
+    pool.on('error', (err) => {
+      console.error('pg Pool error', err.message);
+    });
     const adapter = new PrismaPg(pool);
     prisma = new PrismaClient({ adapter });
   } else {
