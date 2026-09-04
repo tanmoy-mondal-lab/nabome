@@ -19,13 +19,15 @@ export function initPrisma(
   if (!databaseUrl) {
     throw new Error('No database URL — set DATABASE_URL secret in Cloudflare');
   }
-  const usePg = isLocalConnectionString(databaseUrl);
+  const usePg = Boolean(
+    opts?.viaHyperdrive || isLocalConnectionString(databaseUrl),
+  );
   if (usePg) {
     pool = new pg.Pool({
       connectionString: databaseUrl,
       max: 5,
-      connectionTimeoutMillis: 5000,
-      idleTimeoutMillis: 10000,
+      connectionTimeoutMillis: 8000,
+      idleTimeoutMillis: 30000,
       allowExitOnIdle: true,
     });
     pool.on('error', (err) => {

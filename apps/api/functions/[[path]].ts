@@ -90,24 +90,56 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
         if (params) {
           const handler = lookup(method, routePath ?? '');
           if (handler) {
-            const withTimeout = <T>(p: Promise<T>, ms = 8000): Promise<T> =>
+            const withTimeout = <T>(p: Promise<T>, ms = 12000): Promise<T> =>
               Promise.race([
                 p,
                 new Promise<never>((_, rej) =>
                   setTimeout(() => rej(new Error('DB_TIMEOUT')), ms),
                 ),
               ]);
+            const run = () =>
+              withTimeout(Promise.resolve(handler(request, context, params)));
+            const isTimeoutResponse = async (r: Response) => {
+              if (r.status !== 422 && r.status !== 500) return false;
+              try {
+                const t = await r.clone().text();
+                return t.includes('timeout') || t.includes('temporarily');
+              } catch {
+                return false;
+              }
+            };
             try {
-              return await withTimeout(
-                Promise.resolve(handler(request, context, params)),
-              );
+              const resp = await run();
+              if (await isTimeoutResponse(resp)) {
+                logger.warn({ path, method }, 'Retrying timeout response');
+                await new Promise((r) => setTimeout(r, 500));
+                const retryResp = await run().catch(() => null);
+                if (retryResp && !(await isTimeoutResponse(retryResp)))
+                  return retryResp;
+                if (retryResp) return retryResp;
+              }
+              return resp;
             } catch (e) {
-              if ((e as Error).message === 'DB_TIMEOUT') {
-                logger.error({ path, method }, 'Handler timeout');
-                return errorJson(
-                  ApiError.internal('Database temporarily unavailable'),
-                  requestId,
-                );
+              const msg = (e as Error).message;
+              if (msg === 'DB_TIMEOUT' || msg.includes('timeout')) {
+                logger.warn({ path, method, error: msg }, 'Retrying handler');
+                await new Promise((r) => setTimeout(r, 500));
+                try {
+                  const retryResp = await run();
+                  if (await isTimeoutResponse(retryResp)) {
+                    return retryResp;
+                  }
+                  return retryResp;
+                } catch (e2) {
+                  logger.error(
+                    { path, method, error: (e2 as Error).message },
+                    'Handler retry failed',
+                  );
+                  return errorJson(
+                    ApiError.internal('Database temporarily unavailable'),
+                    requestId,
+                  );
+                }
               }
               throw e;
             }
