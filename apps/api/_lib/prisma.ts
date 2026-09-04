@@ -25,7 +25,7 @@ export function initPrisma(
   if (usePg) {
     pool = new pg.Pool({
       connectionString: databaseUrl,
-      max: 5,
+      max: 10,
       connectionTimeoutMillis: 8000,
       idleTimeoutMillis: 30000,
       allowExitOnIdle: true,
