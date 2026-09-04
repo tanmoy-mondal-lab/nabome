@@ -20,8 +20,7 @@
     "APP_URL": "https://www.nabome.online",
     "LOG_LEVEL": "info",
     "SESSION_COOKIE_NAME": "nabome_session",
-    "TURNSTILE_BYPASS_SECRET": "e2e-bypass-2026-nabome-test",
-    "SETTLEMENT_CRON_SECRET": "ca81c2a2b72c6925f806fcdc213d3fffe345fe8aeb3c94cd6a752bb6e71bf857",
+    "CORS_ORIGINS": "https://www.nabome.online,https://nabome.online",
   },
   "kv_namespaces": [
     {
@@ -53,6 +52,7 @@
         "APP_URL": "https://staging.nabome.online",
         "LOG_LEVEL": "debug",
         "SESSION_COOKIE_NAME": "nabome_session",
+        "CORS_ORIGINS": "https://staging.nabome.online",
       },
       "kv_namespaces": [
         {
@@ -60,34 +60,6 @@
           "id": "2db98525861f455c8b80e902569933d7",
           "preview_id": "7cb2d643a3ed4165ad24eb7814643027",
         },
-      ],
-      "hyperdrive": [
-        {
-          "binding": "HYPERDRIVE",
-          "id": "e2b5c6e70f164e189bebf1cc1282428f",
-        },
-      ],
-    },
-    "production": {
-      "name": "nabome-api",
-      "vars": {
-        "ENVIRONMENT": "production",
-        "PAYMENT_PROVIDER": "razorpay",
-        "FINANCE_COMMISSION_RATE": "15",
-        "FINANCE_COMMISSION_CAP": "50",
-        "FINANCE_HOLD_DAYS": "7",
-        "FINANCE_SETTLEMENT_MIN": "100",
-        "COD_ENABLED": "true",
-        "COD_MAX_AMOUNT": "5000",
-        "PUBLIC_API_URL": "https://nabome-api.pages.dev",
-        "APP_URL": "https://www.nabome.online",
-        "LOG_LEVEL": "info",
-        "SESSION_COOKIE_NAME": "nabome_session",
-        "TURNSTILE_BYPASS_SECRET": "e2e-bypass-2026-nabome-test",
-        "SETTLEMENT_CRON_SECRET": "ca81c2a2b72c6925f806fcdc213d3fffe345fe8aeb3c94cd6a752bb6e71bf857",
-      },
-      "kv_namespaces": [
-        { "binding": "KV", "id": "6969b592bba74117b3f27545dcf47e7a" },
       ],
       "hyperdrive": [
         {
