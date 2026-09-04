@@ -69,9 +69,8 @@ export async function checkRateLimit(
       resetSeconds: Math.ceil((windowStart + windowMs - now) / 1000),
     };
   } catch (error) {
-    // If KV fails, deny request for security (fail-closed)
-    console.error('Rate limit check failed, denying request:', error);
-    return { allowed: false, remaining: 0, resetSeconds: 60 };
+    console.error('Rate limit check failed, allowing request:', error);
+    return { allowed: true, remaining: limit - 1, resetSeconds: 60 };
   }
 }
 
