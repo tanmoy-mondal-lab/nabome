@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { useCart } from '@/features/cart/hooks';
 
 import { login } from '@/lib/api/auth';
+import { appConfig } from '@/lib/config';
 
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -21,29 +22,37 @@ export default function LoginPage() {
   const turnstileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Load Turnstile widget
+    // Render Turnstile widget once the API script is ready
+    const renderWidget = () => {
+      if (turnstileRef.current && window.turnstile) {
+        turnstileRef.current.innerHTML = '';
+        window.turnstile.render(turnstileRef.current, {
+          sitekey: appConfig.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAAxxxxxxxx',
+          callback: (token: string) => {
+            setTurnstileToken(token);
+          },
+          'expired-callback': () => {
+            setTurnstileToken('');
+          },
+        });
+      }
+    };
+
+    if (window.turnstile) {
+      renderWidget();
+      return;
+    }
+
     const script = document.createElement('script');
     script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
     script.async = true;
     script.defer = true;
+    script.onload = renderWidget;
     document.head.appendChild(script);
 
     return () => {
       document.head.removeChild(script);
     };
-  }, []);
-
-  useEffect(() => {
-    if (turnstileRef.current && window.turnstile) {
-      turnstileRef.current.innerHTML = '';
-      window.turnstile.render(turnstileRef.current, {
-        sitekey:
-          import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAAxxxxxxxx',
-        callback: (token: string) => {
-          setTurnstileToken(token);
-        },
-      });
-    }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
