@@ -167,9 +167,13 @@ leaking to guests; post-fix it redirects to login.
 
 ## 14. Deployment
 
-- COMMIT: _<filled at deploy time>_
-- DEPLOYMENT ID: _Cloudflare Pages dashboard git integration on `production` branch
-  (no customer deploy job exists in `.github/workflows`; API-only `release.yml`)_
+- COMMIT: `c4e4c85` (`fix(customer): resolve 404 audit findings`, pushed to
+  `production`)
+- DEPLOYMENT: via Cloudflare Pages dashboard auto-deploy watching `production`
+  (no customer deploy job exists in `.github/workflows`; API-only `release.yml`).
+  Dashboard pickup pending at time of writing — post-deploy crawl to be re-run once
+  the new build is live; pre-deploy verification passed 36/36 on the identical
+  production build output (`vite preview` + headless Chromium).
 
 ## 15. Remaining Intentional 404s
 
