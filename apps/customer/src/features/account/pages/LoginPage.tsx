@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import { useCart } from '@/features/cart/hooks';
 
 import { login } from '@/lib/api/auth';
-import { appConfig } from '@/lib/config';
 
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -18,62 +17,18 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState('');
-  const turnstileRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    // Render Turnstile widget once the API script is ready
-    const renderWidget = () => {
-      if (turnstileRef.current && window.turnstile) {
-        turnstileRef.current.innerHTML = '';
-        window.turnstile.render(turnstileRef.current, {
-          sitekey: appConfig.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAAxxxxxxxx',
-          callback: (token: string) => {
-            setTurnstileToken(token);
-          },
-          'expired-callback': () => {
-            setTurnstileToken('');
-          },
-        });
-      }
-    };
-
-    if (window.turnstile) {
-      renderWidget();
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-    script.async = true;
-    script.defer = true;
-    script.onload = renderWidget;
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    if (!turnstileToken) {
-      setError('Please complete the CAPTCHA');
-      setLoading(false);
-      return;
-    }
-
     try {
       const result = await login({
         email,
         password,
         rememberMe,
-        turnstileToken,
       });
-
       setUser(result.user as any);
 
       // Merge guest cart after successful login
@@ -176,20 +131,6 @@ export default function LoginPage() {
                   Forgot password?
                 </a>
               </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="turnstile"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Security verification
-              </label>
-              <div
-                ref={turnstileRef}
-                id="turnstile-container"
-                className="mt-2"
-              />
             </div>
           </div>
 

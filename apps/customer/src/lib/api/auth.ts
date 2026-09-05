@@ -9,7 +9,7 @@ export interface RegisterInput {
   password: string;
   firstName: string;
   lastName: string;
-  turnstileToken: string;
+  turnstileToken?: string;
 }
 
 export interface RegisterResult {
@@ -28,7 +28,7 @@ export interface LoginInput {
   email: string;
   password: string;
   rememberMe: boolean;
-  turnstileToken: string;
+  turnstileToken?: string;
 }
 
 export interface LoginResult {

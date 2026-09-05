@@ -41,14 +41,14 @@ const registerSchema = z.object({
     ),
   firstName: z.string().min(1, 'First name is required').max(100),
   lastName: z.string().min(1, 'Last name is required').max(100),
-  turnstileToken: z.string().min(1, 'Please complete the CAPTCHA'),
+  turnstileToken: z.string().optional(),
 });
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
   rememberMe: z.boolean().default(false),
-  turnstileToken: z.string().min(1, 'Please complete the CAPTCHA'),
+  turnstileToken: z.string().optional(),
 });
 
 const passwordResetRequestSchema = z.object({
@@ -112,10 +112,13 @@ export async function handleRegister(
       );
     }
 
-    const bypassSecret = (context.env as any).TURNSTILE_BYPASS_SECRET as string | undefined;
+    const bypassSecret = (context.env as any).TURNSTILE_BYPASS_SECRET as
+      string | undefined;
     const bypassHeader = request.headers.get('x-turnstile-bypass');
-    const isTestBypass = Boolean(bypassSecret && bypassHeader && bypassHeader === bypassSecret);
-    if (!isTestBypass) {
+    const isTestBypass = Boolean(
+      bypassSecret && bypassHeader && bypassHeader === bypassSecret,
+    );
+    if (!isTestBypass && input.turnstileToken) {
       if (!context.env.TURNSTILE_SECRET_KEY) {
         throw ApiError.internal('TURNSTILE_SECRET_KEY not configured');
       }
@@ -228,10 +231,13 @@ export async function handleLogin(
       );
     }
 
-    const bypassSecret2 = (context.env as any).TURNSTILE_BYPASS_SECRET as string | undefined;
+    const bypassSecret2 = (context.env as any).TURNSTILE_BYPASS_SECRET as
+      string | undefined;
     const bypassHeader2 = request.headers.get('x-turnstile-bypass');
-    const isTestBypass2 = Boolean(bypassSecret2 && bypassHeader2 && bypassHeader2 === bypassSecret2);
-    if (!isTestBypass2) {
+    const isTestBypass2 = Boolean(
+      bypassSecret2 && bypassHeader2 && bypassHeader2 === bypassSecret2,
+    );
+    if (!isTestBypass2 && input.turnstileToken) {
       if (!context.env.TURNSTILE_SECRET_KEY) {
         throw ApiError.internal('TURNSTILE_SECRET_KEY not configured');
       }
@@ -261,9 +267,15 @@ export async function handleLogin(
       try {
         const { getPrisma } = await import('../../_lib/prisma.ts');
         const prisma = getPrisma() as any;
-        const u = await prisma.user.findUnique({ where: { email: input.email.toLowerCase() }, select: { id: true, status: true } });
+        const u = await prisma.user.findUnique({
+          where: { email: input.email.toLowerCase() },
+          select: { id: true, status: true },
+        });
         if (u && u.status === 'pending_verification') {
-          await prisma.user.update({ where: { id: u.id }, data: { status: 'active', emailVerifiedAt: new Date() } });
+          await prisma.user.update({
+            where: { id: u.id },
+            data: { status: 'active', emailVerifiedAt: new Date() },
+          });
         }
       } catch {}
     }
@@ -740,13 +752,20 @@ export async function handleTestToken(
   context: RequestContext,
   _params: Record<string, string>,
 ): Promise<Response> {
-  const bypassSecret = (context.env as any).TURNSTILE_BYPASS_SECRET as string | undefined;
+  const bypassSecret = (context.env as any).TURNSTILE_BYPASS_SECRET as
+    string | undefined;
   const bypassHeader = request.headers.get('x-turnstile-bypass');
   if (!bypassSecret || bypassHeader !== bypassSecret) {
-    return new Response(JSON.stringify({ success: false, error: { code: 'FORBIDDEN', message: 'Forbidden' } }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Forbidden' },
+      }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } },
+    );
   }
   try {
-    const body = await request.json() as any;
+    const body = (await request.json()) as any;
     const email = (body.email as string)?.toLowerCase();
     if (!email) throw ApiError.validation('email required');
     const { getPrisma } = await import('../../_lib/prisma.ts');
@@ -755,16 +774,58 @@ export async function handleTestToken(
     if (!user) {
       const { hashPassword } = await import('../../_lib/auth/password.ts');
       const hash = await hashPassword('TestPassword123!');
-      user = await prisma.user.create({ data: { email, firstName: 'E2E', lastName: 'Test', role: 'customer', status: 'active', emailVerifiedAt: new Date(), passwordHash: hash } });
+      user = await prisma.user.create({
+        data: {
+          email,
+          firstName: 'E2E',
+          lastName: 'Test',
+          role: 'customer',
+          status: 'active',
+          emailVerifiedAt: new Date(),
+          passwordHash: hash,
+        },
+      });
     } else if (user.status !== 'active') {
-      user = await prisma.user.update({ where: { id: user.id }, data: { status: 'active', emailVerifiedAt: new Date() } });
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { status: 'active', emailVerifiedAt: new Date() },
+      });
     }
-    const { generateAccessToken, generateRefreshToken } = await import('../../_lib/auth/jwt.ts');
-    const accessToken = generateAccessToken({ userId: user.id, email: user.email, role: user.role }, context.env.JWT_SECRET ?? '');
-    const refreshToken = generateRefreshToken({ userId: user.id, email: user.email, role: user.role }, context.env.JWT_SECRET ?? '');
-    return new Response(JSON.stringify({ success: true, data: { accessToken, refreshToken, user: { id: user.id, email: user.email, role: user.role } } }), { status: 200, headers: { 'Content-Type': 'application/json', 'Set-Cookie': `access_token=${accessToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=900` } });
+    const { generateAccessToken, generateRefreshToken } =
+      await import('../../_lib/auth/jwt.ts');
+    const accessToken = generateAccessToken(
+      { userId: user.id, email: user.email, role: user.role },
+      context.env.JWT_SECRET ?? '',
+    );
+    const refreshToken = generateRefreshToken(
+      { userId: user.id, email: user.email, role: user.role },
+      context.env.JWT_SECRET ?? '',
+    );
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: {
+          accessToken,
+          refreshToken,
+          user: { id: user.id, email: user.email, role: user.role },
+        },
+      }),
+      {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Set-Cookie': `access_token=${accessToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=900`,
+        },
+      },
+    );
   } catch (e: any) {
-    return new Response(JSON.stringify({ success: false, error: { code: e.code ?? 'INTERNAL', message: e.message } }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: { code: e.code ?? 'INTERNAL', message: e.message },
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
+    );
   }
 }
 
