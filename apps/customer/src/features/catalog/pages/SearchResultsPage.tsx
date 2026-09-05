@@ -210,7 +210,9 @@ export default function SearchResultsPage() {
                   </h3>
                   {product.category && (
                     <p className="text-sm text-gray-600 mb-2">
-                      {product.category}
+                      {typeof product.category === 'string'
+                        ? product.category
+                        : product.category.name}
                     </p>
                   )}
                   <div className="flex items-center justify-between">
