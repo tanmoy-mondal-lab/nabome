@@ -44,7 +44,7 @@ async function hashToken(token: string): Promise<string> {
   return hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function withTimeout<T>(promise: Promise<T>, ms = 10000): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms = 20000): Promise<T> {
   return Promise.race([
     promise,
     new Promise<never>((_, reject) =>

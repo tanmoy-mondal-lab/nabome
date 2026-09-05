@@ -25,6 +25,43 @@ interface Data {
 const VERSION_PREFIX = `/api/${API_VERSION}`;
 let registered = false;
 
+const HANDLER_TIMEOUT_MS = 25000;
+
+function withHandlerTimeout<T>(p: Promise<T>): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<never>((_, rej) =>
+      setTimeout(() => rej(new Error('DB_TIMEOUT')), HANDLER_TIMEOUT_MS),
+    ),
+  ]);
+}
+
+const TRANSIENT_DB_ERRORS = [
+  'timeout',
+  'timed out',
+  'p1001',
+  "can't reach database",
+  'connection refused',
+  'econnrefused',
+  'etimedout',
+  'pool',
+];
+
+function isTransientDbError(msg: string): boolean {
+  const lower = msg.toLowerCase();
+  return TRANSIENT_DB_ERRORS.some((s) => lower.includes(s));
+}
+
+async function isTimeoutResponse(r: Response): Promise<boolean> {
+  if (r.status !== 422 && r.status !== 500) return false;
+  try {
+    const t = await r.clone().text();
+    return t.includes('timeout') || t.includes('temporarily');
+  } catch {
+    return false;
+  }
+}
+
 function ensureRegistered(): void {
   if (!registered) {
     registerHandlers();
@@ -78,6 +115,8 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
   const path = rawPath.slice(VERSION_PREFIX.length).replace(/^\/+|\/+$/g, '');
   const method = request.method.toUpperCase();
 
+  let lastRun: (() => Promise<Response>) | null = null;
+
   try {
     if (method === 'GET' && path === 'meta/routes') {
       return okJson({ routes: registeredRoutes() }, requestId);
@@ -90,24 +129,11 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
         if (params) {
           const handler = lookup(method, routePath ?? '');
           if (handler) {
-            const withTimeout = <T>(p: Promise<T>, ms = 12000): Promise<T> =>
-              Promise.race([
-                p,
-                new Promise<never>((_, rej) =>
-                  setTimeout(() => rej(new Error('DB_TIMEOUT')), ms),
-                ),
-              ]);
             const run = () =>
-              withTimeout(Promise.resolve(handler(request, context, params)));
-            const isTimeoutResponse = async (r: Response) => {
-              if (r.status !== 422 && r.status !== 500) return false;
-              try {
-                const t = await r.clone().text();
-                return t.includes('timeout') || t.includes('temporarily');
-              } catch {
-                return false;
-              }
-            };
+              withHandlerTimeout(
+                Promise.resolve(handler(request, context, params)),
+              );
+            lastRun = run;
             try {
               const resp = await run();
               if (await isTimeoutResponse(resp)) {
@@ -153,9 +179,37 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
     if (error instanceof ApiError) {
       return errorJson(error, requestId);
     }
+    const message = error instanceof Error ? error.message : String(error);
+    if (lastRun && isTransientDbError(message)) {
+      const run = lastRun;
+      logger.warn(
+        { path, method, error: message },
+        'Retrying transient DB error',
+      );
+      await new Promise((r) => setTimeout(r, 2000));
+      try {
+        const retryResp = await run();
+        if (await isTimeoutResponse(retryResp)) {
+          logger.warn({ path, method }, 'Retrying timeout response');
+          await new Promise((r) => setTimeout(r, 500));
+          const retryResp2 = await run().catch(() => null);
+          if (retryResp2) return retryResp2;
+        }
+        return retryResp;
+      } catch (e2) {
+        logger.error(
+          {
+            error: e2 instanceof Error ? e2.message : String(e2),
+            path,
+            method,
+          },
+          'Transient DB retry failed',
+        );
+      }
+    }
     logger.error(
       {
-        error: error instanceof Error ? error.message : String(error),
+        error: message,
         path,
         method,
       },
