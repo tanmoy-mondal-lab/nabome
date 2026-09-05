@@ -6,6 +6,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
+import { appConfig } from '@/lib/config';
+
 import { processHomepageConfig } from '../lib/rendering-pipeline';
 import { updateHomepageMetadata } from '../lib/seo';
 import type { HomepageConfig } from '../types';
@@ -13,7 +15,7 @@ import type { HomepageConfig } from '../types';
 /**
  * Homepage API endpoint
  */
-const HOMEPAGE_API_URL = '/api/homepage';
+const HOMEPAGE_API_URL = `${appConfig.PUBLIC_API_URL}/api/v1/homepage`;
 
 /**
  * Fetch homepage configuration from CMS

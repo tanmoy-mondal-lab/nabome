@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+import { appConfig } from '@/lib/config';
+
 function csrfHeader(): Record<string, string> {
   if (typeof document === 'undefined') return {};
   const m = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
@@ -58,8 +60,7 @@ interface OrderState {
   ) => Promise<void>;
 }
 
-const API_BASE =
-  (import.meta.env.VITE_PUBLIC_API_URL as string | undefined) ?? '';
+const API_BASE = `${appConfig.PUBLIC_API_URL}/api/v1`;
 
 export const useOrderStore = create<OrderState>()(
   persist(
@@ -73,7 +74,7 @@ export const useOrderStore = create<OrderState>()(
       fetchOrder: async (orderId) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await fetch(`${API_BASE}/api/v1/orders/${orderId}`, {
+          const response = await fetch(`${API_BASE}/orders/${orderId}`, {
             credentials: 'include', // Use httpOnly cookies for authentication
           });
 
@@ -105,7 +106,7 @@ export const useOrderStore = create<OrderState>()(
             params.append('offset', options.offset.toString());
 
           const response = await fetch(
-            `${API_BASE}/api/v1/orders${params.toString() ? `?${params.toString()}` : ''}`,
+            `${API_BASE}/orders${params.toString() ? `?${params.toString()}` : ''}`,
             {
               credentials: 'include', // Use httpOnly cookies for authentication
             },
@@ -130,7 +131,7 @@ export const useOrderStore = create<OrderState>()(
         set({ isLoading: true, error: null });
         try {
           const response = await fetch(
-            `${API_BASE}/api/v1/orders/${orderId}/timeline`,
+            `${API_BASE}/orders/${orderId}/timeline`,
             {
               credentials: 'include', // Use httpOnly cookies for authentication
             },
@@ -156,18 +157,15 @@ export const useOrderStore = create<OrderState>()(
       cancelOrder: async (orderId, reason) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await fetch(
-            `${API_BASE}/api/v1/orders/${orderId}/cancel`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...csrfHeader(),
-              },
-              credentials: 'include',
-              body: JSON.stringify({ reason }),
+          const response = await fetch(`${API_BASE}/orders/${orderId}/cancel`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...csrfHeader(),
             },
-          );
+            credentials: 'include',
+            body: JSON.stringify({ reason }),
+          });
 
           if (!response.ok) {
             throw new Error('Failed to cancel order');
@@ -187,18 +185,15 @@ export const useOrderStore = create<OrderState>()(
       requestReturn: async (orderId, items, reason) => {
         set({ isLoading: true, error: null });
         try {
-          const response = await fetch(
-            `${API_BASE}/api/v1/orders/${orderId}/return`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...csrfHeader(),
-              },
-              credentials: 'include',
-              body: JSON.stringify({ items, reason }),
+          const response = await fetch(`${API_BASE}/orders/${orderId}/return`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...csrfHeader(),
             },
-          );
+            credentials: 'include',
+            body: JSON.stringify({ items, reason }),
+          });
 
           if (!response.ok) {
             throw new Error('Failed to request return');

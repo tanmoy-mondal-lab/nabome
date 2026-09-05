@@ -6,6 +6,8 @@
 
 import { useState, useEffect } from 'react';
 
+import { appConfig } from '@/lib/config';
+
 import type {
   Payment,
   PaymentMethod,
@@ -14,6 +16,8 @@ import type {
   PaymentRetryRequest,
   PaymentHistoryFilters,
 } from './types';
+
+const API_BASE = `${appConfig.PUBLIC_API_URL}/api/v1`;
 
 /**
  * Fetch payment methods
@@ -26,7 +30,7 @@ export function usePaymentMethods() {
   useEffect(() => {
     async function fetchMethods() {
       try {
-        const response = await fetch('/api/payments/methods');
+        const response = await fetch(`${API_BASE}/payments/methods`);
         if (!response.ok) throw new Error('Failed to fetch payment methods');
         const data = await response.json();
         setMethods(data.methods);
@@ -53,7 +57,7 @@ export function useCreatePayment() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/payments/create', {
+      const response = await fetch(`${API_BASE}/payments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
@@ -83,7 +87,7 @@ export function usePayment(paymentId: string) {
   useEffect(() => {
     async function fetchPayment() {
       try {
-        const response = await fetch(`/api/payments/${paymentId}`);
+        const response = await fetch(`${API_BASE}/payments/${paymentId}`);
         if (!response.ok) throw new Error('Failed to fetch payment');
         const data = await response.json();
         setPayment(data.payment);
@@ -110,7 +114,7 @@ export function useRetryPayment() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/payments/retry', {
+      const response = await fetch(`${API_BASE}/payments/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request),
@@ -149,7 +153,9 @@ export function usePaymentHistory(filters?: PaymentHistoryFilters) {
         if (filters?.endDate)
           params.append('endDate', filters.endDate.toISOString());
 
-        const response = await fetch(`/api/payments?${params.toString()}`);
+        const response = await fetch(
+          `${API_BASE}/payments?${params.toString()}`,
+        );
         if (!response.ok) throw new Error('Failed to fetch payment history');
         const data = await response.json();
         setPayments(data.payments);
@@ -176,7 +182,7 @@ export function useTransactionDetail(paymentId: string) {
   useEffect(() => {
     async function fetchDetail() {
       try {
-        const response = await fetch(`/api/payments/${paymentId}/detail`);
+        const response = await fetch(`${API_BASE}/payments/${paymentId}`);
         if (!response.ok) throw new Error('Failed to fetch transaction detail');
         const data = await response.json();
         setDetail(data.detail);

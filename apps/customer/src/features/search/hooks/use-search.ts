@@ -8,6 +8,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useCallback, useEffect } from 'react';
 
+import { appConfig } from '@/lib/config';
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface SearchFilters {
@@ -82,7 +84,7 @@ export interface SearchHistoryItem {
 
 // ── API Functions ─────────────────────────────────────────────────────────────
 
-const API_BASE = '/api/v1';
+const API_BASE = `${appConfig.PUBLIC_API_URL}/api/v1`;
 
 async function search(params: {
   query?: string;

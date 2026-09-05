@@ -24,6 +24,10 @@ export interface CmsPage {
   };
 }
 
+import { appConfig } from './config';
+
+const CMS_API_BASE = `${appConfig.PUBLIC_API_URL}/api/v1/cms`;
+
 export interface CmsHomepage {
   hero: {
     title: string;
@@ -48,7 +52,7 @@ export async function fetchCmsPage(slug: string): Promise<CmsPage | null> {
   try {
     // This would integrate with the actual CMS API
     // For now, it's a placeholder that can be connected to the backend
-    const response = await fetch(`/api/cms/pages/${slug}`);
+    const response = await fetch(`${CMS_API_BASE}/pages/${slug}`);
     if (!response.ok) {
       return null;
     }
@@ -64,7 +68,7 @@ export async function fetchCmsPage(slug: string): Promise<CmsPage | null> {
  */
 export async function fetchHomepageContent(): Promise<CmsHomepage | null> {
   try {
-    const response = await fetch('/api/cms/homepage');
+    const response = await fetch(`${CMS_API_BASE}/homepage`);
     if (!response.ok) {
       return null;
     }

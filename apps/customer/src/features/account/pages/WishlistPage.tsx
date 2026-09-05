@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 
 import { WishlistSortOrder } from '@/features/wishlist/types';
 
+import { appConfig } from '@/lib/config';
 import { setDocumentMeta } from '@/lib/seo';
 
 import { useWishlistStore } from '@/stores/wishlist-store';
+
+const API_BASE = `${appConfig.PUBLIC_API_URL}/api/v1`;
 
 export default function WishlistPage() {
   const {
@@ -46,7 +49,7 @@ export default function WishlistPage() {
 
   const handleBulkRemove = async () => {
     try {
-      const res = await fetch('/api/v1/wishlist/bulk-remove', {
+      const res = await fetch(`${API_BASE}/wishlist/bulk-remove`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itemIds: Array.from(selectedItems) }),
@@ -60,7 +63,7 @@ export default function WishlistPage() {
   };
   const handleMoveToCart = async (itemId: string) => {
     try {
-      const res = await fetch('/api/v1/wishlist/bulk-move-to-cart', {
+      const res = await fetch(`${API_BASE}/wishlist/bulk-move-to-cart`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itemIds: [itemId] }),
@@ -72,7 +75,7 @@ export default function WishlistPage() {
   };
   const handleBulkMoveToCart = async () => {
     try {
-      const res = await fetch('/api/v1/wishlist/bulk-move-to-cart', {
+      const res = await fetch(`${API_BASE}/wishlist/bulk-move-to-cart`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ itemIds: Array.from(selectedItems) }),
@@ -335,7 +338,7 @@ export default function WishlistPage() {
                   <button
                     onClick={async () => {
                       try {
-                        await fetch('/api/v1/wishlist/bulk-remove', {
+                        await fetch(`${API_BASE}/wishlist/bulk-remove`, {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ itemIds: [item.id] }),

@@ -9,9 +9,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { Category } from '@nabome/types';
 
-const API_BASE = (import.meta.env.VITE_PUBLIC_API_URL as string | undefined)
-  ? `${import.meta.env.VITE_PUBLIC_API_URL}/api/v1`
-  : '/api/v1';
+import { appConfig } from '@/lib/config';
+
+const API_BASE = `${appConfig.PUBLIC_API_URL}/api/v1`;
 function unwrap<T>(j: any): T {
   return j && typeof j === 'object' && 'success' in j && 'data' in j
     ? (j.data as T)

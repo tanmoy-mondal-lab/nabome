@@ -12,6 +12,8 @@ import { useCartStore } from '@/stores/cart-store';
 import { useUiStore } from '@/stores/ui-store';
 import { useWishlistStore } from '@/stores/wishlist-store';
 
+const EMPTY_CART_ITEMS: CartItem[] = [];
+
 /**
  * Header component following NAVIGATION_ARCHITECTURE.md
  *
@@ -39,7 +41,8 @@ export function Header(): ReactNode {
 
   const theme = useUiStore((state) => state.theme);
   const toggleTheme = useUiStore((state) => state.toggleTheme);
-  const cartItems = useCartStore((state) => state.cart?.items ?? []);
+  const cart = useCartStore((state) => state.cart);
+  const cartItems = cart?.items ?? EMPTY_CART_ITEMS;
   const wishlistItems = useWishlistStore((state) => state.items);
 
   const cartCount = cartItems.reduce(

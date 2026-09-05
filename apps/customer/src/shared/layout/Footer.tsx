@@ -3,6 +3,10 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 
+import { appConfig } from '@/lib/config';
+
+const API_BASE = `${appConfig.PUBLIC_API_URL}/api/v1`;
+
 export function Footer(): ReactNode {
   const currentYear = new Date().getFullYear();
   const [email, setEmail] = useState('');
@@ -27,7 +31,7 @@ export function Footer(): ReactNode {
     }
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/v1/newsletter/subscribe', {
+      const res = await fetch(`${API_BASE}/newsletter/subscribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
