@@ -161,7 +161,7 @@ export default function WishlistPage() {
           </p>
           <div className="mt-6">
             <a
-              href="/products"
+              href="/shop"
               className="inline-flex items-center rounded-md border border-transparent bg-gray-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2"
             >
               Browse Products
@@ -271,7 +271,7 @@ export default function WishlistPage() {
                 <div className="mb-3">
                   <h3 className="line-clamp-2 text-sm font-medium text-gray-900">
                     <a
-                      href={`/products/${item.product.slug}`}
+                      href={`/product/${item.product.slug}`}
                       className="hover:underline"
                     >
                       {item.product.name}
@@ -373,7 +373,7 @@ export default function WishlistPage() {
               <p className="text-sm text-blue-800">
                 <strong>Note:</strong> You're viewing a guest wishlist.{' '}
                 <a
-                  href="/account/login"
+                  href="/login"
                   className="font-medium underline hover:text-blue-900"
                 >
                   Sign in

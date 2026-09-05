@@ -71,7 +71,7 @@ export default function CartPage() {
         <div className="text-center py-16">
           <p className="text-gray-600 mb-4">Your cart is empty</p>
           <a
-            href="/products"
+            href="/shop"
             className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
           >
             Continue Shopping
@@ -210,7 +210,7 @@ export default function CartPage() {
             </button>
 
             <a
-              href="/products"
+              href="/shop"
               className="block text-center text-blue-600 mt-4 hover:underline"
             >
               Continue Shopping

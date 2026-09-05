@@ -4,6 +4,7 @@ import type { RouteObject } from 'react-router';
 
 import { GuestRoute } from '@/shared/auth/GuestRoute';
 import { ProtectedRoute } from '@/shared/auth/ProtectedRoute';
+import { PlaceholderPage } from '@/shared/feedback/PlaceholderPage';
 import { RootLayout } from '@/shared/layout/RootLayout';
 import { ForbiddenPage } from '@/shared/pages/ForbiddenPage';
 import { NotFoundPage } from '@/shared/pages/NotFoundPage';
@@ -26,7 +27,7 @@ function lazyPage(
  * Feature routes are code-split via React Router `lazy`. Foundation pages
  * render PlaceholderPage until feature prompts land.
  */
-const routes: RouteObject[] = [
+export const routes: RouteObject[] = [
   {
     path: '/',
     element: <RootLayout />,
@@ -63,27 +64,51 @@ const routes: RouteObject[] = [
       {
         path: 'checkout',
         element: <ProtectedRoute />,
-        lazy: lazyPage(() => import('@/features/checkout/pages/CheckoutPage')),
+        children: [
+          {
+            index: true,
+            lazy: lazyPage(
+              () => import('@/features/checkout/pages/CheckoutPage'),
+            ),
+          },
+        ],
       },
       {
         path: 'order-confirmation/:orderId',
         element: <ProtectedRoute />,
-        lazy: lazyPage(
-          () => import('@/features/checkout/pages/OrderConfirmationPage'),
-        ),
+        children: [
+          {
+            index: true,
+            lazy: lazyPage(
+              () => import('@/features/checkout/pages/OrderConfirmationPage'),
+            ),
+          },
+        ],
       },
       {
         element: <GuestRoute />,
         children: [
           {
             path: 'login',
-            lazy: lazyPage(() => import('@/features/account/pages/LoginPage')),
+            children: [
+              {
+                index: true,
+                lazy: lazyPage(
+                  () => import('@/features/account/pages/LoginPage'),
+                ),
+              },
+            ],
           },
           {
             path: 'register',
-            lazy: lazyPage(
-              () => import('@/features/account/pages/RegisterPage'),
-            ),
+            children: [
+              {
+                index: true,
+                lazy: lazyPage(
+                  () => import('@/features/account/pages/RegisterPage'),
+                ),
+              },
+            ],
           },
         ],
       },
@@ -119,7 +144,151 @@ const routes: RouteObject[] = [
               () => import('@/features/wishlist/pages/WishlistPage'),
             ),
           },
+          {
+            path: 'payments',
+            element: (
+              <PlaceholderPage
+                title="Payments"
+                description="Saved payment methods are coming soon."
+              />
+            ),
+          },
+          {
+            path: 'settings',
+            element: (
+              <PlaceholderPage
+                title="Settings"
+                description="Account settings are coming soon."
+              />
+            ),
+          },
+          {
+            path: 'returns',
+            element: (
+              <PlaceholderPage
+                title="Returns"
+                description="Return management is coming soon."
+              />
+            ),
+          },
         ],
+      },
+      {
+        path: 'wishlist',
+        element: <ProtectedRoute />,
+        children: [
+          {
+            index: true,
+            lazy: lazyPage(
+              () => import('@/features/wishlist/pages/WishlistPage'),
+            ),
+          },
+        ],
+      },
+      {
+        path: 'about',
+        element: (
+          <PlaceholderPage
+            title="About Us"
+            description="Learn more about নবME soon."
+          />
+        ),
+      },
+      {
+        path: 'careers',
+        element: (
+          <PlaceholderPage title="Careers" description="Join our team soon." />
+        ),
+      },
+      {
+        path: 'press',
+        element: (
+          <PlaceholderPage
+            title="Press"
+            description="Press resources are coming soon."
+          />
+        ),
+      },
+      {
+        path: 'sustainability',
+        element: (
+          <PlaceholderPage
+            title="Sustainability"
+            description="Our sustainability story is coming soon."
+          />
+        ),
+      },
+      {
+        path: 'help/contact',
+        element: (
+          <PlaceholderPage
+            title="Contact Us"
+            description="Customer support contact options are coming soon."
+          />
+        ),
+      },
+      {
+        path: 'help/shipping',
+        element: (
+          <PlaceholderPage
+            title="Shipping & Delivery"
+            description="Shipping and delivery information is coming soon."
+          />
+        ),
+      },
+      {
+        path: 'help/returns',
+        element: (
+          <PlaceholderPage
+            title="Returns & Exchanges"
+            description="Returns and exchange information is coming soon."
+          />
+        ),
+      },
+      {
+        path: 'help/faq',
+        element: (
+          <PlaceholderPage
+            title="FAQ"
+            description="Frequently asked questions are coming soon."
+          />
+        ),
+      },
+      {
+        path: 'legal/terms',
+        element: (
+          <PlaceholderPage
+            title="Terms of Service"
+            description="Our terms of service are coming soon."
+          />
+        ),
+      },
+      {
+        path: 'legal/privacy',
+        element: (
+          <PlaceholderPage
+            title="Privacy Policy"
+            description="Our privacy policy is coming soon."
+          />
+        ),
+      },
+      {
+        path: 'legal/cookies',
+        element: (
+          <PlaceholderPage
+            title="Cookie Policy"
+            description="Our cookie policy is coming soon."
+          />
+        ),
+      },
+      {
+        path: 'legal/refunds',
+        element: (
+          <PlaceholderPage
+            title="Refund Policy"
+            description="Our refund policy is coming soon."
+          />
+        ),
       },
       { path: 'forbidden', element: <ForbiddenPage /> },
       { path: '*', element: <NotFoundPage /> },

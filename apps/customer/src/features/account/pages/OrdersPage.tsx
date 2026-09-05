@@ -125,8 +125,7 @@ export default function OrdersPage() {
                   {order.status === 'confirmed' && (
                     <button
                       onClick={() => {
-                        // Implement quick cancel
-                        navigate(`/account/orders/${order.id}/cancel`);
+                        navigate(`/account/orders/${order.id}`);
                       }}
                       className="text-red-600 hover:underline text-sm"
                     >

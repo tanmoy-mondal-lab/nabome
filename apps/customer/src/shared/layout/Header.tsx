@@ -153,7 +153,7 @@ export function Header(): ReactNode {
               Sale
             </Link>
             <Link
-              to="/categories"
+              to="/shop"
               className="text-(--text-secondary) transition-colors hover:text-(--text-brand) focus:text-(--text-brand) focus:outline-none focus:ring-2 focus:ring-(--border-focus) focus:ring-offset-2 rounded-md px-2 py-1"
             >
               Categories

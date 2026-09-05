@@ -124,12 +124,12 @@ export default function LoginPage() {
               </div>
 
               <div className="text-sm">
-                <a
-                  href="/forgot-password"
-                  className="font-medium text-indigo-600 hover:text-indigo-500"
+                <span
+                  className="font-medium text-gray-400 cursor-not-allowed"
+                  title="Password reset is coming soon"
                 >
                   Forgot password?
-                </a>
+                </span>
               </div>
             </div>
           </div>

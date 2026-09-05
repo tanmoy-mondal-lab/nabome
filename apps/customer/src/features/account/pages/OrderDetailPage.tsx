@@ -280,8 +280,9 @@ export default function OrderDetailPage() {
           )}
           {order.status === 'delivered' && (
             <button
-              onClick={() => navigate(`/account/orders/${order.id}/return`)}
-              className="bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition"
+              disabled
+              title="Return requests are coming soon"
+              className="bg-indigo-200 text-white px-6 py-3 rounded-lg font-semibold cursor-not-allowed"
             >
               Request Return
             </button>
