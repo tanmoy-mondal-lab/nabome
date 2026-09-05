@@ -1,4 +1,8 @@
+import { appConfig } from '@/lib/config';
+
 import { WishlistEventType } from './types';
+
+const ANALYTICS_BEACON_URL = `${appConfig.PUBLIC_API_URL}/api/v1/analytics/events`;
 
 export interface WishlistEvent {
   type: WishlistEventType;
@@ -100,7 +104,7 @@ class WishlistEventTracker {
     const blob = new Blob([data], { type: 'application/json' });
 
     if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-      navigator.sendBeacon('/api/analytics/events', blob);
+      navigator.sendBeacon(ANALYTICS_BEACON_URL, blob);
     }
 
     this.queue = [];
@@ -112,7 +116,7 @@ class WishlistEventTracker {
     console.log('Wishlist Events:', events);
 
     // Future implementation:
-    // await fetch('/api/analytics/events', {
+    // await fetch(`${ANALYTICS_BEACON_URL}`, {
     //   method: 'POST',
     //   headers: { 'Content-Type': 'application/json' },
     //   body: JSON.stringify({ events }),
