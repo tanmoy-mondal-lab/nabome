@@ -156,6 +156,9 @@ export const useCartStore = create<CartState>()(
           const data = await api.post<{ cart: Cart; totals: CartTotals }>(
             '/cart/merge',
             { guestId, userId },
+            // Post-login secondary call: a 401 here must never broadcast a
+            // global logout that kicks a just-authenticated user to /login.
+            { suppressSessionExpired: true },
           );
           set({ cart: data.cart, totals: data.totals, isLoading: false });
         } catch (error) {

@@ -221,6 +221,63 @@ describe('api client', () => {
     ).toBe(false);
   });
 
+  it('does not broadcast logout for suppressed secondary calls on 401', async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(unauthorized())
+      .mockResolvedValueOnce(unauthorized());
+
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+
+    const error = await request('/cart/merge', {
+      method: 'POST',
+      body: {},
+      suppressSessionExpired: true,
+    }).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiClientError);
+    if (error instanceof ApiClientError) {
+      expect(error.isSessionExpired).toBe(true);
+    }
+    const dispatched = dispatchSpy.mock.calls.map((call) => call[0] as Event);
+    expect(
+      dispatched.some((event) => event.type === SESSION_EXPIRED_EVENT),
+    ).toBe(false);
+  });
+
+  it('still recovers suppressed calls via refresh without broadcasting', async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(unauthorized())
+      .mockResolvedValueOnce(
+        jsonResponse(true, 200, {
+          success: true,
+          data: { csrfToken: 'c' },
+          meta: { requestId: 'r-refresh' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(true, 200, {
+          success: true,
+          data: { merged: true },
+          meta: { requestId: 'r-retry' },
+        }),
+      );
+
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+
+    await expect(
+      request('/cart/merge', {
+        method: 'POST',
+        body: {},
+        suppressSessionExpired: true,
+      }),
+    ).resolves.toEqual({ merged: true });
+    const dispatched = dispatchSpy.mock.calls.map((call) => call[0] as Event);
+    expect(
+      dispatched.some((event) => event.type === SESSION_EXPIRED_EVENT),
+    ).toBe(false);
+  });
+
   it('does not log out on network failure', async () => {
     globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('fetch failed'));
 

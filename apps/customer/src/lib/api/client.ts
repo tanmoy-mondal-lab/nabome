@@ -81,6 +81,13 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   skipCsrf?: boolean;
   /** Skip automatic session refresh (used internally by the refresh call). */
   skipRefresh?: boolean;
+  /**
+   * Suppress the global SESSION_EXPIRED broadcast for secondary calls
+   * (e.g. post-login cart merge). The error still throws so the caller can
+   * handle it, and the coordinated refresh retry is still attempted — a
+   * background failure must never log the user out.
+   */
+  suppressSessionExpired?: boolean;
 }
 
 let inflightRefresh: Promise<boolean> | null = null;
@@ -224,6 +231,7 @@ export async function request<T>(
     body,
     skipCsrf = false,
     skipRefresh = false,
+    suppressSessionExpired = false,
     headers,
     ...init
   } = options;
@@ -247,7 +255,7 @@ export async function request<T>(
       throw toClientError(retry, retryPayload, true);
     }
   }
-  if (clientError.isSessionExpired) {
+  if (clientError.isSessionExpired && !suppressSessionExpired) {
     logger.warn('Session expired, signaling listeners', {
       requestId: clientError.requestId,
     });
