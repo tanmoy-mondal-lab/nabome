@@ -182,10 +182,10 @@ export function Header(): ReactNode {
               <Search className="h-5 w-5" />
             </Button>
 
-            {/* Wishlist */}
+            {/* Wishlist (also in bottom nav + drawer on phones) */}
             <Link
               to="/wishlist"
-              className="relative flex items-center justify-center tap-target"
+              className="relative hidden items-center justify-center tap-target sm:flex"
               aria-label={`Wishlist (${wishlistCount} items)`}
             >
               <Heart className="h-5 w-5 text-(--text-secondary)" />

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
-vi.mock('../../_lib/auth/services-v1.ts', () => ({
+vi.mock('../../../_lib/auth/services-v1.ts', () => ({
   register: vi.fn(),
   login: vi.fn(),
   logout: vi.fn(),
@@ -11,11 +11,10 @@ vi.mock('../../_lib/auth/services-v1.ts', () => ({
   resendVerificationEmail: vi.fn(),
 }));
 
-import { handleRefresh } from '../../_handlers/auth/index.ts';
-import { refreshSession } from '../../_lib/auth/services-v1.ts';
-
-import type { RequestContext } from './context.ts';
-import { ApiError } from './errors.ts';
+import { refreshSession } from '../../../_lib/auth/services-v1.ts';
+import type { RequestContext } from '../../../_lib/http/context.ts';
+import { ApiError } from '../../../_lib/http/errors.ts';
+import { handleRefresh } from '../index.ts';
 
 const mockedRefresh = vi.mocked(refreshSession);
 
