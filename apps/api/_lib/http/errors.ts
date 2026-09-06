@@ -73,3 +73,23 @@ export class ApiError extends Error {
 export function isApiError(value: unknown): value is ApiError {
   return value instanceof ApiError;
 }
+
+const TRANSIENT_DB_PATTERNS = [
+  'timeout',
+  'timed out',
+  'temporarily',
+  'p1001',
+  "can't reach database",
+  'connection refused',
+  'econnrefused',
+  'etimedout',
+  'econnreset',
+  'connection terminated',
+  'server closed the connection',
+  'pool',
+];
+
+export function isTransientDbError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message.toLowerCase() : '';
+  return TRANSIENT_DB_PATTERNS.some((s) => msg.includes(s));
+}

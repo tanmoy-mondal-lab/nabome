@@ -5,7 +5,7 @@
  */
 export type { Env } from './env.ts';
 export type { RequestContext } from './http/context.ts';
-export { ApiError, isApiError } from './http/errors.ts';
+export { ApiError, isApiError, isTransientDbError } from './http/errors.ts';
 export {
   createdJson,
   errorJson,
@@ -35,3 +35,4 @@ export {
 } from './auth.ts';
 export type { SessionPrincipal } from './auth.ts';
 export { parseJsonBody, validate } from './validation.ts';
+export { resetStalePool } from './prisma.ts';

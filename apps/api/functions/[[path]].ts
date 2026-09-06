@@ -14,6 +14,7 @@ import {
   errorJson,
   getLogger,
   okJson,
+  resetStalePool,
   withRequestId,
 } from '../_lib/index.ts';
 
@@ -25,7 +26,7 @@ interface Data {
 const VERSION_PREFIX = `/api/${API_VERSION}`;
 let registered = false;
 
-const HANDLER_TIMEOUT_MS = 25000;
+const HANDLER_TIMEOUT_MS = 45000;
 
 function withHandlerTimeout<T>(p: Promise<T>): Promise<T> {
   return Promise.race([
@@ -129,15 +130,31 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
         if (params) {
           const handler = lookup(method, routePath ?? '');
           if (handler) {
+            // Buffer mutation bodies once so transient-DB retries can replay
+            // the request; re-running a handler on the same Request would
+            // fail with "Body has already been used".
+            let bufferedBody: ArrayBuffer | null = null;
+            if (method !== 'GET' && method !== 'HEAD') {
+              try {
+                bufferedBody = await request.clone().arrayBuffer();
+              } catch {
+                bufferedBody = null;
+              }
+            }
+            const makeReq = (): Request =>
+              bufferedBody
+                ? new Request(request, { body: bufferedBody })
+                : request;
             const run = () =>
               withHandlerTimeout(
-                Promise.resolve(handler(request, context, params)),
+                Promise.resolve(handler(makeReq(), context, params)),
               );
             lastRun = run;
             try {
               const resp = await run();
               if (await isTimeoutResponse(resp)) {
                 logger.warn({ path, method }, 'Retrying timeout response');
+                resetStalePool();
                 await new Promise((r) => setTimeout(r, 500));
                 const retryResp = await run().catch(() => null);
                 if (retryResp && !(await isTimeoutResponse(retryResp)))
@@ -149,6 +166,7 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
               const msg = (e as Error).message;
               if (msg === 'DB_TIMEOUT' || msg.includes('timeout')) {
                 logger.warn({ path, method, error: msg }, 'Retrying handler');
+                resetStalePool();
                 await new Promise((r) => setTimeout(r, 500));
                 try {
                   const retryResp = await run();
@@ -186,6 +204,7 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
         { path, method, error: message },
         'Retrying transient DB error',
       );
+      resetStalePool();
       await new Promise((r) => setTimeout(r, 2000));
       try {
         const retryResp = await run();

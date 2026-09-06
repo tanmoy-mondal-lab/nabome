@@ -8,10 +8,24 @@
 import { productListQuerySchema } from '@nabome/validation';
 
 import type { RequestContext } from '../../_lib/http/context.ts';
-import { ApiError } from '../../_lib/http/errors.ts';
+import { ApiError, isTransientDbError } from '../../_lib/http/errors.ts';
 import { okJson, errorJson } from '../../_lib/http/response.ts';
 import { productService } from '../../_lib/products/service.ts';
 import { register } from '../register.ts';
+
+function toHandlerError(error: unknown, requestId: string) {
+  if (error instanceof ApiError) return errorJson(error, requestId);
+  if (isTransientDbError(error)) {
+    return errorJson(
+      ApiError.internal('Database temporarily unavailable'),
+      requestId,
+    );
+  }
+  if (error instanceof Error) {
+    return errorJson(ApiError.validation(error.message), requestId);
+  }
+  return errorJson(ApiError.validation('Invalid request'), requestId);
+}
 
 /**
  * GET /api/v1/products — List products with filtering, sorting, and pagination
@@ -79,10 +93,7 @@ export async function handleProductsList(
       context.requestId,
     );
   } catch (error) {
-    if (error instanceof Error) {
-      return errorJson(ApiError.validation(error.message), context.requestId);
-    }
-    return errorJson(ApiError.validation('Invalid request'), context.requestId);
+    return toHandlerError(error, context.requestId);
   }
 }
 
@@ -118,10 +129,7 @@ export async function handleProductGet(
 
     return okJson(product, context.requestId);
   } catch (error) {
-    if (error instanceof Error) {
-      return errorJson(ApiError.validation(error.message), context.requestId);
-    }
-    return errorJson(ApiError.validation('Invalid request'), context.requestId);
+    return toHandlerError(error, context.requestId);
   }
 }
 
@@ -157,10 +165,7 @@ export async function handleProductGetBySlug(
 
     return okJson(product, context.requestId);
   } catch (error) {
-    if (error instanceof Error) {
-      return errorJson(ApiError.validation(error.message), context.requestId);
-    }
-    return errorJson(ApiError.validation('Invalid request'), context.requestId);
+    return toHandlerError(error, context.requestId);
   }
 }
 
@@ -187,10 +192,7 @@ export async function handleProductsFeatured(
 
     return response;
   } catch (error) {
-    if (error instanceof Error) {
-      return errorJson(ApiError.validation(error.message), context.requestId);
-    }
-    return errorJson(ApiError.validation('Invalid request'), context.requestId);
+    return toHandlerError(error, context.requestId);
   }
 }
 
@@ -217,10 +219,7 @@ export async function handleProductsNew(
 
     return response;
   } catch (error) {
-    if (error instanceof Error) {
-      return errorJson(ApiError.validation(error.message), context.requestId);
-    }
-    return errorJson(ApiError.validation('Invalid request'), context.requestId);
+    return toHandlerError(error, context.requestId);
   }
 }
 
@@ -247,10 +246,7 @@ export async function handleProductsTrending(
 
     return response;
   } catch (error) {
-    if (error instanceof Error) {
-      return errorJson(ApiError.validation(error.message), context.requestId);
-    }
-    return errorJson(ApiError.validation('Invalid request'), context.requestId);
+    return toHandlerError(error, context.requestId);
   }
 }
 

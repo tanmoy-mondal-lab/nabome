@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import { enforceCsrf, extractBearerToken, readCsrfToken } from './auth.ts';
-import { ApiError } from './http/errors.ts';
+import { ApiError, isTransientDbError } from './http/errors.ts';
 import { failure, success } from './http/response.ts';
 import { checkRateLimit } from './ratelimit.ts';
 import type { RateLimitTier } from './ratelimit.ts';
 import { resolveRequestId } from './request-id.ts';
-import { allowedOrigins, isPreflight, resolveOrigin } from './security.ts';
+import {
+  allowedOrigins,
+  applyCors,
+  isPreflight,
+  resolveOrigin,
+} from './security.ts';
 
 const env = {
   CORS_ORIGINS: 'https://nabome.online, http://localhost:5173',
@@ -123,6 +128,52 @@ describe('security', () => {
     expect(
       isPreflight(new Request('https://x.test/', { method: 'OPTIONS' })),
     ).toBe(true);
+  });
+
+  it('permits guest-cart and auth headers on preflight', () => {
+    const request = new Request('https://x.test/', {
+      headers: { origin: 'https://nabome.online' },
+    });
+    const headers = new Headers();
+    applyCors(headers, env as never, request);
+    expect(headers.get('access-control-allow-origin')).toBe(
+      'https://nabome.online',
+    );
+    expect(headers.get('access-control-allow-credentials')).toBe('true');
+    const allowHeaders =
+      headers.get('access-control-allow-headers')?.toLowerCase() ?? '';
+    expect(allowHeaders).toContain('x-guest-id');
+    expect(allowHeaders).toContain('authorization');
+    expect(allowHeaders).toContain('x-csrf-token');
+    expect(allowHeaders).toContain('content-type');
+  });
+
+  it('sets no CORS headers for disallowed origins', () => {
+    const request = new Request('https://x.test/', {
+      headers: { origin: 'https://evil.test' },
+    });
+    const headers = new Headers();
+    applyCors(headers, env as never, request);
+    expect(headers.get('access-control-allow-origin')).toBeNull();
+    expect(headers.get('access-control-allow-headers')).toBeNull();
+  });
+});
+
+describe('transient db errors', () => {
+  it('classifies cold-start pool timeouts as transient', () => {
+    expect(
+      isTransientDbError(new Error('timeout exceeded when trying to connect')),
+    ).toBe(true);
+    expect(isTransientDbError(new Error('Database timeout'))).toBe(true);
+    expect(isTransientDbError(new Error('DB_TIMEOUT'))).toBe(true);
+    expect(
+      isTransientDbError(new Error('Connection terminated unexpectedly')),
+    ).toBe(true);
+  });
+
+  it('keeps genuine validation errors as non-transient', () => {
+    expect(isTransientDbError(new Error('Invalid limit'))).toBe(false);
+    expect(isTransientDbError(new Error('Product not found'))).toBe(false);
   });
 });
 

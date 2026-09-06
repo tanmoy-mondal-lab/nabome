@@ -58,7 +58,7 @@ export function applyCors(headers: Headers, env: Env, request: Request): void {
     );
     headers.set(
       'access-control-allow-headers',
-      'content-type, x-csrf-token, x-request-id',
+      'content-type, x-csrf-token, x-request-id, x-guest-id, authorization',
     );
     headers.set('access-control-max-age', '86400');
   }

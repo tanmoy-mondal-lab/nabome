@@ -6,6 +6,11 @@ import pg from 'pg';
 let prisma: PrismaClient | null = null;
 let initialized = false;
 let pool: pg.Pool | null = null;
+let lastDatabaseUrl = '';
+let lastViaHyperdrive = false;
+let lastPoolResetAt = 0;
+let lastActiveAt = 0;
+const STALE_POOL_MS = 10000;
 
 function isLocalConnectionString(url: string): boolean {
   return url.includes('localhost') || url.includes('127.0.0.1');
@@ -15,20 +20,33 @@ export function initPrisma(
   databaseUrl: string,
   opts?: { viaHyperdrive?: boolean },
 ): PrismaClient {
-  if (initialized) return prisma!;
+  if (initialized) {
+    const now = Date.now();
+    if (now - lastActiveAt > STALE_POOL_MS) resetStalePool();
+    lastActiveAt = Date.now();
+    return prisma!;
+  }
+  lastActiveAt = Date.now();
   if (!databaseUrl) {
     throw new Error('No database URL — set DATABASE_URL secret in Cloudflare');
   }
+  lastDatabaseUrl = databaseUrl;
+  lastViaHyperdrive = Boolean(
+    opts?.viaHyperdrive || isLocalConnectionString(databaseUrl),
+  );
   const usePg = Boolean(
     opts?.viaHyperdrive || isLocalConnectionString(databaseUrl),
   );
   if (usePg) {
     pool = new pg.Pool({
       connectionString: databaseUrl,
-      max: 10,
-      connectionTimeoutMillis: 8000,
-      idleTimeoutMillis: 30000,
-      allowExitOnIdle: true,
+      max: 5,
+      connectionTimeoutMillis: 30000,
+      idleTimeoutMillis: 3000,
+      allowExitOnIdle: false,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 3000,
+      query_timeout: 60000,
     });
     pool.on('error', (err) => {
       console.error('pg Pool error', err.message);
@@ -54,6 +72,28 @@ export function getPrisma(): PrismaClient {
   return initPrisma(databaseUrl, {
     viaHyperdrive: isLocalConnectionString(databaseUrl),
   });
+}
+
+export function resetStalePool(minIntervalMs = 10000): boolean {
+  const now = Date.now();
+  if (now - lastPoolResetAt < minIntervalMs) return false;
+  lastPoolResetAt = now;
+  if (pool) {
+    const stale = pool;
+    pool = null;
+    void stale.end().catch(() => {});
+  }
+  try {
+    void prisma?.$disconnect().catch(() => {});
+  } catch {}
+  prisma = null;
+  initialized = false;
+  if (lastDatabaseUrl) {
+    try {
+      initPrisma(lastDatabaseUrl, { viaHyperdrive: lastViaHyperdrive });
+    } catch {}
+  }
+  return true;
 }
 
 export function __resetPrismaForTests(): void {
