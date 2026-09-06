@@ -366,6 +366,32 @@ export async function logoutAll(userId: string): Promise<void> {
   });
 }
 
+/**
+ * Revoke the exact session that owns a refresh token (identified by its
+ * hash, optionally scoped to a user). Lets logout target the current device
+ * session instead of guessing from "latest active session".
+ * Returns true when a live session was revoked.
+ */
+export async function logoutByRefreshToken(
+  refreshToken: string,
+  userId?: string,
+): Promise<boolean> {
+  const hashed = await hashToken(refreshToken);
+  const session = await getPrisma().session.findFirst({
+    where: {
+      ...(userId ? { userId } : {}),
+      refreshToken: hashed,
+      revokedAt: null,
+    },
+  });
+  if (!session) return false;
+  await getPrisma().session.update({
+    where: { id: session.id },
+    data: { revokedAt: new Date() },
+  });
+  return true;
+}
+
 // ── Session Refresh Service ─────────────────────────────────────────────────
 
 export interface RefreshResult {

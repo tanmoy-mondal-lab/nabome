@@ -215,19 +215,6 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
               }),
             )) as any;
             if (session) sessionId = session.id;
-            else {
-              const fallback = (await withTimeout(
-                prisma.session.findFirst({
-                  where: {
-                    userId: payload.userId,
-                    revokedAt: null,
-                    expiresAt: { gt: new Date() },
-                  },
-                  orderBy: { createdAt: 'desc' },
-                }),
-              )) as any;
-              if (fallback) sessionId = fallback.id;
-            }
           } catch {}
         }
       }

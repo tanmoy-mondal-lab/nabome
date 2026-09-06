@@ -106,7 +106,13 @@ describe('bootstrapSession', () => {
           { status: 200 },
         );
       }
-      return new Response('{}', { status: 200 });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: { accessToken: 'a', csrfToken: 'c' },
+        }),
+        { status: 200 },
+      );
     });
     vi.stubGlobal('fetch', fetchMock);
     await bootstrapSession();

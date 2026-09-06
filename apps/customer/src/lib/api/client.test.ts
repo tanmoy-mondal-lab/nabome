@@ -2,9 +2,11 @@ import { describe, expect, it, vi, afterEach } from 'vitest';
 
 import {
   ApiClientError,
+  coordinatedRefresh,
   request,
   SESSION_EXPIRED_EVENT,
   setCsrfToken,
+  __resetRefreshCoordinatorForTests,
 } from './client';
 
 const originalFetch = globalThis.fetch;
@@ -25,6 +27,7 @@ describe('api client', () => {
   afterEach(() => {
     globalThis.fetch = originalFetch;
     setCsrfToken(null);
+    __resetRefreshCoordinatorForTests();
     vi.restoreAllMocks();
   });
 
@@ -228,6 +231,62 @@ describe('api client', () => {
     expect(
       dispatched.some((event) => event.type === SESSION_EXPIRED_EVENT),
     ).toBe(false);
+  });
+
+  it('defers to a sibling tab refresh instead of double-rotating', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(true, 200, {
+        success: true,
+        data: {},
+        meta: { requestId: 'r-refresh' },
+      }),
+    );
+    globalThis.fetch = fetchMock;
+    localStorage.setItem(
+      'nabome:auth:refresh-lock',
+      JSON.stringify({ owner: 'sibling-tab', expiresAt: Date.now() + 10000 }),
+    );
+    setTimeout(() => {
+      localStorage.removeItem('nabome:auth:refresh-lock');
+      localStorage.setItem('nabome:auth:refresh-seq', String(Date.now()));
+    }, 200);
+
+    await expect(coordinatedRefresh()).resolves.toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('takes over when a sibling refresh lock goes stale', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      jsonResponse(true, 200, {
+        success: true,
+        data: {},
+        meta: { requestId: 'r-refresh' },
+      }),
+    );
+    localStorage.setItem(
+      'nabome:auth:refresh-lock',
+      JSON.stringify({ owner: 'crashed-tab', expiresAt: Date.now() - 1000 }),
+    );
+
+    await expect(coordinatedRefresh()).resolves.toBe(true);
+    expect(vi.mocked(globalThis.fetch)).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem('nabome:auth:refresh-lock')).toBeNull();
+  });
+
+  it('releases the lock so waiting tabs can proceed', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      jsonResponse(true, 200, {
+        success: true,
+        data: {},
+        meta: { requestId: 'r-refresh' },
+      }),
+    );
+
+    await expect(coordinatedRefresh()).resolves.toBe(true);
+    expect(localStorage.getItem('nabome:auth:refresh-lock')).toBeNull();
+    expect(
+      Number(localStorage.getItem('nabome:auth:refresh-seq') ?? 0),
+    ).toBeGreaterThan(0);
   });
 
   it('sends CSRF header on mutations when cookie is present', async () => {

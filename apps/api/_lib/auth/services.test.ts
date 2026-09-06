@@ -349,6 +349,39 @@ describe('Authentication Services', () => {
     });
   });
 
+  describe('logoutByRefreshToken', () => {
+    it('revokes the session owning the presented refresh token', async () => {
+      const { logoutByRefreshToken } = await import('./services-v1');
+      mockPrisma.session.findFirst.mockResolvedValue({ id: 'session-device' });
+      mockPrisma.session.update.mockResolvedValue({});
+
+      await expect(
+        logoutByRefreshToken('device-refresh-token', 'user-123'),
+      ).resolves.toBe(true);
+      expect(mockPrisma.session.findFirst).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-123',
+          refreshToken: expect.any(String),
+          revokedAt: null,
+        },
+      });
+      expect(mockPrisma.session.update).toHaveBeenCalledWith({
+        where: { id: 'session-device' },
+        data: { revokedAt: expect.any(Date) },
+      });
+    });
+
+    it('returns false when no live session owns the token', async () => {
+      const { logoutByRefreshToken } = await import('./services-v1');
+      mockPrisma.session.findFirst.mockResolvedValue(null);
+
+      await expect(
+        logoutByRefreshToken('stale-token', 'user-123'),
+      ).resolves.toBe(false);
+      expect(mockPrisma.session.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe('refreshSession', () => {
     it('should refresh session successfully', async () => {
       const mockUser = {

@@ -85,36 +85,135 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
 
 let inflightRefresh: Promise<boolean> | null = null;
 
-async function refreshSession(): Promise<boolean> {
-  if (!inflightRefresh) {
-    inflightRefresh = (async () => {
-      try {
-        const response = await fetch(`${API_URL}/auth/refresh`, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            ...csrfHeader(),
-          },
-          credentials: 'include',
-        });
-        const payload = (await response
-          .json()
-          .catch(() => null)) as ApiResponse<{ csrfToken?: string }> | null;
-        const ok = response.ok && !!payload && payload.success === true;
-        if (ok) {
-          const token = (payload as ApiSuccessResponse<{ csrfToken?: string }>)
-            .data?.csrfToken;
-          if (token) setCsrfToken(token);
-        }
-        return ok;
-      } catch {
-        return false;
-      } finally {
-        inflightRefresh = null;
-      }
-    })();
+const REFRESH_LOCK_KEY = 'nabome:auth:refresh-lock';
+const REFRESH_SEQ_KEY = 'nabome:auth:refresh-seq';
+const REFRESH_LOCK_TTL_MS = 15000;
+const SIBLING_WAIT_MS = 15000;
+const SIBLING_POLL_MS = 120;
+
+export function __resetRefreshCoordinatorForTests(): void {
+  inflightRefresh = null;
+  try {
+    localStorage.removeItem(REFRESH_LOCK_KEY);
+    localStorage.removeItem(REFRESH_SEQ_KEY);
+  } catch {
+    // storage unavailable in this environment
   }
+}
+
+function tryAcquireCrossTabLock(): string | null {
+  try {
+    const now = Date.now();
+    const raw = localStorage.getItem(REFRESH_LOCK_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as {
+        owner?: string;
+        expiresAt?: number;
+      };
+      if (parsed.owner && parsed.expiresAt && parsed.expiresAt > now) {
+        return null;
+      }
+    }
+    const owner = `${now}:${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(
+      REFRESH_LOCK_KEY,
+      JSON.stringify({ owner, expiresAt: now + REFRESH_LOCK_TTL_MS }),
+    );
+    const back = localStorage.getItem(REFRESH_LOCK_KEY);
+    if (back && (JSON.parse(back) as { owner?: string }).owner === owner) {
+      return owner;
+    }
+    return null;
+  } catch {
+    return 'in-memory';
+  }
+}
+
+function releaseCrossTabLock(owner: string | null): void {
+  if (!owner || owner === 'in-memory') return;
+  try {
+    const raw = localStorage.getItem(REFRESH_LOCK_KEY);
+    if (raw && (JSON.parse(raw) as { owner?: string }).owner === owner) {
+      localStorage.removeItem(REFRESH_LOCK_KEY);
+    }
+    localStorage.setItem(REFRESH_SEQ_KEY, String(Date.now()));
+  } catch {
+    // storage unavailable in this environment
+  }
+}
+
+async function waitForSiblingRefresh(): Promise<void> {
+  const start = Date.now();
+  let before = 0;
+  try {
+    before = Number(localStorage.getItem(REFRESH_SEQ_KEY) ?? 0);
+  } catch {
+    return;
+  }
+  for (;;) {
+    await new Promise((resolve) => setTimeout(resolve, SIBLING_POLL_MS));
+    const elapsed = Date.now() - start;
+    try {
+      const done = Number(localStorage.getItem(REFRESH_SEQ_KEY) ?? 0) > before;
+      const raw = localStorage.getItem(REFRESH_LOCK_KEY);
+      const locked = raw
+        ? ((JSON.parse(raw) as { expiresAt?: number }).expiresAt ?? 0) >
+          Date.now()
+        : false;
+      if (done || !locked || elapsed >= SIBLING_WAIT_MS) return;
+    } catch {
+      return;
+    }
+  }
+}
+
+async function performRefreshRequest(): Promise<boolean> {
+  try {
+    const response = await fetch(`${API_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...csrfHeader(),
+      },
+      credentials: 'include',
+    });
+    const payload = (await response.json().catch(() => null)) as ApiResponse<{
+      csrfToken?: string;
+    }> | null;
+    const ok = response.ok && !!payload && payload.success === true;
+    if (ok) {
+      const token = (payload as ApiSuccessResponse<{ csrfToken?: string }>).data
+        ?.csrfToken;
+      if (token) setCsrfToken(token);
+    }
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function coordinatedRefresh(): Promise<boolean> {
+  if (inflightRefresh) return inflightRefresh;
+  const owner = tryAcquireCrossTabLock();
+  if (!owner) {
+    await waitForSiblingRefresh();
+    return true;
+  }
+  inflightRefresh = (async () => {
+    try {
+      return await performRefreshRequest();
+    } catch {
+      return false;
+    } finally {
+      releaseCrossTabLock(owner);
+      inflightRefresh = null;
+    }
+  })();
   return inflightRefresh;
+}
+
+async function refreshSession(): Promise<boolean> {
+  return coordinatedRefresh();
 }
 
 export async function request<T>(

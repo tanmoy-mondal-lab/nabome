@@ -1,6 +1,12 @@
 import { useAuthStore } from '@/stores/auth-store';
 
-import { API_URL, SESSION_EXPIRED_EVENT, setCsrfToken } from './client';
+import {
+  API_URL,
+  SESSION_EXPIRED_EVENT,
+  __resetRefreshCoordinatorForTests,
+  coordinatedRefresh,
+  setCsrfToken,
+} from './client';
 
 const GUEST_PATHS = ['/login', '/register'];
 
@@ -18,6 +24,7 @@ export function __resetSessionListenerForTests(): void {
   }
   initialized = false;
   bootstrapPromise = null;
+  __resetRefreshCoordinatorForTests();
 }
 
 export function initSessionListener(): void {
@@ -42,12 +49,8 @@ async function fetchProfile(): Promise<{ user: unknown } | null> {
     credentials: 'include',
   });
   if (response.status === 401) {
-    const refresh = await fetch(`${API_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      credentials: 'include',
-    });
-    if (!refresh.ok) return null;
+    const refreshed = await coordinatedRefresh();
+    if (!refreshed) return null;
     const retry = await fetch(`${API_URL}/auth/profile`, {
       credentials: 'include',
     });

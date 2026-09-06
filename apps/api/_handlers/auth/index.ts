@@ -356,52 +356,58 @@ export async function handleLogin(
 // ── Logout Handler ─────────────────────────────────────────────────────────
 
 export async function handleLogout(
-  _request: Request,
+  request: Request,
   context: RequestContext,
   _params: Record<string, string>,
 ): Promise<Response> {
-  try {
-    const sessionId = context.sessionId;
-
-    if (!sessionId) {
-      throw ApiError.unauthorized('No session found');
-    }
-
-    await logout(sessionId);
-
-    const clearHeaders = new Headers({
+  const clearHeaders = (): Headers => {
+    const headers = new Headers({
       'Content-Type': 'application/json',
     });
     for (const cookie of clearAuthCookies()) {
-      clearHeaders.append('Set-Cookie', cookie);
+      headers.append('Set-Cookie', cookie);
     }
-    return new Response(
+    return headers;
+  };
+  const done = (): Response =>
+    new Response(
       JSON.stringify({
         success: true,
         data: { message: 'Logged out successfully' },
       }),
-      {
-        status: 200,
-        headers: clearHeaders,
-      },
+      { status: 200, headers: clearHeaders() },
     );
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: {
-            code: error.code,
-            message: error.message,
-          },
-        }),
-        {
-          status: error.status,
-          headers: { 'Content-Type': 'application/json' },
-        },
-      );
+  try {
+    const refreshCookie = readCookie(request, 'refresh_token');
+    const bearer = request.headers.get('authorization')?.replace('Bearer ', '');
+    const credential = refreshCookie || bearer || null;
+    if (credential) {
+      try {
+        const { logoutByRefreshToken } =
+          await import('../../_lib/auth/services-v1.ts');
+        const revoked = await logoutByRefreshToken(credential, context.userId);
+        if (!revoked && context.sessionId) {
+          try {
+            await logout(context.sessionId);
+          } catch {
+            // fall through to idempotent success
+          }
+        }
+      } catch {
+        // fall through to idempotent success
+      }
+      return done();
     }
-    throw error;
+    if (context.sessionId) {
+      try {
+        await logout(context.sessionId);
+      } catch {
+        // fall through to idempotent success
+      }
+    }
+    return done();
+  } catch {
+    return done();
   }
 }
 
