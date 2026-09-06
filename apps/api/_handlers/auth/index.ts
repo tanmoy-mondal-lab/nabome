@@ -18,6 +18,13 @@ import {
 } from '../../_lib/auth/services-v1.ts';
 import type { EmailConfig } from '../../_lib/email/service.ts';
 import type { RequestContext } from '../../_lib/http/context.ts';
+import {
+  accessTokenCookie,
+  clearAuthCookies,
+  csrfTokenCookie,
+  readCookie,
+  refreshTokenCookie,
+} from '../../_lib/http/cookies.ts';
 import { ApiError } from '../../_lib/http/errors.ts';
 import { checkRateLimit, clientKey } from '../../_lib/ratelimit.ts';
 import { verifyTurnstileToken } from '../../_lib/turnstile.ts';
@@ -295,18 +302,12 @@ export async function handleLogin(
     const headers = new Headers({
       'Content-Type': 'application/json',
     });
+    headers.append('Set-Cookie', accessTokenCookie(result.accessToken));
     headers.append(
       'Set-Cookie',
-      `access_token=${result.accessToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=900`,
+      refreshTokenCookie(result.refreshToken, result.session.expiresAt),
     );
-    headers.append(
-      'Set-Cookie',
-      `refresh_token=${result.refreshToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${input.rememberMe ? 2592000 : 604800}`,
-    );
-    headers.append(
-      'Set-Cookie',
-      `csrf_token=${result.csrfToken}; Path=/; Secure; SameSite=Lax; Max-Age=14400`,
-    );
+    headers.append('Set-Cookie', csrfTokenCookie(result.csrfToken));
     const response = new Response(
       JSON.stringify({
         success: true,
@@ -322,6 +323,7 @@ export async function handleLogin(
             id: result.session.id,
             expiresAt: result.session.expiresAt.toISOString(),
           },
+          csrfToken: result.csrfToken,
         },
       }),
       {
@@ -370,18 +372,9 @@ export async function handleLogout(
     const clearHeaders = new Headers({
       'Content-Type': 'application/json',
     });
-    clearHeaders.append(
-      'Set-Cookie',
-      'access_token=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0',
-    );
-    clearHeaders.append(
-      'Set-Cookie',
-      'refresh_token=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0',
-    );
-    clearHeaders.append(
-      'Set-Cookie',
-      'csrf_token=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0',
-    );
+    for (const cookie of clearAuthCookies()) {
+      clearHeaders.append('Set-Cookie', cookie);
+    }
     return new Response(
       JSON.stringify({
         success: true,
@@ -420,12 +413,26 @@ export async function handleRefresh(
   _params: Record<string, string>,
 ): Promise<Response> {
   try {
-    const refreshToken = request.headers
+    const bearerToken = request.headers
       .get('authorization')
       ?.replace('Bearer ', '');
+    const cookieToken = readCookie(request, 'refresh_token');
+    const refreshToken = bearerToken || cookieToken;
 
     if (!refreshToken) {
       throw ApiError.unauthorized('Refresh token required');
+    }
+
+    if (!bearerToken) {
+      const { enforceCsrf } = await import('../../_lib/auth.ts');
+      const { resolveOrigin } = await import('../../_lib/security.ts');
+      if (!resolveOrigin(context.env, request)) {
+        try {
+          enforceCsrf(request, 'csrf_token');
+        } catch {
+          throw ApiError.forbidden('CSRF validation failed');
+        }
+      }
     }
 
     const result = await refreshSession(
@@ -436,18 +443,12 @@ export async function handleRefresh(
     const refreshHeaders = new Headers({
       'Content-Type': 'application/json',
     });
+    refreshHeaders.append('Set-Cookie', accessTokenCookie(result.accessToken));
     refreshHeaders.append(
       'Set-Cookie',
-      `access_token=${result.accessToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=900`,
+      refreshTokenCookie(result.refreshToken, result.session.expiresAt),
     );
-    refreshHeaders.append(
-      'Set-Cookie',
-      `refresh_token=${result.refreshToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=604800`,
-    );
-    refreshHeaders.append(
-      'Set-Cookie',
-      `csrf_token=${result.csrfToken}; Path=/; Secure; SameSite=Lax; Max-Age=14400`,
-    );
+    refreshHeaders.append('Set-Cookie', csrfTokenCookie(result.csrfToken));
     return new Response(
       JSON.stringify({
         success: true,
@@ -814,7 +815,7 @@ export async function handleTestToken(
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          'Set-Cookie': `access_token=${accessToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=900`,
+          'Set-Cookie': accessTokenCookie(accessToken),
         },
       },
     );

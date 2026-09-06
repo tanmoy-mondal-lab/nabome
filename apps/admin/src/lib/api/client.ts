@@ -3,7 +3,11 @@
  * Role-aware sessions arrive via httpOnly cookies; the store only caches the
  * profile, never tokens.
  */
-import type { ApiResponse } from '@nabome/api-contracts';
+import type {
+  ApiErrorResponse,
+  ApiResponse,
+  ApiSuccessResponse,
+} from '@nabome/api-contracts';
 import { API_BASE_PATH, COOKIE } from '@nabome/constants';
 import { createBrowserLogger } from '@nabome/logging';
 
@@ -60,8 +64,14 @@ function readCookie(name: string): string | null {
   return match ? decodeURIComponent(match[1] ?? '') : null;
 }
 
+let memoryCsrfToken: string | null = null;
+
+export function setCsrfToken(token: string | null): void {
+  memoryCsrfToken = token;
+}
+
 function csrfHeader(): Record<string, string> {
-  const token = readCookie(COOKIE.csrfToken);
+  const token = memoryCsrfToken ?? readCookie(COOKIE.csrfToken);
   return token ? { 'x-csrf-token': token } : {};
 }
 
@@ -69,14 +79,91 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
   /** Skip CSRF header (never use for mutations). */
   skipCsrf?: boolean;
+  /** Skip automatic session refresh (used internally by the refresh call). */
+  skipRefresh?: boolean;
+}
+
+let inflightRefresh: Promise<boolean> | null = null;
+
+async function refreshSession(): Promise<boolean> {
+  if (!inflightRefresh) {
+    inflightRefresh = (async () => {
+      try {
+        const response = await fetch(`${API_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            ...csrfHeader(),
+          },
+          credentials: 'include',
+        });
+        const payload = (await response
+          .json()
+          .catch(() => null)) as ApiResponse<{ csrfToken?: string }> | null;
+        const ok = response.ok && !!payload && payload.success === true;
+        if (ok) {
+          const token = (payload as ApiSuccessResponse<{ csrfToken?: string }>)
+            .data?.csrfToken;
+          if (token) setCsrfToken(token);
+        }
+        return ok;
+      } catch {
+        return false;
+      } finally {
+        inflightRefresh = null;
+      }
+    })();
+  }
+  return inflightRefresh;
 }
 
 export async function request<T>(
   path: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { body, skipCsrf = false, headers, ...init } = options;
+  const {
+    body,
+    skipCsrf = false,
+    skipRefresh = false,
+    headers,
+    ...init
+  } = options;
 
+  const response = await send(path, body, skipCsrf, headers, init);
+  const payload = (await parsePayload(response)) as ApiResponse<T> | null;
+
+  if (response.ok && payload?.success === true) {
+    return (payload as ApiSuccessResponse<T>).data;
+  }
+
+  const clientError = toClientError(response, payload);
+  if (clientError.isSessionExpired && !skipRefresh) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      const retry = await send(path, body, skipCsrf, headers, init);
+      const retryPayload = (await parsePayload(retry)) as ApiResponse<T> | null;
+      if (retry.ok && retryPayload?.success === true) {
+        return (retryPayload as ApiSuccessResponse<T>).data;
+      }
+      throw toClientError(retry, retryPayload, true);
+    }
+  }
+  if (clientError.isSessionExpired) {
+    logger.warn('Session expired, signaling listeners', {
+      requestId: clientError.requestId,
+    });
+    window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+  }
+  throw clientError;
+}
+
+async function send(
+  path: string,
+  body: unknown,
+  skipCsrf: boolean,
+  headers: RequestOptions['headers'],
+  init: Omit<RequestInit, 'body' | 'headers'>,
+): Promise<Response> {
   const isMutation =
     (init.method ?? (body !== undefined ? 'POST' : 'GET')).toUpperCase() !==
     'GET';
@@ -86,41 +173,38 @@ export async function request<T>(
     ...(headers as Record<string, string> | undefined),
   };
 
-  const response = await fetch(`${API_URL}${path}`, {
+  return fetch(`${API_URL}${path}`, {
     ...init,
     headers: finalHeaders,
     body: body !== undefined ? JSON.stringify(body) : undefined,
     credentials: 'include',
   });
+}
 
-  const payload = (await response
-    .json()
-    .catch(() => null)) as ApiResponse<T> | null;
+async function parsePayload(response: Response): Promise<unknown> {
+  return response.json().catch(() => null) as Promise<unknown>;
+}
 
-  if (!response.ok || !payload || payload.success !== true) {
-    const errorBody = payload as {
-      error?: ApiClientErrorOptions;
-      meta?: { requestId?: string };
-    } | null;
-    const clientError = new ApiClientError({
-      status: response.status,
-      code: errorBody?.error?.code ?? 'INTERNAL_ERROR',
-      message:
-        errorBody?.error?.message ?? `Request failed (${response.status})`,
-      field: errorBody?.error?.field,
-      details: errorBody?.error?.details,
-      requestId: errorBody?.meta?.requestId,
+function toClientError(
+  response: Response,
+  payload: unknown,
+  retried = false,
+): ApiClientError {
+  const errorBody = payload as ApiErrorResponse | null;
+  const clientError = new ApiClientError({
+    status: response.status,
+    code: errorBody?.error.code ?? 'INTERNAL_ERROR',
+    message: errorBody?.error.message ?? `Request failed (${response.status})`,
+    field: errorBody?.error.field,
+    details: errorBody?.error.details,
+    requestId: errorBody?.meta?.requestId,
+  });
+  if (retried) {
+    logger.warn('Session refresh did not recover request', {
+      requestId: clientError.requestId,
     });
-    if (clientError.isSessionExpired) {
-      logger.warn('Session expired, signaling listeners', {
-        requestId: clientError.requestId,
-      });
-      window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
-    }
-    throw clientError;
   }
-
-  return payload.data;
+  return clientError;
 }
 
 export const api = {

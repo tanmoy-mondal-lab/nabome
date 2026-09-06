@@ -1,8 +1,14 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+
+import { useAuthStore } from '@/stores/auth-store';
 
 import { routes } from './routes';
+
+beforeEach(() => {
+  useAuthStore.getState().clearUser();
+});
 
 async function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });

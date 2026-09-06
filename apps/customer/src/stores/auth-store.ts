@@ -14,6 +14,7 @@ interface AuthState {
   status: 'idle' | 'loading' | 'authenticated' | 'guest';
   setUser: (user: User) => void;
   clearUser: () => void;
+  setLoading: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -21,16 +22,20 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
-      status: 'guest',
+      status: 'idle',
       setUser: (user) =>
         set({ user, isAuthenticated: true, status: 'authenticated' }),
       clearUser: () =>
         set({ user: null, isAuthenticated: false, status: 'guest' }),
+      setLoading: () => set({ status: 'loading' }),
     }),
     {
       name: 'nabome-auth',
-      // Persist only the profile — never tokens (CLIENT spec §2.3.2).
-      partialize: (state) => ({ user: state.user }),
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+        status: state.status,
+      }),
     },
   ),
 );

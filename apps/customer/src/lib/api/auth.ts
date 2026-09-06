@@ -2,7 +2,7 @@
  * Authentication API functions for V1 JWT+bcrypt auth.
  */
 
-import { api } from './client';
+import { api, setCsrfToken } from './client';
 
 export interface RegisterInput {
   email: string;
@@ -43,6 +43,7 @@ export interface LoginResult {
     id: string;
     expiresAt: string;
   };
+  csrfToken: string;
 }
 
 export interface RefreshResult {
@@ -55,11 +56,19 @@ export async function register(input: RegisterInput): Promise<RegisterResult> {
 }
 
 export async function login(input: LoginInput): Promise<LoginResult> {
-  return api.post<LoginResult>('/auth/login', input, { skipCsrf: true });
+  const result = await api.post<LoginResult>('/auth/login', input, {
+    skipCsrf: true,
+  });
+  if (result.csrfToken) setCsrfToken(result.csrfToken);
+  return result;
 }
 
 export async function logout(): Promise<void> {
-  return api.post<void>('/auth/logout', {}, { skipCsrf: true });
+  try {
+    await api.post<void>('/auth/logout', {}, { skipCsrf: true });
+  } finally {
+    setCsrfToken(null);
+  }
 }
 
 export async function refresh(refreshToken: string): Promise<RefreshResult> {

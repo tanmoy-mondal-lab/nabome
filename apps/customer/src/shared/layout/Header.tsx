@@ -1,4 +1,13 @@
-import { Menu, Search, ShoppingCart, Heart, User, X } from 'lucide-react';
+import {
+  Menu,
+  Search,
+  ShoppingCart,
+  Heart,
+  User,
+  X,
+  Moon,
+  Sun,
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
@@ -108,13 +117,13 @@ export function Header(): ReactNode {
           Free shipping on orders over $50
         </div> */}
 
-        <div className="mx-auto flex h-16 w-full max-w-(--container-default) items-center justify-between px-4">
+        <div className="mx-auto flex h-16 w-full max-w-(--container-default) items-center justify-between gap-2 px-3 sm:px-4">
           {/* Left: Mobile menu trigger + Brand */}
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-1 sm:gap-3">
             <Button
               variant="ghost"
               size="sm"
-              className="desktop:hidden"
+              className="tap-target shrink-0 px-2 desktop:hidden"
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Open menu"
             >
@@ -123,7 +132,7 @@ export function Header(): ReactNode {
 
             <Link
               to="/"
-              className="font-display text-xl font-semibold tracking-wide text-(--text-primary)"
+              className="truncate font-display text-lg sm:text-xl font-semibold tracking-wide text-(--text-primary)"
             >
               নবME
             </Link>
@@ -161,11 +170,12 @@ export function Header(): ReactNode {
           </nav>
 
           {/* Right: Actions */}
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
             {/* Search trigger */}
             <Button
               variant="ghost"
               size="sm"
+              className="tap-target px-2"
               onClick={() => setIsSearchOpen(true)}
               aria-label="Search"
             >
@@ -213,13 +223,14 @@ export function Header(): ReactNode {
             <Button
               variant="ghost"
               size="sm"
+              className="tap-target px-2"
               onClick={toggleTheme}
               aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
             >
               {theme === 'light' ? (
-                <span className="text-sm">Dark</span>
+                <Moon className="h-5 w-5" aria-hidden="true" />
               ) : (
-                <span className="text-sm">Light</span>
+                <Sun className="h-5 w-5" aria-hidden="true" />
               )}
             </Button>
           </div>
@@ -238,18 +249,22 @@ export function Header(): ReactNode {
       {/* Mobile menu drawer */}
       <div
         className={`fixed inset-y-0 left-0 z-(--z-modal) w-full max-w-sm transform bg-(--bg-surface) shadow-xl transition-transform duration-300 ease-in-out desktop:hidden ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          isMobileMenuOpen
+            ? 'translate-x-0 visible'
+            : '-translate-x-full invisible'
         }`}
         style={{ paddingTop: 'var(--safe-area-inset-top)' }}
         role="dialog"
         aria-modal="true"
         aria-label="Navigation menu"
+        aria-hidden={!isMobileMenuOpen}
       >
         <div className="flex h-16 items-center justify-between px-4 border-b border-(--border-default)">
           <span className="font-display text-lg font-semibold">Menu</span>
           <Button
             variant="ghost"
             size="sm"
+            className="tap-target px-2"
             onClick={() => setIsMobileMenuOpen(false)}
             aria-label="Close menu"
           >
@@ -324,6 +339,7 @@ export function Header(): ReactNode {
             <Button
               variant="ghost"
               size="sm"
+              className="tap-target px-2"
               onClick={() => setIsSearchOpen(false)}
               aria-label="Close search"
             >

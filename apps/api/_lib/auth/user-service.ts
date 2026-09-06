@@ -4,21 +4,10 @@
  * Business logic remains in backend services (not frontend).
  */
 
-import type { Address } from '@prisma/client';
+import type { Address, AddressType } from '@prisma/client';
 
 import { ApiError } from '../http/errors.ts';
-
-// ── Prisma Client ─────────────────────────────────────────────────────────────
-
-let prisma: any = null;
-
-function getPrisma() {
-  if (!prisma) {
-    // @ts-ignore - Prisma client will be generated
-    prisma = new (require('@prisma/client').PrismaClient)();
-  }
-  return prisma;
-}
+import { getPrisma } from '../prisma.ts';
 
 // ── Profile Management ─────────────────────────────────────────────────────
 
@@ -169,7 +158,7 @@ export async function removeAvatar(userId: string): Promise<UserProfile> {
 
 export interface CreateAddressInput {
   userId: string;
-  type: string;
+  type: AddressType;
   label?: string;
   line1: string;
   line2?: string;
@@ -184,7 +173,7 @@ export interface CreateAddressInput {
 export interface UpdateAddressInput {
   addressId: string;
   userId: string;
-  type?: string;
+  type?: AddressType;
   label?: string;
   line1?: string;
   line2?: string;

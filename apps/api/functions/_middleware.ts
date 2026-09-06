@@ -17,6 +17,7 @@ import { verifyToken } from '../_lib/auth/jwt.ts';
 import type { Env } from '../_lib/env.ts';
 import type { RequestContext } from '../_lib/http/context.ts';
 import {
+  allowedOrigins,
   applyCors,
   applySecurityHeaders,
   checkRateLimit,
@@ -24,6 +25,7 @@ import {
   enforceCsrf,
   getLogger,
   isPreflight,
+  resolveOrigin,
   resolveRequestId,
   withRequestId,
 } from '../_lib/index.ts';
@@ -121,12 +123,24 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
   const isAuthPath = pathname.includes('/auth/');
   const isWebhookPath = pathname.includes('/webhooks/');
   const isInternalPath = pathname.includes('/internal/');
-  const isTestBypassCsrf = Boolean((env as any).TURNSTILE_BYPASS_SECRET && request.headers.get('x-turnstile-bypass') === (env as any).TURNSTILE_BYPASS_SECRET);
+  const isTestBypassCsrf = Boolean(
+    (env as any).TURNSTILE_BYPASS_SECRET &&
+    request.headers.get('x-turnstile-bypass') ===
+      (env as any).TURNSTILE_BYPASS_SECRET,
+  );
   const isMutation = !['GET', 'HEAD', 'OPTIONS'].includes(request.method);
 
-  if (isMutation && !isAuthPath && !isWebhookPath && !isInternalPath && !isTestBypassCsrf) {
+  if (
+    isMutation &&
+    !isAuthPath &&
+    !isWebhookPath &&
+    !isInternalPath &&
+    !isTestBypassCsrf
+  ) {
     try {
-      enforceCsrf(request, env.SESSION_COOKIE_NAME || 'csrf_token');
+      if (!resolveOrigin(env, request)) {
+        enforceCsrf(request, 'csrf_token');
+      }
     } catch (error) {
       const headers = new Headers({
         'content-type': 'application/json; charset=utf-8',
@@ -262,9 +276,5 @@ async function hashToken(token: string): Promise<string> {
 }
 
 function isAllowedOrigin(env: Env, origin: string): boolean {
-  return (env.CORS_ORIGINS ?? '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .includes(origin);
+  return allowedOrigins(env).includes(origin);
 }

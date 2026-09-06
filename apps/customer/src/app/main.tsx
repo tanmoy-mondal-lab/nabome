@@ -7,6 +7,7 @@ import { ErrorBoundary } from '@/shared/feedback/ErrorBoundary';
 import { ToastProvider } from '@/shared/feedback/Toast';
 
 import { initAnalytics } from '@/lib/analytics';
+import { initSessionListener, bootstrapSession } from '@/lib/api/session';
 import { createQueryClient } from '@/lib/query-client';
 
 import { useUiStore } from '@/stores/ui-store';
@@ -17,6 +18,13 @@ import '../styles/globals.css';
 function bootstrap(): void {
   // Initialize analytics early for session tracking
   initAnalytics();
+
+  // Clear auth state and redirect when the session is genuinely expired
+  initSessionListener();
+
+  // Restore a persisted cookie session before first render so a reload
+  // is never mistaken for a logout (guards render Loading… meanwhile)
+  void bootstrapSession();
 
   // Apply saved theme before render to prevent flash
   const savedTheme = useUiStore.getState().theme;

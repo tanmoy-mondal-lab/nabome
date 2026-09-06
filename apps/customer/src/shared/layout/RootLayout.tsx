@@ -71,14 +71,14 @@ export function RootLayout(): ReactNode {
       {/* Header with sticky behavior */}
       <Header />
 
-      {/* Main content area with scroll restoration */}
+      {/* Main content area with scroll restoration.
+          No top safe-area padding here: the sticky header already accounts
+          for it, otherwise content gets a double offset on notched phones.
+          Bottom clearance equals the fixed mobile bottom-nav height plus
+          the bottom safe-area so page-end content is never hidden behind it. */}
       <main
         id="main-content"
-        className="flex-1"
-        style={{
-          paddingTop: 'var(--safe-area-inset-top)',
-          paddingBottom: 'var(--safe-area-inset-bottom)',
-        }}
+        className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom))] desktop:pb-0"
       >
         <Outlet />
       </main>

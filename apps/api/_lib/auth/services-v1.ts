@@ -44,7 +44,7 @@ async function hashToken(token: string): Promise<string> {
   return hashArray.map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function withTimeout<T>(promise: Promise<T>, ms = 20000): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms = 40000): Promise<T> {
   return Promise.race([
     promise,
     new Promise<never>((_, reject) =>
@@ -271,6 +271,7 @@ export async function login(input: LoginInput): Promise<LoginResult> {
       userId: user.id,
       email: user.email,
       role: user.role,
+      rememberMe,
     },
     jwtSecret,
   );
@@ -420,13 +421,18 @@ export async function refreshSession(
       userId: session.user.id,
       email: session.user.email,
       role: session.user.role,
+      rememberMe: payload.rememberMe ?? false,
     },
     jwtSecret,
   );
   const newCsrfToken = await generateSecureToken();
 
-  // 4. Update session with extended expiration
-  const newExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  // 4. Update session with extended expiration (preserve remember-me choice)
+  const rememberMe = payload.rememberMe ?? false;
+  const newExpiresAt = new Date(
+    Date.now() +
+      (rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000),
+  );
   await getPrisma().session.update({
     where: { id: session.id },
     data: {

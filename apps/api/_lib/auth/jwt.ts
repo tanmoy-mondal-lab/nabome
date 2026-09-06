@@ -14,6 +14,7 @@ export interface JwtPayload {
   userId: string;
   email: string;
   role: string;
+  rememberMe?: boolean;
   iat?: number;
   exp?: number;
 }

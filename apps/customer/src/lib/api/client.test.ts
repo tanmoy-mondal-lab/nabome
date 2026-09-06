@@ -1,6 +1,11 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 
-import { ApiClientError, request, SESSION_EXPIRED_EVENT } from './client';
+import {
+  ApiClientError,
+  request,
+  SESSION_EXPIRED_EVENT,
+  setCsrfToken,
+} from './client';
 
 const originalFetch = globalThis.fetch;
 
@@ -19,6 +24,7 @@ function mockFetchOnce(response: {
 describe('api client', () => {
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    setCsrfToken(null);
     vi.restoreAllMocks();
   });
 
@@ -85,6 +91,143 @@ describe('api client', () => {
     expect(
       dispatched.some((event) => event.type === SESSION_EXPIRED_EVENT),
     ).toBe(true);
+  });
+
+  function jsonResponse(ok: boolean, status: number, body: unknown) {
+    return {
+      ok,
+      status,
+      json: async () => body,
+    } as unknown as Response;
+  }
+
+  function unauthorized() {
+    return jsonResponse(false, 401, {
+      success: false,
+      data: null,
+      error: { code: 'AUTH_REQUIRED', message: 'Authentication required' },
+      meta: { requestId: 'r401' },
+    });
+  }
+
+  it('refreshes the session and retries after an expired access token', async () => {
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce(unauthorized())
+      .mockResolvedValueOnce(
+        jsonResponse(true, 200, {
+          success: true,
+          data: { accessToken: 'a', csrfToken: 'c' },
+          meta: { requestId: 'r-refresh' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(true, 200, {
+          success: true,
+          data: { id: 'cart-1' },
+          meta: { requestId: 'r-retry' },
+        }),
+      );
+
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+
+    await expect(
+      request('/cart/sync', { method: 'POST', body: {} }),
+    ).resolves.toEqual({ id: 'cart-1' });
+
+    const calls = vi.mocked(globalThis.fetch).mock.calls;
+    expect(
+      calls.filter(([url]) => String(url).endsWith('/auth/refresh')),
+    ).toHaveLength(1);
+    const retryInit = calls[2]?.[1];
+    const retryHeaders = retryInit?.headers as
+      Record<string, string> | undefined;
+    expect(retryHeaders?.['x-csrf-token']).toBe('c');
+    const dispatched = dispatchSpy.mock.calls.map((call) => call[0] as Event);
+    expect(
+      dispatched.some((event) => event.type === SESSION_EXPIRED_EVENT),
+    ).toBe(false);
+  });
+
+  it('uses a single refresh for concurrent 401s', async () => {
+    const seen = new Map<string, number>();
+    globalThis.fetch = vi.fn().mockImplementation((url: unknown) => {
+      const key = String(url);
+      seen.set(key, (seen.get(key) ?? 0) + 1);
+      if (key.endsWith('/auth/refresh')) {
+        return Promise.resolve(
+          jsonResponse(true, 200, {
+            success: true,
+            data: {},
+            meta: { requestId: 'r-refresh' },
+          }),
+        );
+      }
+      if ((seen.get(key) ?? 0) > 1) {
+        return Promise.resolve(
+          jsonResponse(true, 200, {
+            success: true,
+            data: { recovered: true },
+            meta: { requestId: 'r-retry' },
+          }),
+        );
+      }
+      return Promise.resolve(unauthorized());
+    });
+
+    const [first, second] = await Promise.all([
+      request('/cart'),
+      request('/slow'),
+    ]);
+    expect(first).toEqual({ recovered: true });
+    expect(second).toEqual({ recovered: true });
+
+    const calls = vi.mocked(globalThis.fetch).mock.calls;
+    expect(
+      calls.filter(([url]) => String(url).endsWith('/auth/refresh')),
+    ).toHaveLength(1);
+  });
+
+  it('does not log out on transient 500 errors', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue(
+      jsonResponse(false, 500, {
+        success: false,
+        data: null,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Database temporarily unavailable',
+        },
+        meta: { requestId: 'r500' },
+      }),
+    );
+
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+
+    const error = await request('/cart').catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(ApiClientError);
+    if (error instanceof ApiClientError) {
+      expect(error.isSessionExpired).toBe(false);
+    }
+    const calls = vi.mocked(globalThis.fetch).mock.calls;
+    expect(
+      calls.filter(([url]) => String(url).endsWith('/auth/refresh')),
+    ).toHaveLength(0);
+    const dispatched = dispatchSpy.mock.calls.map((call) => call[0] as Event);
+    expect(
+      dispatched.some((event) => event.type === SESSION_EXPIRED_EVENT),
+    ).toBe(false);
+  });
+
+  it('does not log out on network failure', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('fetch failed'));
+
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+
+    await expect(request('/cart')).rejects.toThrow('fetch failed');
+    const dispatched = dispatchSpy.mock.calls.map((call) => call[0] as Event);
+    expect(
+      dispatched.some((event) => event.type === SESSION_EXPIRED_EVENT),
+    ).toBe(false);
   });
 
   it('sends CSRF header on mutations when cookie is present', async () => {

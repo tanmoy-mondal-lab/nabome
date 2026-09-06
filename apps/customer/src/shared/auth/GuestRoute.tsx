@@ -9,7 +9,19 @@ import { useAuthStore } from '@/stores/auth-store';
  */
 export function GuestRoute(): ReactNode {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const status = useAuthStore((state) => state.status);
 
+  if (status === 'idle' || status === 'loading') {
+    return (
+      <div
+        className="flex min-h-[50dvh] items-center justify-center"
+        role="status"
+        aria-label="Checking session"
+      >
+        <span className="text-sm text-(--text-tertiary)">Loading…</span>
+      </div>
+    );
+  }
   if (isAuthenticated) {
     return <Navigate to="/" replace />;
   }
