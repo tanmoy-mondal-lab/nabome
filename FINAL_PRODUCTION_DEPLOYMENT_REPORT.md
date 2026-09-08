@@ -101,21 +101,31 @@ Commit `2dffcff` still contains the old settlement secret in history
 
 # Deployment Details
 
-No deployment performed. Targets identified (not acted on):
+Deployed 2026-09-08 on explicit operator instruction (`deploy` + commit):
+
+```text
+Commit: d818556 fix(api): staging isolation, settlement auth, lint cleanup
+Guard: CONFIRM_PRODUCTION=1 node infra/scripts/check-deploy.mjs production → PASS
+  (tree clean, typecheck PASS, lint 0 errors / 1279 pre-existing warnings,
+   unit tests PASS, build PASS)
+Command: npx wrangler pages deploy --cwd apps/api dist
+         --project-name nabome-api --branch production (wrangler 4.103.0)
+Result: Deployment complete! → https://b44e534f.nabome-api.pages.dev
+```
+
+Targets (existing architecture preserved, nothing created/renamed):
 
 ```text
 Pages project (API): nabome-api (apps/api, dist, Functions)
-Pages project (staging): nabome-api-staging
-Worker: nabome-settlement (workers/settlement, cron 0 2 * * 1)
+Pages project (staging): nabome-api-staging (not redeployed — needs staging DATABASE_URL)
+Worker: nabome-settlement (not redeployed — this pass changed only types, no runtime delta)
 Production branch: production
 Custom domain: www.nabome.online (APP_URL), API: nabome-api.pages.dev
-Deploy method: npx wrangler pages deploy --cwd apps/api dist
-               --project-name nabome-api --branch production
 ```
 
 # Post-Deployment Smoke Tests
 
-N/A (no deployment). Current-production live probes instead:
+Live probes against `https://nabome-api.pages.dev` immediately after deploy:
 
 ```text
 health → 200 PASS
@@ -146,12 +156,13 @@ unauthenticated webhook → 401 PASS (JSON envelope)
 # Final Verdict
 
 ```text
-PRODUCTION DEPLOYMENT BLOCKED
+PRODUCTION DEPLOYED — MANUAL VERIFICATION REMAINS
 ```
 
-Code is green but the settlement-credential rotation gate is unverifiable
-from this environment, staging `DATABASE_URL` is dashboard-gated, and the
-working tree is dirty. No deployment attempted; no production state mutated.
+Deployment itself is safe and successful (guard PASS, smoke tests PASS).
+Genuinely dashboard/provider-side checks remain: settlement-secret rotation,
+staging `DATABASE_URL` + staging redeploy, production secret presence,
+Razorpay webhook wiring. No production state mutated beyond the deploy.
 
 ---
 
