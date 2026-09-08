@@ -72,16 +72,29 @@ export async function uploadProductMedia(
     file,
     file.type || 'application/octet-stream',
   );
-  const media = await prisma.productMedia.create({
-    data: {
-      productId,
-      variantId,
-      type: file.type || 'application/octet-stream',
-      url: uploadResult.url,
-      altText,
-      sortOrder,
-    },
-  });
+  let media;
+  try {
+    media = await prisma.productMedia.create({
+      data: {
+        productId,
+        variantId,
+        type: file.type || 'application/octet-stream',
+        url: uploadResult.url,
+        altText,
+        sortOrder,
+      },
+    });
+  } catch (error) {
+    try {
+      await deleteFromStorage(env, key);
+    } catch (cleanupError) {
+      console.error(
+        'Failed to clean up orphaned storage object:',
+        cleanupError,
+      );
+    }
+    throw error;
+  }
   return {
     id: media.id,
     url: media.url,

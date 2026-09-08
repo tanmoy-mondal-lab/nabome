@@ -12,6 +12,7 @@ import { toPaise } from '@nabome/payment';
 import type { Env } from '../env';
 import { getPrisma } from '../prisma';
 
+import { getPaymentProvider } from './config';
 import { getGateway, buildGatewayCredentials } from './gateway';
 import { verifyAndCapture } from './service';
 
@@ -79,9 +80,12 @@ export async function buildReconReport(env: Env): Promise<ReconReport> {
       ) {
         // Gateway captured but local still in-flight — idempotent fix-up
         // (verifyAndCapture no-ops when already captured/completed).
+        // Recon runs server-side after fetchPayment confirmed capture, so
+        // attest like the webhook path (no interactive checkout signature).
         await verifyAndCapture(env, {
           paymentId: payment.id,
           gatewayPaymentId: reference,
+          webhookAttested: true,
         });
       } else if (gatewayState.status === 'failed') {
         mismatches.push({
@@ -148,5 +152,5 @@ export async function runReconciliation(
 
 /** Active provider name (report works with any configured provider). */
 function providerFor(env: Env): string {
-  return env.PAYMENT_PROVIDER || 'mock';
+  return getPaymentProvider(env);
 }

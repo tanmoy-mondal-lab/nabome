@@ -70,6 +70,7 @@ export class RazorpayGateway {
         method,
         headers,
         body: Object.keys(rest).length > 0 ? JSON.stringify(rest) : undefined,
+        signal: AbortSignal.timeout(15000),
       });
     } catch (err) {
       const error = err as Error;
@@ -162,7 +163,11 @@ export class RazorpayGateway {
     const res = await this.request<Record<string, unknown>>(
       'POST',
       `/payments/${req.gatewayPaymentId}/capture`,
-      { amount: req.amountPaise, idempotencyKey: req.idempotencyKey },
+      {
+        amount: req.amountPaise,
+        currency: req.currency ?? 'INR',
+        idempotencyKey: req.idempotencyKey,
+      },
     );
     return {
       captured: true,
@@ -174,7 +179,7 @@ export class RazorpayGateway {
   async refund(req: RefundRequest): Promise<RefundResult> {
     const res = await this.request<Record<string, unknown>>(
       'POST',
-      `/payments/${req.gatewayPaymentId}/refund`,
+      `/payments/${req.gatewayPaymentId}/refunds`,
       {
         amount: req.amountPaise,
         notes: { reason: req.reason },

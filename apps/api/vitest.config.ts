@@ -3,7 +3,11 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['_lib/**/*.test.ts', '_handlers/auth/__tests__/**/*.test.ts'],
+    include: [
+      '_lib/**/*.test.ts',
+      '_handlers/auth/__tests__/**/*.test.ts',
+      '_handlers/media/__tests__/**/*.test.ts',
+    ],
     exclude: [
       '**/node_modules/**',
       '_lib/admin/**',

@@ -213,6 +213,12 @@ export interface VerifyAndCaptureOptions {
   gatewayOrderId?: string;
   /** Expected amount in paise — defaults to the payment record amount. */
   amountPaise?: number;
+  /**
+   * Webhook-attested capture: the inbound webhook signature was already
+   * verified, so skip the interactive checkout signature check and confirm
+   * via fetchPayment + amount match instead. Never set from client input.
+   */
+  webhookAttested?: boolean;
 }
 
 /**
@@ -249,19 +255,39 @@ export async function verifyAndCapture(
     method?: string;
   };
   try {
-    verified = await gateway.verifyPayment({
-      gatewayOrderId:
-        opts.gatewayOrderId ??
-        payment.gatewayReference ??
-        payment.razorpayOrderId ??
-        '',
-      gatewayPaymentId: opts.gatewayPaymentId,
-      signature: opts.signature ?? '',
-      expectedAmountPaise:
-        opts.amountPaise ?? toPaise(payment.amount.toString()),
-      currency: payment.currency,
-    });
+    if (opts.webhookAttested === true) {
+      const fetched = await gateway.fetchPayment(opts.gatewayPaymentId);
+      const expectedAttested =
+        opts.amountPaise ?? toPaise(payment.amount.toString());
+      if (fetched.amountPaise !== expectedAttested) {
+        throw paymentError(
+          'PAYMENT_AMOUNT_MISMATCH',
+          'Payment amount mismatch',
+        );
+      }
+      verified = {
+        verified: true,
+        gatewayStatus: fetched.status,
+        gatewayPaymentId: opts.gatewayPaymentId,
+        amountPaise: fetched.amountPaise,
+        currency: fetched.currency ?? payment.currency,
+      };
+    } else {
+      verified = await gateway.verifyPayment({
+        gatewayOrderId:
+          opts.gatewayOrderId ??
+          payment.gatewayReference ??
+          payment.razorpayOrderId ??
+          '',
+        gatewayPaymentId: opts.gatewayPaymentId,
+        signature: opts.signature ?? '',
+        expectedAmountPaise:
+          opts.amountPaise ?? toPaise(payment.amount.toString()),
+        currency: payment.currency,
+      });
+    }
   } catch (err) {
+    if (err instanceof ApiError) throw err;
     const gatewayError = err as GatewayError;
     const code = gatewayError.failure?.code;
     if (code === 'AMOUNT_MISMATCH')

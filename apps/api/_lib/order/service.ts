@@ -426,7 +426,8 @@ export class OrderService {
           amount: order.grandTotal,
           currency: order.currency,
           status: status as any,
-          method: 'razorpay' as any,
+          method: (order.paymentMethod ?? 'upi') as any,
+          provider: 'razorpay',
         },
       });
     }
@@ -511,7 +512,8 @@ export class OrderService {
             amount: order.grandTotal,
             currency: order.currency,
             status: 'completed',
-            method: 'razorpay' as any,
+            method: (order.paymentMethod ?? 'upi') as any,
+            provider: 'razorpay',
           },
         });
       }

@@ -34,8 +34,13 @@ export function initPrisma(
   lastViaHyperdrive = Boolean(
     opts?.viaHyperdrive || isLocalConnectionString(databaseUrl),
   );
+  const isPostgresUrl =
+    databaseUrl.startsWith('postgres://') ||
+    databaseUrl.startsWith('postgresql://');
   const usePg = Boolean(
-    opts?.viaHyperdrive || isLocalConnectionString(databaseUrl),
+    opts?.viaHyperdrive ||
+    isLocalConnectionString(databaseUrl) ||
+    isPostgresUrl,
   );
   if (usePg) {
     pool = new pg.Pool({
@@ -85,13 +90,18 @@ export function resetStalePool(minIntervalMs = 10000): boolean {
   }
   try {
     void prisma?.$disconnect().catch(() => {});
-  } catch {}
+  } catch {
+    // Best-effort pool reset: disconnect failures must not break the retry path.
+  }
   prisma = null;
   initialized = false;
   if (lastDatabaseUrl) {
     try {
       initPrisma(lastDatabaseUrl, { viaHyperdrive: lastViaHyperdrive });
-    } catch {}
+    } catch {
+      // Best-effort re-init: failure leaves the pool uninitialized and the
+      // next request re-initializes via middleware.
+    }
   }
   return true;
 }

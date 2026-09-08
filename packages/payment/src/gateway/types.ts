@@ -69,6 +69,7 @@ export interface CaptureRequest {
   gatewayPaymentId: string;
   amountPaise: number;
   idempotencyKey: string;
+  currency?: string;
 }
 
 export interface CaptureResult {

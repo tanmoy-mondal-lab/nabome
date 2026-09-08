@@ -16,6 +16,11 @@ RAZORPAY_KEY_SECRET=
 RAZORPAY_WEBHOOK_SECRET=
 RESEND_API_KEY=
 TURNSTILE_SECRET_KEY=
+# Test-only Turnstile bypass (never set in staging/production)
+TURNSTILE_BYPASS_SECRET=
+# Shared secret for settlement cron worker → internal API (set via `wrangler secret put` in cloud)
+SETTLEMENT_CRON_SECRET=
+WEBHOOK_SECRET=
 # Storage (S3-compatible — Backblaze B2)
 STORAGE_ENDPOINT=https://s3.us-east-005.backblazeb2.com
 STORAGE_REGION=us-east-005

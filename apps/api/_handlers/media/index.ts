@@ -6,7 +6,7 @@
 
 import { requireAuth } from '../../_lib/auth/auth-middleware.ts';
 import type { RequestContext } from '../../_lib/http/context.ts';
-import { ApiError } from '../../_lib/http/errors.ts';
+import { ApiError, isApiError } from '../../_lib/http/errors.ts';
 import { okJson, errorJson } from '../../_lib/http/response.ts';
 import { mediaService } from '../../_lib/media/service.ts';
 import { getPrisma } from '../../_lib/prisma.ts';
@@ -74,7 +74,13 @@ export async function handleMediaUpload(
       );
     }
 
-    const sortOrder = sortOrderStr ? parseInt(sortOrderStr) : undefined;
+    const sortOrder = sortOrderStr ? parseInt(sortOrderStr, 10) : undefined;
+    if (sortOrderStr && (sortOrder === undefined || Number.isNaN(sortOrder))) {
+      return errorJson(
+        ApiError.validation('sortOrder must be an integer'),
+        context.requestId,
+      );
+    }
 
     // Get user's shop
     const prisma = getPrisma();
@@ -99,8 +105,8 @@ export async function handleMediaUpload(
 
     return okJson(result, context.requestId);
   } catch (error) {
-    if (error instanceof Error) {
-      return errorJson(ApiError.validation(error.message), context.requestId);
+    if (isApiError(error)) {
+      return errorJson(error, context.requestId);
     }
     return errorJson(ApiError.internal('Upload failed'), context.requestId);
   }
@@ -151,11 +157,8 @@ export async function handleMediaDelete(
 
     return okJson({ success: true }, context.requestId);
   } catch (error) {
-    if (error instanceof Error && error.message.includes('not found')) {
-      return errorJson(ApiError.notFound('Media not found'), context.requestId);
-    }
-    if (error instanceof Error && error.message.includes('forbidden')) {
-      return errorJson(ApiError.forbidden(error.message), context.requestId);
+    if (isApiError(error)) {
+      return errorJson(error, context.requestId);
     }
     return errorJson(ApiError.internal('Delete failed'), context.requestId);
   }
@@ -213,11 +216,8 @@ export async function handleMediaUpdate(
 
     return okJson(media, context.requestId);
   } catch (error) {
-    if (error instanceof Error && error.message.includes('not found')) {
-      return errorJson(ApiError.notFound('Media not found'), context.requestId);
-    }
-    if (error instanceof Error && error.message.includes('forbidden')) {
-      return errorJson(ApiError.forbidden(error.message), context.requestId);
+    if (isApiError(error)) {
+      return errorJson(error, context.requestId);
     }
     return errorJson(ApiError.internal('Update failed'), context.requestId);
   }
@@ -246,6 +246,9 @@ export async function handleMediaGetByProduct(
 
     return okJson({ media }, context.requestId);
   } catch (error) {
+    if (isApiError(error)) {
+      return errorJson(error, context.requestId);
+    }
     return errorJson(
       ApiError.internal('Failed to fetch media'),
       context.requestId,

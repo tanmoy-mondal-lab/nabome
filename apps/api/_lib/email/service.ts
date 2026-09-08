@@ -25,6 +25,8 @@ export async function sendEmail(
   config: EmailConfig,
   options: SendEmailOptions,
 ): Promise<void> {
+  if (!config.apiKey)
+    throw new Error('RESEND_API_KEY not configured — email not sent');
   const response = await fetch(RESEND_API_URL, {
     method: 'POST',
     headers: {

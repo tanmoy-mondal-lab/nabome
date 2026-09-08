@@ -190,6 +190,7 @@ export interface PaymentRepository {
     data: Omit<Refund, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<Refund>;
   getRefundById(id: string): Promise<Refund | null>;
+  getRefundByIdempotencyKey?(idempotencyKey: string): Promise<Refund | null>;
   getRefundsByPaymentId(paymentId: string): Promise<Refund[]>;
   getRefundsByOrderId(orderId: string): Promise<Refund[]>;
   updateRefund(id: string, data: Partial<Refund>): Promise<Refund>;
@@ -425,6 +426,16 @@ export class MockPaymentRepository implements PaymentRepository {
 
   async getRefundById(id: string): Promise<Refund | null> {
     return this.refunds.get(id) || null;
+  }
+
+  async getRefundByIdempotencyKey(
+    idempotencyKey: string,
+  ): Promise<Refund | null> {
+    return (
+      Array.from(this.refunds.values()).find(
+        (r) => r.idempotencyKey === idempotencyKey,
+      ) || null
+    );
   }
 
   async getRefundsByPaymentId(paymentId: string): Promise<Refund[]> {

@@ -136,34 +136,71 @@ async function processEvent(
     event.eventType === 'payment.captured' ||
     event.eventType === 'payment.authorized'
   ) {
-    if (!event.gatewayPaymentId)
+    if (!event.gatewayPaymentId && !event.gatewayOrderId)
       throw webhookError(
         'PAYMENT_NOT_CAPTURED',
         'Webhook missing gateway payment id',
       );
     const payment = await prisma.payment.findFirst({
-      where: { provider, gatewayReference: event.gatewayPaymentId },
+      where: {
+        provider,
+        OR: [
+          ...(event.gatewayPaymentId
+            ? [
+                { gatewayReference: event.gatewayPaymentId },
+                { razorpayPaymentId: event.gatewayPaymentId },
+              ]
+            : []),
+          ...(event.gatewayOrderId
+            ? [
+                { gatewayReference: event.gatewayOrderId },
+                { razorpayOrderId: event.gatewayOrderId },
+              ]
+            : []),
+        ],
+      },
     });
     if (!payment) {
       // Unknown to us — nothing to reconcile locally; ack to stop retries.
       return;
     }
     // Idempotent fallback: no-ops when already captured/completed (service guard).
+    // Webhook HMAC already verified above — attest so verifyAndCapture uses
+    // fetchPayment + amount match instead of the interactive checkout signature.
     await verifyAndCapture(env, {
       paymentId: payment.id,
-      gatewayPaymentId: event.gatewayPaymentId,
+      gatewayPaymentId:
+        event.gatewayPaymentId ?? payment.razorpayPaymentId ?? '',
+      webhookAttested: true,
+      amountPaise: event.amountPaise || undefined,
     });
     return;
   }
 
   if (event.eventType === 'payment.failed') {
-    if (!event.gatewayPaymentId)
+    if (!event.gatewayPaymentId && !event.gatewayOrderId)
       throw webhookError(
         'PAYMENT_NOT_CAPTURED',
         'Webhook missing gateway payment id',
       );
     const payment = await prisma.payment.findFirst({
-      where: { provider, gatewayReference: event.gatewayPaymentId },
+      where: {
+        provider,
+        OR: [
+          ...(event.gatewayPaymentId
+            ? [
+                { gatewayReference: event.gatewayPaymentId },
+                { razorpayPaymentId: event.gatewayPaymentId },
+              ]
+            : []),
+          ...(event.gatewayOrderId
+            ? [
+                { gatewayReference: event.gatewayOrderId },
+                { razorpayOrderId: event.gatewayOrderId },
+              ]
+            : []),
+        ],
+      },
     });
     if (!payment) return;
     await markPaymentFailed(

@@ -9,12 +9,8 @@ crons = ["0 2 * * 1"]
 [vars]
 ENVIRONMENT = "production"
 LOG_LEVEL = "info"
-SETTLEMENT_CRON_SECRET = "ca81c2a2b72c6925f806fcdc213d3fffe345fe8aeb3c94cd6a752bb6e71bf857"
+# SETTLEMENT_CRON_SECRET must be set via `wrangler secret put SETTLEMENT_CRON_SECRET` — never commit values.
 SETTLEMENT_API_URL = "https://nabome-api.pages.dev"
-
-[[hyperdrive]]
-binding = "HYPERDRIVE"
-id = "e2b5c6e70f164e189bebf1cc1282428f"
 
 [[kv_namespaces]]
 binding = "KV"

@@ -88,6 +88,9 @@ export function getStorageProvider(env: Env): StorageProvider {
 }
 
 export function validateFile(file: File): FileValidation {
+  if (file.size === 0) {
+    return { valid: false, error: 'File is empty' };
+  }
   if (file.size > MEDIA.maxFileSizeBytes) {
     return {
       valid: false,

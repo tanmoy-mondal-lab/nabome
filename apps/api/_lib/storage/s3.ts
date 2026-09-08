@@ -63,6 +63,7 @@ export async function s3Upload(
     method: 'PUT',
     headers: { 'content-type': contentType },
     body: data as any,
+    signal: AbortSignal.timeout(30000),
   });
   if (!response.ok) {
     const text = await response.text().catch(() => '');
@@ -83,7 +84,10 @@ export async function s3Delete(
     region: config.region,
     service: 's3',
   });
-  const response = await client.fetch(url, { method: 'DELETE' });
+  const response = await client.fetch(url, {
+    method: 'DELETE',
+    signal: AbortSignal.timeout(15000),
+  });
   if (!response.ok && response.status !== 404) {
     const text = await response.text().catch(() => '');
     throw ApiError.internal(
@@ -103,7 +107,10 @@ export async function s3Exists(
     region: config.region,
     service: 's3',
   });
-  const response = await client.fetch(url, { method: 'HEAD' });
+  const response = await client.fetch(url, {
+    method: 'HEAD',
+    signal: AbortSignal.timeout(15000),
+  });
   if (response.ok) return true;
   if (response.status === 404) return false;
   const text = await response.text().catch(() => '');

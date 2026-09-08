@@ -29,11 +29,4 @@
       "preview_id": "7cb2d643a3ed4165ad24eb7814643027",
     },
   ],
-  "hyperdrive": [
-    {
-      "binding": "HYPERDRIVE",
-      "id": "e2b5c6e70f164e189bebf1cc1282428f",
-      "localConnectionString": "postgres://nabome:nabome@localhost:5432/nabome",
-    },
-  ],
 }

@@ -405,6 +405,8 @@ async function createPayment(
     createRefund: async (data: any) => prisma.refund.create({ data }),
     getRefundById: async (id: string) =>
       prisma.refund.findUnique({ where: { id } }),
+    getRefundByIdempotencyKey: async (key: string) =>
+      prisma.refund.findUnique({ where: { idempotencyKey: key } }),
     getRefundsByPaymentId: async (paymentId: string) =>
       prisma.refund.findMany({ where: { paymentId } }),
     getRefundsByOrderId: async (orderId: string) =>
@@ -474,6 +476,7 @@ async function createPayment(
     customerEmail: body.customerEmail,
     customerPhone: body.customerPhone,
     metadata: body.metadata,
+    idempotencyKey: (body as any).idempotencyKey ?? idempotencyKey,
   });
 
   if (!result.success) {
@@ -530,6 +533,8 @@ async function verifyPayment(
     createRefund: async (data: any) => prisma.refund.create({ data }),
     getRefundById: async (id: string) =>
       prisma.refund.findUnique({ where: { id } }),
+    getRefundByIdempotencyKey: async (key: string) =>
+      prisma.refund.findUnique({ where: { idempotencyKey: key } }),
     getRefundsByPaymentId: async (paymentId: string) =>
       prisma.refund.findMany({ where: { paymentId } }),
     getRefundsByOrderId: async (orderId: string) =>
@@ -654,6 +659,8 @@ async function processRefund(
       prisma.payment.findMany({ where: { isActive: true } }),
     getRefundById: async (id: string) =>
       prisma.refund.findUnique({ where: { id } }),
+    getRefundByIdempotencyKey: async (key: string) =>
+      prisma.refund.findUnique({ where: { idempotencyKey: key } }),
     getRefundsByOrderId: async (orderId: string) =>
       prisma.refund.findMany({ where: { orderId } }),
     listRefunds: async () =>
@@ -775,6 +782,8 @@ async function createSettlement(
     createRefund: async (data: any) => prisma.refund.create({ data }),
     getRefundById: async (id: string) =>
       prisma.refund.findUnique({ where: { id } }),
+    getRefundByIdempotencyKey: async (key: string) =>
+      prisma.refund.findUnique({ where: { idempotencyKey: key } }),
     getRefundsByPaymentId: async (paymentId: string) =>
       prisma.refund.findMany({ where: { paymentId } }),
     getRefundsByOrderId: async (orderId: string) =>

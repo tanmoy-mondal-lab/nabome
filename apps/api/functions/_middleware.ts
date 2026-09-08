@@ -70,14 +70,34 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
   next,
   data,
 }) => {
-  const hyperdriveCs = (
-    env as unknown as { HYPERDRIVE?: { connectionString?: string } }
-  ).HYPERDRIVE?.connectionString;
-  const databaseUrl = hyperdriveCs ?? env.DATABASE_URL ?? '';
-  initPrisma(databaseUrl, { viaHyperdrive: Boolean(hyperdriveCs) });
+  const requestId = resolveRequestId(request);
+  try {
+    const hyperdriveCs = (
+      env as unknown as { HYPERDRIVE?: { connectionString?: string } }
+    ).HYPERDRIVE?.connectionString;
+    const databaseUrl = hyperdriveCs ?? env.DATABASE_URL ?? '';
+    initPrisma(databaseUrl, { viaHyperdrive: Boolean(hyperdriveCs) });
+  } catch (error) {
+    const headers = new Headers({
+      'content-type': 'application/json; charset=utf-8',
+    });
+    applyCors(headers, env, request);
+    applySecurityHeaders(headers);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        data: null,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Database temporarily unavailable',
+        },
+        meta: { requestId, version: API_VERSION },
+      }),
+      { status: 500, headers },
+    );
+  }
 
   const logger = getLogger(env);
-  const requestId = resolveRequestId(request);
 
   const origin = request.headers.get('origin');
   const allowedOrigin = origin && isAllowedOrigin(env, origin) ? origin : null;
@@ -192,7 +212,6 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
           try {
             const { getPrisma } = await import('../_lib/prisma.ts');
             const prisma = getPrisma() as any;
-            const tokenHash = await hashToken(rawToken);
             const withTimeout = <T>(
               p: Promise<T>,
               ms = 10000,
@@ -209,8 +228,7 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
                   userId: payload.userId,
                   revokedAt: null,
                   expiresAt: { gt: new Date() },
-                  refreshTokenHash: tokenHash,
-                } as any,
+                },
                 orderBy: { createdAt: 'desc' },
               }),
             )) as any;
@@ -253,14 +271,6 @@ export const onRequest: PagesFunction<Env, 'requestId' | 'context'> = async ({
     headers,
   });
 };
-
-async function hashToken(token: string): Promise<string> {
-  const data = new TextEncoder().encode(token);
-  const buf = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
-}
 
 function isAllowedOrigin(env: Env, origin: string): boolean {
   return allowedOrigins(env).includes(origin);

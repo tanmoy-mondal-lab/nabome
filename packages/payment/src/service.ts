@@ -425,7 +425,7 @@ export class PaymentService {
         request.idempotencyKey ?? generateIdempotencyKey('refund');
       const existingRefund = request.idempotencyKey
         ? await this.repository
-            .getRefundById(request.idempotencyKey)
+            .getRefundByIdempotencyKey?.(request.idempotencyKey)
             .catch(() => null)
         : null;
       if (existingRefund)
